@@ -1,0 +1,59 @@
+PLUGDIR=../../../X-Plane-12/Resources/plugins/sam_se
+
+include version.mak
+
+#https://stackoverflow.com/questions/61311317/change-path-in-makefile
+export PATH:=/osxcross/target/bin:$(PATH)
+
+SDK=../SDK
+OBJDIR=./OBJ_osx
+
+TARGET=$(OBJDIR)/sam_se.xpl
+HEADERS=$(wildcard *.h)
+SOURCES=$(wildcard *.c)
+OBJECTS_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o_arm))
+OBJECTS_x86=$(OBJECTS_arm:.o_arm=.o_x86)
+
+CCx=o64-clang -mmacosx-version-min=10.10
+CCa=oa64-clang -mmacosx-version-min=10.10
+
+DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -DNDEBUG
+
+CFLAGS+=-O2 -Wall -I$(SDK)/CHeaders/XPLM -DVERSION=\"$(VERSION)\" $(DEFS)
+
+LNFLAGS+=-dynamiclib -shared -rdynamic -fvisibility=hidden -Wl,-exported_symbols_list -Wl,linkscript.mac
+
+# https://pewpewthespells.com/blog/static_and_dynamic_libraries.html
+LIBS+= -F $(SDK)/Libraries/Mac -framework XPLM
+
+# ships with macOS
+LIBS+=-liconv
+
+#test:
+#    $(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
+
+all: $(TARGET)
+    $(shell [ -d $(OBJDIR) ] || mkdir $(OBJDIR))
+
+$(OBJDIR)/%.o_arm: %.c version.mak
+	$(CCa) $(CFLAGS) -o $@ -c $<
+
+$(OBJDIR)/%.o_x86: %.c  version.mak
+	$(CCx) $(CFLAGS) -o $@ -c $<
+
+$(TARGET)_arm: $(OBJECTS_arm)
+	$(CCa) -o $@ $(LNFLAGS) $(OBJECTS_arm) $(LIBS)
+
+$(TARGET)_x86: $(OBJECTS_x86)
+	$(CCx) -o $@ $(LNFLAGS) $(OBJECTS_x86) $(LIBS)
+
+$(TARGET): $(TARGET)_arm $(TARGET)_x86
+	lipo -create -output $@ $(TARGET)_arm $(TARGET)_x86
+
+# install the just compiled target
+install: $(TARGET)
+	mkdir -p "$(PLUGDIR)/mac_x64"
+	cp -p $(TARGET) "$(PLUGDIR)/mac_x64/."
+
+clean:
+	rm -f $(TARGET) $(OBJDIR)/*.o_* $(OBJDIR)/*.xpl_*
