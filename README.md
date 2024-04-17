@@ -1,2 +1,4 @@
-# sam_seasons_emulator
-A thin plugin for XP12 that drives the seasons related datarefs for a SAM free X-Plane.
+# openSAM
+An open soft plugin that drives SAM jetways
+
+WIP + experimantal
