@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <math.h>
 
 #define XPLM200
 #include "XPLMPlugin.h"
@@ -31,8 +32,15 @@
 #include "XPLMUtilities.h"
 #include "XPLMProcessing.h"
 #include "XPLMMenus.h"
+#include "XPLMGraphics.h"
 
 #include "openSAM.h"
+
+static const float D2R = M_PI/180.0;
+static const float F2M = 0.3048;	/* 1 ft [m] */
+static const float LON_D2M = 111120;    /* 1° lon in m */
+static const float FAR_SKIP = 4000; /* don't consider jetways farther than that */
+static const float NEAR_SKIP = 2; /* don't consider jetways farther than that */
 
 static char pref_path[512];
 static const char *psep;
@@ -43,7 +51,7 @@ static int airport_loaded;
 
 static XPLMDataRef date_day_dr,
     plane_x_dr, plane_y_dr, plane_z_dr, plane_lat_dr, plane_lon_dr, plane_elevation_dr,
-    plane_true_psi_dr, y_agl_dr,
+    plane_true_psi_dr, y_agl_dr, lat_ref_dr, lon_ref_dr,
 
     draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
     beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr,
@@ -55,6 +63,13 @@ static int season; // 0-3
 static const char *dr_name[] = {"sam/season/winter", "sam/season/spring",
             "sam/season/summer", "sam/season/autumn"};
 
+// keep in sync!
+typedef enum dr_code_e {
+    DR_ROTATE1, DR_ROTATE2, DR_ROTATE3, DR_EXTENT,
+    DR_WHEELS, DR_WHEELROTATEC, DR_WHEELROTATER, DR_WHEELROTATEL,
+    N_JW_DR
+} dr_code_t;
+
 static const char *dr_name_jw[] = {
     "sam/jetway/rotate1",
     "sam/jetway/rotate2",
@@ -64,7 +79,11 @@ static const char *dr_name_jw[] = {
     "sam/jetway/wheelrotatec",
     "sam/jetway/wheelrotater",
     "sam/jetway/wheelrotatel"};
-#define N_JW_DR 8
+
+static float lat_ref = -1000, lon_ref = -1000;
+static unsigned int ref_gen;
+
+static unsigned int stat_far_skip, stat_near_skip, stat_acc_called, stat_jw_match;
 
 static void
 save_pref()
@@ -106,7 +125,7 @@ load_pref()
     }
 }
 
-// Accessor for the "sam/season/*" dataref
+// Accessor for the "sam/season/*" datarefs
 static int
 read_season_acc(void *ref)
 {
@@ -117,17 +136,68 @@ read_season_acc(void *ref)
     return val;
 }
 
-// Accessor for the "sam/jetway/*" dataref
+// Accessor for the "sam/jetway/*" datarefs
 static float
 read_jw_acc(void *ref)
 {
-    int i = (long long)ref;
-    //log_msg("accessor %s called", dr_name_jw[i]);
-    if (i == 3)
-        return 4.0;
+    stat_acc_called++;
 
-    if (i == 0)
-        return -45.0;
+    float now = XPLMGetDataf(total_running_time_sec_dr);
+
+    float lat = XPLMGetDataf(plane_lat_dr);
+    float lon = XPLMGetDataf(plane_lon_dr);
+
+    float obj_x = XPLMGetDataf(draw_object_x_dr);
+    float obj_y = XPLMGetDataf(draw_object_y_dr);
+    float obj_z = XPLMGetDataf(draw_object_z_dr);
+
+    // check for shift of regerence frame
+    float lat_r = XPLMGetDataf(lat_ref_dr);
+    float lon_r = XPLMGetDataf(lon_ref_dr);
+
+    if (lat_r != lat_ref || lon_r != lon_ref) {
+        lat_ref = lat_r;
+        lon_ref = lon_r;
+        ref_gen++;
+        log_msg("reference frame shift");
+    }
+
+    for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
+        //log_msg("lat: %f %f", lat, jw->latitude);
+        //log_msg("lon: %f %f", lon, jw->longitude);
+       
+        float dlon_m = fabs(lon - jw->longitude) * LON_D2M;
+        float dlat_m = fabs(lat - jw->latitude) * cosf(D2R * lat) * LON_D2M;
+
+        if (dlon_m > FAR_SKIP || dlat_m > FAR_SKIP) {
+            stat_far_skip++;
+            continue;
+        }
+
+        if (jw->ref_gen < ref_gen) {
+            XPLMWorldToLocal(jw->latitude, jw->longitude, 0.0, &jw->x, &jw->y, &jw->z);
+            jw->ref_gen = ref_gen;
+        }
+
+        if (fabs(obj_x - jw->x) > NEAR_SKIP || fabs(obj_z - jw->z) > NEAR_SKIP) {
+            stat_near_skip++;
+            continue;
+        }
+
+        // have a match
+        stat_jw_match++;
+        dr_code_t drc = (long long)ref;
+        //log_msg("accessor %s called", dr_name_jw[i]);
+        if (drc == DR_EXTENT)
+            return 4.0;
+
+        if (drc == DR_ROTATE1)
+            return -45.0;
+
+        return 0.0;
+
+        //printf("%s %5.6f %5.6f\n", jw->name, jw->latitude, jw->longitude);
+    }
 
     return 0.0;
 }
@@ -233,6 +303,9 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     date_day_dr = XPLMFindDataRef("sim/time/local_date_days");
 
+    lat_ref_dr = XPLMFindDataRef("sim/flightmodel/position/lat_ref");
+    lon_ref_dr = XPLMFindDataRef("sim/flightmodel/position/lon_ref");
+
     plane_x_dr = XPLMFindDataRef("sim/flightmodel/position/local_x");
     plane_y_dr = XPLMFindDataRef("sim/flightmodel/position/local_y");
     plane_z_dr = XPLMFindDataRef("sim/flightmodel/position/local_z");
@@ -282,11 +355,14 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     log_msg("%d sam jetways found", n_sam_jws);
 
     if (n_sam_jws > 0) {
+        for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
+            log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
+        }
         /* create the jetway datarefs */
-        for (int i = 0; i < N_JW_DR; i++)
-            XPLMRegisterDataAccessor(dr_name_jw[i], xplmType_Float, 0, NULL,
+        for (dr_code_t drc = DR_ROTATE1; drc < N_JW_DR; drc++)
+            XPLMRegisterDataAccessor(dr_name_jw[drc], xplmType_Float, 0, NULL,
                                      NULL, read_jw_acc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                     NULL, NULL, NULL, (void *)(long long)i, NULL);
+                                     NULL, NULL, NULL, (void *)(long long)drc, NULL);
     }
 
     return 1;
@@ -303,6 +379,9 @@ PLUGIN_API void
 XPluginDisable(void)
 {
     save_pref();
+    log_msg("acc called:  %u", stat_acc_called);
+    log_msg("far skip:    %u", stat_far_skip);
+    log_msg("near skip:   %u", stat_near_skip);
 }
 
 

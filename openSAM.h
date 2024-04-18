@@ -20,6 +20,12 @@
 
 */
 typedef struct _sam_jw  {
+
+    /* local x,y,z */
+    double x, y ,z;
+    unsigned int ref_gen;   /* only valid if this matches the generation of the ref frame*/
+
+    /* these are from sam.xml */
     char name[40];
     char sound[40];
 

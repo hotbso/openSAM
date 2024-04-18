@@ -21,7 +21,7 @@ LIBS=-L$(SDK)/Libraries/Win -lXPLM_64
 
 all: $(TARGET) sam_xml_test.exe
 
-$(OBJDIR)/%.o: %.c version.mak
+$(OBJDIR)/%.o: %.c $(HEADERS) version.mak
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -o $@ -c $<
 

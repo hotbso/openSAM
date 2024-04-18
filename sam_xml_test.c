@@ -37,7 +37,7 @@ main(int argc, char **argv) {
 
     printf("%d jetways collected\n", n_sam_jws);
     for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
-        printf("%s %5.6f %5.6f\n", jw->name, jw->latitude, jw->longitude);
+        log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
     }
 	return (1);
 }
