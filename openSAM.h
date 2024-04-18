@@ -25,6 +25,9 @@ typedef struct _sam_jw  {
     double x, y ,z;
     unsigned int ref_gen;   /* only valid if this matches the generation of the ref frame*/
 
+    float rotate1, rotate2, rotate3, extent, wheels,
+          wheelrotatec, wheelrotater, wheelrotatel;
+
     /* these are from sam.xml */
     char name[40];
     char sound[40];

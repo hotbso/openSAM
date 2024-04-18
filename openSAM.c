@@ -187,16 +187,37 @@ read_jw_acc(void *ref)
         // have a match
         stat_jw_match++;
         dr_code_t drc = (long long)ref;
-        //log_msg("accessor %s called", dr_name_jw[i]);
-        if (drc == DR_EXTENT)
-            return 4.0;
-
-        if (drc == DR_ROTATE1)
-            return -45.0;
-
+        switch (drc) {
+            case DR_ROTATE1:
+                return jw->rotate1;
+                break;
+            case DR_ROTATE2:
+                return jw->rotate2;
+                break;
+            case DR_ROTATE3:
+                return jw->rotate3;
+                break;
+            case DR_EXTENT:
+                return jw->extent;
+                break;
+            case DR_WHEELS:
+                return jw->wheels;
+                break;
+            case DR_WHEELROTATEC:
+                return jw->wheelrotatec;
+                break;
+            case DR_WHEELROTATER: 
+                return jw->wheelrotater;
+                break;
+            case DR_WHEELROTATEL:
+                return jw->wheelrotatel;
+                break;
+            default:
+                log_msg("Accessor got invalid DR code: %d", drc);
+                return 0.0f;
+        }
+ 
         return 0.0;
-
-        //printf("%s %5.6f %5.6f\n", jw->name, jw->latitude, jw->longitude);
     }
 
     return 0.0;
@@ -356,8 +377,13 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     if (n_sam_jws > 0) {
         for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
+            jw->rotate1 = jw->initialRot1;
+            jw->rotate2 = jw->initialRot2;
+            jw->rotate3 = jw->initialRot3;
+            jw->extent = jw->initialExtent;
             log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
-        }
+       }
+
         /* create the jetway datarefs */
         for (dr_code_t drc = DR_ROTATE1; drc < N_JW_DR; drc++)
             XPLMRegisterDataAccessor(dr_name_jw[drc], xplmType_Float, 0, NULL,

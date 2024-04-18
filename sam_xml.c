@@ -42,7 +42,7 @@ extract_float(const char *line, const char *prop) {
     cptr++;
 
     float res = atof(cptr);
-    //printf("%15s %8.3f\n", prop, res);
+    //log_msg("%15s '%s' %8.3f", prop, cptr, res);
     return res;
 }
 
@@ -109,7 +109,7 @@ get_sam_props(const char *line, sam_jw_t *sam_jw)
 static int
 read_sam_xml(FILE *f)
 {
-    char line[500];
+    char line[2000];    // can be quite long
 
     while (fgets(line, sizeof(line) - 1, f)) {
         char *cptr = strstr(line, "<jetway ");
@@ -119,7 +119,7 @@ read_sam_xml(FILE *f)
         if ((cptr = strchr(line, '\r')))
             *cptr = '\0';
 
-        //printf("%s", line);
+        //log_msg("%s", line);
         if (n_sam_jws == max_sam_jws) {
             max_sam_jws += 100;
             sam_jws = realloc(sam_jws, max_sam_jws * sizeof(sam_jw_t));
