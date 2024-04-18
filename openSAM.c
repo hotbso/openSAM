@@ -83,7 +83,7 @@ static const char *dr_name_jw[] = {
 static float lat_ref = -1000, lon_ref = -1000;
 static unsigned int ref_gen;
 
-static unsigned int stat_far_skip, stat_near_skip, stat_acc_called, stat_jw_match;
+static unsigned long long int stat_far_skip, stat_near_skip, stat_acc_called, stat_jw_match;
 
 static void
 save_pref()
@@ -381,7 +381,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
             jw->rotate2 = jw->initialRot2;
             jw->rotate3 = jw->initialRot3;
             jw->extent = jw->initialExtent;
-            log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
+            //log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
        }
 
         /* create the jetway datarefs */
@@ -405,9 +405,9 @@ PLUGIN_API void
 XPluginDisable(void)
 {
     save_pref();
-    log_msg("acc called:  %u", stat_acc_called);
-    log_msg("far skip:    %u", stat_far_skip);
-    log_msg("near skip:   %u", stat_near_skip);
+    log_msg("acc called:  %llu", stat_acc_called);
+    log_msg("far skip:    %llu", stat_far_skip);
+    log_msg("near skip:   %llu", stat_near_skip);
 }
 
 

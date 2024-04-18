@@ -30,7 +30,7 @@
 int
 main(int argc, char **argv) {
 
-    if (!collect_sam_xml("null")) {
+    if (!collect_sam_xml("E:/X-Plane-12-test")) {
         log_msg("Error reading sam.xml files");
         exit(2);
     }

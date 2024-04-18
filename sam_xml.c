@@ -139,17 +139,57 @@ read_sam_xml(FILE *f)
 int
 collect_sam_xml(const char *xp_dir)
 {
-    const char *fn = "E:/X-Plane-12-test/Custom Scenery/Captain7 - 29Palms - EDDN Nuremberg 2/sam.xml";
-    log_msg("Trying '%s'", fn);
-    FILE *f = fopen(fn, "r");
-	if (f) {
-        log_msg("Processing '%s'", fn);
-        int rc = read_sam_xml(f);
-        fclose(f);
-        if (!rc)
-            return 0;
-	}
+    char line[1000];
+    line[sizeof(line) - 1] = '\0';
+    strncpy(line, xp_dir, sizeof(line) - 200);
+    strcat(line, "/Custom Scenery/scenery_packs.ini");
 
+    FILE *scp = fopen(line, "r");
+    if (NULL == scp) {
+        log_msg("Can't open '%s'", line);
+        return 0;
+    }
+
+    while (fgets(line, sizeof(line) - 100, scp)) {
+        char *cptr = strchr(line, '\r');
+        if (cptr)
+            *cptr = '\0';
+
+        cptr = strchr(line, '\n');
+        if (cptr)
+            *cptr = '\0';
+
+        cptr = strstr(line, "SCENERY_PACK ");
+        if (NULL == cptr)
+            continue;
+        char *scenery_path = cptr + 13;
+        int is_absolute = (scenery_path[0] == '/' || strchr(scenery_path, ':'));
+
+        char fn[2000];
+        fn[0] = '\0';
+
+        if (is_absolute) {
+            strncpy(fn, scenery_path, sizeof(fn) - 100);
+        } else {
+            strncpy(fn, xp_dir, sizeof(fn) - 100);
+            strcat(fn, "/");
+            strncat(fn, scenery_path, sizeof(fn) - 100);
+        }
+
+        strcat(fn, "sam.xml");
+
+        //log_msg("Trying '%s'", fn);
+        FILE *f = fopen(fn, "r");
+        if (f) {
+            log_msg("Processing '%s'", fn);
+            int rc = read_sam_xml(f);
+            fclose(f);
+            if (!rc)
+                return 0;
+        }
+    }
+
+    fclose(scp);
     return 1;
 }
 
