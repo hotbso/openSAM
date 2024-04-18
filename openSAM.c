@@ -33,6 +33,7 @@
 #include "XPLMProcessing.h"
 #include "XPLMMenus.h"
 #include "XPLMGraphics.h"
+#include "XPLMScenery.h"
 
 #include "openSAM.h"
 
@@ -56,8 +57,24 @@ static XPLMDataRef date_day_dr,
     draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
     beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr,
     acf_door_x_dr, acf_door_y_dr, acf_door_z_dr,
+    gear_fnrml_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
+
+static XPLMProbeRef probe_ref;
+
+typedef enum
+{
+    DISABLED=0, INACTIVE, ACTIVE, ENGAGED, TRACK, GOOD, BAD, PARKED, DONE
+} state_t;
+
+const char * const state_str[] = {
+    "DISABLED", "INACTIVE", "ACTIVE", "ENGAGED",
+    "TRACK", "GOOD", "BAD", "PARKED", "DONE" };
+
+static int on_ground = 1;
+static float on_ground_ts;
+static state_t state = DISABLED;
 
 static int nh;     // on northern hemisphere
 static int season; // 0-3
@@ -268,6 +285,79 @@ read_jw_acc(void *ref)
     return 0.0;
 }
 
+static void
+reset_state(state_t new_state)
+{
+    if (state != new_state)
+        log_msg("setting state to %s", state_str[new_state]);
+
+    state = new_state;
+}
+
+/* set mode to arrival */
+static void
+set_active(void)
+{
+    if (! on_ground) {
+        log_msg("can't set active when not on ground");
+        return;
+    }
+
+    if (state > INACTIVE)
+        return;
+
+    beacon_state = beacon_last_pos = XPLMGetDatai(beacon_dr);
+    beacon_on_ts = beacon_off_ts = -10.0;
+
+    log_msg("new state: ACTIVE");
+    state = ACTIVE;
+}
+
+static float
+run_state_machine()
+{
+    if (state <= INACTIVE)
+        return 2.0;
+
+    int beacon_on = check_beacon();
+    if (beacon_on)
+        return 0.5;
+
+    return 0.5;
+}
+
+static float
+flight_loop_cb(float inElapsedSinceLastCall,
+               float inElapsedTimeSinceLastFlightLoop, int inCounter,
+               void *inRefcon)
+{
+    float loop_delay = 2.0;
+
+    now = XPLMGetDataf(total_running_time_sec_dr);
+    int og = (XPLMGetDataf(gear_fnrml_dr) != 0.0);
+
+    if (og != on_ground && now > on_ground_ts + 10.0) {
+        on_ground = og;
+        on_ground_ts = now;
+        log_msg("transition to on_ground: %d", on_ground);
+
+        if (on_ground) {
+            set_active();
+        } else {
+            reset_state(INACTIVE);
+            if (probe_ref) {
+                XPLMDestroyProbe(probe_ref);
+                probe_ref = NULL;
+            }
+        }
+    }
+
+    if (state >= ACTIVE)
+        loop_delay = run_state_machine();
+
+    return loop_delay;
+}
+
 // set season according to date
 static void
 set_season_auto()
@@ -422,6 +512,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     parkbrake_dr = XPLMFindDataRef("sim/flightmodel/controls/parkbrake");
     beacon_dr = XPLMFindDataRef("sim/cockpit2/switches/beacon_on");
     eng_running_dr = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running");
+    gear_fnrml_dr = XPLMFindDataRef("sim/flightmodel/forces/fnrml_gear");
 
     acf_icao_dr = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
     acf_cg_y_dr = XPLMFindDataRef("sim/aircraft/weight/acf_cgY_original");
@@ -473,6 +564,8 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
                                      NULL, read_jw_acc, NULL, NULL, NULL, NULL, NULL, NULL,
                                      NULL, NULL, NULL, (void *)(long long)drc, NULL);
     }
+
+    XPLMRegisterFlightLoopCallback(flight_loop_cb, 2.0, NULL);
 
     return 1;
 }
