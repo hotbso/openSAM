@@ -1,3 +1,24 @@
+/*
+    openSAM: open source SAM emulator for X Plane
+
+    Copyright (C) 2024  Holger Teutsch
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+    USA
+
+*/
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -58,8 +79,6 @@ get_sam_props(const char *line, sam_jw_t *sam_jw)
 {
     memset(sam_jw, 0, sizeof(*sam_jw));
 
-    const char * cptr;
-
     GET_STR_PROP(name)
     GET_FLOAT_PROP(latitude)
     GET_FLOAT_PROP(longitude)
@@ -87,33 +106,26 @@ get_sam_props(const char *line, sam_jw_t *sam_jw)
     GET_FLOAT_PROP(initialExtent)
 }
 
-int
-main(int argc, char **argv) {
-
-	char *docname = "sam.xml";
-    FILE *f = fopen(docname, "r");
-	if (f == NULL ) {
-		fprintf(stderr,"Document not parsed successfully. \n");
-		return 1;
-	}
-
-
+static int
+read_sam_xml(FILE *f)
+{
     char line[500];
 
     while (fgets(line, sizeof(line) - 1, f)) {
         char *cptr = strstr(line, "<jetway ");
         if (NULL == cptr)
             continue;
-        int len = strlen(line);
-        if (cptr = strchr(line, '\r'))
+
+        if ((cptr = strchr(line, '\r')))
             *cptr = '\0';
+
         //printf("%s", line);
         if (n_sam_jws == max_sam_jws) {
             max_sam_jws += 100;
             sam_jws = realloc(sam_jws, max_sam_jws * sizeof(sam_jw_t));
             if (sam_jws == NULL) {
-                fprintf(stderr, "Can't allocate memory.\n");
-                exit(1);
+                log_msg("Can't allocate memory");
+                return 0;
             }
         }
 
@@ -121,10 +133,23 @@ main(int argc, char **argv) {
         n_sam_jws++;
     }
 
-    fclose(f);
-    for (int i = 0; i < n_sam_jws; i++) {
-        sam_jw_t *sam_jw = &sam_jws[i];
-        printf("%s %5.6f %5.6f\n", sam_jw->name, sam_jw->latitude, sam_jw->longitude);
-    }
-	return (1);
+    return 1;
 }
+
+int
+collect_sam_xml(const char *xp_dir)
+{
+    const char *fn = "E:/X-Plane-12-test/Custom Scenery/Captain7 - 29Palms - EDDN Nuremberg 2/sam.xml";
+    log_msg("Trying '%s'", fn);
+    FILE *f = fopen(fn, "r");
+	if (f) {
+        log_msg("Processing '%s'", fn);
+        int rc = read_sam_xml(f);
+        fclose(f);
+        if (!rc)
+            return 0;
+	}
+
+    return 1;
+}
+

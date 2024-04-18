@@ -1,26 +1,23 @@
 /*
+    openSAM: open source SAM emulator for X Plane
 
-MIT License
+    Copyright (C) 2024  Holger Teutsch
 
-Copyright (c) 2024 Holger Teutsch
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+    USA
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
 */
 
 #include <stdlib.h>
@@ -35,6 +32,8 @@ SOFTWARE.
 #include "XPLMProcessing.h"
 #include "XPLMMenus.h"
 
+#include "openSAM.h"
+
 static char pref_path[512];
 static const char *psep;
 static XPLMMenuID menu_id;
@@ -42,7 +41,15 @@ static int auto_item, season_item[4];
 static int auto_season;
 static int airport_loaded;
 
-static XPLMDataRef date_day_dr, latitude_dr;
+static XPLMDataRef date_day_dr,
+    plane_x_dr, plane_y_dr, plane_z_dr, plane_lat_dr, plane_lon_dr, plane_elevation_dr,
+    plane_true_psi_dr, y_agl_dr,
+
+    draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
+    beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr,
+    total_running_time_sec_dr,
+    vr_enabled_dr;
+
 static int nh;     // on northern hemisphere
 static int season; // 0-3
 static const char *dr_name[] = {"sam/season/winter", "sam/season/spring",
@@ -58,20 +65,6 @@ static const char *dr_name_jw[] = {
     "sam/jetway/wheelrotater",
     "sam/jetway/wheelrotatel"};
 #define N_JW_DR 8
-
-static void
-log_msg(const char *fmt, ...)
-{
-    char line[1024];
-
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(line, sizeof(line) - 3, fmt, ap);
-    strcat(line, "\n");
-    XPLMDebugString("sam_se: ");
-    XPLMDebugString(line);
-    va_end(ap);
-}
 
 static void
 save_pref()
@@ -135,7 +128,7 @@ read_jw_acc(void *ref)
 
     if (i == 0)
         return -45.0;
-    
+
     return 0.0;
 }
 
@@ -219,6 +212,8 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMMenuID menu;
     int sub_menu;
 
+    log_msg("Startup " VERSION);
+
     strcpy(out_name, "openSAM " VERSION);
     strcpy(out_sig, "openSAM.hotbso");
     strcpy(out_desc, "A plugin that emulates SAM");
@@ -226,6 +221,8 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     /* Always use Unix-native paths on the Mac! */
     XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
 
+    char xp_dir[512];
+	XPLMGetSystemPath(xp_dir);
     psep = XPLMGetDirectorySeparator();
 
     /* set pref path */
@@ -233,6 +230,37 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMExtractFileAndPath(pref_path);
     strcat(pref_path, psep);
     strcat(pref_path, "sam_se.prf");
+
+    date_day_dr = XPLMFindDataRef("sim/time/local_date_days");
+
+    plane_x_dr = XPLMFindDataRef("sim/flightmodel/position/local_x");
+    plane_y_dr = XPLMFindDataRef("sim/flightmodel/position/local_y");
+    plane_z_dr = XPLMFindDataRef("sim/flightmodel/position/local_z");
+    plane_lat_dr = XPLMFindDataRef("sim/flightmodel/position/latitude");
+    plane_lon_dr = XPLMFindDataRef("sim/flightmodel/position/longitude");
+    plane_elevation_dr= XPLMFindDataRef("sim/flightmodel/position/elevation");
+    plane_true_psi_dr = XPLMFindDataRef("sim/flightmodel2/position/true_psi");
+    y_agl_dr = XPLMFindDataRef("sim/flightmodel2/position/y_agl");
+
+    draw_object_x_dr = XPLMFindDataRef("sim/graphics/animation/draw_object_x");
+    draw_object_y_dr = XPLMFindDataRef("sim/graphics/animation/draw_object_y");
+    draw_object_z_dr = XPLMFindDataRef("sim/graphics/animation/draw_object_z");
+    draw_object_psi_dr = XPLMFindDataRef("sim/graphics/animation/draw_object_psi");
+
+    parkbrake_dr = XPLMFindDataRef("sim/flightmodel/controls/parkbrake");
+    beacon_dr = XPLMFindDataRef("sim/cockpit2/switches/beacon_on");
+    eng_running_dr = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running");
+    acf_icao_dr = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
+    acf_cg_y_dr = XPLMFindDataRef("sim/aircraft/weight/acf_cgY_original");
+    acf_cg_z_dr = XPLMFindDataRef("sim/aircraft/weight/acf_cgZ_original");
+    total_running_time_sec_dr = XPLMFindDataRef("sim/time/total_running_time_sec");
+    vr_enabled_dr = XPLMFindDataRef("sim/graphics/VR/enabled");
+
+    /* create the seasons datarefs */
+    for (int i = 0; i < 4; i++)
+        XPLMRegisterDataAccessor(dr_name[i], xplmType_Int, 0, read_season_acc,
+                                 NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, NULL, NULL, (void *)(long long)i, NULL);
 
     menu = XPLMFindPluginsMenu();
     sub_menu = XPLMAppendMenuItem(menu, "openSAM", NULL, 1);
@@ -248,18 +276,18 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     load_pref();
     set_menu();
 
-    date_day_dr = XPLMFindDataRef("sim/time/local_date_days");
-    latitude_dr = XPLMFindDataRef("sim/flightmodel/position/latitude");
+    if (!collect_sam_xml(xp_dir))
+        log_msg("Error collecting sam.xml files!");
 
-    // create the sam datarefs
-    for (int i = 0; i < 4; i++)
-        XPLMRegisterDataAccessor(dr_name[i], xplmType_Int, 0, read_season_acc,
-                                 NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                 NULL, NULL, NULL, (void *)(long long)i, NULL);
-    for (int i = 0; i < N_JW_DR; i++)
-        XPLMRegisterDataAccessor(dr_name_jw[i], xplmType_Float, 0, NULL,
-                                 NULL, read_jw_acc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                 NULL, NULL, NULL, (void *)(long long)i, NULL);
+    log_msg("%d sam jetways found", n_sam_jws);
+
+    if (n_sam_jws > 0) {
+        /* create the jetway datarefs */
+        for (int i = 0; i < N_JW_DR; i++)
+            XPLMRegisterDataAccessor(dr_name_jw[i], xplmType_Float, 0, NULL,
+                                     NULL, read_jw_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                     NULL, NULL, NULL, (void *)(long long)i, NULL);
+    }
 
     return 1;
 }
@@ -292,7 +320,7 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
     if ((in_msg == XPLM_MSG_AIRPORT_LOADED) ||
         (airport_loaded && (in_msg == XPLM_MSG_SCENERY_LOADED))) {
         airport_loaded = 1;
-        nh = (XPLMGetDatad(latitude_dr) >= 0.0);
+        nh = (XPLMGetDatad(plane_lat_dr) >= 0.0);
         set_season_auto();
     }
 }

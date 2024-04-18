@@ -19,20 +19,31 @@
     USA
 
 */
-typedef struct _sam_jw  {
-    char name[40];
-    char sound[40];
 
-    float latitude, longitude, heading, height, wheelPos, cabinPos, cabinLength,
-          wheelDiameter, wheelDistance,
-          minRot1, maxRot1, minRot2, maxRot2, minRot3, maxRot3,
-          minExtent, maxExtent, minWheels, maxWheels,
-          initialRot1, initialRot2, initialRot3, initialExtent;
-} sam_jw_t;
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
 
-extern sam_jw_t *sam_jws;
-extern int n_sam_jws, max_sam_jws;
+#ifdef LOCAL_DEBUGSTRING
+void
+XPLMDebugString(const char *str)
+{
+    fputs(str, stdout); fflush(stdout);
+}
+#else
+#include "XPLMUtilities.h"
+#endif
 
-extern void log_msg(const char *fmt, ...);
-extern int collect_sam_xml(const char *xp_dir);
+void
+log_msg(const char *fmt, ...)
+{
+    char line[1024];
 
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(line, sizeof(line) - 3, fmt, ap);
+    strcat(line, "\n");
+    XPLMDebugString("openSAM: ");
+    XPLMDebugString(line);
+    va_end(ap);
+}

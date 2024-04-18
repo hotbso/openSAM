@@ -1,4 +1,4 @@
 # openSAM
-An open soft plugin that drives SAM jetways
+An open source plugin that drives SAM jetways.
 
-WIP + experimantal
+WIP - experimental - DO NOT USE

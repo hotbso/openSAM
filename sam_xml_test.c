@@ -19,20 +19,25 @@
     USA
 
 */
-typedef struct _sam_jw  {
-    char name[40];
-    char sound[40];
 
-    float latitude, longitude, heading, height, wheelPos, cabinPos, cabinLength,
-          wheelDiameter, wheelDistance,
-          minRot1, maxRot1, minRot2, maxRot2, minRot3, maxRot3,
-          minExtent, maxExtent, minWheels, maxWheels,
-          initialRot1, initialRot2, initialRot3, initialExtent;
-} sam_jw_t;
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
-extern sam_jw_t *sam_jws;
-extern int n_sam_jws, max_sam_jws;
+#include "openSAM.h"
 
-extern void log_msg(const char *fmt, ...);
-extern int collect_sam_xml(const char *xp_dir);
+int
+main(int argc, char **argv) {
 
+    if (!collect_sam_xml("null")) {
+        log_msg("Error reading sam.xml files");
+        exit(2);
+    }
+
+    printf("%d jetways collected\n", n_sam_jws);
+    for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
+        printf("%s %5.6f %5.6f\n", jw->name, jw->latitude, jw->longitude);
+    }
+	return (1);
+}
