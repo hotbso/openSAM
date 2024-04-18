@@ -55,6 +55,7 @@ static XPLMDataRef date_day_dr,
 
     draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
     beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr,
+    acf_door_x_dr, acf_door_y_dr, acf_door_z_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
 
@@ -82,6 +83,13 @@ static const char *dr_name_jw[] = {
 
 static float lat_ref = -1000, lon_ref = -1000;
 static unsigned int ref_gen;
+
+static float now;           /* current timestamp */
+static int beacon_state, beacon_last_pos;   /* beacon state, last switch_pos, ts of last switch actions */
+static float beacon_off_ts, beacon_on_ts;
+static int use_engine_running;              /* instead of beacon, e.g. MD11 */
+static int dont_connect_jetway;             /* e.g. for ZIBO with own ground service */
+static float plane_cg_y, plane_cg_z, plane_door_x, plane_door_y, plane_door_z;
 
 static unsigned long long int stat_far_skip, stat_near_skip, stat_acc_called, stat_jw_match;
 
@@ -125,6 +133,41 @@ load_pref()
     }
 }
 
+static int
+check_beacon(void)
+{
+    if (use_engine_running) {
+        int er[8];
+        int n = XPLMGetDatavi(eng_running_dr, er, 0, 8);
+        for (int i = 0; i < n; i++)
+            if (er[i])
+                return 1;
+
+        return 0;
+    }
+
+    /* when checking the beacon guard against power transitions when switching
+       to the APU generator (e.g. for the ToLiss fleet).
+       Report only state transitions when the new state persisted for 3 seconds */
+
+    int beacon = XPLMGetDatai(beacon_dr);
+    if (beacon) {
+        if (! beacon_last_pos) {
+            beacon_on_ts = now;
+            beacon_last_pos = 1;
+        } else if (now > beacon_on_ts + 3.0)
+            beacon_state = 1;
+    } else {
+        if (beacon_last_pos) {
+            beacon_off_ts = now;
+            beacon_last_pos = 0;
+        } else if (now > beacon_off_ts + 3.0)
+            beacon_state = 0;
+   }
+
+   return beacon_state;
+}
+
 // Accessor for the "sam/season/*" datarefs
 static int
 read_season_acc(void *ref)
@@ -142,7 +185,9 @@ read_jw_acc(void *ref)
 {
     stat_acc_called++;
 
-    float now = XPLMGetDataf(total_running_time_sec_dr);
+    //plane_door_x = XPLMGetDataf(acf_door_x_dr);
+    //log_msg("plane_door_x : %.2f", plane_door_x);
+    now = XPLMGetDataf(total_running_time_sec_dr);
 
     float lat = XPLMGetDataf(plane_lat_dr);
     float lon = XPLMGetDataf(plane_lon_dr);
@@ -165,7 +210,7 @@ read_jw_acc(void *ref)
     for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
         //log_msg("lat: %f %f", lat, jw->latitude);
         //log_msg("lon: %f %f", lon, jw->longitude);
-       
+
         float dlon_m = fabs(lon - jw->longitude) * LON_D2M;
         float dlat_m = fabs(lat - jw->latitude) * cosf(D2R * lat) * LON_D2M;
 
@@ -206,7 +251,7 @@ read_jw_acc(void *ref)
             case DR_WHEELROTATEC:
                 return jw->wheelrotatec;
                 break;
-            case DR_WHEELROTATER: 
+            case DR_WHEELROTATER:
                 return jw->wheelrotater;
                 break;
             case DR_WHEELROTATEL:
@@ -216,7 +261,7 @@ read_jw_acc(void *ref)
                 log_msg("Accessor got invalid DR code: %d", drc);
                 return 0.0f;
         }
- 
+
         return 0.0;
     }
 
@@ -297,6 +342,39 @@ menu_cb(void *menu_ref, void *item_ref)
     save_pref();
 }
 
+static int
+find_icao_in_file(const char *acf_icao, const char *dir, const char *fn)
+{
+    char fn_full[512];
+    snprintf(fn_full, sizeof(fn_full) - 1, "%s%s", dir, fn);
+
+    int res = 0;
+    FILE *f = fopen(fn_full, "r");
+    if (f) {
+        log_msg("check whether acf '%s' is in exception file %s", acf_icao, fn_full);
+        char line[100];
+        while (fgets(line, sizeof(line), f)) {
+            char *cptr = strchr(line, '\r');
+            if (cptr)
+                *cptr = '\0';
+            cptr = strchr(line, '\n');
+            if (cptr)
+                *cptr = '\0';
+
+            if (0 == strcmp(line, acf_icao)) {
+                log_msg("found acf %s in %s", acf_icao, fn);
+                res = 1;
+                break;
+            }
+        }
+
+        fclose(f);
+    }
+
+    return res;
+}
+
+/* =========================== plugin entry points ===============================================*/
 PLUGIN_API int
 XPluginStart(char *out_name, char *out_sig, char *out_desc)
 {
@@ -344,9 +422,14 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     parkbrake_dr = XPLMFindDataRef("sim/flightmodel/controls/parkbrake");
     beacon_dr = XPLMFindDataRef("sim/cockpit2/switches/beacon_on");
     eng_running_dr = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running");
+
     acf_icao_dr = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
     acf_cg_y_dr = XPLMFindDataRef("sim/aircraft/weight/acf_cgY_original");
     acf_cg_z_dr = XPLMFindDataRef("sim/aircraft/weight/acf_cgZ_original");
+    acf_door_x_dr = XPLMFindDataRef("sim/aircraft/view/acf_door_x");
+    acf_door_y_dr = XPLMFindDataRef("sim/aircraft/view/acf_door_y");
+    acf_door_z_dr = XPLMFindDataRef("sim/aircraft/view/acf_door_z");
+
     total_running_time_sec_dr = XPLMFindDataRef("sim/time/total_running_time_sec");
     vr_enabled_dr = XPLMFindDataRef("sim/graphics/VR/enabled");
 
@@ -427,5 +510,48 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         airport_loaded = 1;
         nh = (XPLMGetDatad(plane_lat_dr) >= 0.0);
         set_season_auto();
+    }
+
+    /* my plane loaded */
+    if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
+        char acf_icao[41];
+        memset(acf_icao, 0, sizeof(acf_icao));
+        XPLMGetDatab(acf_icao_dr, acf_icao, 0, 40);
+        acf_icao[4] = '\0';
+
+        plane_cg_y = F2M * XPLMGetDataf(acf_cg_y_dr);
+        plane_cg_z = F2M * XPLMGetDataf(acf_cg_z_dr);
+
+        plane_door_x = XPLMGetDataf(acf_door_x_dr);
+        plane_door_y = XPLMGetDataf(acf_door_y_dr);
+        plane_door_z = XPLMGetDataf(acf_door_z_dr);
+
+        /* check whether acf is listed in exception files */
+        use_engine_running = 0;
+        dont_connect_jetway = 0;
+
+        char dir[512];
+        dir[0] = '\0';
+        XPLMGetPluginInfo(XPLMGetMyID(), NULL, dir, NULL, NULL);
+        char *cptr = strrchr(dir, '/');    /* basename */
+        if (cptr) {
+            *cptr = '\0';
+            cptr = strrchr(dir, '/');       /* one level up */
+        }
+
+        if (cptr)
+            *(cptr + 1) = '\0';             /* keep the / */
+
+        if (find_icao_in_file(acf_icao, dir, "acf_use_engine_running.txt"))
+            use_engine_running = 1;
+
+        if (find_icao_in_file(acf_icao, dir, "acf_dont_connect_jetway.txt"))
+            dont_connect_jetway = 1;
+
+
+        log_msg("plane loaded: %s, plane_cg_y: %1.2f, plane_cg_z: %1.2f, "
+               "plane_door_x: %1.2f, plane_door_y: %1.2f, plane_door_z: %1.2f",
+               acf_icao, plane_cg_y, plane_cg_z,
+               plane_door_x, plane_door_y, plane_door_z);
     }
 }
