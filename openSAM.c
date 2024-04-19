@@ -65,16 +65,16 @@ static XPLMProbeRef probe_ref;
 
 typedef enum
 {
-    DISABLED=0, INACTIVE, ACTIVE, ENGAGED, TRACK, GOOD, BAD, PARKED, DONE
+    DISABLED=0, IDLE, PARKED, CAN_DOCK, DOCKING, DOCKED, CANT_DOCK
 } state_t;
 
 const char * const state_str[] = {
-    "DISABLED", "INACTIVE", "ACTIVE", "ENGAGED",
-    "TRACK", "GOOD", "BAD", "PARKED", "DONE" };
+    "DISABLED", "IDLE", "PARKED", "CAN_DOCK",
+    "DOCKING", "DOCKED", "CANT_DOCK" };
 
 static int on_ground = 1;
 static float on_ground_ts;
-static state_t state = DISABLED;
+static state_t state = IDLE;
 
 static int nh;     // on northern hemisphere
 static int season; // 0-3
@@ -98,17 +98,27 @@ static const char *dr_name_jw[] = {
     "sam/jetway/wheelrotater",
     "sam/jetway/wheelrotatel"};
 
+typedef struct door_info_ {
+    float x, y, z;
+} door_info_t;
+
+static int n_door;
+static door_info_t door_info[2];
+
 static float lat_ref = -1000, lon_ref = -1000;
-static unsigned int ref_gen;
+static unsigned int ref_gen;    /* generation # of reference frame */
 
 static float now;           /* current timestamp */
 static int beacon_state, beacon_last_pos;   /* beacon state, last switch_pos, ts of last switch actions */
 static float beacon_off_ts, beacon_on_ts;
+
 static int use_engine_running;              /* instead of beacon, e.g. MD11 */
 static int dont_connect_jetway;             /* e.g. for ZIBO with own ground service */
-static float plane_cg_y, plane_cg_z, plane_door_x, plane_door_y, plane_door_z;
+static float plane_cg_y, plane_cg_z;
+
 
 static unsigned long long int stat_far_skip, stat_near_skip, stat_acc_called, stat_jw_match;
+
 
 static void
 save_pref()
@@ -238,6 +248,7 @@ read_jw_acc(void *ref)
 
         if (jw->ref_gen < ref_gen) {
             XPLMWorldToLocal(jw->latitude, jw->longitude, 0.0, &jw->x, &jw->y, &jw->z);
+            jw->psi = XPLMGetDataf(draw_object_psi_dr);
             jw->ref_gen = ref_gen;
         }
 
@@ -285,6 +296,14 @@ read_jw_acc(void *ref)
     return 0.0;
 }
 
+/* try to find dockable jetways and save their info */
+static int
+find_dockable_jws()
+{
+    return 0;
+}
+
+#if 0
 static void
 reset_state(state_t new_state)
 {
@@ -312,16 +331,51 @@ set_active(void)
     log_msg("new state: ACTIVE");
     state = ACTIVE;
 }
+#endif
 
+/* the state machine triggered by the flight loop */
 static float
 run_state_machine()
 {
-    if (state <= INACTIVE)
+    if (state == DISABLED)
         return 2.0;
+
+    state_t new_state = state;
 
     int beacon_on = check_beacon();
     if (beacon_on)
         return 0.5;
+
+    switch (state) {
+        case IDLE:
+            if (on_ground && !beacon_on)
+                new_state = PARKED;
+            break;
+
+        case PARKED:
+            if (find_dockable_jws())
+                new_state = CANT_DOCK;
+            else
+                new_state = CANT_DOCK;
+            break;
+
+        case CAN_DOCK:
+            break;
+
+        case CANT_DOCK:
+            break;
+
+        default:
+            log_msg("Bad state %d", state);
+            new_state = DISABLED;
+            break;
+    }
+
+    if (new_state != state) {
+        log_msg("state transition %s -> %s, beacon: %d", state_str[state], state_str[new_state], beacon_on);
+        state = new_state;
+        return -1;  // see you on next frame
+    }
 
     return 0.5;
 }
@@ -341,6 +395,7 @@ flight_loop_cb(float inElapsedSinceLastCall,
         on_ground_ts = now;
         log_msg("transition to on_ground: %d", on_ground);
 
+#if 0
         if (on_ground) {
             set_active();
         } else {
@@ -350,11 +405,10 @@ flight_loop_cb(float inElapsedSinceLastCall,
                 probe_ref = NULL;
             }
         }
+#endif
     }
 
-    if (state >= ACTIVE)
-        loop_delay = run_state_machine();
-
+    loop_delay = run_state_machine();
     return loop_delay;
 }
 
@@ -615,9 +669,10 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         plane_cg_y = F2M * XPLMGetDataf(acf_cg_y_dr);
         plane_cg_z = F2M * XPLMGetDataf(acf_cg_z_dr);
 
-        plane_door_x = XPLMGetDataf(acf_door_x_dr);
-        plane_door_y = XPLMGetDataf(acf_door_y_dr);
-        plane_door_z = XPLMGetDataf(acf_door_z_dr);
+        door_info[0].x = XPLMGetDataf(acf_door_x_dr);
+        door_info[0].y = XPLMGetDataf(acf_door_y_dr);
+        door_info[0].z = XPLMGetDataf(acf_door_z_dr);
+        n_door = 1;
 
         /* check whether acf is listed in exception files */
         use_engine_running = 0;
@@ -645,6 +700,6 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         log_msg("plane loaded: %s, plane_cg_y: %1.2f, plane_cg_z: %1.2f, "
                "plane_door_x: %1.2f, plane_door_y: %1.2f, plane_door_z: %1.2f",
                acf_icao, plane_cg_y, plane_cg_z,
-               plane_door_x, plane_door_y, plane_door_z);
+               door_info[0].x, door_info[0].y, door_info[0].z);
     }
 }

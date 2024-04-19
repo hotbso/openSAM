@@ -22,7 +22,7 @@
 typedef struct _sam_jw  {
 
     /* local x,y,z */
-    double x, y ,z;
+    double x, y ,z, psi;
     unsigned int ref_gen;   /* only valid if this matches the generation of the ref frame*/
 
     float rotate1, rotate2, rotate3, extent, wheels,
