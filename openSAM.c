@@ -43,6 +43,9 @@ static const float LON_D2M = 111120;    /* 1° lon in m */
 static const float FAR_SKIP = 4000; /* don't consider jetways farther than that */
 static const float NEAR_SKIP = 2; /* don't consider jetways farther than that */
 
+#define SQR(x) ((x) * (x))
+#define BETWEEN(x, a ,b) ((a) <= (x) && (x) <= (b))
+
 static char pref_path[512];
 static const char *psep;
 static XPLMMenuID menu_id;
@@ -52,7 +55,7 @@ static int airport_loaded;
 
 static XPLMDataRef date_day_dr,
     plane_x_dr, plane_y_dr, plane_z_dr, plane_lat_dr, plane_lon_dr, plane_elevation_dr,
-    plane_true_psi_dr, y_agl_dr, lat_ref_dr, lon_ref_dr,
+    plane_true_psi_dr, plane_y_agl_dr, lat_ref_dr, lon_ref_dr,
 
     draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
     beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr,
@@ -61,7 +64,7 @@ static XPLMDataRef date_day_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
 
-static XPLMProbeRef probe_ref;
+//static XPLMProbeRef probe_ref;
 
 typedef enum
 {
@@ -104,6 +107,17 @@ typedef struct door_info_ {
 
 static int n_door;
 static door_info_t door_info[2];
+
+typedef struct active_jw_ {
+    sam_jw_t *jw;
+    /* in door local coordinates */
+    float x, y, z, psi;
+    float tgt_x, tgt_rot1, tgt_rot2, tgt_rot3, tgt_extent;
+
+} active_jw_t;
+
+static int n_active_jw;
+static active_jw_t active_jw[2];
 
 static float lat_ref = -1000, lon_ref = -1000;
 static unsigned int ref_gen;    /* generation # of reference frame */
@@ -218,6 +232,7 @@ read_jw_acc(void *ref)
 
     float lat = XPLMGetDataf(plane_lat_dr);
     float lon = XPLMGetDataf(plane_lon_dr);
+    float elevation = XPLMGetDataf(plane_elevation_dr);
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_y = XPLMGetDataf(draw_object_y_dr);
@@ -246,18 +261,32 @@ read_jw_acc(void *ref)
             continue;
         }
 
+        int frame_updated = 0;
         if (jw->ref_gen < ref_gen) {
-            XPLMWorldToLocal(jw->latitude, jw->longitude, 0.0, &jw->x, &jw->y, &jw->z);
-            jw->psi = XPLMGetDataf(draw_object_psi_dr);
+            XPLMWorldToLocal(jw->latitude, jw->longitude, elevation, &jw->xml_x, &jw->xml_y, &jw->xml_z);
+            jw->x = jw->xml_x;
+            jw->y = jw->xml_y;
+            jw->z = jw->xml_z;
+            jw->psi = jw->heading;
             jw->ref_gen = ref_gen;
+            frame_updated = 1;
         }
 
-        if (fabs(obj_x - jw->x) > NEAR_SKIP || fabs(obj_z - jw->z) > NEAR_SKIP) {
+        if (fabs(obj_x - jw->xml_x) > NEAR_SKIP || fabs(obj_z - jw->xml_z) > NEAR_SKIP) {
             stat_near_skip++;
             continue;
         }
 
         // have a match
+#if 0
+         if (frame_updated) {
+            // use higher precision values
+            jw->psi = XPLMGetDataf(draw_object_psi_dr);
+            jw->x = obj_x;
+            jw->y = obj_y;
+            jw->z = obj_z;
+        }
+#endif
         stat_jw_match++;
         dr_code_t drc = (long long)ref;
         switch (drc) {
@@ -300,7 +329,94 @@ read_jw_acc(void *ref)
 static int
 find_dockable_jws()
 {
-    return 0;
+    if (n_door == 0) {
+        log_msg("acf has no doors!");
+        return 0;
+    }
+
+    n_active_jw = 0;
+
+    float plane_x = XPLMGetDataf(plane_x_dr);
+    float plane_y = XPLMGetDataf(plane_y_dr);
+    float plane_z = XPLMGetDataf(plane_z_dr);
+    float plane_psi = XPLMGetDataf(plane_true_psi_dr);
+
+    float sin_psi = sinf(D2R * plane_psi);
+    float cos_psi = cosf(D2R * plane_psi);
+
+    XPLMProbeRef probe_ref = XPLMCreateProbe(xplm_ProbeY);
+    XPLMProbeInfo_t probeinfo = {.structSize = sizeof(XPLMProbeInfo_t)};
+
+    if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, plane_x, plane_y, plane_z, &probeinfo)) {
+        log_msg("XPLMProbeTerrainXYZ failed");
+        goto out;
+    }
+
+    float door_agl = plane_y - probeinfo.locationY + door_info[0].y;
+    log_msg("plane: x: %5.3f, z: %5.3f, y: %5.3f, door_agl: %.2f, psi: %4.1f",
+            plane_x, plane_z, plane_y, door_agl, plane_psi);
+
+    for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
+        if (jw->ref_gen < ref_gen)  /* not visible -> not dockable */
+            continue;
+
+        log_msg("%s, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
+                jw->name, jw->x, jw->z, jw->y, jw->psi);
+
+        active_jw_t *ajw = &active_jw[0];
+        memset(ajw, 0, sizeof(active_jw_t));
+
+        /* rotate into plane local frame */
+        float dx = jw->x - plane_x;
+        float dz = jw->z - plane_z;
+        ajw->x =  cos_psi * dx + sin_psi * dz;
+        ajw->z = -sin_psi * dx + cos_psi * dz;
+        ajw->psi = jw->psi - plane_psi;
+
+        /* move into door local frame */
+        ajw->x -= door_info[0].x;
+        ajw->z -= door_info[0].z;
+
+        if (ajw->x > 0.0)   // on the right side
+            continue;
+
+        ajw->tgt_x = -jw->cabinLength;
+        // tgt z = 0.0
+        ajw->y = jw->height - door_agl;
+
+        float dist = sqrtf(SQR(ajw->tgt_x - ajw->x) + SQR(ajw->z));
+        log_msg("%s, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, dist: %.1f", jw->name,
+                ajw->x, ajw->z, ajw->y, ajw->psi, dist);
+        if (dist > jw->maxExtent + jw->cabinPos || dist < 1.0) {
+            log_msg("dist %0.2f too far or invalid", dist);
+            continue;
+        }
+
+        float rot1_d = -(90.0f + asinf(ajw->z / dist) / D2R);   // door frame
+        ajw->tgt_rot1 = rot1_d + (180.0f + ajw->psi);
+        ajw->tgt_rot2 = -(90.0f + ajw->tgt_rot1);
+        ajw->tgt_extent = dist - jw->cabinPos;
+
+        float net_length = dist + jw->cabinLength * cosf(ajw->tgt_rot2 * D2R);
+
+        ajw->tgt_rot3 = -asinf(ajw->y / net_length) / D2R;
+
+        log_msg("match: %s, rot1_d: %.1f, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
+                jw->name, rot1_d, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
+
+        if (BETWEEN(ajw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(ajw->tgt_rot2, jw->minRot2, jw->maxRot2)
+            && BETWEEN(ajw->tgt_extent, jw->minExtent, jw->maxExtent)) {
+            ajw->jw = jw;
+            n_active_jw = 1;
+            break;
+        } else {
+            log_msg("jw: %s does not match min, max criteria", jw->name);
+        }
+    }
+
+out:
+    XPLMDestroyProbe(probe_ref);
+    return n_active_jw;
 }
 
 #if 0
@@ -333,6 +449,21 @@ set_active(void)
 }
 #endif
 
+static void
+dock_jw_cmd()
+{
+    if (n_active_jw == 0)
+        return;
+
+    active_jw_t *ajw = &active_jw[0];
+
+    sam_jw_t *jw = ajw->jw;
+    jw->rotate1 = ajw->tgt_rot1;
+    jw->rotate2 = ajw->tgt_rot2;
+    jw->rotate3 = ajw->tgt_rot3;
+    jw->extent = ajw->tgt_extent;
+}
+
 /* the state machine triggered by the flight loop */
 static float
 run_state_machine()
@@ -354,12 +485,13 @@ run_state_machine()
 
         case PARKED:
             if (find_dockable_jws())
-                new_state = CANT_DOCK;
+                new_state = CAN_DOCK;
             else
                 new_state = CANT_DOCK;
             break;
 
         case CAN_DOCK:
+            dock_jw_cmd();
             break;
 
         case CANT_DOCK:
@@ -556,7 +688,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     plane_lon_dr = XPLMFindDataRef("sim/flightmodel/position/longitude");
     plane_elevation_dr= XPLMFindDataRef("sim/flightmodel/position/elevation");
     plane_true_psi_dr = XPLMFindDataRef("sim/flightmodel2/position/true_psi");
-    y_agl_dr = XPLMFindDataRef("sim/flightmodel2/position/y_agl");
+    plane_y_agl_dr = XPLMFindDataRef("sim/flightmodel2/position/y_agl");
 
     draw_object_x_dr = XPLMFindDataRef("sim/graphics/animation/draw_object_x");
     draw_object_y_dr = XPLMFindDataRef("sim/graphics/animation/draw_object_y");
