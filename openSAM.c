@@ -27,6 +27,7 @@
 #include <math.h>
 
 #define XPLM200
+#define XPLM300
 #include "XPLMPlugin.h"
 #include "XPLMDataAccess.h"
 #include "XPLMUtilities.h"
@@ -633,16 +634,6 @@ menu_cb(void *menu_ref, void *item_ref)
 {
     int entry = (long long)item_ref;
 
-    if (entry == 10) {
-        dock_jw();
-        return;
-    }
-
-    if (entry == 11) {
-        undock_jw();
-        return;
-    }
-
     if (entry == 4) {
         auto_season = !auto_season;
         set_season_auto();
@@ -778,8 +769,8 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     season_item[2] = XPLMAppendMenuItem(menu_id, "Summer", (void *)2, 0);
     season_item[3] = XPLMAppendMenuItem(menu_id, "Autumn", (void *)3, 0);
     XPLMAppendMenuSeparator(menu_id);
-    dock_menu_item = XPLMAppendMenuItem(menu_id, "Dock Jetway", (void *)10, 0);
-    undock_menu_item = XPLMAppendMenuItem(menu_id, "Undock Jetway", (void *)11, 0);
+    dock_menu_item = XPLMAppendMenuItemWithCommand(menu_id, "Dock Jetway", dock_cmdr);
+    undock_menu_item = XPLMAppendMenuItemWithCommand(menu_id, "Undock Jetway", undock_cmdr);
 
     load_pref();
     set_menu();
