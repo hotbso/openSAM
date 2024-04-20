@@ -317,6 +317,24 @@ read_jw_acc(void *ref)
     return 0.0;
 }
 
+/* convert wheel at (x, z) to dataref values */
+static inline void
+jw_xy_to_sam_dr(const active_jw_t *ajw, float x, float z, float *rot1, float *rot2, float *rot3, float *extent)
+{
+    const sam_jw_t *jw = ajw->jw;
+
+    float dist = sqrtf(SQR(ajw->tgt_x - ajw->x) + SQR(ajw->z));
+
+    float rot1_d = -(90.0f + asinf(ajw->z / dist) / D2R);   // door frame
+    *rot1 = rot1_d + (180.0f + ajw->psi);
+    *rot2 = -(90.0f + *rot1);
+    *extent = dist - jw->cabinPos;
+
+    float net_length = dist + jw->cabinLength * cosf(*rot2 * D2R);
+    *rot3 = -asinf(ajw->y / net_length) / D2R;
+}
+
+
 /* try to find dockable jetways and save their info */
 static int
 find_dockable_jws()
@@ -357,6 +375,7 @@ find_dockable_jws()
 
         active_jw_t *ajw = &active_jw[0];
         memset(ajw, 0, sizeof(active_jw_t));
+        ajw->jw = jw;
 
         /* rotate into plane local frame */
         float dx = jw->x - plane_x;
@@ -376,6 +395,14 @@ find_dockable_jws()
         // tgt z = 0.0
         ajw->y = jw->height - door_agl;
 
+        jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_rot2, &ajw->tgt_rot3, &ajw->tgt_extent);
+        log_msg("%s, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f", jw->name,
+                ajw->x, ajw->z, ajw->y, ajw->psi, ajw->tgt_extent);
+        if (ajw->tgt_extent > jw->maxExtent || ajw->tgt_extent < 0.5) {
+            log_msg("dist %0.2f too far or invalid", ajw->tgt_extent);
+            continue;
+        }
+#if 0
         float dist = sqrtf(SQR(ajw->tgt_x - ajw->x) + SQR(ajw->z));
         log_msg("%s, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, dist: %.1f", jw->name,
                 ajw->x, ajw->z, ajw->y, ajw->psi, dist);
@@ -392,13 +419,13 @@ find_dockable_jws()
         float net_length = dist + jw->cabinLength * cosf(ajw->tgt_rot2 * D2R);
 
         ajw->tgt_rot3 = -asinf(ajw->y / net_length) / D2R;
+#endif
 
-        log_msg("match: %s, rot1_d: %.1f, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
-                jw->name, rot1_d, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
+        log_msg("match: %s, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
+                jw->name, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
 
         if (BETWEEN(ajw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(ajw->tgt_rot2, jw->minRot2, jw->maxRot2)
             && BETWEEN(ajw->tgt_extent, jw->minExtent, jw->maxExtent)) {
-            ajw->jw = jw;
             n_active_jw = 1;
             break;
         } else {
