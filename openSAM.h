@@ -23,10 +23,11 @@ typedef struct _sam_jw  {
 
     /* local x,z computed from the xml's lat/lon*/
     double xml_x, xml_y, xml_z;
-    unsigned int ref_gen;   /* only valid if this matches the generation of the ref frame*/
+    unsigned int xml_ref_gen;   /* only valid if this matches the generation of the ref frame*/
 
     /* values from the actually drawn object */
     float x, y, z, psi;
+    unsigned int obj_ref_gen;
 
     float rotate1, rotate2, rotate3, extent, wheels,
           wheelrotatec, wheelrotater, wheelrotatel;

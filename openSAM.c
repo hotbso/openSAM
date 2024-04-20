@@ -220,25 +220,25 @@ read_season_acc(void *ref)
     return val;
 }
 
-// Accessor for the "sam/jetway/*" datarefs
+/*
+ * Accessor for the "sam/jetway/..." datarefs
+ *
+ * This function is called from draw loops, efficient coding required.
+ *
+ */
 static float
 read_jw_acc(void *ref)
 {
     stat_acc_called++;
-
-    //plane_door_x = XPLMGetDataf(acf_door_x_dr);
-    //log_msg("plane_door_x : %.2f", plane_door_x);
-    now = XPLMGetDataf(total_running_time_sec_dr);
 
     float lat = XPLMGetDataf(plane_lat_dr);
     float lon = XPLMGetDataf(plane_lon_dr);
     float elevation = XPLMGetDataf(plane_elevation_dr);
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
-    float obj_y = XPLMGetDataf(draw_object_y_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
 
-    // check for shift of regerence frame
+    // check for shift of reference frame
     float lat_r = XPLMGetDataf(lat_ref_dr);
     float lon_r = XPLMGetDataf(lon_ref_dr);
 
@@ -250,26 +250,18 @@ read_jw_acc(void *ref)
     }
 
     for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
-        //log_msg("lat: %f %f", lat, jw->latitude);
-        //log_msg("lon: %f %f", lon, jw->longitude);
-
         float dlon_m = fabs(lon - jw->longitude) * LON_D2M;
         float dlat_m = fabs(lat - jw->latitude) * cosf(D2R * lat) * LON_D2M;
 
+        /* quick check by lat/lon */
         if (dlon_m > FAR_SKIP || dlat_m > FAR_SKIP) {
             stat_far_skip++;
             continue;
         }
 
-        int frame_updated = 0;
-        if (jw->ref_gen < ref_gen) {
+        if (jw->xml_ref_gen < ref_gen) {
             XPLMWorldToLocal(jw->latitude, jw->longitude, elevation, &jw->xml_x, &jw->xml_y, &jw->xml_z);
-            jw->x = jw->xml_x;
-            jw->y = jw->xml_y;
-            jw->z = jw->xml_z;
-            jw->psi = jw->heading;
-            jw->ref_gen = ref_gen;
-            frame_updated = 1;
+            jw->xml_ref_gen = ref_gen;
         }
 
         if (fabs(obj_x - jw->xml_x) > NEAR_SKIP || fabs(obj_z - jw->xml_z) > NEAR_SKIP) {
@@ -278,15 +270,15 @@ read_jw_acc(void *ref)
         }
 
         // have a match
-#if 0
-         if (frame_updated) {
-            // use higher precision values
-            jw->psi = XPLMGetDataf(draw_object_psi_dr);
+        if (jw->obj_ref_gen < ref_gen) {
+            // use higher precision values of the actually drawn object
+            jw->obj_ref_gen = ref_gen;
             jw->x = obj_x;
-            jw->y = obj_y;
             jw->z = obj_z;
+            jw->y = XPLMGetDataf(draw_object_y_dr);
+            jw->psi = XPLMGetDataf(draw_object_psi_dr);
         }
-#endif
+
         stat_jw_match++;
         dr_code_t drc = (long long)ref;
         switch (drc) {
@@ -357,7 +349,7 @@ find_dockable_jws()
             plane_x, plane_z, plane_y, door_agl, plane_psi);
 
     for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
-        if (jw->ref_gen < ref_gen)  /* not visible -> not dockable */
+        if (jw->obj_ref_gen < ref_gen)  /* not visible -> not dockable */
             continue;
 
         log_msg("%s, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
