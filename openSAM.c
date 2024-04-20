@@ -49,8 +49,8 @@ static const float NEAR_SKIP = 2; /* don't consider jetways farther than that */
 
 static char pref_path[512];
 static const char *psep;
-static XPLMMenuID menu_id;
-static int auto_item, season_item[4], dock_menu_item, undock_menu_item;
+static XPLMMenuID seasons_menu;
+static int auto_item, season_item[4];
 static int auto_season;
 static int airport_loaded;
 
@@ -620,13 +620,13 @@ set_season_auto()
 static void
 set_menu()
 {
-    XPLMCheckMenuItem(menu_id, auto_item,
+    XPLMCheckMenuItem(seasons_menu, auto_item,
                       auto_season ? xplm_Menu_Checked : xplm_Menu_Unchecked);
 
-    XPLMCheckMenuItem(menu_id, season_item[season], xplm_Menu_Checked);
+    XPLMCheckMenuItem(seasons_menu, season_item[season], xplm_Menu_Checked);
     for (int i = 0; i < 4; i++)
         if (i != season)
-            XPLMCheckMenuItem(menu_id, season_item[i], xplm_Menu_Unchecked);
+            XPLMCheckMenuItem(seasons_menu, season_item[i], xplm_Menu_Unchecked);
 }
 
 static void
@@ -639,7 +639,7 @@ menu_cb(void *menu_ref, void *item_ref)
         set_season_auto();
     } else {
         int checked;
-        XPLMCheckMenuItemState(menu_id, season_item[entry], &checked);
+        XPLMCheckMenuItemState(seasons_menu, season_item[entry], &checked);
         log_msg("menu_cb: entry %d, checked: %d", entry, checked);
 
         if (checked == 1 && entry != season) { // checking a prior unchecked entry
@@ -689,9 +689,6 @@ find_icao_in_file(const char *acf_icao, const char *dir, const char *fn)
 PLUGIN_API int
 XPluginStart(char *out_name, char *out_sig, char *out_desc)
 {
-    XPLMMenuID menu;
-    int sub_menu;
-
     log_msg("Startup " VERSION);
 
     strcpy(out_name, "openSAM " VERSION);
@@ -758,19 +755,30 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMCommandRef undock_cmdr = XPLMCreateCommand("openSAM/undock_jwy", "Undock jetway");
     XPLMRegisterCommandHandler(undock_cmdr, cmd_dock_jw_cb, 0, (void *)0);
 
-    menu = XPLMFindPluginsMenu();
-    sub_menu = XPLMAppendMenuItem(menu, "openSAM", NULL, 1);
-    menu_id = XPLMCreateMenu("openSAM", menu, sub_menu, menu_cb, NULL);
+    /* build menues */
+    XPLMMenuID menu = XPLMFindPluginsMenu();
+    XPLMMenuID os_menu = XPLMCreateMenu("openSAM", menu,
+                                        XPLMAppendMenuItem(menu, "openSAM", NULL, 0),
+                                        NULL, NULL);
+    /* openSAM */
+    XPLMAppendMenuItemWithCommand(os_menu, "Dock Jetway", dock_cmdr);
+    XPLMAppendMenuItemWithCommand(os_menu, "Undock Jetway", undock_cmdr);
 
-    auto_item = XPLMAppendMenuItem(menu_id, "Automatic", (void *)4, 0);
-    XPLMAppendMenuSeparator(menu_id);
-    season_item[0] = XPLMAppendMenuItem(menu_id, "Winter", (void *)0, 0);
-    season_item[1] = XPLMAppendMenuItem(menu_id, "Spring", (void *)1, 0);
-    season_item[2] = XPLMAppendMenuItem(menu_id, "Summer", (void *)2, 0);
-    season_item[3] = XPLMAppendMenuItem(menu_id, "Autumn", (void *)3, 0);
-    XPLMAppendMenuSeparator(menu_id);
-    dock_menu_item = XPLMAppendMenuItemWithCommand(menu_id, "Dock Jetway", dock_cmdr);
-    undock_menu_item = XPLMAppendMenuItemWithCommand(menu_id, "Undock Jetway", undock_cmdr);
+    XPLMAppendMenuSeparator(os_menu);
+
+    /* openSAM -> Seasons */
+    int seasons_menu_item = XPLMAppendMenuItem(os_menu, "Seasons", NULL, 0);
+    seasons_menu = XPLMCreateMenu("Seasons", os_menu, seasons_menu_item, menu_cb, NULL);
+
+    auto_item = XPLMAppendMenuItem(seasons_menu, "Automatic", (void *)4, 0);
+
+    XPLMAppendMenuSeparator(seasons_menu);
+
+    season_item[0] = XPLMAppendMenuItem(seasons_menu, "Winter", (void *)0, 0);
+    season_item[1] = XPLMAppendMenuItem(seasons_menu, "Spring", (void *)1, 0);
+    season_item[2] = XPLMAppendMenuItem(seasons_menu, "Summer", (void *)2, 0);
+    season_item[3] = XPLMAppendMenuItem(seasons_menu, "Autumn", (void *)3, 0);
+    /* --------------------- */
 
     load_pref();
     set_menu();
