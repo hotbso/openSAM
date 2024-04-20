@@ -46,9 +46,20 @@ static const float NEAR_SKIP = 2; /* don't consider jetways farther than that */
 
 static const float JW_DRIVE_SPEED = 1.0;    /* m/s */
 static const float JW_TURN_SPEED = 1.0; /* °/s */
-static const float JW_ANIM_INTERVAL = 0.2;
+static const float JW_ANIM_INTERVAL = 0.1;
 
 #define SQR(x) ((x) * (x))
+
+#define MAX(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#define MIN(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
 #define BETWEEN(x, a ,b) ((a) <= (x) && (x) <= (b))
 
 static char pref_path[512];
@@ -125,7 +136,7 @@ typedef struct active_jw_ {
     float x, y, z, psi;
     float tgt_x, tgt_rot1, tgt_rot2, tgt_rot3, tgt_extent;
 
-    float next_step_ts;
+    float last_step_ts;
 } active_jw_t;
 
 static int n_active_jw;
@@ -263,8 +274,8 @@ read_jw_acc(void *ref)
     }
 
     for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
-        float dlon_m = fabs(lon - jw->longitude) * LON_D2M;
-        float dlat_m = fabs(lat - jw->latitude) * cosf(D2R * lat) * LON_D2M;
+        float dlon_m = fabsf(lon - jw->longitude) * LON_D2M;
+        float dlat_m = fabsf(lat - jw->latitude) * cosf(D2R * lat) * LON_D2M;
 
         /* quick check by lat/lon */
         if (dlon_m > FAR_SKIP || dlat_m > FAR_SKIP) {
@@ -277,7 +288,7 @@ read_jw_acc(void *ref)
             jw->xml_ref_gen = ref_gen;
         }
 
-        if (fabs(obj_x - jw->xml_x) > NEAR_SKIP || fabs(obj_z - jw->xml_z) > NEAR_SKIP) {
+        if (fabsf(obj_x - jw->xml_x) > NEAR_SKIP || fabsf(obj_z - jw->xml_z) > NEAR_SKIP) {
             stat_near_skip++;
             continue;
         }
@@ -336,9 +347,9 @@ jw_xy_to_sam_dr(const active_jw_t *ajw, float x, float z, float *rot1, float *ro
 {
     const sam_jw_t *jw = ajw->jw;
 
-    float dist = sqrtf(SQR(ajw->tgt_x - ajw->x) + SQR(ajw->z));
+    float dist = sqrtf(SQR(x - ajw->x) + SQR(z - ajw->z));
 
-    float rot1_d = -(90.0f + asinf(ajw->z / dist) / D2R);   // door frame
+    float rot1_d = -(90.0f + asinf((ajw->z - z)/ dist) / D2R);   // door frame
     *rot1 = rot1_d + (180.0f + ajw->psi);
     *rot2 = -(90.0f + *rot1);
     *extent = dist - jw->cabinPos;
@@ -495,11 +506,47 @@ dock_drive()
     if (ajw->state != AJW_DOCKING)
         return 0.5;
 
-    float remain = ajw->next_step_ts - now;
+    float remain = ajw->last_step_ts + JW_ANIM_INTERVAL - now;
     if (remain > 0)
         return remain;
 
-    log_msg("anim_step");
+    float phi = 360.0 - (90.0f - (jw->rotate1 + ajw->psi));     // door frame, tunnel to x-axis
+    float r = jw->extent + jw->cabinPos;
+
+    float wheel_x = ajw->x + r * cosf(phi * D2R);
+    float wheel_z = ajw->z + r * sinf(phi * D2R);
+
+    if (fabsf(ajw->tgt_x - wheel_x) < 0.1 && fabsf(wheel_z) < 0.1)  {
+        ajw->state = AJW_DOCKED;
+        log_msg("target_pos reached");
+        return 0;   // -> done
+    }
+
+    float dir_x = ajw->tgt_x - wheel_x;
+    float dir_z = 1.1f * -wheel_z;
+    float len = sqrtf(SQR(dir_x) + SQR(dir_z));
+    len = MAX(len, 0.0001f);
+
+    dir_x /= len;
+    dir_z /= len;
+
+    log_msg("anim_step: phi: %.2f, wheel_x: %0.2f, wheel_z: %.2f, dir_x: %.2f, dir_z: %.2f",
+            phi, wheel_x, wheel_z, dir_x, dir_z);
+
+    float dt = now - ajw->last_step_ts;
+    float dx = dir_x * dt * JW_DRIVE_SPEED;
+    float dz = dir_z * dt * JW_DRIVE_SPEED;
+    wheel_x += dx;
+    wheel_z += dz;
+
+    log_msg("dt: %0.3f, dx: %0.3f, dz: %03f, new pos: wheel_x: %0.2f, wheel_z: %.2f",
+            dt, dx, dz, wheel_x, wheel_z);
+
+    log_msg("rotate1: %0.2f before", jw->rotate1);
+    jw_xy_to_sam_dr(ajw, wheel_x, wheel_z, &jw->rotate1, &jw->rotate2, &jw->rotate3, &jw->extent);
+    log_msg("rotate1: %0.2f after", jw->rotate1);
+
+    ajw->last_step_ts = now;
 
     if (now > fake_dock_done) {
         ajw->state = AJW_DOCKED;
@@ -511,7 +558,6 @@ dock_drive()
         return 0;   // -> done
     }
 
-    ajw->next_step_ts = now + JW_ANIM_INTERVAL;
     return JW_ANIM_INTERVAL;
 }
 
@@ -580,7 +626,7 @@ run_state_machine()
                 log_msg("docking requested");
                 active_jw_t *ajw = &active_jw[0];
                 ajw->state = AJW_DOCKING;
-                ajw->next_step_ts = 0;
+                ajw->last_step_ts = now;
                 fake_dock_done = XPLMGetDataf(total_running_time_sec_dr) + 10.0f;
                 new_state = DOCKING;
             }
