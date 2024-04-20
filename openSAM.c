@@ -44,6 +44,10 @@ static const float LON_D2M = 111120;    /* 1° lon in m */
 static const float FAR_SKIP = 4000; /* don't consider jetways farther than that */
 static const float NEAR_SKIP = 2; /* don't consider jetways farther than that */
 
+static const float JW_DRIVE_SPEED = 1.0;    /* m/s */
+static const float JW_TURN_SPEED = 1.0; /* °/s */
+static const float JW_ANIM_INTERVAL = 0.2;
+
 #define SQR(x) ((x) * (x))
 #define BETWEEN(x, a ,b) ((a) <= (x) && (x) <= (b))
 
@@ -53,6 +57,11 @@ static XPLMMenuID seasons_menu;
 static int auto_item, season_item[4];
 static int auto_season;
 static int airport_loaded;
+static int nh;     // on northern hemisphere
+static int season; // 0-3
+static const char *dr_name[] = {"sam/season/winter", "sam/season/spring",
+            "sam/season/summer", "sam/season/autumn"};
+
 
 static XPLMDataRef date_day_dr,
     plane_x_dr, plane_y_dr, plane_z_dr, plane_lat_dr, plane_lon_dr, plane_elevation_dr,
@@ -65,24 +74,19 @@ static XPLMDataRef date_day_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
 
-
 typedef enum
 {
-    DISABLED=0, IDLE, PARKED, CAN_DOCK, DOCKING, DOCKED, CANT_DOCK
+    DISABLED=0, IDLE, PARKED, CAN_DOCK,
+    DOCKING, DOCKED, UNDOCKING, CANT_DOCK
 } state_t;
 
 const char * const state_str[] = {
     "DISABLED", "IDLE", "PARKED", "CAN_DOCK",
-    "DOCKING", "DOCKED", "CANT_DOCK" };
+    "DOCKING", "DOCKED", "UNDOCKING", "CANT_DOCK" };
 
 static int on_ground = 1;
 static float on_ground_ts;
 static state_t state = IDLE;
-
-static int nh;     // on northern hemisphere
-static int season; // 0-3
-static const char *dr_name[] = {"sam/season/winter", "sam/season/spring",
-            "sam/season/summer", "sam/season/autumn"};
 
 // keep in sync!
 typedef enum dr_code_e {
@@ -108,12 +112,20 @@ typedef struct door_info_ {
 static int n_door;
 static door_info_t door_info[2];
 
+typedef enum ajw_status_e {
+    AJW_PARKED, AJW_DOCKING,
+    AJW_DOCKED, AJW_UNDOCKING
+} ajw_status_t;
+
 typedef struct active_jw_ {
     sam_jw_t *jw;
+    ajw_status_t state;
+
     /* in door local coordinates */
     float x, y, z, psi;
     float tgt_x, tgt_rot1, tgt_rot2, tgt_rot3, tgt_extent;
 
+    float next_step_ts;
 } active_jw_t;
 
 static int n_active_jw;
@@ -133,6 +145,7 @@ static float plane_cg_y, plane_cg_z;
 
 static unsigned long long int stat_far_skip, stat_near_skip, stat_acc_called, stat_jw_match;
 
+static int dock_requested, undock_requested;
 
 static void
 save_pref()
@@ -468,20 +481,40 @@ set_active(void)
 }
 #endif
 
-static void
-dock_jw()
+static float fake_dock_done;
+
+static float
+dock_drive()
 {
     if (n_active_jw == 0)
-        return;
+        return 0.5;
 
     active_jw_t *ajw = &active_jw[0];
-
     sam_jw_t *jw = ajw->jw;
-    jw->rotate1 = ajw->tgt_rot1;
-    jw->rotate2 = ajw->tgt_rot2;
-    jw->rotate3 = ajw->tgt_rot3;
-    jw->extent = ajw->tgt_extent;
+    log_msg("dock_drive(): state: %d", ajw->state);
+    if (ajw->state != AJW_DOCKING)
+        return 0.5;
+
+    float remain = ajw->next_step_ts - now;
+    if (remain > 0)
+        return remain;
+
+    log_msg("anim_step");
+
+    if (now > fake_dock_done) {
+        ajw->state = AJW_DOCKED;
+        jw->rotate1 = ajw->tgt_rot1;
+        jw->rotate2 = ajw->tgt_rot2;
+        jw->rotate3 = ajw->tgt_rot3;
+        jw->extent = ajw->tgt_extent;
+        log_msg("dock drive finished");
+        return 0;   // -> done
+    }
+
+    ajw->next_step_ts = now + JW_ANIM_INTERVAL;
+    return JW_ANIM_INTERVAL;
 }
+
 
 static void
 undock_jw()
@@ -492,8 +525,9 @@ undock_jw()
     log_msg("undock_jw()");
 
     active_jw_t *ajw = &active_jw[0];
-
     sam_jw_t *jw = ajw->jw;
+
+    ajw->state = PARKED;
     jw->rotate1 = jw->initialRot1;
     jw->rotate2 = jw->initialRot2;
     jw->rotate3 = jw->initialRot3;
@@ -506,13 +540,10 @@ cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
     if (xplm_CommandBegin != phase)
         return 0;
 
-    log_msg("cmd_dock_jw_cb, %p", ref);
     if ((void *)1 == ref) {
-        log_msg("dock cmd called");
-        dock_jw();
+        dock_requested = 1;
     } else {
-        log_msg("undock cmd called");
-        undock_jw();
+        undock_requested = 1;
     }
 
     return 0;
@@ -545,10 +576,31 @@ run_state_machine()
             break;
 
         case CAN_DOCK:
-            //dock_jw();
+            if (dock_requested) {
+                log_msg("docking requested");
+                active_jw_t *ajw = &active_jw[0];
+                ajw->state = AJW_DOCKING;
+                ajw->next_step_ts = 0;
+                fake_dock_done = XPLMGetDataf(total_running_time_sec_dr) + 10.0f;
+                new_state = DOCKING;
+            }
             break;
 
         case CANT_DOCK:
+            break;
+
+        case DOCKING:
+            float remain = dock_drive();
+            if (remain == 0.0f)
+                new_state = DOCKED;
+            else
+                return remain;
+
+        case DOCKED:
+            if (undock_requested) {
+                undock_jw();
+                new_state = IDLE;
+            }
             break;
 
         default:
@@ -556,6 +608,8 @@ run_state_machine()
             new_state = DISABLED;
             break;
     }
+
+    dock_requested = undock_requested = 0;
 
     if (new_state != state) {
         log_msg("state transition %s -> %s, beacon: %d", state_str[state], state_str[new_state], beacon_on);
