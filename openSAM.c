@@ -49,7 +49,7 @@ static const float NEAR_SKIP = 2; /* don't consider jetways farther than that */
 static char pref_path[512];
 static const char *psep;
 static XPLMMenuID menu_id;
-static int auto_item, season_item[4];
+static int auto_item, season_item[4], dock_menu_item, undock_menu_item;
 static int auto_season;
 static int airport_loaded;
 
@@ -64,7 +64,6 @@ static XPLMDataRef date_day_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
 
-//static XPLMProbeRef probe_ref;
 
 typedef enum
 {
@@ -450,7 +449,7 @@ set_active(void)
 #endif
 
 static void
-dock_jw_cmd()
+dock_jw()
 {
     if (n_active_jw == 0)
         return;
@@ -462,6 +461,41 @@ dock_jw_cmd()
     jw->rotate2 = ajw->tgt_rot2;
     jw->rotate3 = ajw->tgt_rot3;
     jw->extent = ajw->tgt_extent;
+}
+
+static void
+undock_jw()
+{
+    if (n_active_jw == 0)
+        return;
+
+    log_msg("undock_jw()");
+
+    active_jw_t *ajw = &active_jw[0];
+
+    sam_jw_t *jw = ajw->jw;
+    jw->rotate1 = jw->initialRot1;
+    jw->rotate2 = jw->initialRot2;
+    jw->rotate3 = jw->initialRot3;
+    jw->extent = jw->initialExtent;
+}
+
+static int
+cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
+{
+    if (xplm_CommandBegin != phase)
+        return 0;
+
+    log_msg("cmd_dock_jw_cb, %p", ref);
+    if ((void *)1 == ref) {
+        log_msg("dock cmd called");
+        dock_jw();
+    } else {
+        log_msg("undock cmd called");
+        undock_jw();
+    }
+
+    return 0;
 }
 
 /* the state machine triggered by the flight loop */
@@ -491,7 +525,7 @@ run_state_machine()
             break;
 
         case CAN_DOCK:
-            dock_jw_cmd();
+            //dock_jw();
             break;
 
         case CANT_DOCK:
@@ -598,6 +632,16 @@ static void
 menu_cb(void *menu_ref, void *item_ref)
 {
     int entry = (long long)item_ref;
+
+    if (entry == 10) {
+        dock_jw();
+        return;
+    }
+
+    if (entry == 11) {
+        undock_jw();
+        return;
+    }
 
     if (entry == 4) {
         auto_season = !auto_season;
@@ -716,6 +760,13 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
                                  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, (void *)(long long)i, NULL);
 
+    /* own commands */
+    XPLMCommandRef dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
+    XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, (void *)1);
+
+    XPLMCommandRef undock_cmdr = XPLMCreateCommand("openSAM/undock_jwy", "Undock jetway");
+    XPLMRegisterCommandHandler(undock_cmdr, cmd_dock_jw_cb, 0, (void *)0);
+
     menu = XPLMFindPluginsMenu();
     sub_menu = XPLMAppendMenuItem(menu, "openSAM", NULL, 1);
     menu_id = XPLMCreateMenu("openSAM", menu, sub_menu, menu_cb, NULL);
@@ -726,6 +777,9 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     season_item[1] = XPLMAppendMenuItem(menu_id, "Spring", (void *)1, 0);
     season_item[2] = XPLMAppendMenuItem(menu_id, "Summer", (void *)2, 0);
     season_item[3] = XPLMAppendMenuItem(menu_id, "Autumn", (void *)3, 0);
+    XPLMAppendMenuSeparator(menu_id);
+    dock_menu_item = XPLMAppendMenuItem(menu_id, "Dock Jetway", (void *)10, 0);
+    undock_menu_item = XPLMAppendMenuItem(menu_id, "Undock Jetway", (void *)11, 0);
 
     load_pref();
     set_menu();
