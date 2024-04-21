@@ -46,7 +46,7 @@ static const float NEAR_SKIP = 2; /* don't consider jetways farther than that */
 
 static const float JW_DRIVE_SPEED = 1.0;    /* m/s */
 static const float JW_TURN_SPEED = 1.0; /* °/s */
-static const float JW_ANIM_INTERVAL = 0.1;
+static const float JW_ANIM_INTERVAL = 0.05;
 
 #define SQR(x) ((x) * (x))
 
@@ -506,7 +506,9 @@ dock_drive()
     if (ajw->state != AJW_DOCKING)
         return 0.5;
 
-    float remain = ajw->last_step_ts + JW_ANIM_INTERVAL - now;
+    float dt = now - ajw->last_step_ts;
+
+    float remain = JW_ANIM_INTERVAL - dt;
     if (remain > 0)
         return remain;
 
@@ -516,14 +518,15 @@ dock_drive()
     float wheel_x = ajw->x + r * cosf(phi * D2R);
     float wheel_z = ajw->z + r * sinf(phi * D2R);
 
-    if (fabsf(ajw->tgt_x - wheel_x) < 0.1 && fabsf(wheel_z) < 0.1)  {
+    float eps = 2.0f * dt * JW_DRIVE_SPEED;
+    if (fabsf(ajw->tgt_x - wheel_x) < eps && fabsf(wheel_z) < eps)  {
         ajw->state = AJW_DOCKED;
         log_msg("target_pos reached");
         return 0;   // -> done
     }
 
     float dir_x = ajw->tgt_x - wheel_x;
-    float dir_z = 1.1f * -wheel_z;
+    float dir_z = 1.3f * -wheel_z;      // higher weight for dirdection to axis
     float len = sqrtf(SQR(dir_x) + SQR(dir_z));
     len = MAX(len, 0.0001f);
 
@@ -533,7 +536,6 @@ dock_drive()
     log_msg("anim_step: phi: %.2f, wheel_x: %0.2f, wheel_z: %.2f, dir_x: %.2f, dir_z: %.2f",
             phi, wheel_x, wheel_z, dir_x, dir_z);
 
-    float dt = now - ajw->last_step_ts;
     float dx = dir_x * dt * JW_DRIVE_SPEED;
     float dz = dir_z * dt * JW_DRIVE_SPEED;
     wheel_x += dx;
