@@ -75,36 +75,9 @@ static const float FAR_SKIP = 4000; /* don't consider jetways farther than that 
 static const float NEAR_SKIP = 2; /* don't consider jetways farther than that */
 
 static const float JW_DRIVE_SPEED = 1.0;    /* m/s */
-static const float JW_TURN_SPEED = 1.0; /* °/s */
+static const float JW_TURN_SPEED = 10.0; /* °/s */
 static const float JW_ANIM_INTERVAL = 0.05;
 
-
-#define MAX(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
-
-#define MIN(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })
-
-#define BETWEEN(x ,a ,b) ((a) <= (x) && (x) <= (b))
-
-#define SQR(x) \
-    ({float x_ = (x); x_ * x_;})
-
-static inline
-float RA(float x)
-{
-    if (x > 180.0f)
-        return 360.0f - x;
-
-    if (x <= -180.0f)
-        return x + 360.0f;
-
-    return x;
-}
 
 static char pref_path[512];
 static const char *psep;
@@ -181,6 +154,7 @@ typedef struct active_jw_ {
     float tgt_x, tgt_rot1, tgt_rot2, tgt_rot3, tgt_extent;
 
     float last_step_ts;
+    float timeout;  // so we don't get stuck
 } active_jw_t;
 
 static int n_active_jw;
@@ -201,6 +175,42 @@ static float plane_cg_y, plane_cg_z;
 static unsigned long long int stat_far_skip, stat_near_skip, stat_acc_called, stat_jw_match;
 
 static int dock_requested, undock_requested;
+
+#define MAX(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#define MIN(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
+#define BETWEEN(x ,a ,b) ((a) <= (x) && (x) <= (b))
+
+#define SQR(x) \
+    ({float x_ = (x); x_ * x_;})
+
+static inline
+float RA(float angle)
+{
+    if (angle > 180.0f)
+        return 360.0f - angle;
+
+    if (angle <= -180.0f)
+        return angle + 360.0f;
+
+    return angle;
+}
+
+static inline float
+clampf(float x, float min, float max)
+{
+    if (x < min) return min;
+    if (x > max) return max;
+    return x;
+}
+
 
 static void
 save_pref()
@@ -498,27 +508,27 @@ reset_state(state_t new_state)
     state = new_state;
 }
 
-/* set mode to arrival */
-static void
-set_active(void)
-{
-    if (! on_ground) {
-        log_msg("can't set active when not on ground");
-        return;
-    }
-
-    if (state > INACTIVE)
-        return;
-
-    beacon_state = beacon_last_pos = XPLMGetDatai(beacon_dr);
-    beacon_on_ts = beacon_off_ts = -10.0;
-
-    log_msg("new state: ACTIVE");
-    state = ACTIVE;
-}
 #endif
 
-static float fake_dock_done;
+static void
+animate_wheels(active_jw_t *ajw, float ds, float d_rot)
+{
+    sam_jw_t *jw = ajw->jw;
+    float dist_r, dist_l;
+
+    float dist_rot = jw->wheelDistance * (d_rot * D2R);
+    if (d_rot > 0) {
+        dist_r = ds - dist_rot;
+        dist_l = ds + dist_rot;
+    } else {
+        dist_r = ds + dist_rot;
+        dist_l = ds - dist_rot;
+    }
+
+    jw->wheelrotater += dist_r / (jw->wheelDiameter * D2R);
+    jw->wheelrotater += dist_l / (jw->wheelDiameter * D2R);
+}
+
 
 static float
 dock_drive()
@@ -532,71 +542,93 @@ dock_drive()
     if (ajw->state != AJW_DOCKING)
         return 0.5;
 
+    if (now > ajw->timeout) {
+        log_msg("dock_drive() timeout!");
+        ajw->state = AJW_DOCKED;
+        jw->rotate1 = ajw->tgt_rot1;
+        jw->rotate2 = ajw->tgt_rot2;
+        jw->rotate3 = ajw->tgt_rot3;
+        jw->extent = ajw->tgt_extent;
+        return 0;   // -> done
+    }
+
     float dt = now - ajw->last_step_ts;
+    float remaining = JW_ANIM_INTERVAL - dt;
+    if (remaining > 0)
+        return remaining;
 
-    float remain = JW_ANIM_INTERVAL - dt;
-    if (remain > 0)
-        return remain;
+    ajw->last_step_ts = now;
 
-    float phi = RA((jw->rotate1 + ajw->psi) - 90.0f);
+    float rot1_d = RA((jw->rotate1 + ajw->psi) - 90.0f);    // door frame
     float r = jw->extent + jw->cabinPos;
 
-    float wheel_x = ajw->x + r * cosf(phi * D2R);
-    float wheel_z = ajw->z + r * sinf(phi * D2R);
+    float wheel_x = ajw->x + r * cosf(rot1_d * D2R);
+    float wheel_z = ajw->z + r * sinf(rot1_d * D2R);
 
-    float eps = 2.0f * dt * JW_DRIVE_SPEED;
+    float eps = MAX(2.0f * dt * JW_DRIVE_SPEED, 0.05f);
     if (fabsf(ajw->tgt_x - wheel_x) < eps && fabsf(wheel_z) < eps)  {
         ajw->state = AJW_DOCKED;
         log_msg("target_pos reached");
         return 0;   // -> done
     }
 
+    wheel_x = MIN(wheel_x, ajw->tgt_x); // dont drive beyond the target point
+
     float dir_x = ajw->tgt_x - wheel_x;
-    float dir_z = 1.3f * -wheel_z;      // higher weight for dirdection to axis
-    float len = sqrtf(SQR(dir_x) + SQR(dir_z));
-    len = MAX(len, 0.0001f);
+    float dir_z = 1.3f * (0.0f - wheel_z);      // higher weight for direction to x-axis
+    float ds = sqrtf(SQR(dir_x) + SQR(dir_z));
+    ds = MAX(ds, 0.0001f);
 
-    dir_x /= len;
-    dir_z /= len;
+    dir_x /= ds;
+    dir_z /= ds;
 
-    log_msg("anim_step: phi: %.2f, wheel_x: %0.2f, wheel_z: %.2f, dir_x: %.2f, dir_z: %.2f",
-            phi, wheel_x, wheel_z, dir_x, dir_z);
+    log_msg("anim_step: rot1_d: %.2f, wheel_x: %0.2f, wheel_z: %.2f, dir_x: %.2f, dir_z: %.2f",
+            rot1_d, wheel_x, wheel_z, dir_x, dir_z);
 
     float dx = dir_x * dt * JW_DRIVE_SPEED;
     float dz = dir_z * dt * JW_DRIVE_SPEED;
     wheel_x += dx;
     wheel_z += dz;
 
-    log_msg("dt: %0.3f, dx: %0.3f, dz: %03f, new pos: wheel_x: %0.2f, wheel_z: %.2f",
-            dt, dx, dz, wheel_x, wheel_z);
+    float drive_angle = fabsf(wheel_z) <= 0.1 ? 90.0f : atan2(dz, dx) / D2R;
+    float wb_rot = RA(drive_angle - rot1_d);
+    log_msg("drive angle: %0.2f, wb_rot: %0.2f", drive_angle, wb_rot);
+    wb_rot = clampf(wb_rot, -90.0f, 90.0f);
+
+    log_msg("dt: %0.3f, dx: %0.3f, dz: %03f, new pos: wheel_x: %0.2f, wheel_z: %.2f, wb_rot: %0.2f",
+            dt, dx, dz, wheel_x, wheel_z, wb_rot);
+
+    if (fabs(jw->wheelrotatec - wb_rot) > 2.0f) {
+        float d_rot = dt * JW_TURN_SPEED;
+        log_msg("turning wheel base by %0.2f°", d_rot);
+        if (wb_rot > jw->wheelrotatec)
+            jw->wheelrotatec += d_rot;
+        else
+            jw->wheelrotatec -= d_rot;
+
+        animate_wheels(ajw, 0.0f, d_rot);
+        return JW_ANIM_INTERVAL;
+    }
+
+    float d_rot = wb_rot - jw->wheelrotatec;
+    jw->wheelrotatec = wb_rot;
+    animate_wheels(ajw, ds, d_rot);
 
     //log_msg("rotate1: %0.2f before", jw->rotate1);
     jw_xy_to_sam_dr(ajw, wheel_x, wheel_z, &jw->rotate1, &jw->rotate2, &jw->rotate3, &jw->extent);
     //log_msg("rotate1: %0.2f after", jw->rotate1);
 
-    ajw->last_step_ts = now;
-
-    if (now > fake_dock_done) {
-        ajw->state = AJW_DOCKED;
-        jw->rotate1 = ajw->tgt_rot1;
-        jw->rotate2 = ajw->tgt_rot2;
-        jw->rotate3 = ajw->tgt_rot3;
-        jw->extent = ajw->tgt_extent;
-        log_msg("dock drive finished");
-        return 0;   // -> done
-    }
-
     return JW_ANIM_INTERVAL;
 }
 
 
-static void
-undock_jw()
+static float
+undock_drive()
 {
     if (n_active_jw == 0)
-        return;
+        return 0.5;
 
-    log_msg("undock_jw()");
+    log_msg("undock_drive()");
 
     active_jw_t *ajw = &active_jw[0];
     sam_jw_t *jw = ajw->jw;
@@ -606,6 +638,7 @@ undock_jw()
     jw->rotate2 = jw->initialRot2;
     jw->rotate3 = jw->initialRot3;
     jw->extent = jw->initialExtent;
+    return 0.0f;
 }
 
 static int
@@ -627,6 +660,8 @@ cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
 static float
 run_state_machine()
 {
+    float remaining;
+
     if (state == DISABLED)
         return 2.0;
 
@@ -655,7 +690,7 @@ run_state_machine()
                 active_jw_t *ajw = &active_jw[0];
                 ajw->state = AJW_DOCKING;
                 ajw->last_step_ts = now;
-                fake_dock_done = XPLMGetDataf(total_running_time_sec_dr) + 10.0f;
+                ajw->timeout = now + 30.0f;
                 new_state = DOCKING;
             }
             break;
@@ -664,17 +699,29 @@ run_state_machine()
             break;
 
         case DOCKING:
-            float remain = dock_drive();
-            if (remain == 0.0f)
+            remaining = dock_drive();
+            if (remaining == 0.0f)
                 new_state = DOCKED;
             else
-                return remain;
+                return remaining;
 
         case DOCKED:
             if (undock_requested) {
-                undock_jw();
-                new_state = IDLE;
+                log_msg("undocking requested");
+                active_jw_t *ajw = &active_jw[0];
+                ajw->state = AJW_UNDOCKING;
+                ajw->last_step_ts = now;
+                ajw->timeout = XPLMGetDataf(total_running_time_sec_dr) + 30.0f;
+                new_state = UNDOCKING;
             }
+            break;
+
+        case UNDOCKING:
+            remaining = undock_drive();
+            if (remaining == 0.0f)
+                new_state = IDLE;
+            else
+                return remaining;
             break;
 
         default:
