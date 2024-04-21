@@ -525,8 +525,11 @@ animate_wheels(active_jw_t *ajw, float ds, float d_rot)
         dist_l = ds - dist_rot;
     }
 
-    jw->wheelrotater += dist_r / (jw->wheelDiameter * D2R);
-    jw->wheelrotater += dist_l / (jw->wheelDiameter * D2R);
+    float da = dist_r / (jw->wheelDiameter * D2R);
+    log_msg("dist_r: %0.3f, dist_l: %0.3f, da: %0.3f", dist_r, dist_l, da);
+
+    jw->wheelrotater = fmodf(jw->wheelrotater + dist_r / (jw->wheelDiameter * D2R), 360.0f);
+    jw->wheelrotatel = fmodf(jw->wheelrotatel + dist_l / (jw->wheelDiameter * D2R), 360.0f);
 }
 
 
@@ -574,8 +577,15 @@ dock_drive()
 
     wheel_x = MIN(wheel_x, ajw->tgt_x); // dont drive beyond the target point
 
-    float dir_x = ajw->tgt_x - wheel_x;
-    float dir_z = 1.3f * (0.0f - wheel_z);      // higher weight for direction to x-axis
+    /* pick intermediate target to get a better straighten out */
+    float tgt_x = ajw->tgt_x;
+    if (wheel_x < tgt_x - 3.0f)
+        tgt_x = ajw->tgt_x - 2.5f;
+    else if (wheel_x < tgt_x - 2.0f)
+        tgt_x = ajw->tgt_x - 1.5f;
+
+    float dir_x = tgt_x - wheel_x;
+    float dir_z = - wheel_z;
     float ds = sqrtf(SQR(dir_x) + SQR(dir_z));
     ds = MAX(ds, 0.0001f);
 
@@ -590,7 +600,7 @@ dock_drive()
     wheel_x += dx;
     wheel_z += dz;
 
-    float drive_angle = fabsf(wheel_z) <= 0.1 ? 90.0f : atan2(dz, dx) / D2R;
+    float drive_angle = fabsf(wheel_z) <= 0.1 ? 0.0f : atan2(dz, dx) / D2R;
     float wb_rot = RA(drive_angle - rot1_d);
     log_msg("drive angle: %0.2f, wb_rot: %0.2f", drive_angle, wb_rot);
     wb_rot = clampf(wb_rot, -90.0f, 90.0f);

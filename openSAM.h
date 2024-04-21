@@ -29,6 +29,7 @@ typedef struct _sam_jw  {
     float x, y, z, psi;
     unsigned int obj_ref_gen;
 
+    /* values fed to the datarefs */
     float rotate1, rotate2, rotate3, extent, wheels,
           wheelrotatec, wheelrotater, wheelrotatel;
 
