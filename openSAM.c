@@ -38,6 +38,36 @@
 
 #include "openSAM.h"
 
+/*
+ * On the various coordinate systems and angles:
+ *
+ * Objects are drawn in a +x east , -z true north, +y up system.
+ * Headings (hdgt) are measured from -z (=true north) right turning
+ *
+ * Imagine looking from below to the sky you have the more traditional 'math' view
+ * +x right, +z up, angles left turning from the +x-axis to the +z axis.
+ *
+ * So if alpha is a 'math' angle we have
+ *
+ * hdgt = 90° + alpha.
+ *
+ * If we have a coordinate system that is rotated by an angle of psi we have
+ *
+ * hdgt\rot = hdgt - psi
+ *
+ * When it comes to object rotations or longitudes we use relative angles in (-180, +180]
+ * This is done by RA().
+ *
+ * So first of all we rotate and shift everything into the 'door' frame i.e.
+ * acf nose pointing up to -z, door at (0,0), jetways to the left somewhere at -x and some z
+ *
+ * These values are kept in the "active_jw".
+ *
+ * Then we do our math in the door frame and transform everything back to the jetway frame
+ * to get the ratation angles.
+ *
+ */
+
 static const float D2R = M_PI/180.0;
 static const float F2M = 0.3048;	/* 1 ft [m] */
 static const float LON_D2M = 111120;    /* 1° lon in m */
@@ -48,7 +78,6 @@ static const float JW_DRIVE_SPEED = 1.0;    /* m/s */
 static const float JW_TURN_SPEED = 1.0; /* °/s */
 static const float JW_ANIM_INTERVAL = 0.05;
 
-#define SQR(x) ((x) * (x))
 
 #define MAX(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -60,7 +89,22 @@ static const float JW_ANIM_INTERVAL = 0.05;
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 
-#define BETWEEN(x, a ,b) ((a) <= (x) && (x) <= (b))
+#define BETWEEN(x ,a ,b) ((a) <= (x) && (x) <= (b))
+
+#define SQR(x) \
+    ({float x_ = (x); x_ * x_;})
+
+static inline
+float RA(float x)
+{
+    if (x > 180.0f)
+        return 360.0f - x;
+
+    if (x <= -180.0f)
+        return x + 360.0f;
+
+    return x;
+}
 
 static char pref_path[512];
 static const char *psep;
@@ -349,13 +393,13 @@ jw_xy_to_sam_dr(const active_jw_t *ajw, float x, float z, float *rot1, float *ro
 
     float dist = sqrtf(SQR(x - ajw->x) + SQR(z - ajw->z));
 
-    float rot1_d = -(90.0f + asinf((ajw->z - z)/ dist) / D2R);   // door frame
-    *rot1 = rot1_d + (180.0f + ajw->psi);
-    *rot2 = -(90.0f + *rot1);
+    float rot1_d = 90.0f + asinf((z - ajw->z)/ dist) / D2R;   // door frame
+    *rot1 =  RA(rot1_d - ajw->psi);
+    *rot2 = RA(-(90.0f + *rot1));
     *extent = dist - jw->cabinPos;
 
     float net_length = dist + jw->cabinLength * cosf(*rot2 * D2R);
-    *rot3 = -asinf(ajw->y / net_length) / D2R;
+    *rot3 = RA(-asinf(ajw->y / net_length) / D2R);
 }
 
 
@@ -406,7 +450,7 @@ find_dockable_jws()
         float dz = jw->z - plane_z;
         ajw->x =  cos_psi * dx + sin_psi * dz;
         ajw->z = -sin_psi * dx + cos_psi * dz;
-        ajw->psi = jw->psi - plane_psi;
+        ajw->psi = RA(jw->psi - plane_psi);
 
         /* move into door local frame */
         ajw->x -= door_info[0].x;
@@ -426,24 +470,6 @@ find_dockable_jws()
             log_msg("dist %0.2f too far or invalid", ajw->tgt_extent);
             continue;
         }
-#if 0
-        float dist = sqrtf(SQR(ajw->tgt_x - ajw->x) + SQR(ajw->z));
-        log_msg("%s, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, dist: %.1f", jw->name,
-                ajw->x, ajw->z, ajw->y, ajw->psi, dist);
-        if (dist > jw->maxExtent + jw->cabinPos || dist < 1.0) {
-            log_msg("dist %0.2f too far or invalid", dist);
-            continue;
-        }
-
-        float rot1_d = -(90.0f + asinf(ajw->z / dist) / D2R);   // door frame
-        ajw->tgt_rot1 = rot1_d + (180.0f + ajw->psi);
-        ajw->tgt_rot2 = -(90.0f + ajw->tgt_rot1);
-        ajw->tgt_extent = dist - jw->cabinPos;
-
-        float net_length = dist + jw->cabinLength * cosf(ajw->tgt_rot2 * D2R);
-
-        ajw->tgt_rot3 = -asinf(ajw->y / net_length) / D2R;
-#endif
 
         log_msg("match: %s, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
                 jw->name, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
@@ -512,7 +538,7 @@ dock_drive()
     if (remain > 0)
         return remain;
 
-    float phi = 360.0 - (90.0f - (jw->rotate1 + ajw->psi));     // door frame, tunnel to x-axis
+    float phi = RA((jw->rotate1 + ajw->psi) - 90.0f);
     float r = jw->extent + jw->cabinPos;
 
     float wheel_x = ajw->x + r * cosf(phi * D2R);
@@ -544,9 +570,9 @@ dock_drive()
     log_msg("dt: %0.3f, dx: %0.3f, dz: %03f, new pos: wheel_x: %0.2f, wheel_z: %.2f",
             dt, dx, dz, wheel_x, wheel_z);
 
-    log_msg("rotate1: %0.2f before", jw->rotate1);
+    //log_msg("rotate1: %0.2f before", jw->rotate1);
     jw_xy_to_sam_dr(ajw, wheel_x, wheel_z, &jw->rotate1, &jw->rotate2, &jw->rotate3, &jw->extent);
-    log_msg("rotate1: %0.2f after", jw->rotate1);
+    //log_msg("rotate1: %0.2f after", jw->rotate1);
 
     ajw->last_step_ts = now;
 
