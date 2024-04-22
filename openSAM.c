@@ -408,9 +408,12 @@ jw_xy_to_sam_dr(const active_jw_t *ajw, float x, float z, float *rot1, float *ex
     *rot1 =  RA(rot1_d - ajw->psi);
     *extent = dist - jw->cabinPos;
 
-    if (rot2) {
-        *rot2 = RA(-(90.0f + *rot1));
-        float net_length = dist + jw->cabinLength * cosf(*rot2 * D2R);
+    float r2 = RA(-(90.0f + *rot1));
+    if (rot2)
+        *rot2 = r2;
+
+    if (rot3) {
+        float net_length = dist + jw->cabinLength * cosf(r2 * D2R);
         *rot3 = RA(-asinf(ajw->y / net_length) / D2R);
     }
 }
@@ -477,6 +480,7 @@ find_dockable_jws()
         ajw->y = jw->height - door_agl;
 
         jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
+        ajw->tgt_rot2 -= 3.0f;  /* for door1 only */
         jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 
         log_msg("%s, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f", jw->name,
@@ -517,10 +521,8 @@ reset_state(state_t new_state)
 #endif
 
 static void
-animate_wheels(active_jw_t *ajw, float ds, float d_rot)
+animate_wheels(sam_jw_t *jw, float ds, float d_rot)
 {
-    sam_jw_t *jw = ajw->jw;
-
     float da_ds = (ds / jw->wheelDiameter) / D2R;
     float da_rot = d_rot * (jw->wheelDistance / jw->wheelDiameter);
 
@@ -537,6 +539,31 @@ animate_wheels(active_jw_t *ajw, float ds, float d_rot)
         jw->wheelrotater += 360.0f;
 }
 
+static int
+rotate_wheel_base(sam_jw_t *jw, float wb_rot, float dt, float ds)
+{
+    //log_msg("drive angle: %0.2f, wb_rot: %0.2f", drive_angle, wb_rot);
+    wb_rot = clampf(wb_rot, -90.0f, 90.0f);
+    // TODO: convert drive_angle back after clamping ?
+
+    /* wheel rotation */
+    if (fabs(jw->wheelrotatec - wb_rot) > 2.0f) {
+        float d_rot = dt * JW_TURN_SPEED;
+        log_msg("turning wheel base by %0.2f°", d_rot);
+        if (wb_rot > jw->wheelrotatec)
+            jw->wheelrotatec += d_rot;
+        else
+            jw->wheelrotatec -= d_rot;
+
+        animate_wheels(jw, 0.0f, d_rot);
+        return 1;   /* must wait */
+    }
+
+    float d_rot = wb_rot - jw->wheelrotatec;
+    jw->wheelrotatec = wb_rot;
+    animate_wheels(jw, ds, d_rot);
+    return 0;
+}
 
 static float
 dock_drive()
@@ -567,24 +594,30 @@ dock_drive()
 
     ajw->last_step_ts = now;
 
+    float tgt_x = ajw->tgt_x;
+
     float rot1_d = RA((jw->rotate1 + ajw->psi) - 90.0f);    // door frame
     float r = jw->extent + jw->cabinPos;
 
     float wheel_x = ajw->x + r * cosf(rot1_d * D2R);
     float wheel_z = ajw->z + r * sinf(rot1_d * D2R);
 
-    float eps = MAX(2.0f * dt * JW_DRIVE_SPEED, 0.05f);
-    if (fabsf(ajw->tgt_x - wheel_x) < eps && fabsf(wheel_z) < eps)  {
+    /* ramp down speed when approaching the plane */
+    float drive_speed = JW_DRIVE_SPEED;
+    if (wheel_x >= (tgt_x - 0.8f))
+        drive_speed = JW_DRIVE_SPEED * (0.1f + 0.9f * MAX(0.0f, (tgt_x - wheel_x) / 0.8f));
+
+    float eps = MAX(2.0f * dt * drive_speed, 0.05f);
+    if (fabsf(tgt_x - wheel_x) < eps && fabsf(wheel_z) < eps)  {
         ajw->state = AJW_DOCKED;
         log_msg("target_pos reached");
         return 0;   // -> done
     }
 
-    wheel_x = MIN(wheel_x, ajw->tgt_x); // dont drive beyond the target point
+    wheel_x = MIN(wheel_x, tgt_x); // dont drive beyond the target point
 
     /* pick intermediate target halfway between wheel_x and door
      * to get a better straighten out */
-    float tgt_x = ajw->tgt_x;
     if (wheel_x < (tgt_x - 1.0f))
         tgt_x = 0.5 * (wheel_x + (tgt_x - 1.0f));
 
@@ -599,49 +632,41 @@ dock_drive()
     log_msg("anim_step: rot1_d: %.2f, wheel_x: %0.2f, wheel_z: %.2f, dir_x: %.2f, dir_z: %.2f",
             rot1_d, wheel_x, wheel_z, dir_x, dir_z);
 
-    float dx = dir_x * dt * JW_DRIVE_SPEED;
-    float dz = dir_z * dt * JW_DRIVE_SPEED;
+    float dx = dir_x * dt * drive_speed;
+    float dz = dir_z * dt * drive_speed;
     wheel_x += dx;
     wheel_z += dz;
 
     float drive_angle = fabsf(wheel_z) <= 0.1 ? 0.0f : atan2(dz, dx) / D2R;
-    float wb_rot = RA(drive_angle - rot1_d);
-    //log_msg("drive angle: %0.2f, wb_rot: %0.2f", drive_angle, wb_rot);
-    wb_rot = clampf(wb_rot, -90.0f, 90.0f);
 
-    log_msg("dt: %0.3f, dx: %0.3f, dz: %03f, new pos: wheel_x: %0.2f, wheel_z: %.2f, wb_rot: %0.2f",
-            dt, dx, dz, wheel_x, wheel_z, wb_rot);
-
-    /* wheel rotation */
-    if (fabs(jw->wheelrotatec - wb_rot) > 2.0f) {
-        float d_rot = dt * JW_TURN_SPEED;
-        log_msg("turning wheel base by %0.2f°", d_rot);
-        if (wb_rot > jw->wheelrotatec)
-            jw->wheelrotatec += d_rot;
-        else
-            jw->wheelrotatec -= d_rot;
-
-        animate_wheels(ajw, 0.0f, d_rot);
+    if (rotate_wheel_base(jw, RA(drive_angle - rot1_d), dt, ds))
         return JW_ANIM_INTERVAL;
-    }
-
-    float d_rot = wb_rot - jw->wheelrotatec;
-    jw->wheelrotatec = wb_rot;
-    animate_wheels(ajw, ds, d_rot);
 
     /* rotation2 */
-    if (fabsf(jw->rotate2 - ajw->tgt_rot2) > 0.5) {
+    float tgt_rot2 = ajw->tgt_rot2;
+    if (wheel_x < (tgt_x - 1.0f)) {
+        float angle_to_door = atan2f(-wheel_z, ajw->tgt_x - wheel_x) / D2R;
+        tgt_rot2 = angle_to_door + 90.0f - ajw->psi - jw->rotate1; /* point to door */
+    }
+    log_msg("ajw->tgt_rot2: %0.1f, tgt_rot2: %0.1f", ajw->tgt_rot2, tgt_rot2);
+
+    if (fabsf(jw->rotate2 - tgt_rot2) > 0.5) {
         float d_rot2 = dt * JW_TURN_SPEED;
         log_msg("jw->rotate2: %0.2f, d_rot2: %0.2f", jw->rotate2, d_rot2);
-        if (jw->rotate2 >= ajw->tgt_rot2)
-            jw->rotate2 = MAX(jw->rotate2 - d_rot2, ajw->tgt_rot2);
+        if (jw->rotate2 >= tgt_rot2)
+            jw->rotate2 = MAX(jw->rotate2 - d_rot2, tgt_rot2);
         else
-             jw->rotate2 = MIN(jw->rotate2 + d_rot2, ajw->tgt_rot2);
+             jw->rotate2 = MIN(jw->rotate2 + d_rot2, tgt_rot2);
 
-         log_msg("jw->rotate2: %0.2f, d_rot2: %0.2f", jw->rotate2, d_rot2);
-   }
+        log_msg("jw->rotate2: %0.2f, d_rot2: %0.2f", jw->rotate2, d_rot2);
 
-    /* rotation3 */
+        if (wheel_x >= (tgt_x - 1.0f))
+            return JW_ANIM_INTERVAL;
+    }
+
+    /* rotation1 + rotation3 */
+    jw_xy_to_sam_dr(ajw, wheel_x, wheel_z, &jw->rotate1, &jw->extent, NULL, NULL);
+
     if (fabsf(jw->rotate3 - ajw->tgt_rot3) > 0.5) {
         float d_rot3 = (dt * JW_HEIGHT_SPEED / (jw->wheelPos + jw->extent)) / D2R;  /* strictly it's atan */
         if (jw->rotate3 >= ajw->tgt_rot3)
@@ -649,8 +674,6 @@ dock_drive()
         else
              jw->rotate3 = MIN(jw->rotate3 + d_rot3, ajw->tgt_rot3);
     }
-
-    jw_xy_to_sam_dr(ajw, wheel_x, wheel_z, &jw->rotate1, &jw->extent, NULL, NULL);
     jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 
     if (JW_ANIM_INTERVAL < 0.02)
