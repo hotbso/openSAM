@@ -107,8 +107,9 @@ get_sam_props(const char *line, sam_jw_t *sam_jw)
 
     char buffer[10];
     extract_str(line, "forDoorLocation", buffer, sizeof(buffer));
-    if (0 == strstr(buffer, "LF2"))
+    if (0 == strcmp(buffer, "LF2")) {
         sam_jw->door = 1;
+    }
 }
 
 static int

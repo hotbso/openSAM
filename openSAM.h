@@ -50,8 +50,8 @@ typedef struct _sam_jw  {
           wheelDiameter, wheelDistance,
           minRot1, maxRot1, minRot2, maxRot2, minRot3, maxRot3,
           minExtent, maxExtent, minWheels, maxWheels,
-          initialRot1, initialRot2, initialRot3, initialExtent,
-          door; /* 0 = LF1 or default, 1 = LF2 */
+          initialRot1, initialRot2, initialRot3, initialExtent;
+    int door; /* 0 = LF1 or default, 1 = LF2 */
 } sam_jw_t;
 
 typedef struct _scenery {

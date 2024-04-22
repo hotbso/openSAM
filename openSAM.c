@@ -392,6 +392,21 @@ read_jw_acc(void *ref)
     return 0.0;
 }
 
+static void
+reset_jetways()
+{
+   for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
+        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+            jw->rotate1 = jw->initialRot1;
+            jw->rotate2 = jw->initialRot2;
+            jw->rotate3 = jw->initialRot3;
+            jw->extent = jw->initialExtent;
+            //log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
+       }
+
+   n_active_jw = 0;
+}
+
 /* convert wheel at (x, z) to dataref values, rot2, rot3 can be NULL */
 static inline void
 jw_xy_to_sam_dr(const active_jw_t *ajw, float x, float z, float *rot1, float *extent, float *rot2, float *rot3)
@@ -452,6 +467,9 @@ find_dockable_jws()
             if (jw->obj_ref_gen < ref_gen)  /* not visible -> not dockable */
                 continue;
 
+            if (jw->door != 0)
+                continue;
+
             log_msg("%s, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
                     jw->name, jw->x, jw->z, jw->y, jw->psi);
 
@@ -478,7 +496,7 @@ find_dockable_jws()
             ajw->y = jw->height - door_agl;
 
             jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
-            ajw->tgt_rot2 -= 3.0f;  /* for door1 only */
+            ajw->tgt_rot2 += 3.0f;  /* for door1 only */
             jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 
             log_msg("%s, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f", jw->name,
@@ -505,18 +523,6 @@ out:
     XPLMDestroyProbe(probe_ref);
     return n_active_jw;
 }
-
-#if 0
-static void
-reset_state(state_t new_state)
-{
-    if (state != new_state)
-        log_msg("setting state to %s", state_str[new_state]);
-
-    state = new_state;
-}
-
-#endif
 
 static void
 animate_wheels(sam_jw_t *jw, float ds, float d_rot)
@@ -646,11 +652,10 @@ dock_drive()
         float angle_to_door = atan2f(-wheel_z, ajw->tgt_x - wheel_x) / D2R;
         tgt_rot2 = angle_to_door + 90.0f - ajw->psi - jw->rotate1; /* point to door */
     }
-    log_msg("jw->rotate2: %0.1f, ajw->tgt_rot2: %0.1f, tgt_rot2: %0.1f", jw->rotate2, ajw->tgt_rot2, tgt_rot2);
+    //log_msg("jw->rotate2: %0.1f, ajw->tgt_rot2: %0.1f, tgt_rot2: %0.1f", jw->rotate2, ajw->tgt_rot2, tgt_rot2);
 
     if (fabsf(jw->rotate2 - tgt_rot2) > 0.5) {
         float d_rot2 = dt * JW_TURN_SPEED;
-        log_msg("jw->rotate2: %0.2f, d_rot2: %0.2f", jw->rotate2, d_rot2);
         if (jw->rotate2 >= tgt_rot2)
             jw->rotate2 = MAX(jw->rotate2 - d_rot2, tgt_rot2);
         else
@@ -714,6 +719,25 @@ cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
     return 0;
 }
 
+static float parked_x, parked_y;
+static int parked_ngen;
+
+static int
+check_teleportation()
+{
+    float x = XPLMGetDataf(plane_x_dr);
+    float y = XPLMGetDataf(plane_y_dr);
+    int ngen = ref_gen;
+
+    if (parked_ngen != ngen || fabsf(parked_x - x) > 1.0f || fabsf(parked_y - y) > 1.0f) {
+        log_msg("parked_ngen: %d, ngen: %d, parked_x: %0.3f, x: %0.3f, parked_y: %0.3f, y: %0.3f",
+                parked_ngen, ngen, parked_x, x, parked_y, y);
+        return 1;
+    }
+
+    return 0;
+}
+
 /* the state machine triggered by the flight loop */
 static float
 run_state_machine()
@@ -729,10 +753,20 @@ run_state_machine()
     if (beacon_on)
         return 0.5;
 
+    if (state > IDLE && check_teleportation()) {
+        log_msg("teleportation detected!");
+        state = new_state = IDLE;
+        reset_jetways();
+    }
+
     switch (state) {
         case IDLE:
-            if (on_ground && !beacon_on)
+            if (on_ground && !beacon_on) {
+                parked_x = XPLMGetDataf(plane_x_dr);
+                parked_y = XPLMGetDataf(plane_y_dr);
+                parked_ngen = ref_gen;
                 new_state = PARKED;
+            }
             break;
 
         case PARKED:
@@ -754,6 +788,10 @@ run_state_machine()
             break;
 
         case CANT_DOCK:
+            if (!on_ground || beacon_on) {
+                new_state = IDLE;
+                break;
+            }
             break;
 
         case DOCKING:
@@ -764,6 +802,11 @@ run_state_machine()
                 return remaining;
 
         case DOCKED:
+            if (!on_ground || beacon_on) {
+                new_state = IDLE;
+                break;
+            }
+
             if (undock_requested) {
                 log_msg("undocking requested");
                 active_jw_t *ajw = &active_jw[0];
@@ -1039,23 +1082,13 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
         log_msg("Error collecting sam.xml files!");
 
     log_msg("%d sceneries with sam jetways found", n_sceneries);
+    reset_jetways();
 
-    if (n_sceneries > 0) {
-        for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
-            for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
-                jw->rotate1 = jw->initialRot1;
-                jw->rotate2 = jw->initialRot2;
-                jw->rotate3 = jw->initialRot3;
-                jw->extent = jw->initialExtent;
-                //log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
-           }
-
-        /* create the jetway datarefs */
-        for (dr_code_t drc = DR_ROTATE1; drc < N_JW_DR; drc++)
-            XPLMRegisterDataAccessor(dr_name_jw[drc], xplmType_Float, 0, NULL,
-                                     NULL, read_jw_acc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                     NULL, NULL, NULL, (void *)(long long)drc, NULL);
-    }
+    /* create the jetway datarefs */
+    for (dr_code_t drc = DR_ROTATE1; drc < N_JW_DR; drc++)
+        XPLMRegisterDataAccessor(dr_name_jw[drc], xplmType_Float, 0, NULL,
+                                 NULL, read_jw_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, NULL, NULL, (void *)(long long)drc, NULL);
 
     XPLMRegisterFlightLoopCallback(flight_loop_cb, 2.0, NULL);
     return 1;
