@@ -76,7 +76,6 @@ static const float NEAR_SKIP = 2; /* don't consider jetways farther than that */
 
 static const float JW_DRIVE_SPEED = 1.0;    /* m/s */
 static const float JW_TURN_SPEED = 10.0;    /* °/s */
-static const float JW_CAB_TURN_SPEED = 1.0; /* °/s */
 static const float JW_HEIGHT_SPEED = 0.1;   /* m/s */
 static const float JW_ANIM_INTERVAL = 0.01;
 
@@ -397,9 +396,9 @@ read_jw_acc(void *ref)
     return 0.0;
 }
 
-/* convert wheel at (x, z) to dataref values */
+/* convert wheel at (x, z) to dataref values, rot2, rot3 can be NULL */
 static inline void
-jw_xy_to_sam_dr(const active_jw_t *ajw, float x, float z, float *rot1, float *rot2, float *rot3, float *extent)
+jw_xy_to_sam_dr(const active_jw_t *ajw, float x, float z, float *rot1, float *extent, float *rot2, float *rot3)
 {
     const sam_jw_t *jw = ajw->jw;
 
@@ -407,11 +406,13 @@ jw_xy_to_sam_dr(const active_jw_t *ajw, float x, float z, float *rot1, float *ro
 
     float rot1_d = 90.0f + asinf((z - ajw->z)/ dist) / D2R;   // door frame
     *rot1 =  RA(rot1_d - ajw->psi);
-    *rot2 = RA(-(90.0f + *rot1));
     *extent = dist - jw->cabinPos;
 
-    float net_length = dist + jw->cabinLength * cosf(*rot2 * D2R);
-    *rot3 = RA(-asinf(ajw->y / net_length) / D2R);
+    if (rot2) {
+        *rot2 = RA(-(90.0f + *rot1));
+        float net_length = dist + jw->cabinLength * cosf(*rot2 * D2R);
+        *rot3 = RA(-asinf(ajw->y / net_length) / D2R);
+    }
 }
 
 
@@ -475,7 +476,7 @@ find_dockable_jws()
         // tgt z = 0.0
         ajw->y = jw->height - door_agl;
 
-        jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_rot2, &ajw->tgt_rot3, &ajw->tgt_extent);
+        jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
         jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 
         log_msg("%s, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f", jw->name,
@@ -519,22 +520,21 @@ static void
 animate_wheels(active_jw_t *ajw, float ds, float d_rot)
 {
     sam_jw_t *jw = ajw->jw;
-    float dist_r, dist_l;
 
-    float dist_rot = jw->wheelDistance * (d_rot * D2R);
-    if (d_rot > 0) {
-        dist_r = ds - dist_rot;
-        dist_l = ds + dist_rot;
-    } else {
-        dist_r = ds + dist_rot;
-        dist_l = ds - dist_rot;
-    }
+    float da_ds = (ds / jw->wheelDiameter) / D2R;
+    float da_rot = d_rot * (jw->wheelDistance / jw->wheelDiameter);
 
-    float da = dist_r / (jw->wheelDiameter * D2R);
-    log_msg("dist_r: %0.3f, dist_l: %0.3f, da: %0.3f", dist_r, dist_l, da);
+    jw->wheelrotatel = jw->wheelrotatel + da_ds + da_rot;
+    if (jw->wheelrotatel > 360.0f)
+        jw->wheelrotatel -= 360.0f;
+    else if (jw->wheelrotatel < 0.0f)
+        jw->wheelrotatel += 360.0f;
 
-    jw->wheelrotater = fmodf(jw->wheelrotater + dist_r / (jw->wheelDiameter * D2R), 360.0f);
-    jw->wheelrotatel = fmodf(jw->wheelrotatel + dist_l / (jw->wheelDiameter * D2R), 360.0f);
+    jw->wheelrotater = jw->wheelrotater + da_ds - da_rot;
+    if (jw->wheelrotater > 360.0f)
+        jw->wheelrotater -= 360.0f;
+    else if (jw->wheelrotater < 0.0f)
+        jw->wheelrotater += 360.0f;
 }
 
 
@@ -631,12 +631,15 @@ dock_drive()
 
     /* rotation2 */
     if (fabsf(jw->rotate2 - ajw->tgt_rot2) > 0.5) {
-        float d_rot2 = dt * JW_CAB_TURN_SPEED;
+        float d_rot2 = dt * JW_TURN_SPEED;
+        log_msg("jw->rotate2: %0.2f, d_rot2: %0.2f", jw->rotate2, d_rot2);
         if (jw->rotate2 >= ajw->tgt_rot2)
             jw->rotate2 = MAX(jw->rotate2 - d_rot2, ajw->tgt_rot2);
         else
              jw->rotate2 = MIN(jw->rotate2 + d_rot2, ajw->tgt_rot2);
-    }
+
+         log_msg("jw->rotate2: %0.2f, d_rot2: %0.2f", jw->rotate2, d_rot2);
+   }
 
     /* rotation3 */
     if (fabsf(jw->rotate3 - ajw->tgt_rot3) > 0.5) {
@@ -647,8 +650,7 @@ dock_drive()
              jw->rotate3 = MIN(jw->rotate3 + d_rot3, ajw->tgt_rot3);
     }
 
-    float dummy;
-    jw_xy_to_sam_dr(ajw, wheel_x, wheel_z, &jw->rotate1, &jw->rotate2, &dummy, &jw->extent);
+    jw_xy_to_sam_dr(ajw, wheel_x, wheel_z, &jw->rotate1, &jw->extent, NULL, NULL);
     jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 
     if (JW_ANIM_INTERVAL < 0.02)
