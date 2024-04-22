@@ -157,7 +157,9 @@ static int n_active_jw;
 static active_jw_t active_jw[2];
 
 static float lat_ref = -1000, lon_ref = -1000;
-static unsigned int ref_gen;    /* generation # of reference frame */
+/* generation # of reference frame
+ * init with 1 so jetways never seen by the accessor won't be considered in find_dockable_jws() */
+static unsigned int ref_gen = 1;
 
 static float now;           /* current timestamp */
 static int beacon_state, beacon_last_pos;   /* beacon state, last switch_pos, ts of last switch actions */
@@ -661,8 +663,6 @@ dock_drive()
         else
              jw->rotate2 = MIN(jw->rotate2 + d_rot2, tgt_rot2);
 
-        log_msg("jw->rotate2: %0.2f, d_rot2: %0.2f", jw->rotate2, d_rot2);
-
         if (wheel_x >= (tgt_x - 1.0f))
             return JW_ANIM_INTERVAL;
     }
@@ -856,18 +856,6 @@ flight_loop_cb(float inElapsedSinceLastCall,
         on_ground = og;
         on_ground_ts = now;
         log_msg("transition to on_ground: %d", on_ground);
-
-#if 0
-        if (on_ground) {
-            set_active();
-        } else {
-            reset_state(INACTIVE);
-            if (probe_ref) {
-                XPLMDestroyProbe(probe_ref);
-                probe_ref = NULL;
-            }
-        }
-#endif
     }
 
     loop_delay = run_state_machine();
