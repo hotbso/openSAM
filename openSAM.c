@@ -408,7 +408,8 @@ jw_xy_to_sam_dr(const active_jw_t *ajw, float x, float z, float *rot1, float *ex
     *rot1 =  RA(rot1_d - ajw->psi);
     *extent = dist - jw->cabinPos;
 
-    float r2 = RA(-(90.0f + *rot1));
+    /* angle 0° door frame  -> hdgt -> jw frame -> diff to rot1 */
+    float r2 = RA(0.0f + 90.0f - ajw->psi - *rot1);
     if (rot2)
         *rot2 = r2;
 
@@ -549,7 +550,7 @@ rotate_wheel_base(sam_jw_t *jw, float wb_rot, float dt, float ds)
     /* wheel rotation */
     if (fabs(jw->wheelrotatec - wb_rot) > 2.0f) {
         float d_rot = dt * JW_TURN_SPEED;
-        log_msg("turning wheel base by %0.2f°", d_rot);
+        //log_msg("turning wheel base by %0.2f°", d_rot);
         if (wb_rot > jw->wheelrotatec)
             jw->wheelrotatec += d_rot;
         else
@@ -573,7 +574,7 @@ dock_drive()
 
     active_jw_t *ajw = &active_jw[0];
     sam_jw_t *jw = ajw->jw;
-    log_msg("dock_drive(): state: %d", ajw->state);
+    //log_msg("dock_drive(): state: %d", ajw->state);
     if (ajw->state != AJW_DOCKING)
         return 0.5;
 
@@ -629,8 +630,8 @@ dock_drive()
     dir_x /= ds;
     dir_z /= ds;
 
-    log_msg("anim_step: rot1_d: %.2f, wheel_x: %0.2f, wheel_z: %.2f, dir_x: %.2f, dir_z: %.2f",
-            rot1_d, wheel_x, wheel_z, dir_x, dir_z);
+    //log_msg("anim_step: rot1_d: %.2f, wheel_x: %0.2f, wheel_z: %.2f, dir_x: %.2f, dir_z: %.2f",
+    //        rot1_d, wheel_x, wheel_z, dir_x, dir_z);
 
     float dx = dir_x * dt * drive_speed;
     float dz = dir_z * dt * drive_speed;
@@ -648,7 +649,7 @@ dock_drive()
         float angle_to_door = atan2f(-wheel_z, ajw->tgt_x - wheel_x) / D2R;
         tgt_rot2 = angle_to_door + 90.0f - ajw->psi - jw->rotate1; /* point to door */
     }
-    log_msg("ajw->tgt_rot2: %0.1f, tgt_rot2: %0.1f", ajw->tgt_rot2, tgt_rot2);
+    log_msg("jw->rotate2: %0.1f, ajw->tgt_rot2: %0.1f, tgt_rot2: %0.1f", jw->rotate2, ajw->tgt_rot2, tgt_rot2);
 
     if (fabsf(jw->rotate2 - tgt_rot2) > 0.5) {
         float d_rot2 = dt * JW_TURN_SPEED;
