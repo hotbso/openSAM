@@ -35,9 +35,14 @@ main(int argc, char **argv) {
         exit(2);
     }
 
-    printf("%d jetways collected\n", n_sam_jws);
-    for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
-        log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
+    printf("%d sceneries collected\n", n_sceneries);
+
+    for (scenery_t *scp = sceneries; scp < sceneries + n_sceneries; scp++) {
+        printf("%d jetways collected\n", scp->n_sam_jws);
+        for (sam_jw_t *jw = scp->sam_jws; jw < scp->sam_jws + scp->n_sam_jws; jw++) {
+            log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
+        }
     }
+
 	return (1);
 }

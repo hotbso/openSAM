@@ -68,11 +68,6 @@
  *
  */
 
-static const float D2R = M_PI/180.0;
-static const float F2M = 0.3048;	/* 1 ft [m] */
-static const float LON_D2M = 111120;    /* 1° lon in m */
-static const float FAR_SKIP = 4000; /* don't consider jetways farther than that */
-static const float NEAR_SKIP = 2; /* don't consider jetways farther than that */
 
 static const float JW_DRIVE_SPEED = 1.0;    /* m/s */
 static const float JW_TURN_SPEED = 10.0;    /* °/s */
@@ -328,70 +323,71 @@ read_jw_acc(void *ref)
         log_msg("reference frame shift");
     }
 
-    for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
-        float dlon_m = fabsf(lon - jw->longitude) * LON_D2M;
-        float dlat_m = fabsf(lat - jw->latitude) * cosf(D2R * lat) * LON_D2M;
+    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
+        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+            float dlon_m = fabsf(lon - jw->longitude) * LON_D2M;
+            float dlat_m = fabsf(lat - jw->latitude) * cosf(D2R * lat) * LON_D2M;
 
-        /* quick check by lat/lon */
-        if (dlon_m > FAR_SKIP || dlat_m > FAR_SKIP) {
-            stat_far_skip++;
-            continue;
+            /* quick check by lat/lon */
+            if (dlon_m > FAR_SKIP || dlat_m > FAR_SKIP) {
+                stat_far_skip++;
+                continue;
+            }
+
+            if (jw->xml_ref_gen < ref_gen) {
+                XPLMWorldToLocal(jw->latitude, jw->longitude, elevation, &jw->xml_x, &jw->xml_y, &jw->xml_z);
+                jw->xml_ref_gen = ref_gen;
+            }
+
+            if (fabsf(obj_x - jw->xml_x) > NEAR_SKIP || fabsf(obj_z - jw->xml_z) > NEAR_SKIP) {
+                stat_near_skip++;
+                continue;
+            }
+
+            // have a match
+            if (jw->obj_ref_gen < ref_gen) {
+                // use higher precision values of the actually drawn object
+                jw->obj_ref_gen = ref_gen;
+                jw->x = obj_x;
+                jw->z = obj_z;
+                jw->y = XPLMGetDataf(draw_object_y_dr);
+                jw->psi = XPLMGetDataf(draw_object_psi_dr);
+            }
+
+            stat_jw_match++;
+            dr_code_t drc = (long long)ref;
+            switch (drc) {
+                case DR_ROTATE1:
+                    return jw->rotate1;
+                    break;
+                case DR_ROTATE2:
+                    return jw->rotate2;
+                    break;
+                case DR_ROTATE3:
+                    return jw->rotate3;
+                    break;
+                case DR_EXTENT:
+                    return jw->extent;
+                    break;
+                case DR_WHEELS:
+                    return jw->wheels;
+                    break;
+                case DR_WHEELROTATEC:
+                    return jw->wheelrotatec;
+                    break;
+                case DR_WHEELROTATER:
+                    return jw->wheelrotater;
+                    break;
+                case DR_WHEELROTATEL:
+                    return jw->wheelrotatel;
+                    break;
+                default:
+                    log_msg("Accessor got invalid DR code: %d", drc);
+                    return 0.0f;
+            }
+
+            return 0.0;
         }
-
-        if (jw->xml_ref_gen < ref_gen) {
-            XPLMWorldToLocal(jw->latitude, jw->longitude, elevation, &jw->xml_x, &jw->xml_y, &jw->xml_z);
-            jw->xml_ref_gen = ref_gen;
-        }
-
-        if (fabsf(obj_x - jw->xml_x) > NEAR_SKIP || fabsf(obj_z - jw->xml_z) > NEAR_SKIP) {
-            stat_near_skip++;
-            continue;
-        }
-
-        // have a match
-        if (jw->obj_ref_gen < ref_gen) {
-            // use higher precision values of the actually drawn object
-            jw->obj_ref_gen = ref_gen;
-            jw->x = obj_x;
-            jw->z = obj_z;
-            jw->y = XPLMGetDataf(draw_object_y_dr);
-            jw->psi = XPLMGetDataf(draw_object_psi_dr);
-        }
-
-        stat_jw_match++;
-        dr_code_t drc = (long long)ref;
-        switch (drc) {
-            case DR_ROTATE1:
-                return jw->rotate1;
-                break;
-            case DR_ROTATE2:
-                return jw->rotate2;
-                break;
-            case DR_ROTATE3:
-                return jw->rotate3;
-                break;
-            case DR_EXTENT:
-                return jw->extent;
-                break;
-            case DR_WHEELS:
-                return jw->wheels;
-                break;
-            case DR_WHEELROTATEC:
-                return jw->wheelrotatec;
-                break;
-            case DR_WHEELROTATER:
-                return jw->wheelrotater;
-                break;
-            case DR_WHEELROTATEL:
-                return jw->wheelrotatel;
-                break;
-            default:
-                log_msg("Accessor got invalid DR code: %d", drc);
-                return 0.0f;
-        }
-
-        return 0.0;
-    }
 
     return 0.0;
 }
@@ -451,58 +447,59 @@ find_dockable_jws()
     log_msg("plane: x: %5.3f, z: %5.3f, y: %5.3f, door_agl: %.2f, psi: %4.1f",
             plane_x, plane_z, plane_y, door_agl, plane_psi);
 
-    for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
-        if (jw->obj_ref_gen < ref_gen)  /* not visible -> not dockable */
-            continue;
+    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
+        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+            if (jw->obj_ref_gen < ref_gen)  /* not visible -> not dockable */
+                continue;
 
-        log_msg("%s, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
-                jw->name, jw->x, jw->z, jw->y, jw->psi);
+            log_msg("%s, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
+                    jw->name, jw->x, jw->z, jw->y, jw->psi);
 
-        active_jw_t *ajw = &active_jw[0];
-        memset(ajw, 0, sizeof(active_jw_t));
-        ajw->jw = jw;
+            active_jw_t *ajw = &active_jw[0];
+            memset(ajw, 0, sizeof(active_jw_t));
+            ajw->jw = jw;
 
-        /* rotate into plane local frame */
-        float dx = jw->x - plane_x;
-        float dz = jw->z - plane_z;
-        ajw->x =  cos_psi * dx + sin_psi * dz;
-        ajw->z = -sin_psi * dx + cos_psi * dz;
-        ajw->psi = RA(jw->psi - plane_psi);
+            /* rotate into plane local frame */
+            float dx = jw->x - plane_x;
+            float dz = jw->z - plane_z;
+            ajw->x =  cos_psi * dx + sin_psi * dz;
+            ajw->z = -sin_psi * dx + cos_psi * dz;
+            ajw->psi = RA(jw->psi - plane_psi);
 
-        /* move into door local frame */
-        ajw->x -= door_info[0].x;
-        ajw->z -= door_info[0].z;
+            /* move into door local frame */
+            ajw->x -= door_info[0].x;
+            ajw->z -= door_info[0].z;
 
-        if (ajw->x > 0.0)   // on the right side
-            continue;
+            if (ajw->x > 0.0)   // on the right side
+                continue;
 
-        ajw->tgt_x = -jw->cabinLength;
-        // tgt z = 0.0
-        ajw->y = jw->height - door_agl;
+            ajw->tgt_x = -jw->cabinLength;
+            // tgt z = 0.0
+            ajw->y = jw->height - door_agl;
 
-        jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
-        ajw->tgt_rot2 -= 3.0f;  /* for door1 only */
-        jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
+            jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
+            ajw->tgt_rot2 -= 3.0f;  /* for door1 only */
+            jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 
-        log_msg("%s, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f", jw->name,
-                ajw->x, ajw->z, ajw->y, ajw->psi, ajw->tgt_extent);
+            log_msg("%s, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f", jw->name,
+                    ajw->x, ajw->z, ajw->y, ajw->psi, ajw->tgt_extent);
 
-        if (ajw->tgt_extent > jw->maxExtent || ajw->tgt_extent < 0.5) {
-            log_msg("dist %0.2f too far or invalid", ajw->tgt_extent);
-            continue;
+            if (ajw->tgt_extent > jw->maxExtent || ajw->tgt_extent < 0.5) {
+                log_msg("dist %0.2f too far or invalid", ajw->tgt_extent);
+                continue;
+            }
+
+            log_msg("match: %s, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
+                    jw->name, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
+
+            if (BETWEEN(ajw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(ajw->tgt_rot2, jw->minRot2, jw->maxRot2)
+                && BETWEEN(ajw->tgt_extent, jw->minExtent, jw->maxExtent)) {
+                n_active_jw = 1;
+                break;
+            } else {
+                log_msg("jw: %s does not match min, max criteria", jw->name);
+            }
         }
-
-        log_msg("match: %s, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
-                jw->name, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
-
-        if (BETWEEN(ajw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(ajw->tgt_rot2, jw->minRot2, jw->maxRot2)
-            && BETWEEN(ajw->tgt_extent, jw->minExtent, jw->maxExtent)) {
-            n_active_jw = 1;
-            break;
-        } else {
-            log_msg("jw: %s does not match min, max criteria", jw->name);
-        }
-    }
 
 out:
     XPLMDestroyProbe(probe_ref);
@@ -1041,16 +1038,17 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     if (!collect_sam_xml(xp_dir))
         log_msg("Error collecting sam.xml files!");
 
-    log_msg("%d sam jetways found", n_sam_jws);
+    log_msg("%d sceneries with sam jetways found", n_sceneries);
 
-    if (n_sam_jws > 0) {
-        for (sam_jw_t *jw = sam_jws; jw < sam_jws + n_sam_jws; jw++) {
-            jw->rotate1 = jw->initialRot1;
-            jw->rotate2 = jw->initialRot2;
-            jw->rotate3 = jw->initialRot3;
-            jw->extent = jw->initialExtent;
-            //log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
-       }
+    if (n_sceneries > 0) {
+        for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
+            for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+                jw->rotate1 = jw->initialRot1;
+                jw->rotate2 = jw->initialRot2;
+                jw->rotate3 = jw->initialRot3;
+                jw->extent = jw->initialExtent;
+                //log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
+           }
 
         /* create the jetway datarefs */
         for (dr_code_t drc = DR_ROTATE1; drc < N_JW_DR; drc++)
@@ -1060,7 +1058,6 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     }
 
     XPLMRegisterFlightLoopCallback(flight_loop_cb, 2.0, NULL);
-
     return 1;
 }
 

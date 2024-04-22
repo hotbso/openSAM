@@ -26,9 +26,9 @@
 
 #include "openSAM.h"
 
-sam_jw_t *sam_jws;
-int n_sam_jws, max_sam_jws;
-
+scenery_t *sceneries;
+int n_sceneries;
+static int max_sceneries;
 
 static float
 extract_float(const char *line, const char *prop) {
@@ -50,6 +50,7 @@ static void
 extract_str(const char *line, const char *prop, char *value, int value_len) {
     const char *cptr, *cptr1;
 
+    value[0] = '\0';
     if (NULL == (cptr = strstr(line, prop)))
         return;
 
@@ -64,7 +65,6 @@ extract_str(const char *line, const char *prop, char *value, int value_len) {
     if (len > value_len - 1)
         len = value_len - 1;
     strncpy(value, cptr, len);
-    value[len] = '\0';
     //printf("%15s %s\n", prop, value);
 }
 
@@ -104,12 +104,20 @@ get_sam_props(const char *line, sam_jw_t *sam_jw)
     GET_FLOAT_PROP(initialRot2)
     GET_FLOAT_PROP(initialRot3)
     GET_FLOAT_PROP(initialExtent)
+
+    char buffer[10];
+    extract_str(line, "forDoorLocation", buffer, sizeof(buffer));
+    if (0 == strstr(buffer, "LF2"))
+        sam_jw->door = 1;
 }
 
 static int
-read_sam_xml(FILE *f)
+read_sam_xml(FILE *f, scenery_t *sc)
 {
     char line[2000];    // can be quite long
+
+    memset(sc, 0, sizeof(scenery_t));
+    int max_sam_jws = 0;
 
     while (fgets(line, sizeof(line) - 1, f)) {
         char *cptr = strstr(line, "<jetway ");
@@ -120,19 +128,21 @@ read_sam_xml(FILE *f)
             *cptr = '\0';
 
         //log_msg("%s", line);
-        if (n_sam_jws == max_sam_jws) {
+        if (sc->n_sam_jws == max_sam_jws) {
             max_sam_jws += 100;
-            sam_jws = realloc(sam_jws, max_sam_jws * sizeof(sam_jw_t));
-            if (sam_jws == NULL) {
+            sc->sam_jws = realloc(sc->sam_jws, max_sam_jws * sizeof(sam_jw_t));
+            if (sc->sam_jws == NULL) {
                 log_msg("Can't allocate memory");
                 return 0;
             }
         }
 
-        get_sam_props(line, &sam_jws[n_sam_jws]);
-        n_sam_jws++;
+        get_sam_props(line, &sc->sam_jws[sc->n_sam_jws]);
+        sc->n_sam_jws++;
     }
 
+    sc->sam_jws = realloc(sc->sam_jws, sc->n_sam_jws * sizeof(sam_jw_t));   /* shrink to actual */
+    // TODO: compute the NE, SW values
     return 1;
 }
 
@@ -182,14 +192,28 @@ collect_sam_xml(const char *xp_dir)
         FILE *f = fopen(fn, "r");
         if (f) {
             log_msg("Processing '%s'", fn);
-            int rc = read_sam_xml(f);
+
+            if (n_sceneries == max_sceneries) {
+                max_sceneries += 100;
+                sceneries = realloc(sceneries, max_sceneries * sizeof(scenery_t));
+                if (sceneries == NULL) {
+                    log_msg("Can't allocate memory");
+                    fclose(scp); fclose(f);
+                    return 0;
+                }
+            }
+
+            int rc = read_sam_xml(f, &sceneries[n_sceneries]);
             fclose(f);
             if (!rc)
                 return 0;
+            n_sceneries++;
         }
+
     }
 
     fclose(scp);
+    sceneries = realloc(sceneries, n_sceneries * sizeof(scenery_t));
     return 1;
 }
 
