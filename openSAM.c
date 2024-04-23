@@ -186,9 +186,6 @@ static int dock_requested, undock_requested;
 
 #define BETWEEN(x ,a ,b) ((a) <= (x) && (x) <= (b))
 
-#define SQR(x) \
-    ({float x_ = (x); x_ * x_;})
-
 static inline
 float RA(float angle)
 {
@@ -209,6 +206,12 @@ clampf(float x, float min, float max)
     return x;
 }
 
+/* norm-2 length */
+static inline float
+len2f(float x, float y)
+{
+    return sqrtf(x * x + y * y);
+}
 
 static void
 save_pref()
@@ -415,7 +418,7 @@ jw_xy_to_sam_dr(const active_jw_t *ajw, float x, float z, float *rot1, float *ex
 {
     const sam_jw_t *jw = ajw->jw;
 
-    float dist = sqrtf(SQR(x - ajw->x) + SQR(z - ajw->z));
+    float dist = len2f(x - ajw->x, z - ajw->z);
 
     float rot1_d = 90.0f + asinf((z - ajw->z)/ dist) / D2R;   // door frame
     *rot1 =  RA(rot1_d - ajw->psi);
@@ -526,25 +529,6 @@ out:
     return n_active_jw;
 }
 
-static void
-animate_wheels(sam_jw_t *jw, float ds, float d_rot)
-{
-    float da_ds = (ds / jw->wheelDiameter) / D2R;
-    float da_rot = d_rot * (jw->wheelDistance / jw->wheelDiameter);
-
-    jw->wheelrotatel = jw->wheelrotatel + da_ds + da_rot;
-    if (jw->wheelrotatel > 360.0f)
-        jw->wheelrotatel -= 360.0f;
-    else if (jw->wheelrotatel < 0.0f)
-        jw->wheelrotatel += 360.0f;
-
-    jw->wheelrotater = jw->wheelrotater + da_ds - da_rot;
-    if (jw->wheelrotater > 360.0f)
-        jw->wheelrotater -= 360.0f;
-    else if (jw->wheelrotater < 0.0f)
-        jw->wheelrotater += 360.0f;
-}
-
 static int
 rotate_wheel_base(sam_jw_t *jw, float wb_rot, float dt, float ds)
 {
@@ -552,23 +536,30 @@ rotate_wheel_base(sam_jw_t *jw, float wb_rot, float dt, float ds)
     wb_rot = clampf(wb_rot, -90.0f, 90.0f);
     // TODO: convert drive_angle back after clamping ?
 
-    /* wheel rotation */
+    /* wheel base rotation */
+    int result = 0;
+    float d_rot;
     if (fabs(jw->wheelrotatec - wb_rot) > 2.0f) {
-        float d_rot = dt * JW_TURN_SPEED;
+        d_rot = dt * JW_TURN_SPEED;
         //log_msg("turning wheel base by %0.2f°", d_rot);
         if (wb_rot > jw->wheelrotatec)
             jw->wheelrotatec += d_rot;
         else
             jw->wheelrotatec -= d_rot;
 
-        animate_wheels(jw, 0.0f, d_rot);
-        return 1;   /* must wait */
+        ds = 0.0f;
+        result = 1;    /* must wait */
+    } else {
+        d_rot = wb_rot - jw->wheelrotatec;
+        jw->wheelrotatec = wb_rot;
     }
 
-    float d_rot = wb_rot - jw->wheelrotatec;
-    jw->wheelrotatec = wb_rot;
-    animate_wheels(jw, ds, d_rot);
-    return 0;
+    float da_ds = (ds / jw->wheelDiameter) / D2R;
+    float da_rot = d_rot * (jw->wheelDistance / jw->wheelDiameter);
+
+    jw->wheelrotatel += da_ds + da_rot;
+    jw->wheelrotater += da_ds - da_rot;
+    return result;
 }
 
 static float
@@ -629,17 +620,19 @@ dock_drive()
 
     float dir_x = tgt_x - wheel_x;
     float dir_z = - wheel_z;
-    float ds = sqrtf(SQR(dir_x) + SQR(dir_z));
-    ds = MAX(ds, 0.0001f);
+    float dist = MAX(len2f(dir_x, dir_z), 0.01f);
 
-    dir_x /= ds;
-    dir_z /= ds;
+    // unit vecotor
+    dir_x /= dist;
+    dir_z /= dist;
 
     //log_msg("anim_step: rot1_d: %.2f, wheel_x: %0.2f, wheel_z: %.2f, dir_x: %.2f, dir_z: %.2f",
     //        rot1_d, wheel_x, wheel_z, dir_x, dir_z);
 
-    float dx = dir_x * dt * drive_speed;
-    float dz = dir_z * dt * drive_speed;
+    float ds = dt * drive_speed;
+    float dx = dir_x * ds;
+    float dz = dir_z * ds;
+
     wheel_x += dx;
     wheel_z += dz;
 
