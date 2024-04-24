@@ -72,7 +72,7 @@
 static const float JW_DRIVE_SPEED = 1.0;    /* m/s */
 static const float JW_TURN_SPEED = 10.0;    /* °/s */
 static const float JW_HEIGHT_SPEED = 0.1;   /* m/s */
-static const float JW_ANIM_INTERVAL = 0.01;
+static const float JW_ANIM_INTERVAL = 0.01; /* s */
 
 
 static char pref_path[512];
@@ -171,48 +171,10 @@ static int dont_connect_jetway;             /* e.g. for ZIBO with own ground ser
 static float plane_cg_y, plane_cg_z;
 
 
-static unsigned long long int stat_far_skip, stat_near_skip, stat_acc_called, stat_jw_match;
+static unsigned long long int stat_sc_far_skip, stat_far_skip, stat_near_skip,
+    stat_acc_called, stat_jw_match;
 
 static int dock_requested, undock_requested;
-
-#define MAX(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
-
-#define MIN(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })
-
-#define BETWEEN(x ,a ,b) ((a) <= (x) && (x) <= (b))
-
-static inline
-float RA(float angle)
-{
-    if (angle > 180.0f)
-        return angle - 360.0f;
-
-    if (angle <= -180.0f)
-        return angle + 360.0f;
-
-    return angle;
-}
-
-static inline float
-clampf(float x, float min, float max)
-{
-    if (x < min) return min;
-    if (x > max) return max;
-    return x;
-}
-
-/* norm-2 length */
-static inline float
-len2f(float x, float y)
-{
-    return sqrtf(x * x + y * y);
-}
 
 static void
 save_pref()
@@ -329,13 +291,18 @@ read_jw_acc(void *ref)
         log_msg("reference frame shift");
     }
 
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
-        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
-            float dlon_m = fabsf(lon - jw->longitude) * LON_D2M;
-            float dlat_m = fabsf(lat - jw->latitude) * cosf(D2R * lat) * LON_D2M;
+    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+        /* cheap check against bounding box */
+        if (lat < sc->bb_lat_min || lat > sc->bb_lat_max
+            || RA(lon - sc->bb_lon_min) < 0 || RA(lon - sc->bb_lon_max) > 0) {
+            stat_sc_far_skip++;
+            continue;
+        }
 
-            /* quick check by lat/lon */
-            if (dlon_m > FAR_SKIP || dlat_m > FAR_SKIP) {
+        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+            /* cheap check against bounding box */
+            if (lat < jw->bb_lat_min || lat > jw->bb_lat_max
+                || RA(lon - jw->bb_lon_min) < 0 || RA(lon - jw->bb_lon_max) > 0) {
                 stat_far_skip++;
                 continue;
             }
@@ -394,6 +361,7 @@ read_jw_acc(void *ref)
 
             return 0.0;
         }
+    }
 
     return 0.0;
 }
@@ -1204,9 +1172,10 @@ PLUGIN_API void
 XPluginDisable(void)
 {
     save_pref();
-    log_msg("acc called:  %llu", stat_acc_called);
-    log_msg("far skip:    %llu", stat_far_skip);
-    log_msg("near skip:   %llu", stat_near_skip);
+    log_msg("acc called:       %llu", stat_acc_called);
+    log_msg("scenery far skip: %llu", stat_sc_far_skip);
+    log_msg("far skip:         %llu", stat_far_skip);
+    log_msg("near skip:        %llu", stat_near_skip);
 }
 
 

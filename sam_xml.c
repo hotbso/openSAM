@@ -187,6 +187,8 @@ collect_sam_xml(const char *xp_dir)
             strncat(fn, scenery_path, sizeof(fn) - 100);
         }
 
+        int path_len = strlen(fn);
+
         strcat(fn, "sam.xml");
 
         //log_msg("Trying '%s'", fn);
@@ -204,10 +206,24 @@ collect_sam_xml(const char *xp_dir)
                 }
             }
 
-            int rc = read_sam_xml(f, &sceneries[n_sceneries]);
+            scenery_t *sc = &sceneries[n_sceneries];
+            int rc = read_sam_xml(f, sc);
             fclose(f);
             if (!rc)
                 return 0;
+
+            if (path_len > 0)
+                fn[path_len - 1] = '\0';    /* strip /sam */
+            cptr = strrchr(fn, '/');
+            char * cptr1 = strrchr(fn, '\\');
+            if (cptr < cptr1)
+                sc->name = strdup(cptr1 + 1);
+            else if (cptr1 < cptr)
+                sc->name = strdup(cptr + 1);
+
+            if (sc->name == NULL)
+                sc->name = "unknown";
+
             n_sceneries++;
         }
 
@@ -215,6 +231,30 @@ collect_sam_xml(const char *xp_dir)
 
     fclose(scp);
     sceneries = realloc(sceneries, n_sceneries * sizeof(scenery_t));
+
+    static const float far_skip_dlat = FAR_SKIP / LAT_2_M;
+
+    /* compute the bounding boxes */
+    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+        sc->bb_lat_min = sc->bb_lon_min = 1000.0f;
+        sc->bb_lat_max = sc->bb_lon_max = -1000.0f;
+
+        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+            jw->bb_lat_min = jw->latitude - far_skip_dlat;
+            jw->bb_lat_max = jw->latitude + far_skip_dlat;
+
+            float far_skip_dlon = far_skip_dlat / cosf(jw->latitude * D2R);
+            jw->bb_lon_min = RA(jw->longitude - far_skip_dlon);
+            jw->bb_lon_max = RA(jw->longitude + far_skip_dlon);
+
+            sc->bb_lat_min = MIN(sc->bb_lat_min, jw->bb_lat_min);
+            sc->bb_lat_max = MAX(sc->bb_lat_max, jw->bb_lat_max);
+
+            sc->bb_lon_min = MIN(sc->bb_lon_min, jw->bb_lon_min);
+            sc->bb_lon_max = MAX(sc->bb_lon_max, jw->bb_lon_max);
+        }
+    }
+
     return 1;
 }
 

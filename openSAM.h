@@ -24,8 +24,8 @@
 
 static const float D2R = M_PI/180.0;
 static const float F2M = 0.3048;	/* 1 ft [m] */
-static const float LON_D2M = 111120;    /* 1° lon in m */
-static const float FAR_SKIP = 4000; /* don't consider jetways farther than that */
+static const float LAT_2_M = 111120;    /* 1° lat in m */
+static const float FAR_SKIP = 5000; /* don't consider jetways farther than that */
 static const float NEAR_SKIP = 2; /* don't consider jetways farther than that */
 
 typedef struct _sam_jw  {
@@ -52,12 +52,16 @@ typedef struct _sam_jw  {
           minExtent, maxExtent, minWheels, maxWheels,
           initialRot1, initialRot2, initialRot3, initialExtent;
     int door; /* 0 = LF1 or default, 1 = LF2 */
+
+    float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for FAR_SKIP */
 } sam_jw_t;
 
 typedef struct _scenery {
+    const char *name;
     sam_jw_t *sam_jws;
     int n_sam_jws;
-    float NE_lat, NE_lon, SW_lat, SW_lon;   /* bounding box + FAR_SKIP */
+
+    float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for FAR_SKIP */
 } scenery_t;
 
 extern scenery_t *sceneries;
@@ -65,4 +69,44 @@ extern int n_sceneries;
 
 extern void log_msg(const char *fmt, ...);
 extern int collect_sam_xml(const char *xp_dir);
+
+/* helpers */
+#define MAX(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#define MIN(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
+#define BETWEEN(x ,a ,b) ((a) <= (x) && (x) <= (b))
+
+static inline
+float RA(float angle)
+{
+    if (angle > 180.0f)
+        return angle - 360.0f;
+
+    if (angle <= -180.0f)
+        return angle + 360.0f;
+
+    return angle;
+}
+
+static inline float
+clampf(float x, float min, float max)
+{
+    if (x < min) return min;
+    if (x > max) return max;
+    return x;
+}
+
+/* norm-2 length */
+static inline float
+len2f(float x, float y)
+{
+    return sqrtf(x * x + y * y);
+}
 

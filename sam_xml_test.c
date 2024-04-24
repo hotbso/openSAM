@@ -38,10 +38,13 @@ main(int argc, char **argv) {
     printf("%d sceneries collected\n", n_sceneries);
 
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
-        printf("%d jetways collected\n", sc->n_sam_jws);
+        printf("%s\n%d jetways collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n", sc->name, sc->n_sam_jws,
+               sc->bb_lat_min, sc->bb_lon_min, sc->bb_lat_max, sc->bb_lon_max);
+
         for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
             log_msg("%s %5.6f %5.6f door: %d", jw->name, jw->latitude, jw->longitude, jw->door);
         }
+        puts("\n");
     }
 
 	return (1);
