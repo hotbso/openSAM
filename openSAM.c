@@ -130,11 +130,13 @@ static const char *dr_name_jw[] = {
     "sam/jetway/wheelrotatel"};
 
 typedef struct door_info_ {
-    float x, y, z;
+    float x, y, z, y_agl;
 } door_info_t;
 
+#define MAX_DOOR 2
+
 static int n_door;
-static door_info_t door_info[2];
+static door_info_t door_info[MAX_DOOR];
 
 typedef enum ajw_status_e {
     AJW_PARKED,
@@ -166,7 +168,7 @@ typedef struct active_jw_ {
 } active_jw_t;
 
 static int n_active_jw;
-static active_jw_t active_jw[2];
+static active_jw_t active_jw[MAX_DOOR];
 
 static float lat_ref = -1000, lon_ref = -1000;
 /* generation # of reference frame
@@ -445,22 +447,23 @@ find_dockable_jws()
         goto out;
     }
 
-    float door_agl = plane_y - probeinfo.locationY + door_info[0].y;
-    log_msg("plane: x: %5.3f, z: %5.3f, y: %5.3f, door_agl: %.2f, psi: %4.1f",
-            plane_x, plane_z, plane_y, door_agl, plane_psi);
-
+    for (int i = 0; i < n_door; i++) {
+        door_info[i].y_agl = plane_y - probeinfo.locationY + door_info[i].y;
+        log_msg("find_dockable_jws: door %d, plane: x: %5.3f, z: %5.3f, y: %5.3f, door_agl: %.2f, psi: %4.1f",
+                i, plane_x, plane_z, plane_y, door_info[i].y_agl, plane_psi);
+    }
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
         for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
             if (jw->obj_ref_gen < ref_gen)  /* not visible -> not dockable */
                 continue;
 
-            if (jw->door != 0)
+            if (jw->door > n_door)
                 continue;
 
-            log_msg("%s, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
-                    jw->name, jw->x, jw->z, jw->y, jw->psi);
+            log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
+                    jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
 
-            active_jw_t *ajw = &active_jw[0];
+            active_jw_t *ajw = &active_jw[n_active_jw];
             memset(ajw, 0, sizeof(active_jw_t));
             ajw->jw = jw;
 
@@ -472,18 +475,20 @@ find_dockable_jws()
             ajw->psi = RA(jw->psi - plane_psi);
 
             /* move into door local frame */
-            ajw->x -= door_info[0].x;
-            ajw->z -= door_info[0].z;
+            ajw->x -= door_info[jw->door].x;
+            ajw->z -= door_info[jw->door].z;
 
             if (ajw->x > 0.0)   // on the right side
                 continue;
 
             ajw->tgt_x = -jw->cabinLength;
             // tgt z = 0.0
-            ajw->y = jw->height - door_agl;
+            ajw->y = jw->height - door_info[jw->door].y_agl;
 
             jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
-            ajw->tgt_rot2 += 3.0f;  /* for door1 only */
+            if (jw->door == 0)
+                ajw->tgt_rot2 += 3.0f;  /* for door1 only */
+
             jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 
             log_msg("%s, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f", jw->name,
@@ -494,11 +499,11 @@ find_dockable_jws()
                 continue;
             }
 
-            log_msg("match: %s, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
-                    jw->name, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
-
             if (BETWEEN(ajw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(ajw->tgt_rot2, jw->minRot2, jw->maxRot2)
                 && BETWEEN(ajw->tgt_extent, jw->minExtent, jw->maxExtent)) {
+
+                log_msg("match: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
+                        jw->name, jw->door, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
 
                 /* compute x,z of parked jw */
                 float rot1_d = RA((jw->initialRot1 + ajw->psi) - 90.0f);    // door frame
@@ -509,8 +514,10 @@ find_dockable_jws()
                 ajw->cabin_z = ajw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
 
                 ajw->ap_x = ajw->tgt_x - JW_ALIGN_DIST;
-                n_active_jw = 1;
-                break;
+
+                n_active_jw++;
+                if (n_active_jw == n_door)
+                    break;
             } else {
                 log_msg("jw: %s does not match min, max criteria", jw->name);
             }
@@ -952,11 +959,13 @@ run_state_machine()
         case CAN_DOCK:
             if (dock_requested) {
                 log_msg("docking requested");
-                active_jw_t *ajw = &active_jw[0];
-                ajw->state = AJW_TO_AP;
-                ajw->last_step_ts = now;
-                ajw->timeout = now + JW_ANIM_TIMEOUT;
-                new_state = DOCKING;
+                for (int i = i; i < n_active_jw; i++) {
+                    active_jw_t *ajw = &active_jw[i];
+                    ajw->state = AJW_TO_AP;
+                    ajw->last_step_ts = now;
+                    ajw->timeout = now + JW_ANIM_TIMEOUT;
+                    new_state = DOCKING;
+                }
             }
             break;
 
@@ -986,11 +995,13 @@ run_state_machine()
 
             if (undock_requested) {
                 log_msg("undocking requested");
-                active_jw_t *ajw = &active_jw[0];
-                ajw->state = AJW_TO_AP;
-                ajw->last_step_ts = now;
-                ajw->timeout = now + + JW_ANIM_TIMEOUT;
-                new_state = UNDOCKING;
+                for (int i = i; i < n_active_jw; i++) {
+                    active_jw_t *ajw = &active_jw[i];
+                    ajw->state = AJW_TO_AP;
+                    ajw->last_step_ts = now;
+                    ajw->timeout = now + JW_ANIM_TIMEOUT;
+                    new_state = UNDOCKING;
+                }
             }
             break;
 
@@ -1117,17 +1128,18 @@ menu_cb(void *menu_ref, void *item_ref)
 }
 
 static int
-find_icao_in_file(const char *acf_icao, const char *dir, const char *fn)
+find_icao_in_file(const char *acf_icao, const char *dir, const char *fn,
+                  char *line, int len)
 {
     char fn_full[512];
     snprintf(fn_full, sizeof(fn_full) - 1, "%s%s", dir, fn);
 
     int res = 0;
     FILE *f = fopen(fn_full, "r");
+    line[len-1] = '\0';
     if (f) {
-        log_msg("check whether acf '%s' is in exception file %s", acf_icao, fn_full);
-        char line[100];
-        while (fgets(line, sizeof(line), f)) {
+        log_msg("check whether acf '%s' is in  file %s", acf_icao, fn_full);
+        while (fgets(line, len-1, f)) {
             char *cptr = strchr(line, '\r');
             if (cptr)
                 *cptr = '\0';
@@ -1135,7 +1147,7 @@ find_icao_in_file(const char *acf_icao, const char *dir, const char *fn)
             if (cptr)
                 *cptr = '\0';
 
-            if (0 == strcmp(line, acf_icao)) {
+            if (line == strstr(line, acf_icao)) {
                 log_msg("found acf %s in %s", acf_icao, fn);
                 res = 1;
                 break;
@@ -1308,11 +1320,6 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         plane_cg_y = F2M * XPLMGetDataf(acf_cg_y_dr);
         plane_cg_z = F2M * XPLMGetDataf(acf_cg_z_dr);
 
-        door_info[0].x = XPLMGetDataf(acf_door_x_dr);
-        door_info[0].y = XPLMGetDataf(acf_door_y_dr);
-        door_info[0].z = XPLMGetDataf(acf_door_z_dr);
-        n_door = 1;
-
         /* check whether acf is listed in exception files */
         use_engine_running = 0;
         dont_connect_jetway = 0;
@@ -1329,16 +1336,30 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         if (cptr)
             *(cptr + 1) = '\0';             /* keep the / */
 
-        if (find_icao_in_file(acf_icao, dir, "acf_use_engine_running.txt"))
+        char line[200];
+        if (find_icao_in_file(acf_icao, dir, "acf_use_engine_running.txt", line, sizeof(line)))
             use_engine_running = 1;
 
-        if (find_icao_in_file(acf_icao, dir, "acf_dont_connect_jetway.txt"))
+        if (find_icao_in_file(acf_icao, dir, "acf_dont_connect_jetway.txt", line, sizeof(line)))
             dont_connect_jetway = 1;
 
+        door_info[0].x = XPLMGetDataf(acf_door_x_dr);
+        door_info[0].y = XPLMGetDataf(acf_door_y_dr);
+        door_info[0].z = XPLMGetDataf(acf_door_z_dr);
+
+        n_door = 1;
+
+        line[sizeof(line) - 1] = '\0';
+        if (find_icao_in_file(acf_icao, dir, "acf_door2_position.txt", line, sizeof(line)))
+            if (3 == sscanf(line + 4, "%f %f %f", &door_info[1].x, &door_info[1].y, &door_info[1].z))
+                n_door = 2;
 
         log_msg("plane loaded: %s, plane_cg_y: %1.2f, plane_cg_z: %1.2f, "
-               "plane_door_x: %1.2f, plane_door_y: %1.2f, plane_door_z: %1.2f",
-               acf_icao, plane_cg_y, plane_cg_z,
-               door_info[0].x, door_info[0].y, door_info[0].z);
+                "plane_door x: %1.2f, y: %1.2f, z: %1.2f",
+                acf_icao, plane_cg_y, plane_cg_z,
+                door_info[0].x, door_info[0].y, door_info[0].z);
+
+        if (n_door == 2)
+            log_msg("found second door x: %0.2f, y: %0.2f, z: %0.2f", door_info[1].x, door_info[1].y, door_info[1].z);
     }
 }
