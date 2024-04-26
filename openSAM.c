@@ -633,6 +633,10 @@ dock_drive(active_jw_t *ajw)
     sam_jw_t *jw = ajw->jw;
     //log_msg("dock_drive(): state: %d", ajw->state);
 
+    if (ajw->state == AJW_DOCKED)
+        return 1;
+
+    // guard against a hung animation
     if (now > ajw->timeout) {
         log_msg("dock_drive() timeout!");
         ajw->state = AJW_DOCKED;
@@ -763,6 +767,20 @@ undock_drive(active_jw_t *ajw)
 {
     sam_jw_t *jw = ajw->jw;
 
+    if (ajw->state == AJW_PARKED)
+        return 1;
+
+    // guard against a hung animation
+    if (now > ajw->timeout) {
+        log_msg("undock_drive() timeout!");
+        ajw->state = AJW_PARKED;
+        jw->rotate1 = jw->initialRot1;
+        jw->rotate2 = jw->initialRot2;
+        jw->rotate3 = jw->initialRot3;
+        jw->extent = jw->initialExtent;
+        return 1;   // -> done
+    }
+
     float dt = now - ajw->last_step_ts;
     ajw->last_step_ts = now;
 
@@ -783,7 +801,7 @@ undock_drive(active_jw_t *ajw)
         float tgt_x = ajw->ap_x;
 
         float eps = MAX(2.0f * dt * JW_DRIVE_SPEED, 0.1f);
-        log_msg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - ajw->cabin_x), fabs(ajw->cabin_z));
+        //log_msg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - ajw->cabin_x), fabs(ajw->cabin_z));
         if (fabs(tgt_x - ajw->cabin_x) < eps && fabs(ajw->cabin_z) < eps)  {
             ajw->state = AJW_AT_AP;
             log_msg("align point reached reached");
@@ -810,6 +828,7 @@ undock_drive(active_jw_t *ajw)
     }
 
     if (ajw->state == AJW_AT_AP) {
+        // nothing for now
         ajw->state = AJW_TO_PARK;
     }
 
@@ -851,7 +870,7 @@ undock_drive(active_jw_t *ajw)
         float eps = MAX(2.0f * dt * JW_DRIVE_SPEED, 0.1f);
         //log_msg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - ajw->cabin_x), fabs(tgt_z - ajw->cabin_z));
         if (fabs(tgt_x - ajw->cabin_x) < eps && fabs(tgt_z -ajw->cabin_z) < eps)  {
-            ajw->state = AJW_DOCKED;
+            ajw->state = AJW_PARKED;
             log_msg("park position reached");
             return 1;   // done
         }
