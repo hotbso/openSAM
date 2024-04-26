@@ -72,9 +72,10 @@
 static const float JW_DRIVE_SPEED = 1.0;    /* m/s */
 static const float JW_TURN_SPEED = 10.0;    /* °/s */
 static const float JW_HEIGHT_SPEED = 0.1;   /* m/s */
-static const float JW_ANIM_INTERVAL = 0.01; /* s */
+static const float JW_ANIM_INTERVAL = -1;   /* s for debugging or -1 for frame loop*/
 static const float JW_ANIM_TIMEOUT  = 50;   /* s */
 static const float JW_ALIGN_DIST = 1.0;     /* m abeam door */
+
 static char pref_path[512];
 static const char *psep;
 static XPLMMenuID seasons_menu;
@@ -85,7 +86,6 @@ static int nh;     // on northern hemisphere
 static int season; // 0-3
 static const char *dr_name[] = {"sam/season/winter", "sam/season/spring",
             "sam/season/summer", "sam/season/autumn"};
-
 
 static XPLMDataRef date_day_dr,
     plane_x_dr, plane_y_dr, plane_z_dr, plane_lat_dr, plane_lon_dr, plane_elevation_dr,
@@ -626,17 +626,12 @@ animate_wheels(active_jw_t *ajw, float ds)
 }
 
 // drive jetway to the door
-static float
-dock_drive()
+// return 1 when done
+static int
+dock_drive(active_jw_t *ajw)
 {
-    if (n_active_jw == 0)
-        return 0.5;
-
-    active_jw_t *ajw = &active_jw[0];
     sam_jw_t *jw = ajw->jw;
     //log_msg("dock_drive(): state: %d", ajw->state);
-    if (state != DOCKING)
-        return 0.5;
 
     if (now > ajw->timeout) {
         log_msg("dock_drive() timeout!");
@@ -645,14 +640,10 @@ dock_drive()
         jw->rotate2 = ajw->tgt_rot2;
         jw->rotate3 = ajw->tgt_rot3;
         jw->extent = ajw->tgt_extent;
-        return 0;   // -> done
+        return 1;   // -> done
     }
 
     float dt = now - ajw->last_step_ts;
-    float remaining = JW_ANIM_INTERVAL - dt;
-    if (remaining > 0)
-        return remaining;
-
     ajw->last_step_ts = now;
 
     float rot1_d = RA((jw->rotate1 + ajw->psi) - 90.0f);    // door frame
@@ -663,9 +654,8 @@ dock_drive()
     if (ajw->state == AJW_TO_AP) {
         if (ajw->wait_wb_rot) {
             //log_msg("AJW_TO_AP: waiting for wb rotation");
-            if (rotate_wheel_base(jw, ajw->wb_rot, dt)) {
-                return JW_ANIM_INTERVAL;
-            }
+            if (rotate_wheel_base(jw, ajw->wb_rot, dt))
+                return 0;
             ajw->wait_wb_rot = 0;
         }
 
@@ -676,7 +666,7 @@ dock_drive()
         if (fabs(tgt_x - ajw->cabin_x) < eps && fabs(ajw->cabin_z) < eps)  {
             ajw->state = AJW_AT_AP;
             log_msg("align point reached reached");
-            return JW_ANIM_INTERVAL;
+            return 0;
         }
 
         double ds = dt * JW_DRIVE_SPEED;
@@ -690,7 +680,7 @@ dock_drive()
         ajw->wb_rot = RA(drive_angle - rot1_d);
         if (rotate_wheel_base(jw, ajw->wb_rot, dt)) {
             ajw->wait_wb_rot = 1;
-            return JW_ANIM_INTERVAL;
+            return 0;
         }
         ajw->wait_wb_rot = 0;
 
@@ -721,9 +711,8 @@ dock_drive()
     if (ajw->state == AJW_TO_DOOR) {
         if (ajw->wait_wb_rot) {
             // log_msg("AJW_TO_AP: waiting for wb rotation");
-            if (rotate_wheel_base(jw, ajw->wb_rot, dt)) {
-                return JW_ANIM_INTERVAL;
-            }
+            if (rotate_wheel_base(jw, ajw->wb_rot, dt))
+                return 0;
             ajw->wait_wb_rot = 0;
         }
 
@@ -747,7 +736,7 @@ dock_drive()
         ajw->wb_rot = RA(-rot1_d);
         if (rotate_wheel_base(jw, ajw->wb_rot, dt)) {
             ajw->wait_wb_rot = 1;
-            return JW_ANIM_INTERVAL;
+            return 0;
         }
         ajw->wait_wb_rot = 0;
 
@@ -755,35 +744,26 @@ dock_drive()
         animate_wheels(ajw, ds);
 
         float eps = MAX(2.0f * dt * JW_DRIVE_SPEED, 0.1f);
-        log_msg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - ajw->cabin_x), fabs(ajw->cabin_z));
+        //log_msg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - ajw->cabin_x), fabs(ajw->cabin_z));
         if (fabs(tgt_x - ajw->cabin_x) < eps && fabs(ajw->cabin_z) < eps)  {
             ajw->state = AJW_DOCKED;
             log_msg("door reached");
-            return 0;   // done
+            return 1;   // done
         }
     }
 
-    return JW_ANIM_INTERVAL;
+    return 0;
 }
 
 
+// drive jetway to parked position
+// return 1 when done
 static float
-undock_drive()
+undock_drive(active_jw_t *ajw)
 {
-    if (n_active_jw == 0)
-        return 0.5;
-
-    active_jw_t *ajw = &active_jw[0];
     sam_jw_t *jw = ajw->jw;
 
-    if (state != UNDOCKING)
-        return 0.5;
-
     float dt = now - ajw->last_step_ts;
-    float remaining = JW_ANIM_INTERVAL - dt;
-    if (remaining > 0)
-        return remaining;
-
     ajw->last_step_ts = now;
 
     float rot1_d = RA((jw->rotate1 + ajw->psi) - 90.0f);    // door frame
@@ -795,7 +775,7 @@ undock_drive()
         if (ajw->wait_wb_rot) {
             //log_msg("AJW_TO_AP: waiting for wb rotation");
             if (rotate_wheel_base(jw, ajw->wb_rot, dt)) {
-                return JW_ANIM_INTERVAL;
+                return 0;
             }
             ajw->wait_wb_rot = 0;
         }
@@ -807,7 +787,7 @@ undock_drive()
         if (fabs(tgt_x - ajw->cabin_x) < eps && fabs(ajw->cabin_z) < eps)  {
             ajw->state = AJW_AT_AP;
             log_msg("align point reached reached");
-            return JW_ANIM_INTERVAL;
+            return 0;
         }
 
         double ds = dt * 0.5 * JW_DRIVE_SPEED;
@@ -821,7 +801,7 @@ undock_drive()
         ajw->wb_rot = RA(drive_angle - rot1_d);
         if (rotate_wheel_base(jw, ajw->wb_rot, dt)) {
             ajw->wait_wb_rot = 1;
-            return JW_ANIM_INTERVAL;
+            return 0;
         }
         ajw->wait_wb_rot = 0;
 
@@ -837,7 +817,7 @@ undock_drive()
         if (ajw->wait_wb_rot) {
             // log_msg("AJW_TO_AP: waiting for wb rotation");
             if (rotate_wheel_base(jw, ajw->wb_rot, dt)) {
-                return JW_ANIM_INTERVAL;
+                return 0;
             }
             ajw->wait_wb_rot = 0;
         }
@@ -859,7 +839,7 @@ undock_drive()
         ajw->wb_rot = RA(drive_angle - rot1_d);
         if (rotate_wheel_base(jw, ajw->wb_rot, dt)) {
             ajw->wait_wb_rot = 1;
-            return JW_ANIM_INTERVAL;
+            return 0;
         }
         ajw->wait_wb_rot = 0;
 
@@ -873,11 +853,11 @@ undock_drive()
         if (fabs(tgt_x - ajw->cabin_x) < eps && fabs(tgt_z -ajw->cabin_z) < eps)  {
             ajw->state = AJW_DOCKED;
             log_msg("park position reached");
-            return 0;   // done
+            return 1;   // done
         }
     }
 
-    return JW_ANIM_INTERVAL;
+    return 0;
 }
 
 static int
@@ -918,8 +898,6 @@ check_teleportation()
 static float
 run_state_machine()
 {
-    float remaining;
-
     if (state == DISABLED)
         return 2.0;
 
@@ -971,14 +949,15 @@ run_state_machine()
             break;
 
         case DOCKING:
-            remaining = dock_drive();
-            if (remaining == 0.0f)
-                new_state = DOCKED;
-            else {
-                if (JW_ANIM_INTERVAL < 0.02)
-                    return -1;
-                return remaining;
-            }
+            int n_done = 0;
+            for (int i = i; i < n_active_jw; i++)
+                n_done += dock_drive(&active_jw[i]);
+
+            if (n_done == n_active_jw)
+               new_state = DOCKED;
+            else
+                return JW_ANIM_INTERVAL;
+            break;
 
         case DOCKED:
             if (!on_ground || beacon_on) {
@@ -997,11 +976,14 @@ run_state_machine()
             break;
 
         case UNDOCKING:
-            remaining = undock_drive();
-            if (remaining == 0.0f)
-                new_state = IDLE;
+            n_done = 0;
+            for (int i = i; i < n_active_jw; i++)
+                n_done += undock_drive(&active_jw[i]);
+
+            if (n_done == n_active_jw)
+               new_state = IDLE;
             else
-                return remaining;
+                return JW_ANIM_INTERVAL;
             break;
 
         default:
