@@ -444,7 +444,7 @@ find_dockable_jws()
             if (jw->obj_ref_gen < ref_gen)  // not visible -> not dockable
                 continue;
 
-            if (jw->door > n_door)
+            if (jw->door >= n_door)
                 continue;
 
             log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
