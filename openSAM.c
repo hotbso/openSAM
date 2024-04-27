@@ -130,7 +130,7 @@ static const char *dr_name_jw[] = {
     "sam/jetway/wheelrotatel"};
 
 typedef struct door_info_ {
-    float x, y, z, y_agl;
+    float x, y, z;
 } door_info_t;
 
 #define MAX_DOOR 2
@@ -439,19 +439,6 @@ find_dockable_jws()
     float sin_psi = sinf(D2R * plane_psi);
     float cos_psi = cosf(D2R * plane_psi);
 
-    XPLMProbeRef probe_ref = XPLMCreateProbe(xplm_ProbeY);
-    XPLMProbeInfo_t probeinfo = {.structSize = sizeof(XPLMProbeInfo_t)};
-
-    if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, plane_x, plane_y, plane_z, &probeinfo)) {
-        log_msg("XPLMProbeTerrainXYZ failed");
-        goto out;
-    }
-
-    for (int i = 0; i < n_door; i++) {
-        door_info[i].y_agl = plane_y - probeinfo.locationY + door_info[i].y;
-        log_msg("find_dockable_jws: door %d, plane: x: %5.3f, z: %5.3f, y: %5.3f, door_agl: %.2f, psi: %4.1f",
-                i, plane_x, plane_z, plane_y, door_info[i].y_agl, plane_psi);
-    }
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
         for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
             if (jw->obj_ref_gen < ref_gen)  /* not visible -> not dockable */
@@ -483,7 +470,7 @@ find_dockable_jws()
 
             ajw->tgt_x = -jw->cabinLength;
             // tgt z = 0.0
-            ajw->y = jw->height - door_info[jw->door].y_agl;
+            ajw->y = (jw->y + jw->height) - (plane_y + door_info[jw->door].y);
 
             jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
             if (jw->door == 0)
@@ -523,8 +510,6 @@ find_dockable_jws()
             }
         }
 
-out:
-    XPLMDestroyProbe(probe_ref);
     return n_active_jw;
 }
 
