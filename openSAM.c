@@ -69,12 +69,12 @@
  */
 
 
-static const float JW_DRIVE_SPEED = 1.0;    /* m/s */
-static const float JW_TURN_SPEED = 10.0;    /* °/s */
-static const float JW_HEIGHT_SPEED = 0.1;   /* m/s */
-static const float JW_ANIM_INTERVAL = -1;   /* s for debugging or -1 for frame loop*/
-static const float JW_ANIM_TIMEOUT  = 50;   /* s */
-static const float JW_ALIGN_DIST = 1.0;     /* m abeam door */
+static const float JW_DRIVE_SPEED = 1.0;    // m/s
+static const float JW_TURN_SPEED = 10.0;    // °/s
+static const float JW_HEIGHT_SPEED = 0.1;   // m/s
+static const float JW_ANIM_INTERVAL = -1;   // s for debugging or -1 for frame loop
+static const float JW_ANIM_TIMEOUT  = 50;   // s
+static const float JW_ALIGN_DIST = 1.0;     // m abeam door
 
 static char pref_path[512];
 static const char *psep;
@@ -150,7 +150,7 @@ typedef struct active_jw_ {
     sam_jw_t *jw;
     ajw_status_t state;
 
-    /* in door local coordinates */
+    // in door local coordinates
     float x, y, z, psi;
 
     // target cabin position with corresponding dref values
@@ -175,12 +175,12 @@ static float lat_ref = -1000, lon_ref = -1000;
  * init with 1 so jetways never seen by the accessor won't be considered in find_dockable_jws() */
 static unsigned int ref_gen = 1;
 
-static float now;           /* current timestamp */
-static int beacon_state, beacon_last_pos;   /* beacon state, last switch_pos, ts of last switch actions */
+static float now;           // current timestamp
+static int beacon_state, beacon_last_pos;   // beacon state, last switch_pos, ts of last switch actions
 static float beacon_off_ts, beacon_on_ts;
 
-static int use_engine_running;              /* instead of beacon, e.g. MD11 */
-static int dont_connect_jetway;             /* e.g. for ZIBO with own ground service */
+static int use_engine_running;              // instead of beacon, e.g. MD11
+static int dont_connect_jetway;             // e.g. for ZIBO with own ground service
 static float plane_cg_y, plane_cg_z;
 
 
@@ -196,7 +196,7 @@ save_pref()
     if (NULL == f)
         return;
 
-    /* encode southern hemisphere with negative season */
+    // encode southern hemisphere with negative season
     int s = nh ? season : -season;
     fprintf(f, "%d,%d", auto_season, s);
     fclose(f);
@@ -275,12 +275,12 @@ read_season_acc(void *ref)
     return val;
 }
 
-/*
- * Accessor for the "sam/jetway/..." datarefs
- *
- * This function is called from draw loops, efficient coding required.
- *
- */
+//
+// Accessor for the "sam/jetway/..." datarefs
+//
+// This function is called from draw loops, efficient coding required.
+//
+//
 static float
 read_jw_acc(void *ref)
 {
@@ -305,7 +305,7 @@ read_jw_acc(void *ref)
     }
 
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
-        /* cheap check against bounding box */
+        // cheap check against bounding box
         if (lat < sc->bb_lat_min || lat > sc->bb_lat_max
             || RA(lon - sc->bb_lon_min) < 0 || RA(lon - sc->bb_lon_max) > 0) {
             stat_sc_far_skip++;
@@ -313,7 +313,7 @@ read_jw_acc(void *ref)
         }
 
         for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
-            /* cheap check against bounding box */
+            // cheap check against bounding box
             if (lat < jw->bb_lat_min || lat > jw->bb_lat_max
                 || RA(lon - jw->bb_lon_min) < 0 || RA(lon - jw->bb_lon_max) > 0) {
                 stat_far_skip++;
@@ -394,7 +394,7 @@ reset_jetways()
    n_active_jw = 0;
 }
 
-/* convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be NULL */
+// convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be NULL
 static inline void
 jw_xy_to_sam_dr(const active_jw_t *ajw, float cabin_x, float cabin_z,
                 float *rot1, float *extent, float *rot2, float *rot3)
@@ -408,7 +408,7 @@ jw_xy_to_sam_dr(const active_jw_t *ajw, float cabin_x, float cabin_z,
     *rot1 =  RA(rot1_d + 90.0f - ajw->psi);
     *extent = dist - jw->cabinPos;
 
-    /* angle 0° door frame  -> hdgt -> jw frame -> diff to rot1 */
+    // angle 0° door frame  -> hdgt -> jw frame -> diff to rot1
     float r2 = RA(0.0f + 90.0f - ajw->psi - *rot1);
     if (rot2)
         *rot2 = r2;
@@ -420,7 +420,7 @@ jw_xy_to_sam_dr(const active_jw_t *ajw, float cabin_x, float cabin_z,
 }
 
 
-/* try to find dockable jetways and save their info */
+// try to find dockable jetways and save their info
 static int
 find_dockable_jws()
 {
@@ -441,7 +441,7 @@ find_dockable_jws()
 
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
         for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
-            if (jw->obj_ref_gen < ref_gen)  /* not visible -> not dockable */
+            if (jw->obj_ref_gen < ref_gen)  // not visible -> not dockable
                 continue;
 
             if (jw->door > n_door)
@@ -454,14 +454,14 @@ find_dockable_jws()
             memset(ajw, 0, sizeof(active_jw_t));
             ajw->jw = jw;
 
-            /* rotate into plane local frame */
+            // rotate into plane local frame
             float dx = jw->x - plane_x;
             float dz = jw->z - plane_z;
             ajw->x =  cos_psi * dx + sin_psi * dz;
             ajw->z = -sin_psi * dx + cos_psi * dz;
             ajw->psi = RA(jw->psi - plane_psi);
 
-            /* move into door local frame */
+            // move into door local frame
             ajw->x -= door_info[jw->door].x;
             ajw->z -= door_info[jw->door].z;
 
@@ -474,7 +474,7 @@ find_dockable_jws()
 
             jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
             if (jw->door == 0)
-                ajw->tgt_rot2 += 3.0f;  /* for door1 only */
+                ajw->tgt_rot2 += 3.0f;  // for door1 only
 
             jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 
@@ -492,7 +492,7 @@ find_dockable_jws()
                 log_msg("match: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
                         jw->name, jw->door, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
 
-                /* compute x,z of parked jw */
+                // compute x,z of parked jw
                 float rot1_d = RA((jw->initialRot1 + ajw->psi) - 90.0f);    // door frame
                 float r = jw->initialExtent + jw->cabinPos;
                 ajw->parked_x = ajw->x + r * cosf(rot1_d * D2R);
@@ -518,7 +518,7 @@ rotate_wheel_base(sam_jw_t *jw, float wb_rot, float dt)
 {
     //log_msg("wb_rot: %0.2f", wb_rot);
 
-    /* driving backwards? */
+    // driving backwards?
     if (fabs(wb_rot) > 90.0f) {
         wb_rot = RA(180.0f + wb_rot);
     }
@@ -526,7 +526,7 @@ rotate_wheel_base(sam_jw_t *jw, float wb_rot, float dt)
     //wb_rot = clampf(wb_rot, -90.0f, 90.0f);
     // TODO: convert drive_angle back after clamping ?
 
-    /* wheel base rotation */
+    // wheel base rotation
     int result = 0;
     float d_rot;
     if (fabsf(jw->wheelrotatec - wb_rot) > 2.0f) {
@@ -536,7 +536,7 @@ rotate_wheel_base(sam_jw_t *jw, float wb_rot, float dt)
             jw->wheelrotatec += d_rot;
         else
             jw->wheelrotatec -= d_rot;
-        result = 1;    /* must wait */
+        result = 1;    // must wait
     } else {
         d_rot = wb_rot - jw->wheelrotatec;
         jw->wheelrotatec = wb_rot;
@@ -549,7 +549,7 @@ rotate_wheel_base(sam_jw_t *jw, float wb_rot, float dt)
     return result;
 }
 
-/* rotation1 + extend */
+// rotation1 + extend
 static void
 rotate_1_extend(active_jw_t *ajw, float cabin_x, float cabin_z)
 {
@@ -567,7 +567,7 @@ rotate_3(active_jw_t *ajw, float cabin_x, float cabin_z, float tgt_rot3, float d
     sam_jw_t *jw = ajw->jw;
 
     if (fabsf(jw->rotate3 - tgt_rot3) > 0.5) {
-        float d_rot3 = (dt * JW_HEIGHT_SPEED / (jw->cabinPos + jw->extent)) / D2R;  /* strictly it's atan */
+        float d_rot3 = (dt * JW_HEIGHT_SPEED / (jw->cabinPos + jw->extent)) / D2R;  // strictly it's atan
         if (jw->rotate3 >= tgt_rot3)
             jw->rotate3 = MAX(jw->rotate3 - d_rot3, tgt_rot3);
         else
@@ -680,11 +680,11 @@ dock_drive(active_jw_t *ajw)
         }
         ajw->wait_wb_rot = 0;
 
-        /* rotation2 */
+        // rotation2
         float tgt_rot2 = ajw->tgt_rot2;
         if (ajw->cabin_x < (tgt_x - 1.0f) || ajw->cabin_z < -2.0f) {
             float angle_to_door = atan2f(-ajw->cabin_z, ajw->tgt_x - ajw->cabin_x) / D2R;
-            tgt_rot2 = RA(angle_to_door + 90.0f - ajw->psi - jw->rotate1); /* point to door */
+            tgt_rot2 = RA(angle_to_door + 90.0f - ajw->psi - jw->rotate1); // point to door
         }
         //log_msg("jw->rotate2: %0.1f, ajw->tgt_rot2: %0.1f, tgt_rot2: %0.1f", jw->rotate2, ajw->tgt_rot2, tgt_rot2);
 
@@ -719,7 +719,7 @@ dock_drive(active_jw_t *ajw)
         log_msg("to door: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f",
                 rot1_d, ajw->cabin_x, ajw->cabin_z, wheel_x, wheel_z);
 
-        /* ramp down speed when approaching the plane */
+        // ramp down speed when approaching the plane
         float drive_speed = JW_DRIVE_SPEED;
         if (ajw->cabin_x >= (ajw->tgt_x - 0.8f))
             drive_speed = JW_DRIVE_SPEED * (0.1f + 0.9f * MAX(0.0f, (ajw->tgt_x - ajw->cabin_x) / 0.8f));
@@ -905,7 +905,7 @@ check_teleportation()
     return 0;
 }
 
-/* the state machine triggered by the flight loop */
+// the state machine triggered by the flight loop
 static float
 run_state_machine()
 {
@@ -1103,7 +1103,7 @@ menu_cb(void *menu_ref, void *item_ref)
 
         if (checked == 1 && entry != season) { // checking a prior unchecked entry
             season = entry;
-        } /* else nothing, unchecking is not possible */
+        } // else nothing, unchecking is not possible
 
         auto_season = 0;    // selecting a season always goes to manual mode
    }
@@ -1145,7 +1145,7 @@ find_icao_in_file(const char *acf_icao, const char *dir, const char *fn,
     return res;
 }
 
-/* =========================== plugin entry points ===============================================*/
+// =========================== plugin entry points ===============================================
 PLUGIN_API int
 XPluginStart(char *out_name, char *out_sig, char *out_desc)
 {
@@ -1155,14 +1155,14 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     strcpy(out_sig, "openSAM.hotbso");
     strcpy(out_desc, "A plugin that emulates SAM");
 
-    /* Always use Unix-native paths on the Mac! */
+    // Always use Unix-native paths on the Mac!
     XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
 
     char xp_dir[512];
 	XPLMGetSystemPath(xp_dir);
     psep = XPLMGetDirectorySeparator();
 
-    /* set pref path */
+    // set pref path
     XPLMGetPrefsPath(pref_path);
     XPLMExtractFileAndPath(pref_path);
     strcat(pref_path, psep);
@@ -1202,31 +1202,31 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     total_running_time_sec_dr = XPLMFindDataRef("sim/time/total_running_time_sec");
     vr_enabled_dr = XPLMFindDataRef("sim/graphics/VR/enabled");
 
-    /* create the seasons datarefs */
+    // create the seasons datarefs
     for (int i = 0; i < 4; i++)
         XPLMRegisterDataAccessor(dr_name[i], xplmType_Int, 0, read_season_acc,
                                  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, (void *)(long long)i, NULL);
 
-    /* own commands */
+    // own commands
     XPLMCommandRef dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
     XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, (void *)1);
 
     XPLMCommandRef undock_cmdr = XPLMCreateCommand("openSAM/undock_jwy", "Undock jetway");
     XPLMRegisterCommandHandler(undock_cmdr, cmd_dock_jw_cb, 0, (void *)0);
 
-    /* build menues */
+    // build menues
     XPLMMenuID menu = XPLMFindPluginsMenu();
     XPLMMenuID os_menu = XPLMCreateMenu("openSAM", menu,
                                         XPLMAppendMenuItem(menu, "openSAM", NULL, 0),
                                         NULL, NULL);
-    /* openSAM */
+    // openSAM
     XPLMAppendMenuItemWithCommand(os_menu, "Dock Jetway", dock_cmdr);
     XPLMAppendMenuItemWithCommand(os_menu, "Undock Jetway", undock_cmdr);
 
     XPLMAppendMenuSeparator(os_menu);
 
-    /* openSAM -> Seasons */
+    // openSAM -> Seasons
     int seasons_menu_item = XPLMAppendMenuItem(os_menu, "Seasons", NULL, 0);
     seasons_menu = XPLMCreateMenu("Seasons", os_menu, seasons_menu_item, menu_cb, NULL);
 
@@ -1238,7 +1238,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     season_item[1] = XPLMAppendMenuItem(seasons_menu, "Spring", (void *)1, 0);
     season_item[2] = XPLMAppendMenuItem(seasons_menu, "Summer", (void *)2, 0);
     season_item[3] = XPLMAppendMenuItem(seasons_menu, "Autumn", (void *)3, 0);
-    /* --------------------- */
+    // ---------------------
 
     load_pref();
     set_menu();
@@ -1249,7 +1249,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     log_msg("%d sceneries with sam jetways found", n_sceneries);
     reset_jetways();
 
-    /* create the jetway datarefs */
+    // create the jetway datarefs
     for (dr_code_t drc = DR_ROTATE1; drc < N_JW_DR; drc++)
         XPLMRegisterDataAccessor(dr_name_jw[drc], xplmType_Float, 0, NULL,
                                  NULL, read_jw_acc, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -1286,8 +1286,8 @@ XPluginEnable(void)
 PLUGIN_API void
 XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
 {
-    /* Everything before XPLM_MSG_AIRPORT_LOADED has bogus datarefs.
-       Anyway it's too late for the current scenery. */
+    // Everything before XPLM_MSG_AIRPORT_LOADED has bogus datarefs.
+    //   Anyway it's too late for the current scenery.
     if ((in_msg == XPLM_MSG_AIRPORT_LOADED) ||
         (airport_loaded && (in_msg == XPLM_MSG_SCENERY_LOADED))) {
         airport_loaded = 1;
@@ -1295,7 +1295,7 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         set_season_auto();
     }
 
-    /* my plane loaded */
+    // my plane loaded
     if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
         char acf_icao[41];
         memset(acf_icao, 0, sizeof(acf_icao));
@@ -1305,21 +1305,21 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         plane_cg_y = F2M * XPLMGetDataf(acf_cg_y_dr);
         plane_cg_z = F2M * XPLMGetDataf(acf_cg_z_dr);
 
-        /* check whether acf is listed in exception files */
+        // check whether acf is listed in exception files
         use_engine_running = 0;
         dont_connect_jetway = 0;
 
         char dir[512];
         dir[0] = '\0';
         XPLMGetPluginInfo(XPLMGetMyID(), NULL, dir, NULL, NULL);
-        char *cptr = strrchr(dir, '/');    /* basename */
+        char *cptr = strrchr(dir, '/');    // basename
         if (cptr) {
             *cptr = '\0';
-            cptr = strrchr(dir, '/');       /* one level up */
+            cptr = strrchr(dir, '/');       // one level up
         }
 
         if (cptr)
-            *(cptr + 1) = '\0';             /* keep the / */
+            *(cptr + 1) = '\0';             // keep the /
 
         char line[200];
         if (find_icao_in_file(acf_icao, dir, "acf_use_engine_running.txt", line, sizeof(line)))
