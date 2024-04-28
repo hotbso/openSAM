@@ -26,17 +26,8 @@
 #include <string.h>
 #include <math.h>
 
-#define XPLM200
-#define XPLM300
-#include "XPLMPlugin.h"
-#include "XPLMDataAccess.h"
-#include "XPLMUtilities.h"
-#include "XPLMProcessing.h"
-#include "XPLMMenus.h"
-#include "XPLMGraphics.h"
-#include "XPLMScenery.h"
-
 #include "openSAM.h"
+#include "os_dgs.h"
 
 /*
  * On the various coordinate systems and angles:
@@ -87,7 +78,7 @@ static int season; // 0-3
 static const char *dr_name[] = {"sam/season/winter", "sam/season/spring",
             "sam/season/summer", "sam/season/autumn"};
 
-static XPLMDataRef date_day_dr,
+XPLMDataRef date_day_dr,
     plane_x_dr, plane_y_dr, plane_z_dr, plane_lat_dr, plane_lon_dr, plane_elevation_dr,
     plane_true_psi_dr, plane_y_agl_dr, lat_ref_dr, lon_ref_dr,
 
@@ -907,7 +898,7 @@ check_teleportation()
 
 // the state machine triggered by the flight loop
 static float
-run_state_machine()
+jw_state_machine()
 {
     if (state == DISABLED)
         return 2.0;
@@ -1018,12 +1009,13 @@ run_state_machine()
     return 0.5;
 }
 
+
 static float
 flight_loop_cb(float inElapsedSinceLastCall,
                float inElapsedTimeSinceLastFlightLoop, int inCounter,
                void *inRefcon)
 {
-    float loop_delay = 2.0;
+    static float jw_next_ts, dgs_next_ts;
 
     now = XPLMGetDataf(total_running_time_sec_dr);
     int og = (XPLMGetDataf(gear_fnrml_dr) != 0.0);
@@ -1034,8 +1026,20 @@ flight_loop_cb(float inElapsedSinceLastCall,
         log_msg("transition to on_ground: %d", on_ground);
     }
 
-    loop_delay = run_state_machine();
-    return loop_delay;
+
+    float jw_loop_delay = 1.0f;
+    float dgs_loop_delay = 1.0f;
+    if (jw_next_ts <= now) {
+        jw_loop_delay = jw_state_machine();
+        jw_next_ts = now + jw_loop_delay;
+    }
+
+    if (dgs_next_ts <= now) {
+        dgs_loop_delay = dgs_state_machine();
+        dgs_next_ts = now + dgs_loop_delay;
+    }
+
+    return MIN(jw_loop_delay, dgs_loop_delay);
 }
 
 // set season according to date
@@ -1075,7 +1079,7 @@ set_season_auto()
     log_msg("nh: %d, day: %d, season: %d", nh, day, season);
 }
 
-// emuluate a kind of radio buttons
+// emulate a kind of radio buttons
 static void
 set_menu()
 {

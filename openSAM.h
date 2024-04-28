@@ -22,6 +22,16 @@
 
 #include <math.h>
 
+#define XPLM200
+#define XPLM300
+#include "XPLMPlugin.h"
+#include "XPLMDataAccess.h"
+#include "XPLMUtilities.h"
+#include "XPLMProcessing.h"
+#include "XPLMMenus.h"
+#include "XPLMGraphics.h"
+#include "XPLMScenery.h"
+
 static const float D2R = M_PI/180.0;
 static const float F2M = 0.3048;	/* 1 ft [m] */
 static const float LAT_2_M = 111120;    /* 1° lat in m */
@@ -69,6 +79,17 @@ extern int n_sceneries;
 
 extern void log_msg(const char *fmt, ...);
 extern int collect_sam_xml(const char *xp_dir);
+
+extern XPLMDataRef date_day_dr,
+    plane_x_dr, plane_y_dr, plane_z_dr, plane_lat_dr, plane_lon_dr, plane_elevation_dr,
+    plane_true_psi_dr, plane_y_agl_dr, lat_ref_dr, lon_ref_dr,
+
+    draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
+    beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr,
+    acf_door_x_dr, acf_door_y_dr, acf_door_z_dr,
+    gear_fnrml_dr,
+    total_running_time_sec_dr,
+    vr_enabled_dr;
 
 /* helpers */
 #define MAX(a,b) \

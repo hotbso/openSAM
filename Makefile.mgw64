@@ -6,7 +6,7 @@ include version.mak
 
 TARGET=$(OBJDIR)/openSAM.xpl
 HEADERS=$(wildcard *.h)
-SOURCES=openSAM.c sam_xml.c log_msg.c
+SOURCES=openSAM.c os_dgs.c sam_xml.c log_msg.c
 SDK=../SDK
 OBJECTS=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
 
@@ -36,5 +36,6 @@ clean:
 	rm $(OBJECTS) $(TARGET)
 
 sam_xml_test.exe: sam_xml_test.c sam_xml.c log_msg.c $(HEADERS)
-	$(CC) -Wall -fdiagnostics-color -Wno-format-overflow -DWINDOWS -DWIN32 -DLOCAL_DEBUGSTRING -o sam_xml_test.exe \
+	$(CC) -Wall -fdiagnostics-color -Wno-format-overflow -I$(SDK)/CHeaders/XPLM -DIBM=1 \
+    -DWINDOWS -DWIN32 -DLOCAL_DEBUGSTRING -o sam_xml_test.exe \
         sam_xml_test.c sam_xml.c log_msg.c
