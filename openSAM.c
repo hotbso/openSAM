@@ -533,11 +533,8 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         char *cptr = strrchr(dir, '/');    // basename
         if (cptr) {
             *cptr = '\0';
-            cptr = strrchr(dir, '/');       // one level up
+            strncat(dir, "/../../../", sizeof(dir) - 1);
         }
-
-        if (cptr)
-            *(cptr + 1) = '\0';             // keep the /
 
         char line[200];
         if (find_icao_in_file(acf_icao, dir, "acf_use_engine_running.txt", line, sizeof(line)))
@@ -553,9 +550,19 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         n_door = 1;
 
         line[sizeof(line) - 1] = '\0';
-        if (find_icao_in_file(acf_icao, dir, "acf_door2_position.txt", line, sizeof(line)))
-            if (3 == sscanf(line + 4, "%f %f %f", &door_info[1].x, &door_info[1].y, &door_info[1].z))
-                n_door = 2;
+        if (find_icao_in_file(acf_icao, dir, "acf_door_position.txt", line, sizeof(line))) {
+            int d;
+            float x, y, z;
+            if (4 == sscanf(line + 4, "%d %f %f %f", &d, &x, &y, &z)) {
+                if (d == 2) {   // only door 2 for now
+                    d--;
+                    door_info[d].x = x;
+                    door_info[d].y = y;
+                    door_info[d].z = z;
+                    n_door = 2;
+                }
+            }
+        }
 
         log_msg("plane loaded: %s, plane_cg_y: %1.2f, plane_cg_z: %1.2f, "
                 "plane_door x: %1.2f, y: %1.2f, z: %1.2f",

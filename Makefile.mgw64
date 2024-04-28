@@ -1,4 +1,4 @@
-PLUGDIR=E:/X-Plane-12-test/Resources/plugins/openSAM/win_x64
+PLUGDIR=openSAM/plugins/openSAM/win_x64
 
 OBJDIR=./OBJ
 
@@ -27,8 +27,6 @@ $(OBJDIR)/%.o: %.c $(HEADERS) version.mak
 
 $(TARGET): $(OBJECTS)
 	$(LD) -o $(TARGET) $(LDFLAGS) $(OBJECTS) $(LIBS)
-
-install: $(TARGET)
 	mkdir -p "$(PLUGDIR)"
 	cp -p $(TARGET) "$(PLUGDIR)"
 
