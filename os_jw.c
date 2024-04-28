@@ -352,10 +352,11 @@ rotate_wheel_base(sam_jw_t *jw, float wb_rot, float dt)
     if (fabsf(jw->wheelrotatec - wb_rot) > 2.0f) {
         d_rot = dt * JW_TURN_SPEED;
         //log_msg("turning wheel base by %0.2f°", d_rot);
-        if (wb_rot > jw->wheelrotatec)
-            jw->wheelrotatec += d_rot;
-        else
-            jw->wheelrotatec -= d_rot;
+        if (wb_rot < jw->wheelrotatec)
+            d_rot = -d_rot;
+
+        jw->wheelrotatec += d_rot;
+
         result = 1;    // must wait
     } else {
         d_rot = wb_rot - jw->wheelrotatec;
@@ -636,7 +637,7 @@ undock_drive(active_jw_t *ajw)
         ajw->wait_wb_rot = 0;
 
         rotate_1_extend(ajw, ajw->cabin_x, ajw->cabin_z);
-        animate_wheels(ajw, ds);
+        animate_wheels(ajw, -ds);
     }
 
     if (ajw->state == AJW_AT_AP) {
