@@ -33,43 +33,21 @@
 #include "XPLMScenery.h"
 
 static const float D2R = M_PI/180.0;
-static const float F2M = 0.3048;	/* 1 ft [m] */
-static const float LAT_2_M = 111120;    /* 1° lat in m */
-static const float FAR_SKIP = 5000; /* don't consider jetways farther than that */
-static const float NEAR_SKIP = 2; /* don't consider jetways farther than that */
+static const float F2M = 0.3048;	    // 1 ft [m]
+static const float LAT_2_M = 111120;    // 1° lat in m
+static const float FAR_SKIP = 5000;     // don't consider jetways farther than that
+static const float NEAR_SKIP = 2;       // don't consider jetways farther than that
 
-typedef struct _sam_jw  {
-
-    /* local x,z computed from the xml's lat/lon*/
-    double xml_x, xml_y, xml_z;
-    unsigned int xml_ref_gen;   /* only valid if this matches the generation of the ref frame*/
-
-    /* values from the actually drawn object */
-    float x, y, z, psi;
-    unsigned int obj_ref_gen;
-
-    /* values fed to the datarefs */
-    float rotate1, rotate2, rotate3, extent, wheels,
-          wheelrotatec, wheelrotater, wheelrotatel;
-
-    /* these are from sam.xml */
-    char name[40];
-    char sound[40];
-
-    float latitude, longitude, heading, height, wheelPos, cabinPos, cabinLength,
-          wheelDiameter, wheelDistance,
-          minRot1, maxRot1, minRot2, maxRot2, minRot3, maxRot3,
-          minExtent, maxExtent, minWheels, maxWheels,
-          initialRot1, initialRot2, initialRot3, initialExtent;
-    int door; /* 0 = LF1 or default, 1 = LF2 */
-
-    float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for FAR_SKIP */
-} sam_jw_t;
+typedef struct _sam_jw sam_jw_t;
+typedef struct _sam_dgs sam_dgs_t;
 
 typedef struct _scenery {
     const char *name;
     sam_jw_t *sam_jws;
     int n_sam_jws;
+
+    sam_dgs_t *sam_dgs;
+    int n_sam_dgs;
 
     float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for FAR_SKIP */
 } scenery_t;
@@ -77,8 +55,17 @@ typedef struct _scenery {
 extern scenery_t *sceneries;
 extern int n_sceneries;
 
-extern void log_msg(const char *fmt, ...);
-extern int collect_sam_xml(const char *xp_dir);
+typedef struct door_info_ {
+    float x, y, z;
+} door_info_t;
+
+#define MAX_DOOR 2
+
+extern int n_door;
+extern door_info_t door_info[MAX_DOOR];
+
+extern float parked_x, parked_y;
+extern  int parked_ngen;
 
 extern XPLMDataRef date_day_dr,
     plane_x_dr, plane_y_dr, plane_z_dr, plane_lat_dr, plane_lon_dr, plane_elevation_dr,
@@ -90,6 +77,24 @@ extern XPLMDataRef date_day_dr,
     gear_fnrml_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
+
+extern unsigned long long int stat_sc_far_skip, stat_far_skip, stat_near_skip,
+    stat_acc_called, stat_jw_match;
+
+extern float now;           // current timestamp
+extern int on_ground;
+extern float lat_ref, lon_ref;
+// generation # of reference frame
+// init with 1 so jetways never seen by the accessor won't be considered in find_dockable_jws()
+extern unsigned int ref_gen;
+
+extern int dock_requested, undock_requested;
+
+// functions
+extern void log_msg(const char *fmt, ...);
+extern int collect_sam_xml(const char *xp_dir);
+extern int check_beacon(void);
+extern int check_teleportation(void);
 
 /* helpers */
 #define MAX(a,b) \

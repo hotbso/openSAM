@@ -26,6 +26,8 @@
 #include <string.h>
 
 #include "openSAM.h"
+#include "os_dgs.h"
+#include "os_jw.h"
 
 int
 main(int argc, char **argv) {

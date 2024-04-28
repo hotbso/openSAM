@@ -25,6 +25,8 @@
 #include <string.h>
 
 #include "openSAM.h"
+#include "os_jw.h"
+#include "os_dgs.h"
 
 scenery_t *sceneries;
 int n_sceneries;
