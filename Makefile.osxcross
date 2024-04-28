@@ -1,4 +1,4 @@
-PLUGDIR=../../../X-Plane-12/Resources/plugins/sam_se
+PLUGDIR=openSAM/plugins/openSAM
 
 include version.mak
 
@@ -8,9 +8,9 @@ export PATH:=/osxcross/target/bin:$(PATH)
 SDK=../SDK
 OBJDIR=./OBJ_osx
 
-TARGET=$(OBJDIR)/sam_se.xpl
+TARGET=$(OBJDIR)/openSAM.xpl
 HEADERS=$(wildcard *.h)
-SOURCES=$(wildcard *.c)
+SOURCES=openSAM.c os_dgs.c os_jw.c sam_xml.c log_msg.c
 OBJECTS_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o_arm))
 OBJECTS_x86=$(OBJECTS_arm:.o_arm=.o_x86)
 
@@ -49,9 +49,6 @@ $(TARGET)_x86: $(OBJECTS_x86)
 
 $(TARGET): $(TARGET)_arm $(TARGET)_x86
 	lipo -create -output $@ $(TARGET)_arm $(TARGET)_x86
-
-# install the just compiled target
-install: $(TARGET)
 	mkdir -p "$(PLUGDIR)/mac_x64"
 	cp -p $(TARGET) "$(PLUGDIR)/mac_x64/."
 

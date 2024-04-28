@@ -1,17 +1,17 @@
-PLUGDIR=../../../X-Plane-12/Resources/plugins/sam_se
+PLUGDIR=openSAM/plugins/openSAM
 
 include version.mak
 
 SDK=../SDK
 OBJDIR=./OBJ_lx
 
-TARGET=$(OBJDIR)/sam_se.xpl
+TARGET=$(OBJDIR)/openSAM.xpl
 HEADERS=$(wildcard *.h)
-SOURCES=$(wildcard *.c)
+SOURCES=openSAM.c os_dgs.c os_jw.c sam_xml.c log_msg.c
 OBJECTS=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
 
 CFLAGS=-DVERSION=\"$(VERSION)\" \
-    -Wall -I$(SDK)/CHeaders/XPLM  -fPIC -DLIN=1 -fno-stack-protector
+    -Wall -Wextra -I$(SDK)/CHeaders/XPLM  -fPIC -DLIN=1 -fno-stack-protector
 
 LNFLAGS=-shared -rdynamic -nodefaultlibs -undefined_warning
 LIBS=
@@ -24,10 +24,8 @@ $(OBJDIR)/%.o: %.c version.mak
 
 $(TARGET): $(OBJECTS)
 	$(CC) -o $(TARGET) $(LNFLAGS) $(OBJECTS) $(LIBS)
+	mkdir -p "$(PLUGDIR)/lin_x64"
+	cp -p $(TARGET) "$(PLUGDIR)/lin_x64/."
 
 clean:
 	rm -f $(OBJECTS) $(TARGET)
-
-install: $(TARGET)
-	mkdir -p "$(PLUGDIR)/lin_x64"
-	cp -p $(TARGET) "$(PLUGDIR)/lin_x64/."

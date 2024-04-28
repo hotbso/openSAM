@@ -32,6 +32,8 @@
 #include "XPLMGraphics.h"
 #include "XPLMScenery.h"
 
+#define UNUSED(x) (void)x
+
 static const float D2R = M_PI/180.0;
 static const float F2M = 0.3048;	    // 1 ft [m]
 static const float LAT_2_M = 111120;    // 1° lat in m

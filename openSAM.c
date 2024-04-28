@@ -199,6 +199,8 @@ read_season_acc(void *ref)
 static int
 cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
 {
+    UNUSED(cmdr);
+
     if (xplm_CommandBegin != phase)
         return 0;
 
@@ -233,6 +235,11 @@ flight_loop_cb(float inElapsedSinceLastCall,
                float inElapsedTimeSinceLastFlightLoop, int inCounter,
                void *inRefcon)
 {
+    UNUSED(inElapsedSinceLastCall);
+    UNUSED(inElapsedTimeSinceLastFlightLoop);
+    UNUSED(inCounter);
+    UNUSED(inRefcon);
+
     static float jw_next_ts, dgs_next_ts;
 
     now = XPLMGetDataf(total_running_time_sec_dr);
@@ -313,6 +320,8 @@ set_menu()
 static void
 menu_cb(void *menu_ref, void *item_ref)
 {
+    UNUSED(menu_ref);
+
     int entry = (long long)item_ref;
 
     if (entry == 4) {
@@ -504,6 +513,8 @@ XPluginEnable(void)
 PLUGIN_API void
 XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
 {
+    UNUSED(in_from);
+
     // Everything before XPLM_MSG_AIRPORT_LOADED has bogus datarefs.
     //   Anyway it's too late for the current scenery.
     if ((in_msg == XPLM_MSG_AIRPORT_LOADED) ||

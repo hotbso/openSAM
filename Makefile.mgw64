@@ -13,8 +13,9 @@ OBJECTS=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
 CC=x86_64-w64-mingw32-gcc
 LD=x86_64-w64-mingw32-gcc
 
-CFLAGS+=-DVERSION=\"$(VERSION)\"  -mdll -g0 -O2 -s -Wall -fdiagnostics-color -Wno-format-overflow -DWINDOWS -DWIN32 \
-	-I$(SDK)/CHeaders/XPLM  -DIBM=1
+CFLAGS+=-DVERSION=\"$(VERSION)\"  -mdll -g0 -O2 -s -Wextra -Wall -fdiagnostics-color -Wno-format-overflow \
+    -DWINDOWS -DWIN32   -DIBM=1 \
+	-I$(SDK)/CHeaders/XPLM
 
 LDFLAGS=-shared -static-libgcc -static -lpthread
 LIBS=-L$(SDK)/Libraries/Win -lXPLM_64

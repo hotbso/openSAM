@@ -20,6 +20,10 @@
 
 */
 
+#include <stddef.h>
+#include <string.h>
+#include <math.h>
+
 #include "openSAM.h"
 #include "os_jw.h"
 
@@ -141,7 +145,7 @@ read_jw_acc(void *ref)
                 jw->xml_ref_gen = ref_gen;
             }
 
-            if (fabsf(obj_x - jw->xml_x) > NEAR_SKIP || fabsf(obj_z - jw->xml_z) > NEAR_SKIP) {
+            if (fabs(obj_x - jw->xml_x) > NEAR_SKIP || fabs(obj_z - jw->xml_z) > NEAR_SKIP) {
                 stat_near_skip++;
                 continue;
             }
@@ -378,7 +382,7 @@ rotate_1_extend(active_jw_t *ajw, float cabin_x, float cabin_z)
 // rotation 3
 // return 1 when done
 static int
-rotate_3(active_jw_t *ajw, float cabin_x, float cabin_z, float tgt_rot3, float dt)
+rotate_3(active_jw_t *ajw, float tgt_rot3, float dt)
 {
     sam_jw_t *jw = ajw->jw;
 
@@ -392,7 +396,7 @@ rotate_3(active_jw_t *ajw, float cabin_x, float cabin_z, float tgt_rot3, float d
 
     jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 
-    if (fabsf(jw->rotate3 - tgt_rot3) > 0.5) {
+    if (fabsf(jw->rotate3 - tgt_rot3) > 0.5f) {
         log_msg("jw->rotate3: %0.3f,tgt_rot3: %0.3f", jw->rotate3, tgt_rot3);
         return 0;
     }
@@ -426,7 +430,7 @@ animate_wheels(active_jw_t *ajw, float ds)
     sam_jw_t *jw = ajw->jw;
 
     float da_ds = (ds / jw->wheelDiameter) / D2R;
-    if (fabs(jw->wheelrotatec > 90.0f))
+    if (fabsf(jw->wheelrotatec) > 90.0f)
         da_ds = -da_ds;
 
     jw->wheelrotatel += da_ds;
@@ -506,7 +510,7 @@ dock_drive(active_jw_t *ajw)
 
         rotate_2(ajw, tgt_rot2, dt);
         rotate_1_extend(ajw, ajw->cabin_x, ajw->cabin_z);
-        rotate_3(ajw, ajw->cabin_x, ajw->cabin_z, ajw->tgt_rot3, dt);
+        rotate_3(ajw, ajw->tgt_rot3, dt);
         animate_wheels(ajw, ds);
     }
 
@@ -516,7 +520,7 @@ dock_drive(active_jw_t *ajw)
         rotate_wheel_base(jw, RA(drive_angle - rot1_d), dt);
 
         // rotation 2 + 3 must be at target now
-        if (rotate_2(ajw, ajw->tgt_rot2, dt) && rotate_3(ajw, ajw->cabin_x, ajw->cabin_z, ajw->tgt_rot3, dt))
+        if (rotate_2(ajw, ajw->tgt_rot2, dt) && rotate_3(ajw, ajw->tgt_rot3, dt))
             ajw->state = AJW_TO_DOOR;
     }
 
@@ -671,7 +675,7 @@ undock_drive(active_jw_t *ajw)
         ajw->wait_wb_rot = 0;
 
         rotate_2(ajw, jw->initialRot2, dt);
-        rotate_3(ajw, ajw->cabin_x, ajw->cabin_z, jw->initialRot3, dt);
+        rotate_3(ajw, jw->initialRot3, dt);
         rotate_1_extend(ajw, ajw->cabin_x, ajw->cabin_z);
         animate_wheels(ajw, -ds);
 
@@ -706,6 +710,8 @@ jw_state_machine()
         reset_jetways();
     }
 
+    int n_done;
+
     switch (state) {
         case IDLE:
             if (on_ground && !beacon_on) {
@@ -726,7 +732,7 @@ jw_state_machine()
         case CAN_DOCK:
             if (dock_requested) {
                 log_msg("docking requested");
-                for (int i = i; i < n_active_jw; i++) {
+                for (int i = 0; i < n_active_jw; i++) {
                     active_jw_t *ajw = &active_jw[i];
                     ajw->state = AJW_TO_AP;
                     ajw->last_step_ts = now;
@@ -744,8 +750,8 @@ jw_state_machine()
             break;
 
         case DOCKING:
-            int n_done = 0;
-            for (int i = i; i < n_active_jw; i++)
+            n_done = 0;
+            for (int i = 0; i < n_active_jw; i++)
                 n_done += dock_drive(&active_jw[i]);
 
             if (n_done == n_active_jw)
@@ -762,7 +768,7 @@ jw_state_machine()
 
             if (undock_requested) {
                 log_msg("undocking requested");
-                for (int i = i; i < n_active_jw; i++) {
+                for (int i = 0; i < n_active_jw; i++) {
                     active_jw_t *ajw = &active_jw[i];
                     ajw->state = AJW_TO_AP;
                     ajw->last_step_ts = now;
@@ -774,7 +780,7 @@ jw_state_machine()
 
         case UNDOCKING:
             n_done = 0;
-            for (int i = i; i < n_active_jw; i++)
+            for (int i = 0; i < n_active_jw; i++)
                 n_done += undock_drive(&active_jw[i]);
 
             if (n_done == n_active_jw)
