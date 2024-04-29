@@ -77,6 +77,7 @@ typedef struct active_jw_ {
 
     // in door local coordinates
     float x, y, z, psi;
+    float dist;         // distance to door
 
     // target cabin position with corresponding dref values
     float tgt_x, tgt_rot1, tgt_rot2, tgt_rot3, tgt_extent;
@@ -259,6 +260,12 @@ find_dockable_jws()
     float sin_psi = sinf(D2R * plane_psi);
     float cos_psi = cosf(D2R * plane_psi);
 
+    memset(active_jw, 0, sizeof(active_jw));
+    for (int i = 0; i < MAX_DOOR; i++)
+        active_jw[i].dist = 1.0E10;
+
+    // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
+    // So we find the nearest jetways on the left and do some heuristics
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
         for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
             if (jw->obj_ref_gen < ref_gen)  // not visible -> not dockable
@@ -270,7 +277,8 @@ find_dockable_jws()
             //log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
             //        jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
 
-            active_jw_t *ajw = &active_jw[n_active_jw];
+            active_jw_t tentative_ajw;
+            active_jw_t *ajw = &tentative_ajw;
             memset(ajw, 0, sizeof(active_jw_t));
             ajw->jw = jw;
 
@@ -287,6 +295,9 @@ find_dockable_jws()
 
             if (ajw->x > 0.0)   // on the right side
                 continue;
+            ajw->dist = len2f(ajw->x, ajw->z);
+            if (ajw->dist > active_jw[jw->door].dist)
+                continue;
 
             ajw->tgt_x = -jw->cabinLength;
             // tgt z = 0.0
@@ -296,39 +307,45 @@ find_dockable_jws()
             if (jw->door == 0)
                 ajw->tgt_rot2 += 3.0f;  // for door1 only
 
-            jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
-
-            log_msg("%s, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f", jw->name,
+            log_msg("candidate %s, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f",
+                    jw->name, jw->door,
                     ajw->x, ajw->z, ajw->y, ajw->psi, ajw->tgt_extent);
-
-            if (ajw->tgt_extent > jw->maxExtent || ajw->tgt_extent < 0.5) {
-                log_msg("dist %0.2f too far or invalid", ajw->tgt_extent);
-                continue;
-            }
-
-            if (BETWEEN(ajw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(ajw->tgt_rot2, jw->minRot2, jw->maxRot2)
-                && BETWEEN(ajw->tgt_extent, jw->minExtent, jw->maxExtent)) {
-
-                log_msg("match: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
-                        jw->name, jw->door, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
-
-                // compute x,z of parked jw
-                float rot1_d = RA((jw->initialRot1 + ajw->psi) - 90.0f);    // door frame
-                float r = jw->initialExtent + jw->cabinPos;
-                ajw->parked_x = ajw->x + r * cosf(rot1_d * D2R);
-                ajw->parked_z = ajw->z + r * sinf(rot1_d * D2R);
-                ajw->cabin_x = ajw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
-                ajw->cabin_z = ajw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
-
-                ajw->ap_x = ajw->tgt_x - JW_ALIGN_DIST;
-
-                n_active_jw++;
-                if (n_active_jw == n_door)
-                    break;
-            } else {
-                log_msg("jw: %s does not match min, max criteria", jw->name);
-            }
+            active_jw[jw->door] = tentative_ajw;
         }
+
+    // perform sanity check of jetways found and compute final values
+    for (int i = 0; i < n_door; i++) {
+        active_jw_t *ajw = &active_jw[i];
+        sam_jw_t *jw = ajw->jw;
+        if (jw == NULL) // empty slot
+            continue;
+
+        if (!(BETWEEN(ajw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(ajw->tgt_rot2, jw->minRot2, jw->maxRot2)
+            && BETWEEN(ajw->tgt_extent, jw->minExtent, jw->maxExtent))) {
+            log_msg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
+                     jw->name, jw->door, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
+            log_msg("  does not fulfilf min max criteria in sam.xml");
+            if (ajw->dist < 50.0f)
+                log_msg("  as the distance of %0.1f m to the door is < 50.0 m we take it anyway", ajw->dist);
+            else
+                continue;
+        }
+
+        // compute x,z of parked jw
+        float rot1_d = RA((jw->initialRot1 + ajw->psi) - 90.0f);    // door frame
+        float r = jw->initialExtent + jw->cabinPos;
+        ajw->parked_x = ajw->x + r * cosf(rot1_d * D2R);
+        ajw->parked_z = ajw->z + r * sinf(rot1_d * D2R);
+        ajw->cabin_x = ajw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
+        ajw->cabin_z = ajw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
+
+        ajw->ap_x = ajw->tgt_x - JW_ALIGN_DIST;
+
+        jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
+
+        log_msg("active jetway for door %d: %s", jw->door, jw->name);
+        n_active_jw = jw->door + 1;
+    }
 
     return n_active_jw;
 }
