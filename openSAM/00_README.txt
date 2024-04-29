@@ -7,7 +7,7 @@ Installation
 
 Usage
 =====
-The openSAM plugin defines commands
+The openSAM plugin defines commands:
 
 "Dock jetway"   -> openSAM/dock_jwy
 "Undock jetway" -> openSAM/undock_jwy
@@ -21,4 +21,4 @@ In addition it exports a dataref
     0 = no jetway
     1 = jetway present, available for docking
     2 = docked
-   -1 = can't dock or in jetway is in transit
+   -1 = can't dock or jetway is in transit
