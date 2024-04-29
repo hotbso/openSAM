@@ -94,12 +94,14 @@ unsigned int ref_gen = 1;
 float parked_x, parked_y;
 int parked_ngen;
 
-float now;           // current timestamp
+float now;          // current timestamp
+char base_dir[512]; // base directory of openSAM
+
 static int beacon_state, beacon_last_pos;   // beacon state, last switch_pos, ts of last switch actions
 static float beacon_off_ts, beacon_on_ts;
 
-static int use_engine_running;              // instead of beacon, e.g. MD11
-static int dont_connect_jetway;             // e.g. for ZIBO with own ground service
+int use_engine_running;              // instead of beacon, e.g. MD11
+int dont_connect_jetway;             // e.g. for ZIBO with own ground service
 static float plane_cg_y, plane_cg_z;
 
 int n_door;
@@ -538,20 +540,21 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         use_engine_running = 0;
         dont_connect_jetway = 0;
 
-        char dir[512];
-        dir[0] = '\0';
-        XPLMGetPluginInfo(XPLMGetMyID(), NULL, dir, NULL, NULL);
-        char *cptr = strrchr(dir, '/');    // basename
-        if (cptr) {
+        base_dir[0] = '\0';
+        XPLMGetPluginInfo(XPLMGetMyID(), NULL, base_dir, NULL, NULL);
+        char *cptr = strstr(base_dir, "plugins/openSAM");
+        if (cptr)
             *cptr = '\0';
-            strncat(dir, "/../../../", sizeof(dir) - 1);
+        else {
+            log_msg("Whoops, cannot find my base base_dir!");
+            return;
         }
 
         char line[200];
-        if (find_icao_in_file(acf_icao, dir, "acf_use_engine_running.txt", line, sizeof(line)))
+        if (find_icao_in_file(acf_icao, base_dir, "acf_use_engine_running.txt", line, sizeof(line)))
             use_engine_running = 1;
 
-        if (find_icao_in_file(acf_icao, dir, "acf_dont_connect_jetway.txt", line, sizeof(line)))
+        if (find_icao_in_file(acf_icao, base_dir, "acf_dont_connect_jetway.txt", line, sizeof(line)))
             dont_connect_jetway = 1;
 
         door_info[0].x = XPLMGetDataf(acf_door_x_dr);
@@ -561,7 +564,7 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         n_door = 1;
 
         line[sizeof(line) - 1] = '\0';
-        if (find_icao_in_file(acf_icao, dir, "acf_door_position.txt", line, sizeof(line))) {
+        if (find_icao_in_file(acf_icao, base_dir, "acf_door_position.txt", line, sizeof(line))) {
             int d;
             float x, y, z;
             if (4 == sscanf(line + 4, "%d %f %f %f", &d, &x, &y, &z)) {

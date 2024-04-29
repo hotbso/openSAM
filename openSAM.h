@@ -66,6 +66,10 @@ typedef struct door_info_ {
 extern int n_door;
 extern door_info_t door_info[MAX_DOOR];
 
+extern char base_dir[512];          // base directory of openSAM
+extern int use_engine_running;      // instead of beacon, e.g. MD11
+extern int dont_connect_jetway;     // e.g. for ZIBO with own ground service
+
 extern float parked_x, parked_y;
 extern  int parked_ngen;
 

@@ -267,8 +267,8 @@ find_dockable_jws()
             if (jw->door >= n_door)
                 continue;
 
-            log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
-                    jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
+            //log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
+            //        jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
 
             active_jw_t *ajw = &active_jw[n_active_jw];
             memset(ajw, 0, sizeof(active_jw_t));
@@ -398,7 +398,7 @@ rotate_3(active_jw_t *ajw, float tgt_rot3, float dt)
     jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 
     if (fabsf(jw->rotate3 - tgt_rot3) > 0.5f) {
-        log_msg("jw->rotate3: %0.3f,tgt_rot3: %0.3f", jw->rotate3, tgt_rot3);
+        //log_msg("jw->rotate3: %0.3f,tgt_rot3: %0.3f", jw->rotate3, tgt_rot3);
         return 0;
     }
 
@@ -487,6 +487,9 @@ dock_drive(active_jw_t *ajw)
         }
 
         double ds = dt * JW_DRIVE_SPEED;
+
+        // Well, the wheels are somewhat behind the cabin so this is only approximate
+        // but doesn't make much of a difference.
         double drive_angle = atan2(-ajw->cabin_z, tgt_x - ajw->cabin_x) / D2R;
 
         ajw->cabin_x += cos(drive_angle * D2R) * ds;
