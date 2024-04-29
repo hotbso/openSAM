@@ -751,7 +751,7 @@ jw_state_machine()
             break;
 
         case CAN_DOCK:
-            if (dock_requested) {
+            if (dock_requested || toggle_requested) {
                 log_msg("docking requested");
                 for (int i = 0; i < n_active_jw; i++) {
                     active_jw_t *ajw = &active_jw[i];
@@ -787,7 +787,7 @@ jw_state_machine()
                 break;
             }
 
-            if (undock_requested) {
+            if (undock_requested || toggle_requested) {
                 log_msg("undocking requested");
                 for (int i = 0; i < n_active_jw; i++) {
                     active_jw_t *ajw = &active_jw[i];
@@ -816,7 +816,7 @@ jw_state_machine()
             break;
     }
 
-    dock_requested = undock_requested = 0;
+    dock_requested = undock_requested = toggle_requested = 0;
 
     if (new_state != state) {
         log_msg("state transition %s -> %s, beacon: %d", state_str[state], state_str[new_state], beacon_on);

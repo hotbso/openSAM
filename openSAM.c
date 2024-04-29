@@ -110,7 +110,7 @@ door_info_t door_info[MAX_DOOR];
 unsigned long long int stat_sc_far_skip, stat_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match;
 
-int dock_requested, undock_requested;
+int dock_requested, undock_requested, toggle_requested;
 
 static void
 save_pref()
@@ -206,13 +206,8 @@ cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
     if (xplm_CommandBegin != phase)
         return 0;
 
-    if ((void *)1 == ref) {
-        dock_requested = 1;
-    } else {
-        undock_requested = 1;
-    }
-
-    return 0;
+    *(int *)ref = 1;
+     return 0;
 }
 
 int
@@ -443,10 +438,13 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     // own commands
     XPLMCommandRef dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
-    XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, (void *)1);
+    XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, &dock_requested);
 
     XPLMCommandRef undock_cmdr = XPLMCreateCommand("openSAM/undock_jwy", "Undock jetway");
-    XPLMRegisterCommandHandler(undock_cmdr, cmd_dock_jw_cb, 0, (void *)0);
+    XPLMRegisterCommandHandler(undock_cmdr, cmd_dock_jw_cb, 0, &undock_requested);
+
+    XPLMCommandRef toggle_cmdr = XPLMCreateCommand("openSAM/toggle_jwy", "Toggle jetway");
+    XPLMRegisterCommandHandler(toggle_cmdr, cmd_dock_jw_cb, 0, &toggle_requested);
 
     // build menues
     XPLMMenuID menu = XPLMFindPluginsMenu();
