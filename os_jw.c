@@ -200,6 +200,27 @@ read_jw_acc(void *ref)
     return 0.0;
 }
 
+// opensam/jetway/status dataref
+//  0 = no jetway
+//  1 = can dock
+//  2 = docked
+// -1 = can't dock or in transit
+static int
+jw_status_acc(void *ref)
+{
+    UNUSED(ref);
+    if (0 == n_active_jw)
+        return 0;
+
+    if (CAN_DOCK == state)
+        return 1;
+
+    if (DOCKED == state)
+        return 2;
+
+    return -1;
+}
+
 static void
 reset_jetways()
 {
@@ -830,12 +851,15 @@ jw_state_machine()
 int
 jw_init()
 {
-    // create the jetway datarefs
+    // create the jetway animation datarefs
     for (dr_code_t drc = DR_ROTATE1; drc < N_JW_DR; drc++)
         XPLMRegisterDataAccessor(dr_name_jw[drc], xplmType_Float, 0, NULL,
                                  NULL, read_jw_acc, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, (void *)(long long)drc, NULL);
 
+    XPLMRegisterDataAccessor("opensam/jetway/status", xplmType_Int, 0, jw_status_acc,
+                                 NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, NULL, NULL, NULL, NULL);
     reset_jetways();
     return 1;
 }
