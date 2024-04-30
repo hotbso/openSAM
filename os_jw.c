@@ -314,8 +314,9 @@ find_dockable_jws()
             ajw->x -= door_info[jw->door].x;
             ajw->z -= door_info[jw->door].z;
 
-            if (ajw->x > 0.0)   // on the right side
+            if (ajw->x > 0.0 || BETWEEN(ajw->psi, -170.0f, 20.0f))   // on the right side or pointing away
                 continue;
+
             ajw->dist = len2f(ajw->x, ajw->z);
             if (ajw->dist > active_jw[jw->door].dist)
                 continue;
@@ -774,7 +775,7 @@ jw_state_machine()
             if (XPLM_NAV_NOT_FOUND != ref) {
                 XPLMGetNavAidInfo(ref, NULL, NULL, NULL, NULL, NULL, NULL, airport_id,
                         NULL, NULL);
-                log_msg("now on airport: %s", airport_id);
+                log_msg("parked on airport: %s, lat,lon: %0.4f,%0.4f", airport_id, lat, lon);
             }
 
             if (find_dockable_jws())
@@ -852,7 +853,7 @@ jw_state_machine()
     dock_requested = undock_requested = toggle_requested = 0;
 
     if (new_state != state) {
-        log_msg("state transition %s -> %s, beacon: %d", state_str[state], state_str[new_state], beacon_on);
+        log_msg("jw state transition %s -> %s, beacon: %d", state_str[state], state_str[new_state], beacon_on);
         state = new_state;
         return -1;  // see you on next frame
     }
