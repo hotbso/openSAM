@@ -1,2 +1,4 @@
 # ICAO door x y z
+# position is in meters relative to the CG, axes: +x to the left, +y up, +z to the tail
 A346 2 -2.44 -0.58 -15.00
+B742 2 -2.93 1.77 -14.40
