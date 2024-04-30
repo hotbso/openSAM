@@ -345,7 +345,7 @@ find_dockable_jws()
             && BETWEEN(ajw->tgt_extent, jw->minExtent, jw->maxExtent))) {
             log_msg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
                      jw->name, jw->door, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
-            log_msg("  does not fulfilf min max criteria in sam.xml");
+            log_msg("  does not fulfil min max criteria in sam.xml");
             if (ajw->dist < 50.0f)
                 log_msg("  as the distance of %0.1f m to the door is < 50.0 m we take it anyway", ajw->dist);
             else
@@ -753,6 +753,8 @@ jw_state_machine()
     }
 
     int n_done;
+    char airport_id[50];
+    float lat, lon;
 
     switch (state) {
         case IDLE:
@@ -765,6 +767,16 @@ jw_state_machine()
             break;
 
         case PARKED:
+            // find airport I'm on now to ease debugging
+            lat = XPLMGetDataf(plane_lat_dr);
+            lon = XPLMGetDataf(plane_lon_dr);
+            XPLMNavRef ref = XPLMFindNavAid(NULL, NULL, &lat, &lon, NULL, xplm_Nav_Airport);
+            if (XPLM_NAV_NOT_FOUND != ref) {
+                XPLMGetNavAidInfo(ref, NULL, NULL, NULL, NULL, NULL, NULL, airport_id,
+                        NULL, NULL);
+                log_msg("now on airport: %s", airport_id);
+            }
+
             if (find_dockable_jws())
                 new_state = CAN_DOCK;
             else

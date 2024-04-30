@@ -31,6 +31,7 @@
 #include "XPLMMenus.h"
 #include "XPLMGraphics.h"
 #include "XPLMScenery.h"
+#include "XPLMNavigation.h"
 
 #define UNUSED(x) (void)x
 
