@@ -588,53 +588,6 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
             }
         }
 
-        // if nothing found in the config file try the acf
-        if (n_door == 1) {
-            char acf_path[512];
-            char acf_file[256];
-
-            XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, acf_file, acf_path);
-            log_msg(acf_path);
-
-            FILE *acf = fopen(acf_path, "r");
-            if (acf) {
-                char line[200];
-                int got = 0;
-                // we go the simple brute force way
-                while (fgets(line, sizeof(line), acf)) {
-                    if (line == strstr(line, "P acf/_board_2/0 ")) {
-                        if (1 == sscanf(line + 17, "%f", &door_info[1].x)) {
-                            door_info[1].x *= F2M;
-                            got++;
-                        }
-                    }
-                    if (line == strstr(line, "P acf/_board_2/1 ")) {
-                        float y;
-                        if (1 == sscanf(line + 17, "%f", &y)) {
-                            door_info[1].y = y * F2M - plane_cg_y;
-                            got++;
-                        }
-                    }
-                    if (line == strstr(line, "P acf/_board_2/2 ")) {
-                        float z;
-                        if (1 == sscanf(line + 17, "%f", &z)) {
-                            door_info[1].z = z * F2M - plane_cg_z;
-                            got++;
-                        }
-                    }
-
-                    if (got == 3) {
-                        n_door = 2;
-                        log_msg("found door 2 in acf file: x: %0.2f, y: %0.2f, z: %0.2f",
-                                door_info[1].x, door_info[1].y, door_info[1].z);
-                        break;
-                    }
-                }
-
-                fclose(acf);
-            }
-        }
-
         return;
     }
 }

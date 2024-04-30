@@ -26,14 +26,12 @@ In addition it exports a dataref
 
 The problem of a second door
 ============================
-Up to now there is no reliable way to determine the position of a second door. The acf file may(!) contain
-positions but more often than not these are bogus.
+Up to now there is no reliable way to determine the position of a second door. 
+Therefore door positions must be maintained in the config file "acf_door_position.txt".
 
-The plugin works as follows:
-- it tries to locate the plane in "acf_door_position.txt" and pick up the door position
-- if unsuccessful it scans the acf file of the plane for a door position. This may work or (mostly) not.
+To find the position proceed as follows:
 
-So if the position from the acf does not work locate the "openSAM: plane loaded" line in Log.txt.
+Locate the "openSAM: plane loaded" line in Log.txt.
 
 openSAM: plane loaded: B742, plane_cg_y: -2.44, plane_cg_z: 31.81, door 1: x: -2.93, y: 1.77, z: -22.45
 
@@ -42,4 +40,4 @@ correct line to enter in "acf_door_position.txt" is:
 
 B742 2 -2.93 1.77 -14.40
 
-Please share results so the can be included in future updates.
+Please share results so they can be included in future updates.
