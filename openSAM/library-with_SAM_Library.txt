@@ -6,6 +6,9 @@ LIBRARY
 #### Replacement for
 ####     Scenery Animation Manager - Library 3.0.0    ####
 ##########################################################
+
+### With SAM_library, replace VDGS and Marshaller
+
 PUBLIC
 
 
@@ -24,43 +27,6 @@ EXPORT  		SAM3_Library/VDGS/Honeywell.obj					dgs/SafedockT2-6m.obj
 EXPORT  		SAM3_Library/VDGS/Honeywell-Pole.obj			dgs/SafedockT2-6m-pole.obj
 EXPORT  		SAM3_Library/VDGS/Honeywell_PA3.obj				dgs/SafedockT2-6m.obj
 EXPORT  		SAM3_Library/VDGS/Honeywell_PA3-Pole.obj		dgs/SafedockT2-6m-pole.obj
-
-# JETWAYS
-EXPORT  SAM3_Library/jetways/Type01_solid_0.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_2.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_3.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_3.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_4.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_4.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_5.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_5.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_6.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_2.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_3.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_3.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_4.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_4.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_5.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_5.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_6.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_solid_3.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_solid_3.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_solid_4.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_solid_4.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_solid_5.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_glas_3.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_glas_3.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_glas_4.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_glas_4.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_glas_5.0m.obj					blank/blank.obj
-
-# BRIDGES
-EXPORT 	SAM3_Library/bridges/Type01_solid.fac						blank/blank.fac
-EXPORT 	SAM3_Library/bridges/Type02_solid.fac						blank/blank.fac
-EXPORT 	SAM3_Library/bridges/Type01_glas.fac						blank/blank.fac
-
-
-
 
 
 DEPRECATED
@@ -189,48 +155,3 @@ EXPORT  		SAM_Library/dockings/Honeywell-PA3_5.5m_pole.agp	dgs/SafedockT2-6m-pol
 EXPORT  		SAM_Library/dockings/Honeywell-PA3_6.0m_pole.agp	dgs/SafedockT2-6m-pole-180.agp
 EXPORT  		SAM_Library/dockings/Honeywell-PA3_6.5m_pole.agp	dgs/SafedockT2-6m-pole-180.agp
 EXPORT  		SAM_Library/dockings/Honeywell-PA3_7.0m_pole.agp	dgs/SafedockT2-6m-pole-180.agp
-# HANGARS
-EXPORT  		SAM_Library/hangars/hangar_01.obj					blank/blank.obj
-EXPORT  		SAM_Library/hangars/hangar_02.obj					blank/blank.obj
-EXPORT  		SAM_Library/hangars/hangar_03.obj					blank/blank.obj
-EXPORT  		SAM_Library/hangars/hangar_04.obj					blank/blank.obj
-# BRIDGES
-EXPORT 	SAM_Library/bridges/Type01_solid.fac						blank/blank.fac
-EXPORT 	SAM_Library/bridges/Type02_solid.fac						blank/blank.fac
-EXPORT 	SAM_Library/bridges/Type01_glas.fac							blank/blank.fac
-# JETWAY Type 01 Solid
-EXPORT  SAM_Library/jetways/Type01_solid_0.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_2.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_3.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_3.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_4.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_4.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_5.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_5.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_6.0m.obj					blank/blank.obj
-# JETWAY Type 01 Glas
-EXPORT  SAM_Library/jetways/Type01_glas_2.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_glas_3.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_glas_3.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_glas_4.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_glas_4.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_glas_5.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_glas_5.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_glas_6.0m.obj					blank/blank.obj
-# JETWAY Type 02 Solid
-EXPORT  SAM_Library/jetways/Type02_solid_3.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_solid_3.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_solid_4.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_solid_4.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_solid_5.0m.obj					blank/blank.obj
-# JETWAY Type 02 Glas
-EXPORT  SAM_Library/jetways/Type02_glas_3.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_glas_3.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_glas_4.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_glas_4.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_glas_5.0m.obj					blank/blank.obj
-# WIND TURBINES
-EXPORT  SAM_Library/windturbines/windturbine_01.obj					blank/blank.obj
-EXPORT  SAM_Library/windturbines/windturbine_02.obj					blank/blank.obj
-EXPORT  SAM_Library/windturbines/windturbine_03.obj					blank/blank.obj
-EXPORT  SAM_Library/windturbines/windturbine_04.obj					blank/blank.obj

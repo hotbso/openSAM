@@ -6,6 +6,11 @@ Installation
 - Install this zip in "Custom Scenery", NOT in "Resources\plugins".
 - This file should be "...\Custom Scenery\openSAM\00_README.txt" after correct installation.
 
+If you must keep the SAM_Library (e.g. for Zero Dollar Payware freeware)
+- If not already done link the SAM_library into "Custom Scenery"
+- Make sure openSAM is above SAM_Library in scenery_packs.ini
+- Within openSAM copy "library-with_SAM_Library.txt" to "library.txt"
+
 Usage
 =====
 The openSAM plugin defines commands:
