@@ -1,2 +1,2 @@
-VERSION=1.0-b0
+VERSION=1.0-b1
 
