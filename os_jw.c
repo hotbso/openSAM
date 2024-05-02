@@ -483,7 +483,6 @@ static int
 dock_drive(active_jw_t *ajw)
 {
     sam_jw_t *jw = ajw->jw;
-    //log_msg("dock_drive(): state: %d", ajw->state);
 
     if (ajw->state == AJW_DOCKED)
         return 1;
@@ -504,8 +503,8 @@ dock_drive(active_jw_t *ajw)
 
     float rot1_d = RA((jw->rotate1 + ajw->psi) - 90.0f);    // door frame
 
-    float wheel_x = ajw->x + (jw->extent + jw->wheelPos) * cosf(rot1_d * D2R);
-    float wheel_z = ajw->z + (jw->extent + jw->wheelPos) * sinf(rot1_d * D2R);
+    //float wheel_x = ajw->x + (jw->extent + jw->wheelPos) * cosf(rot1_d * D2R);
+    //float wheel_z = ajw->z + (jw->extent + jw->wheelPos) * sinf(rot1_d * D2R);
 
     if (ajw->state == AJW_TO_AP) {
         if (ajw->wait_wb_rot) {
@@ -533,8 +532,8 @@ dock_drive(active_jw_t *ajw)
 
         ajw->cabin_x += cos(drive_angle * D2R) * ds;
         ajw->cabin_z += sin(drive_angle * D2R) * ds;
-        log_msg("to ap: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f, drive_angle: %0.2f",
-                rot1_d, ajw->cabin_x, ajw->cabin_z, wheel_x, wheel_z, drive_angle);
+        //log_msg("to ap: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f, drive_angle: %0.2f",
+        //        rot1_d, ajw->cabin_x, ajw->cabin_z, drive_angle);
 
         ajw->wb_rot = RA(drive_angle - rot1_d);
         if (rotate_wheel_base(jw, ajw->wb_rot, dt)) {
@@ -579,8 +578,7 @@ dock_drive(active_jw_t *ajw)
 
         ajw->cabin_x = MIN(ajw->cabin_x, tgt_x); // dont drive beyond the target point
 
-        log_msg("to door: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f",
-                rot1_d, ajw->cabin_x, ajw->cabin_z, wheel_x, wheel_z);
+        //log_msg("to door: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f", rot1_d, ajw->cabin_x, ajw->cabin_z);
 
         // ramp down speed when approaching the plane
         float drive_speed = JW_DRIVE_SPEED;
@@ -590,7 +588,7 @@ dock_drive(active_jw_t *ajw)
         float ds = dt * drive_speed;
 
         ajw->cabin_x += ds;
-        log_msg("ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f", ajw->cabin_x, ajw->cabin_z);
+        //log_msg("ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f", ajw->cabin_x, ajw->cabin_z);
 
         ajw->wb_rot = RA(-rot1_d);
         if (rotate_wheel_base(jw, ajw->wb_rot, dt)) {

@@ -33,6 +33,5 @@ dgs_init()
 float
 dgs_state_machine()
 {
-    log_msg("dgs_state_machine");
     return 5.0;
 }

@@ -208,6 +208,8 @@ cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
     if (xplm_CommandBegin != phase)
         return 0;
 
+    log_msg("cmd_dock_jw_cb called");
+
     *(int *)ref = 1;
      return 0;
 }
@@ -552,11 +554,15 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
             *(cptr + 1) = '\0';         // keep /
 
         char line[200];
-        if (find_icao_in_file(acf_icao, base_dir, "acf_use_engine_running.txt", line, sizeof(line)))
+        if (find_icao_in_file(acf_icao, base_dir, "acf_use_engine_running.txt", line, sizeof(line))) {
             use_engine_running = 1;
+            log_msg("found");
+        }
 
-        if (find_icao_in_file(acf_icao, base_dir, "acf_dont_connect_jetway.txt", line, sizeof(line)))
+        if (find_icao_in_file(acf_icao, base_dir, "acf_dont_connect_jetway.txt", line, sizeof(line))) {
             dont_connect_jetway = 1;
+            log_msg("found");
+        }
 
         door_info[0].x = XPLMGetDataf(acf_door_x_dr);
         door_info[0].y = XPLMGetDataf(acf_door_y_dr);
