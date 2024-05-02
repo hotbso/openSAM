@@ -9,8 +9,8 @@ Installation
 
 If you must keep the SAM_Library (e.g. for Zero Dollar Payware freeware)
 - If not already done link the SAM_library into "Custom Scenery"
-- Make sure openSAM is above SAM_Library in scenery_packs.ini
-- Within openSAM copy "library-with_SAM_Library.txt" to "library.txt"
+- Make sure openSAM_Library is above SAM_Library in scenery_packs.ini
+- Within openSAM_Library copy "library-with_SAM_Library.txt" to "library.txt"
 
 Usage
 =====
