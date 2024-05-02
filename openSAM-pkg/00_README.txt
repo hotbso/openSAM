@@ -3,8 +3,9 @@ Installation
 - Remove the SAM plugin
 - If you already deleted SAM but use a SAM replacement library (e.g. "FlyAgi - SAM Fallback Library") remove it.
 - If installed remove the "SAM Seasons emulator" plugin. It's functionality is included in openSAM.
-- Install this zip in "Custom Scenery", NOT in "Resources\plugins".
-- This file should be "...\Custom Scenery\openSAM\00_README.txt" after correct installation.
+- From within this zip install
+    "openSAM_Library" into "Custom Scenery"
+    "openSAM"         into "Resources/plugins"
 
 If you must keep the SAM_Library (e.g. for Zero Dollar Payware freeware)
 - If not already done link the SAM_library into "Custom Scenery"

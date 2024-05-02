@@ -1,4 +1,4 @@
-PLUGDIR=openSAM/plugins/openSAM/win_x64
+PLUGDIR=openSAM-pkg/openSAM
 
 OBJDIR=./OBJ
 
@@ -28,8 +28,8 @@ $(OBJDIR)/%.o: %.c $(HEADERS) version.mak
 
 $(TARGET): $(OBJECTS)
 	$(LD) -o $(TARGET) $(LDFLAGS) $(OBJECTS) $(LIBS)
-	mkdir -p "$(PLUGDIR)"
-	cp -p $(TARGET) "$(PLUGDIR)"
+	mkdir -p "$(PLUGDIR)/win_x64"
+	cp -p $(TARGET) "$(PLUGDIR)/win_x64/."
 
 clean:
 	rm $(OBJECTS) $(TARGET)

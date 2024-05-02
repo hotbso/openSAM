@@ -543,13 +543,13 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
 
         base_dir[0] = '\0';
         XPLMGetPluginInfo(XPLMGetMyID(), NULL, base_dir, NULL, NULL);
-        char *cptr = strstr(base_dir, "plugins/openSAM");
+        char *cptr = strrchr(base_dir, '/');
         if (cptr)
             *cptr = '\0';
-        else {
-            log_msg("Whoops, cannot find my base base_dir!");
-            return;
-        }
+
+        cptr = strrchr(base_dir, '/');
+        if (cptr)
+            *(cptr + 1) = '\0';         // keep /
 
         char line[200];
         if (find_icao_in_file(acf_icao, base_dir, "acf_use_engine_running.txt", line, sizeof(line)))

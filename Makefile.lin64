@@ -1,5 +1,4 @@
-PLUGDIR=openSAM/plugins/openSAM
-
+PLUGDIR=openSAM-pkg/openSAM
 include version.mak
 
 SDK=../SDK
