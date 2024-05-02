@@ -641,8 +641,8 @@ undock_drive(active_jw_t *ajw)
 
     float rot1_d = RA((jw->rotate1 + ajw->psi) - 90.0f);    // door frame
 
-    float wheel_x = ajw->x + (jw->extent + jw->wheelPos) * cosf(rot1_d * D2R);
-    float wheel_z = ajw->z + (jw->extent + jw->wheelPos) * sinf(rot1_d * D2R);
+    //float wheel_x = ajw->x + (jw->extent + jw->wheelPos) * cosf(rot1_d * D2R);
+    //float wheel_z = ajw->z + (jw->extent + jw->wheelPos) * sinf(rot1_d * D2R);
 
     if (ajw->state == AJW_TO_AP) {
         if (ajw->wait_wb_rot) {
@@ -668,8 +668,8 @@ undock_drive(active_jw_t *ajw)
 
         ajw->cabin_x += cos(drive_angle * D2R) * ds;
         ajw->cabin_z += sin(drive_angle * D2R) * ds;
-        log_msg("to ap: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f, drive_angle: %0.2f",
-                rot1_d, ajw->cabin_x, ajw->cabin_z, wheel_x, wheel_z, drive_angle);
+        //log_msg("to ap: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f, drive_angle: %0.2f",
+        //        rot1_d, ajw->cabin_x, ajw->cabin_z, wheel_x, wheel_z, drive_angle);
 
         ajw->wb_rot = RA(drive_angle - rot1_d);
         if (rotate_wheel_base(jw, ajw->wb_rot, dt)) {
@@ -699,16 +699,16 @@ undock_drive(active_jw_t *ajw)
         float tgt_x = ajw->parked_x;
         float tgt_z = ajw->parked_z;
 
-        log_msg("to park: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f",
-                rot1_d, ajw->cabin_x, ajw->cabin_z, wheel_x, wheel_z);
+        //log_msg("to park: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f",
+        //        rot1_d, ajw->cabin_x, ajw->cabin_z, wheel_x, wheel_z);
 
         double ds = dt * JW_DRIVE_SPEED;
         double drive_angle = atan2(tgt_z - ajw->cabin_z, tgt_x - ajw->cabin_x) / D2R;
 
         ajw->cabin_x += cos(drive_angle * D2R) * ds;
         ajw->cabin_z += sin(drive_angle * D2R) * ds;
-        log_msg("to parked: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f, drive_angle: %0.2f",
-                rot1_d, ajw->cabin_x, ajw->cabin_z, wheel_x, wheel_z, drive_angle);
+        //log_msg("to parked: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f, drive_angle: %0.2f",
+        //       rot1_d, ajw->cabin_x, ajw->cabin_z, wheel_x, wheel_z, drive_angle);
 
         ajw->wb_rot = RA(drive_angle - rot1_d);
         if (rotate_wheel_base(jw, ajw->wb_rot, dt)) {
