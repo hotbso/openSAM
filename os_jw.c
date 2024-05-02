@@ -742,8 +742,6 @@ jw_state_machine()
     state_t new_state = state;
 
     int beacon_on = check_beacon();
-    if (beacon_on)
-        return 0.5;
 
     if (state > IDLE && check_teleportation()) {
         log_msg("teleportation detected!");
@@ -783,6 +781,11 @@ jw_state_machine()
             break;
 
         case CAN_DOCK:
+            if (beacon_on) {
+                log_msg("CAN_DOCK and beacon goes on");
+                new_state = IDLE;
+            }
+
             if (dock_requested || toggle_requested) {
                 log_msg("docking requested");
                 for (int i = 0; i < n_active_jw; i++) {
@@ -814,9 +817,14 @@ jw_state_machine()
             break;
 
         case DOCKED:
-            if (!on_ground || beacon_on) {
+            if (!on_ground) {
                 new_state = IDLE;
                 break;
+            }
+
+            if (beacon_on) {
+                log_msg("DOCKED and beacon goes on");
+                undock_requested = 1;
             }
 
             if (undock_requested || toggle_requested) {
