@@ -66,8 +66,9 @@ extract_str(const char *line, const char *prop, char *value, int value_len) {
     int len = cptr1 - cptr;
     if (len > value_len - 1)
         len = value_len - 1;
+    value[len] = '\0';
     strncpy(value, cptr, len);
-    //printf("%15s %s\n", prop, value);
+    //log_msg("%15s %s\n", prop, value);
 }
 
 #define GET_FLOAT_PROP(p) \
@@ -109,9 +110,11 @@ get_sam_props(const char *line, sam_jw_t *sam_jw)
 
     char buffer[10];
     extract_str(line, "forDoorLocation", buffer, sizeof(buffer));
-    if (0 == strcmp(buffer, "LF2")) {
+    if (0 == strcmp(buffer, "LF2"))
         sam_jw->door = 1;
-    }
+
+    if (0 == strcmp(buffer, "LU1"))
+        sam_jw->door = 2;
 }
 
 static int
@@ -145,7 +148,6 @@ read_sam_xml(FILE *f, scenery_t *sc)
     }
 
     sc->sam_jws = realloc(sc->sam_jws, sc->n_sam_jws * sizeof(sam_jw_t));   /* shrink to actual */
-    // TODO: compute the NE, SW values
     return 1;
 }
 
