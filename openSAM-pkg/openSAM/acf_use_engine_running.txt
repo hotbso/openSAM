@@ -4,4 +4,5 @@
 MD11
 DH8D
 R22
+A320
 # test C172
