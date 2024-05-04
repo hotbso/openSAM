@@ -21,8 +21,10 @@
 */
 
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <sys/types.h>
 
 #include "openSAM.h"
 #include "os_jw.h"
@@ -50,18 +52,21 @@ static state_t state = IDLE;
 typedef enum dr_code_e {
     DR_ROTATE1, DR_ROTATE2, DR_ROTATE3, DR_EXTENT,
     DR_WHEELS, DR_WHEELROTATEC, DR_WHEELROTATER, DR_WHEELROTATEL,
+    DR_WARNLIGHT,
     N_JW_DR
 } dr_code_t;
 
 static const char *dr_name_jw[] = {
-    "sam/jetway/rotate1",
-    "sam/jetway/rotate2",
-    "sam/jetway/rotate3",
-    "sam/jetway/extent",
-    "sam/jetway/wheels",
-    "sam/jetway/wheelrotatec",
-    "sam/jetway/wheelrotater",
-    "sam/jetway/wheelrotatel"};
+    "rotate1",
+    "rotate2",
+    "rotate3",
+    "extent",
+    "wheels",
+    "wheelrotatec",
+    "wheelrotater",
+    "wheelrotatel",
+    "warnlight"
+};
 
 typedef enum ajw_status_e {
     AJW_PARKED,
@@ -97,10 +102,54 @@ static int n_active_jw;
 static active_jw_t active_jw[MAX_DOOR];
 
 //
+// fill in values for a library jetway
+//
+static void
+fill_library_values(sam_jw_t *jw)
+{
+    int id = jw->library_id;
+    if (!BETWEEN(id, 1, MAX_SAM3_LIB_JW)) {
+        log_msg("sanity check failed for jw: '%s', id: %d", jw->name, id);
+        return;
+    }
+
+    log_msg("filling in library data for '%s', id: %d", jw->name, id);
+
+    sam_jw_t *ljw = &sam3_lib_jw[id];
+
+    jw->height = ljw->height;
+    jw->wheelPos = ljw->wheelPos;
+    jw->cabinPos = ljw->cabinPos;
+    jw->cabinLength = ljw->cabinLength;
+
+    jw->wheelDiameter = ljw->wheelDiameter;
+    jw->wheelDistance = ljw->wheelDistance;
+
+    jw->minRot1 = ljw->minRot1;
+    jw->maxRot1 = ljw->maxRot1;
+
+    jw->minRot2 = ljw->minRot2;
+    jw->maxRot2 = ljw->maxRot2;
+
+    jw->minRot3 = ljw->minRot3;
+    jw->maxRot3 = ljw->maxRot3;
+
+    jw->minExtent = ljw->minExtent;
+    jw->maxExtent = ljw->maxExtent;
+
+    jw->minWheels = ljw->minWheels;
+    jw->maxWheels = ljw->maxWheels;
+}
+
+//
 // Accessor for the "sam/jetway/..." datarefs
 //
 // This function is called from draw loops, efficient coding required.
 //
+// ref is uint64_t and has the library id in the high long and the dataref id in low long.
+// e.g.
+// sam/jetways/rotate1     -> ( 0, DR_ROTATE1)
+// sam/jetways/15/rotate2  -> (15, DR_ROTATE2)
 //
 static float
 read_jw_acc(void *ref)
@@ -162,9 +211,18 @@ read_jw_acc(void *ref)
             }
 
             stat_jw_match++;
-            dr_code_t drc = (long long)ref;
+
+            uint64_t ctx = (uint64_t)ref;
+            dr_code_t drc = ctx & 0xffffffff;
+            int id = ctx >> 32;
+
             switch (drc) {
                 case DR_ROTATE1:
+                    // a one shot event on first access
+                    if (id > 0 && 0 == jw->library_id) {
+                        jw->library_id = id;
+                        fill_library_values(jw);
+                    }
                     return jw->rotate1;
                     break;
                 case DR_ROTATE2:
@@ -187,6 +245,9 @@ read_jw_acc(void *ref)
                     break;
                 case DR_WHEELROTATEL:
                     return jw->wheelrotatel;
+                    break;
+                case DR_WARNLIGHT:
+                    return jw->warnlight;
                     break;
                 default:
                     log_msg("Accessor got invalid DR code: %d", drc);
@@ -224,7 +285,7 @@ jw_status_acc(void *ref)
 static void
 reset_jetways()
 {
-   for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
+    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
         for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
             jw->rotate1 = jw->initialRot1;
             jw->rotate2 = jw->initialRot2;
@@ -233,7 +294,7 @@ reset_jetways()
             //log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
        }
 
-   n_active_jw = 0;
+    n_active_jw = 0;
 }
 
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be NULL
@@ -329,8 +390,8 @@ find_dockable_jws()
             if (jw->door == 0)
                 ajw->tgt_rot2 += 3.0f;  // for door1 only
 
-            log_msg("candidate %s, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f",
-                    jw->name, jw->door,
+            log_msg("candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f",
+                    jw->name, jw->library_id, jw->door,
                     ajw->x, ajw->z, ajw->y, ajw->psi, ajw->tgt_extent);
             active_jw[jw->door] = tentative_ajw;
         }
@@ -495,6 +556,7 @@ dock_drive(active_jw_t *ajw)
         jw->rotate2 = ajw->tgt_rot2;
         jw->rotate3 = ajw->tgt_rot3;
         jw->extent = ajw->tgt_extent;
+        jw->warnlight = 0;
         return 1;   // -> done
     }
 
@@ -605,6 +667,7 @@ dock_drive(active_jw_t *ajw)
         if (fabs(tgt_x - ajw->cabin_x) < eps && fabs(ajw->cabin_z) < eps)  {
             ajw->state = AJW_DOCKED;
             log_msg("door reached");
+            jw->warnlight = 0;
             return 1;   // done
         }
     }
@@ -631,6 +694,7 @@ undock_drive(active_jw_t *ajw)
         jw->rotate2 = jw->initialRot2;
         jw->rotate3 = jw->initialRot3;
         jw->extent = jw->initialExtent;
+        jw->warnlight = 0;
         return 1;   // -> done
     }
 
@@ -724,6 +788,7 @@ undock_drive(active_jw_t *ajw)
         //log_msg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - ajw->cabin_x), fabs(tgt_z - ajw->cabin_z));
         if (fabs(tgt_x - ajw->cabin_x) < eps && fabs(tgt_z -ajw->cabin_z) < eps)  {
             ajw->state = AJW_PARKED;
+            jw->warnlight = 0;
             log_msg("park position reached");
             return 1;   // done
         }
@@ -793,6 +858,7 @@ jw_state_machine()
                     ajw->state = AJW_TO_AP;
                     ajw->last_step_ts = now;
                     ajw->timeout = now + JW_ANIM_TIMEOUT;
+                    ajw->jw->warnlight = 1;
                     new_state = DOCKING;
                 }
             }
@@ -834,6 +900,7 @@ jw_state_machine()
                     ajw->state = AJW_TO_AP;
                     ajw->last_step_ts = now;
                     ajw->timeout = now + JW_ANIM_TIMEOUT;
+                    ajw->jw->warnlight = 1;
                     new_state = UNDOCKING;
                 }
             }
@@ -871,10 +938,23 @@ int
 jw_init()
 {
     // create the jetway animation datarefs
-    for (dr_code_t drc = DR_ROTATE1; drc < N_JW_DR; drc++)
-        XPLMRegisterDataAccessor(dr_name_jw[drc], xplmType_Float, 0, NULL,
+    for (dr_code_t drc = DR_ROTATE1; drc < N_JW_DR; drc++) {
+        char name[100];
+        name[99] = '\0';
+        snprintf(name, sizeof(name) - 1, "sam/jetway/%s", dr_name_jw[drc]);
+        XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL,
                                  NULL, read_jw_acc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                 NULL, NULL, NULL, (void *)(long long)drc, NULL);
+                                 NULL, NULL, NULL, (void *)(uint64_t)drc, NULL);
+
+        for (int i = 1; i <= MAX_SAM3_LIB_JW; i++) {
+            snprintf(name, sizeof(name) - 1, "sam/jetway/%02d/%s", i, dr_name_jw[drc]);
+            uint64_t ctx = (uint64_t)i << 32|(uint64_t)drc;
+            XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL,
+                                     NULL, read_jw_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                     NULL, NULL, NULL, (void *)ctx, NULL);
+        }
+
+    }
 
     XPLMRegisterDataAccessor("opensam/jetway/status", xplmType_Int, 0, jw_status_acc,
                                  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,

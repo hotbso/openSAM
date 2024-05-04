@@ -32,6 +32,24 @@ scenery_t *sceneries;
 int n_sceneries;
 static int max_sceneries;
 
+sam_jw_t sam3_lib_jw[MAX_SAM3_LIB_JW + 1];
+
+static int
+extract_int(const char *line, const char *prop) {
+    const char *cptr;
+
+    if (NULL == (cptr = strstr(line, prop)))
+        return 0;
+
+    if (NULL == (cptr = strchr(cptr, '"')))
+        return 0;
+    cptr++;
+
+    int res = atoi(cptr);
+    //log_msg("%15s '%s' %d", prop, cptr, res);
+    return res;
+}
+
 static float
 extract_float(const char *line, const char *prop) {
     const char *cptr;
@@ -71,6 +89,9 @@ extract_str(const char *line, const char *prop, char *value, int value_len) {
     //log_msg("%15s %s\n", prop, value);
 }
 
+#define GET_INT_PROP(p) \
+    sam_jw->p = extract_int(line, #p);
+
 #define GET_FLOAT_PROP(p) \
     sam_jw->p = extract_float(line, #p);
 
@@ -82,6 +103,7 @@ get_sam_props(const char *line, sam_jw_t *sam_jw)
 {
     memset(sam_jw, 0, sizeof(*sam_jw));
 
+    GET_INT_PROP(id)
     GET_STR_PROP(name)
     GET_FLOAT_PROP(latitude)
     GET_FLOAT_PROP(longitude)
@@ -115,6 +137,33 @@ get_sam_props(const char *line, sam_jw_t *sam_jw)
 
     if (0 == strcmp(buffer, "LU1"))
         sam_jw->door = 2;
+}
+
+static int
+read_library_xml(FILE *f)
+{
+    char line[2000];    // can be quite long
+
+    while (fgets(line, sizeof(line) - 1, f)) {
+        char *cptr = strstr(line, "<set ");
+        if (NULL == cptr)
+            continue;
+
+        if ((cptr = strchr(line, '\r')))
+            *cptr = '\0';
+
+        sam_jw_t sam_jw;
+        memset(&sam_jw, 0, sizeof(sam_jw));
+        get_sam_props(line, &sam_jw);
+        if (!BETWEEN(sam_jw.id, 1, MAX_SAM3_LIB_JW)) {
+            log_msg("invalid line '%s', %d", line, sam_jw.id);
+            return 0;
+        }
+
+        sam3_lib_jw[sam_jw.id] = sam_jw;
+    }
+
+    return 1;
 }
 
 static int
@@ -231,6 +280,26 @@ collect_sam_xml(const char *xp_dir)
             n_sceneries++;
         }
 
+        fn[0] = '\0';
+        if (is_absolute) {
+            strncpy(fn, scenery_path, sizeof(fn) - 100);
+        } else {
+            strncpy(fn, xp_dir, sizeof(fn) - 100);
+            strcat(fn, "/");
+            strncat(fn, scenery_path, sizeof(fn) - 100);
+        }
+
+        strcat(fn, "libraryjetways.xml");
+        log_msg("Trying '%s'", fn);
+        f = fopen(fn, "r");
+        if (f) {
+            log_msg("Processing '%s'", fn);
+            int rc = read_library_xml(f);
+            fclose(f);
+            if (!rc)
+                return 0;
+            continue;
+        }
     }
 
     fclose(scp);

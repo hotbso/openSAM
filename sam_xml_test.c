@@ -49,5 +49,12 @@ main(int argc, char **argv) {
         puts("\n");
     }
 
+    printf("Library jetways\n");
+    for (int i = 0; i <= MAX_SAM3_LIB_JW; i++) {
+        sam_jw_t *jw = &sam3_lib_jw[i];
+        if (jw->id == 0)
+            continue;
+        log_msg("%d; %s height: %0.2f, cabinPos: %0.2f", jw->id, jw->name, jw->height, jw->cabinPos);
+    }
 	return (1);
 }
