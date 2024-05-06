@@ -29,22 +29,25 @@
 #include "openSAM.h"
 #include "os_dgs.h"
 
-/* DGS _A = angles [°] (to centerline), _X, _Z = [m] (to stand) */
-static const float CAP_A = 15;  /* Capture */
-static const float CAP_Z = 100;	/* (50-80 in Safedock2 flier) */
+// DGS _A = angles [°] (to centerline), _X, _Z = [m] (to stand)
+static const float CAP_A = 15;              // Capture
+static const float CAP_Z = 100;	            // (50-80 in Safedock2 flier)
 
-static const float AZI_A = 15;	    /* provide azimuth guidance */
-static const float AZI_DISP_A = 10; /* max value for display */
+static const float AZI_A = 15;              // provide azimuth guidance
+static const float AZI_DISP_A = 10;         // max value for display
 static const float AZI_Z = 90;
 
-static const float GOOD_Z= 0.5;     /* stop position for nw */
-static const float GOOD_X = 2.0;    /* for mw */
+static const float GOOD_Z= 0.5;             // stop position for nw
+static const float GOOD_X = 2.0;            // for mw
 
-static const float REM_Z = 12;	    /* Distance remaining from here on*/
+static const float REM_Z = 12;      	    // Distance remaining from here on
 
-static const float dgs_dist = 20.0f;    // distance from dgs to stand for azimuth computation
+static const float MAX_DGS_2_RAMP_X = 1.5f; // max offset/distance from DGS to stand
+static const float MAX_DGS_2_RAMP_Z = 70.0f;
 
-/* types */
+static const float dgs_dist = 20.0f;        // distance from dgs to stand for azimuth computation
+
+// types
 typedef enum
 {
     DISABLED=0, INACTIVE, ACTIVE, ENGAGED, TRACK, GOOD, BAD, PARKED, DONE
@@ -115,7 +118,7 @@ reset_state(state_t new_state)
     nearest_ramp = NULL;
 }
 
-/* set mode to arrival */
+// set mode to arrival
 void
 dgs_set_active(void)
 {
@@ -180,10 +183,6 @@ read_dgs_acc(void *ref)
 
     stat_acc_called++;
 
-    // a super cheap test first
-    if (fabs(RA(nearest_ramp->hdgt - XPLMGetDataf(draw_object_psi_dr))) > 3.0f)
-        return 0.0f;
-
     // check for shift of reference frame
     float lat_r = XPLMGetDataf(lat_ref_dr);
     float lon_r = XPLMGetDataf(lon_ref_dr);
@@ -216,8 +215,9 @@ read_dgs_acc(void *ref)
 
     float dgs_x_l, dgs_z_l;
     global_2_ramp(nearest_ramp, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
+    //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
-    if (fabs(dgs_x_l) > 0.5f || dgs_z_l < -50.0f)
+    if (fabs(dgs_x_l) > MAX_DGS_2_RAMP_X || dgs_z_l < -MAX_DGS_2_RAMP_Z)
         return 0.0;
 
     // match, associate dgs to ramp
@@ -414,7 +414,7 @@ dgs_state_machine()
     int phase180 = (sin_wave_prev > 0.0) && (sin_wave <= 0.0);
     sin_wave_prev = sin_wave;
 
-    /* set drefs according to *current* state */
+    // set drefs according to *current* state
     switch (state) {
         case ENGAGED:
             if (beacon_on) {
@@ -441,13 +441,13 @@ dgs_state_machine()
                 break;
             }
 
-            status = 1;	/* plane id */
+            status = 1;	// plane id
             if (distance > AZI_Z || fabsf(azimuth_nw) > AZI_A) {
-                track=1;	/* lead-in only */
+                track=1;	// lead-in only
                 break;
             }
 
-            /* compute distance and guidance commands */
+            // compute distance and guidance commands
             azimuth = clampf(azimuth, -AZI_A, AZI_A);
             float req_hdgt = -3.5 * azimuth;        // to track back to centerline
             float d_hdgt = req_hdgt - local_hdgt;   // degrees to turn
@@ -471,7 +471,7 @@ dgs_state_machine()
             if (distance <= REM_Z/2) {
                 track = 3;
                 loop_delay = 0.03;
-            } else /* azimuth only */
+            } else // azimuth only
                 track = 2;
 
             if (! phase180) { // no wild oscillation
@@ -486,7 +486,7 @@ dgs_state_machine()
             break;
 
         case GOOD:
-            /* @stop position*/
+            // @stop position*/
             status = 2; lr = 3;
 
             int parkbrake_set = (XPLMGetDataf(parkbrake_dr) > 0.5);
@@ -506,7 +506,7 @@ dgs_state_machine()
             if (nw_z >= -GOOD_Z)
                 new_state = TRACK;
             else {
-                /* Too far */
+                // Too far
                 status = 4;
                 lr = 3;
             }
@@ -542,7 +542,7 @@ dgs_state_machine()
     }
 
     if (state > ACTIVE) {
-        /* xform drefs into required constraints for the OBJs */
+        // xform drefs into required constraints for the OBJs
         if (track == 0 || track == 1) {
             distance = 0;
             azimuth = 0.0;
