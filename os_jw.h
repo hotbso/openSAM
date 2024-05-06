@@ -51,9 +51,19 @@ struct _sam_jw  {
     float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   // bounding box for FAR_SKIP
 };
 
+typedef struct _alert_sound {
+    void *data;
+    int size;
+    int num_channels;
+    int sample_rate;
+} sound_t;
+
 // fortunately SAM3 is abandoned so this will never change 8-)
 #define MAX_SAM3_LIB_JW 27  // index is 0..27
 extern sam_jw_t sam3_lib_jw[];
 
 extern int jw_init(void);
 extern float jw_state_machine();
+
+// from os_read_wav.c
+extern void read_wav(const char *fname, sound_t *sound);

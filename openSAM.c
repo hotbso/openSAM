@@ -419,6 +419,16 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     strcat(pref_path, psep);
     strcat(pref_path, "sam_se.prf");
 
+    // get my base dir
+    XPLMGetPluginInfo(XPLMGetMyID(), NULL, base_dir, NULL, NULL);
+    char *cptr = strrchr(base_dir, '/');
+    if (cptr)
+        *cptr = '\0';
+
+    cptr = strrchr(base_dir, '/');
+    if (cptr)
+        *(cptr + 1) = '\0';         // keep /
+
     date_day_dr = XPLMFindDataRef("sim/time/local_date_days");
 
     lat_ref_dr = XPLMFindDataRef("sim/flightmodel/position/lat_ref");
@@ -578,16 +588,6 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         // check whether acf is listed in exception files
         use_engine_running = 0;
         dont_connect_jetway = 0;
-
-        base_dir[0] = '\0';
-        XPLMGetPluginInfo(XPLMGetMyID(), NULL, base_dir, NULL, NULL);
-        char *cptr = strrchr(base_dir, '/');
-        if (cptr)
-            *cptr = '\0';
-
-        cptr = strrchr(base_dir, '/');
-        if (cptr)
-            *(cptr + 1) = '\0';         // keep /
 
         char line[200];
         if (find_icao_in_file(acf_icao, base_dir, "acf_use_engine_running.txt", line, sizeof(line))) {

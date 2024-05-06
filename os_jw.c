@@ -29,6 +29,9 @@
 #include "openSAM.h"
 #include "os_jw.h"
 
+#define XPLM400
+#include "XPLMSound.h"
+
 static const float JW_DRIVE_SPEED = 1.0;    // m/s
 static const float JW_TURN_SPEED = 10.0;    // °/s
 static const float JW_HEIGHT_SPEED = 0.1;   // m/s
@@ -96,10 +99,14 @@ typedef struct active_jw_ {
 
     float last_step_ts;
     float timeout;      // so we don't get stuck
+
+    FMOD_CHANNEL *alert_chn;
 } active_jw_t;
 
 static int n_active_jw;
 static active_jw_t active_jw[MAX_DOOR];
+
+static sound_t alert;
 
 //
 // fill in values for a library jetway
@@ -295,6 +302,43 @@ reset_jetways()
        }
 
     n_active_jw = 0;
+}
+
+static void
+alert_complete(void *ref, FMOD_RESULT status)
+{
+    log_msg("fmod callback: %d", status);
+
+    active_jw_t *ajw = ref;
+    ajw->alert_chn = NULL;
+}
+
+
+static void
+alert_on(active_jw_t *ajw)
+{
+    if (ajw->alert_chn)
+        return;
+    ajw->alert_chn = XPLMPlayPCMOnBus(alert.data, alert.size, FMOD_SOUND_FORMAT_PCM16,
+                                      alert.sample_rate, alert.num_channels, 1,
+                                      xplm_AudioExteriorUnprocessed,
+                                      alert_complete, ajw);
+#if 0
+    sam_jw_t *jw = ajw->jw;
+
+    static FMOD_VECTOR velocity = {0.0f, 0.0f, 0.0f};
+    FMOD_VECTOR position = {jw->xml_x, jw->xml_y + 1.5f, jw->xml_z};
+
+    XPLMSetAudioPosition(ajw->alert_chn, &position, &velocity);
+#endif
+}
+
+static void
+alert_off(active_jw_t *ajw)
+{
+    if (ajw->alert_chn)
+        XPLMStopAudio(ajw->alert_chn);
+    ajw->alert_chn = NULL;
 }
 
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be NULL
@@ -557,6 +601,7 @@ dock_drive(active_jw_t *ajw)
         jw->rotate3 = ajw->tgt_rot3;
         jw->extent = ajw->tgt_extent;
         jw->warnlight = 0;
+        alert_off(ajw);
         return 1;   // -> done
     }
 
@@ -668,6 +713,7 @@ dock_drive(active_jw_t *ajw)
             ajw->state = AJW_DOCKED;
             log_msg("door reached");
             jw->warnlight = 0;
+            alert_off(ajw);
             return 1;   // done
         }
     }
@@ -695,6 +741,7 @@ undock_drive(active_jw_t *ajw)
         jw->rotate3 = jw->initialRot3;
         jw->extent = jw->initialExtent;
         jw->warnlight = 0;
+        alert_off(ajw);
         return 1;   // -> done
     }
 
@@ -789,6 +836,7 @@ undock_drive(active_jw_t *ajw)
         if (fabs(tgt_x - ajw->cabin_x) < eps && fabs(tgt_z -ajw->cabin_z) < eps)  {
             ajw->state = AJW_PARKED;
             jw->warnlight = 0;
+            alert_off(ajw);
             log_msg("park position reached");
             return 1;   // done
         }
@@ -858,6 +906,7 @@ jw_state_machine()
                     ajw->state = AJW_TO_AP;
                     ajw->last_step_ts = now;
                     ajw->timeout = now + JW_ANIM_TIMEOUT;
+                    alert_on(ajw);
                     ajw->jw->warnlight = 1;
                     new_state = DOCKING;
                 }
@@ -900,6 +949,7 @@ jw_state_machine()
                     ajw->state = AJW_TO_AP;
                     ajw->last_step_ts = now;
                     ajw->timeout = now + JW_ANIM_TIMEOUT;
+                    alert_on(ajw);
                     ajw->jw->warnlight = 1;
                     new_state = UNDOCKING;
                 }
@@ -960,5 +1010,14 @@ jw_init()
                                  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, NULL, NULL);
     reset_jetways();
+
+    char fn[sizeof(base_dir) + 100];
+    strcpy(fn, base_dir);
+    strcat(fn, "sound/alert.wav");
+    read_wav(fn, &alert);
+    if (alert.data)
+        log_msg("alert sound loaded, channels: %d, bit_rate: %d, size: %d",
+                alert.num_channels, alert.sample_rate, alert.size);
+
     return 1;
 }
