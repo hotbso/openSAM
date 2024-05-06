@@ -43,14 +43,16 @@ static const float NEAR_SKIP = 2;       // don't consider jetways farther than t
 
 typedef struct _sam_jw sam_jw_t;
 typedef struct _sam_dgs sam_dgs_t;
+typedef struct _ramp ramp_t;
 
 typedef struct _scenery {
     const char *name;
+
     sam_jw_t *sam_jws;
     int n_sam_jws;
 
-    sam_dgs_t *sam_dgs;
-    int n_sam_dgs;
+    ramp_t *ramps;
+    int n_ramps;
 
     float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for FAR_SKIP */
 } scenery_t;
@@ -66,11 +68,15 @@ typedef struct door_info_ {
 
 extern int n_door;
 extern door_info_t door_info[MAX_DOOR];
+extern float plane_nw_z, plane_mw_z, plane_cg_z;   // z value of plane's 0 to fw, mw and cg
+extern char acf_icao[];
 
 extern char base_dir[512];          // base directory of openSAM
 extern int use_engine_running;      // instead of beacon, e.g. MD11
 extern int dont_connect_jetway;     // e.g. for ZIBO with own ground service
 
+extern int beacon_state, beacon_last_pos;   // beacon state, last switch_pos, ts of last switch actions
+extern float beacon_off_ts, beacon_on_ts;
 extern float parked_x, parked_y;
 extern  int parked_ngen;
 
@@ -79,7 +85,7 @@ extern XPLMDataRef date_day_dr,
     plane_true_psi_dr, plane_y_agl_dr, lat_ref_dr, lon_ref_dr,
 
     draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
-    beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr,
+    beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr,
     acf_door_x_dr, acf_door_y_dr, acf_door_z_dr,
     gear_fnrml_dr,
     total_running_time_sec_dr,

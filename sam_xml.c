@@ -99,7 +99,7 @@ extract_str(const char *line, const char *prop, char *value, int value_len) {
     extract_str(line, #p, sam_jw->p, sizeof(sam_jw->p));
 
 static void
-get_sam_props(const char *line, sam_jw_t *sam_jw)
+get_jw_props(const char *line, sam_jw_t *sam_jw)
 {
     memset(sam_jw, 0, sizeof(*sam_jw));
 
@@ -154,7 +154,7 @@ read_library_xml(FILE *f)
 
         sam_jw_t sam_jw;
         memset(&sam_jw, 0, sizeof(sam_jw));
-        get_sam_props(line, &sam_jw);
+        get_jw_props(line, &sam_jw);
         if (!BETWEEN(sam_jw.id, 1, MAX_SAM3_LIB_JW)) {
             log_msg("invalid line '%s', %d", line, sam_jw.id);
             return 0;
@@ -175,28 +175,75 @@ read_sam_xml(FILE *f, scenery_t *sc)
     int max_sam_jws = 0;
 
     while (fgets(line, sizeof(line) - 1, f)) {
-        char *cptr = strstr(line, "<jetway ");
-        if (NULL == cptr)
-            continue;
-
-        if ((cptr = strchr(line, '\r')))
+        char *cptr = strchr(line, '\r');
+        if (cptr)
             *cptr = '\0';
 
-        //log_msg("%s", line);
-        if (sc->n_sam_jws == max_sam_jws) {
-            max_sam_jws += 100;
-            sc->sam_jws = realloc(sc->sam_jws, max_sam_jws * sizeof(sam_jw_t));
-            if (sc->sam_jws == NULL) {
-                log_msg("Can't allocate memory");
-                return 0;
+        if (strstr(line, "<jetway ")) {
+            //log_msg("%s", line);
+            if (sc->n_sam_jws == max_sam_jws) {
+                max_sam_jws += 100;
+                sc->sam_jws = realloc(sc->sam_jws, max_sam_jws * sizeof(sam_jw_t));
+                if (sc->sam_jws == NULL) {
+                    log_msg("Can't allocate memory");
+                    return 0;
+                }
+            }
+
+            get_jw_props(line, &sc->sam_jws[sc->n_sam_jws]);
+            sc->n_sam_jws++;
+        }
+    }
+
+    sc->sam_jws = realloc(sc->sam_jws, sc->n_sam_jws * sizeof(sam_jw_t));   // shrink to actual
+    return 1;
+}
+
+static int
+read_apt_dat(FILE *f, scenery_t *sc)
+{
+    char line[2000];    // can be quite long
+
+    int max_ramps = 0;
+
+    while (fgets(line, sizeof(line) - 1, f)) {
+        char *cptr = strchr(line, '\r');
+        if (cptr)
+            *cptr = '\0';
+
+        cptr = strchr(line, '\n');
+        if (cptr)
+            *cptr = '\0';
+
+        if (line == strstr(line, "1300 ")) {
+            //log_msg("%s", line);
+            if (sc->n_ramps == max_ramps) {
+                max_ramps += 100;
+                sc->ramps = realloc(sc->ramps, max_ramps * sizeof(ramp_t));
+                if (sc->ramps == NULL) {
+                    log_msg("Can't allocate memory");
+                    return 0;
+                }
+            }
+            ramp_t *ramp = &sc->ramps[sc->n_ramps];
+            memset(ramp, 0, sizeof(ramp_t));
+            int len;
+            int n = sscanf(line + 5, "%f %f %f %*s %*s %n",
+                           &ramp->lat, &ramp->lon, &ramp->hdgt, &len);
+            if (3 == n) {
+                strncpy(ramp->id, line + 5 + len, sizeof(ramp->id) - 1);
+                //log_msg("%d %d, %f %f %f '%s'", n, len, ramp->lat, ramp->lon, ramp->hdgt, ramp->id);
+
+                ramp->hdgt = RA(ramp->hdgt);
+                ramp->sin_hdgt = sinf(D2R * ramp->hdgt);
+                ramp->cos_hdgt = cosf(D2R * ramp->hdgt);
+                sc->n_ramps++;
             }
         }
 
-        get_sam_props(line, &sc->sam_jws[sc->n_sam_jws]);
-        sc->n_sam_jws++;
     }
 
-    sc->sam_jws = realloc(sc->sam_jws, sc->n_sam_jws * sizeof(sam_jw_t));   /* shrink to actual */
+    sc->ramps = realloc(sc->ramps, sc->n_ramps * sizeof(ramp_t));
     return 1;
 }
 
@@ -262,8 +309,10 @@ collect_sam_xml(const char *xp_dir)
             scenery_t *sc = &sceneries[n_sceneries];
             int rc = read_sam_xml(f, sc);
             fclose(f);
-            if (!rc)
+            if (!rc) {
+                fclose(scp);
                 return 0;
+            }
 
             if (path_len > 0)
                 fn[path_len - 1] = '\0';    /* strip /sam */
@@ -278,6 +327,29 @@ collect_sam_xml(const char *xp_dir)
                 sc->name = "unknown";
 
             n_sceneries++;
+
+            // read ramps from apt.dat
+            fn[0] = '\0';
+            if (is_absolute) {
+                strncpy(fn, scenery_path, sizeof(fn) - 100);
+            } else {
+                strncpy(fn, xp_dir, sizeof(fn) - 100);
+                strcat(fn, "/");
+                strncat(fn, scenery_path, sizeof(fn) - 100);
+            }
+
+            strcat(fn, "Earth nav data/apt.dat");
+            log_msg("Trying '%s'", fn);
+            f = fopen(fn, "r");
+            if (f) {
+                log_msg("Processing '%s'", fn);
+                rc = read_apt_dat(f, sc);
+                fclose(f);
+                if (!rc) {
+                    fclose(scp);
+                    return 0;
+                }
+            }
         }
 
         fn[0] = '\0';

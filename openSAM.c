@@ -60,6 +60,8 @@
  * Then we do our math in the door frame and transform everything back to the jetway frame
  * to get the ratation angles.
  *
+ * Likewise for DGS we xform everything into the stand frame and go from there.
+ *
  */
 
 
@@ -79,7 +81,7 @@ XPLMDataRef date_day_dr,
     plane_true_psi_dr, plane_y_agl_dr, lat_ref_dr, lon_ref_dr,
 
     draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
-    beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr,
+    beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr,
     acf_door_x_dr, acf_door_y_dr, acf_door_z_dr,
     gear_fnrml_dr,
     total_running_time_sec_dr,
@@ -99,15 +101,17 @@ int parked_ngen;
 float now;          // current timestamp
 char base_dir[512]; // base directory of openSAM
 
-static int beacon_state, beacon_last_pos;   // beacon state, last switch_pos, ts of last switch actions
-static float beacon_off_ts, beacon_on_ts;
+int beacon_state, beacon_last_pos;   // beacon state, last switch_pos, ts of last switch actions
+float beacon_off_ts, beacon_on_ts;
 
 int use_engine_running;              // instead of beacon, e.g. MD11
 int dont_connect_jetway;             // e.g. for ZIBO with own ground service
-static float plane_cg_y, plane_cg_z;
+static float plane_cg_y;
 
 int n_door;
 door_info_t door_info[MAX_DOOR];
+
+char acf_icao[5];
 
 unsigned long long int stat_sc_far_skip, stat_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match;
@@ -214,6 +218,19 @@ cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
      return 0;
 }
 
+static int
+cmd_activate_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
+{
+    UNUSED(cmdr);
+    UNUSED(ref);
+    if (xplm_CommandBegin != phase)
+        return 0;
+
+    log_msg("cmd manually_activate");
+    dgs_set_active();
+    return 0;
+}
+
 int
 check_teleportation()
 {
@@ -250,6 +267,7 @@ flight_loop_cb(float inElapsedSinceLastCall,
         on_ground = og;
         on_ground_ts = now;
         log_msg("transition to on_ground: %d", on_ground);
+        dgs_set_active();
     }
 
 
@@ -427,6 +445,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     acf_icao_dr = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
     acf_cg_y_dr = XPLMFindDataRef("sim/aircraft/weight/acf_cgY_original");
     acf_cg_z_dr = XPLMFindDataRef("sim/aircraft/weight/acf_cgZ_original");
+    acf_gear_z_dr = XPLMFindDataRef("sim/aircraft/parts/acf_gear_znodef");
     acf_door_x_dr = XPLMFindDataRef("sim/aircraft/view/acf_door_x");
     acf_door_y_dr = XPLMFindDataRef("sim/aircraft/view/acf_door_y");
     acf_door_z_dr = XPLMFindDataRef("sim/aircraft/view/acf_door_z");
@@ -450,6 +469,9 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMCommandRef toggle_cmdr = XPLMCreateCommand("openSAM/toggle_jwy", "Toggle jetway");
     XPLMRegisterCommandHandler(toggle_cmdr, cmd_dock_jw_cb, 0, &toggle_requested);
 
+    XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Manually activate searching for DGS");
+    XPLMRegisterCommandHandler(activate_cmdr, cmd_activate_cb, 0, NULL);
+
     // build menues
     XPLMMenuID menu = XPLMFindPluginsMenu();
     XPLMMenuID os_menu = XPLMCreateMenu("openSAM", menu,
@@ -458,6 +480,10 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     // openSAM
     XPLMAppendMenuItemWithCommand(os_menu, "Dock Jetway", dock_cmdr);
     XPLMAppendMenuItemWithCommand(os_menu, "Undock Jetway", undock_cmdr);
+
+    XPLMAppendMenuSeparator(os_menu);
+
+    XPLMAppendMenuItemWithCommand(os_menu, "Manually activate searching for DGS", activate_cmdr);
 
     XPLMAppendMenuSeparator(os_menu);
 
@@ -531,13 +557,22 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
 
     // my plane loaded
     if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
-        char acf_icao[41];
-        memset(acf_icao, 0, sizeof(acf_icao));
-        XPLMGetDatab(acf_icao_dr, acf_icao, 0, 40);
+        memset(acf_icao, 0, 4);
+        XPLMGetDatab(acf_icao_dr, acf_icao, 0, 4);
         acf_icao[4] = '\0';
+
+        for (int i=0; i < 4; i++)
+            acf_icao[i] = (isupper(acf_icao[i]) || isdigit(acf_icao[i])) ? acf_icao[i] : ' ';
 
         plane_cg_y = F2M * XPLMGetDataf(acf_cg_y_dr);
         plane_cg_z = F2M * XPLMGetDataf(acf_cg_z_dr);
+
+        float gear_z[2];
+        if (2 == XPLMGetDatavf(acf_gear_z_dr, gear_z, 0, 2)) {      // nose + main wheel
+            plane_nw_z = -gear_z[0];
+            plane_mw_z = -gear_z[1];
+        } else
+            plane_nw_z = plane_mw_z = plane_cg_z;         // fall back to CG
 
         // check whether acf is listed in exception files
         use_engine_running = 0;

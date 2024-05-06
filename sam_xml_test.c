@@ -49,12 +49,23 @@ main(int argc, char **argv) {
         puts("\n");
     }
 
-    printf("Library jetways\n");
+    puts("Library jetways");
     for (int i = 0; i <= MAX_SAM3_LIB_JW; i++) {
         sam_jw_t *jw = &sam3_lib_jw[i];
         if (jw->id == 0)
             continue;
         log_msg("%d; %s height: %0.2f, cabinPos: %0.2f", jw->id, jw->name, jw->height, jw->cabinPos);
     }
+
+    puts("Ramps");
+    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+        printf("%s\n", sc->name);
+        for (ramp_t *ramp = sc->ramps; ramp < sc->ramps + sc->n_ramps; ramp++) {
+            log_msg("%-40s %5.6f, %5.6f %6.2f", ramp->id,
+                    ramp->lat, ramp->lon, ramp->hdgt);
+        }
+        puts("\n");
+    }
+
 	return (1);
 }

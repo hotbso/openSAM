@@ -20,5 +20,20 @@
 
 */
 
+struct _ramp {
+    float lat, lon, hdgt;   // from apt.dat
+
+    unsigned int ref_gen;   // only valid if this matches the generation of the ref frame
+    double stand_x, stand_y, stand_z;
+    float cos_hdgt, sin_hdgt;
+
+    // if a dgs is associated save the position
+    int dgs_assoc;
+    float dgs_x, dgs_z;
+
+    char id[40];
+};
+
 extern int dgs_init(void);
 extern float dgs_state_machine(void);
+extern void dgs_set_active(void);
