@@ -21,6 +21,9 @@
 
 */
 
+#include <stddef.h>
+#include <string.h>
+#include <ctype.h>
 #include <sys/types.h>
 
 #include "openSAM.h"
