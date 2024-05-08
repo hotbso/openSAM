@@ -1,1 +1,1 @@
-VERSION=1.0-b4
+VERSION=1.0-b5
