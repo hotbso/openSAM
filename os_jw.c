@@ -290,21 +290,6 @@ jw_status_acc(void *ref)
 }
 
 static void
-reset_jetways()
-{
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
-        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
-            jw->rotate1 = jw->initialRot1;
-            jw->rotate2 = jw->initialRot2;
-            jw->rotate3 = jw->initialRot3;
-            jw->extent = jw->initialExtent;
-            //log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
-       }
-
-    n_active_jw = 0;
-}
-
-static void
 alert_complete(void *ref, FMOD_RESULT status)
 {
     log_msg("fmod callback: %d", status);
@@ -339,6 +324,28 @@ alert_off(active_jw_t *ajw)
     if (ajw->alert_chn)
         XPLMStopAudio(ajw->alert_chn);
     ajw->alert_chn = NULL;
+}
+
+static void
+reset_jetways()
+{
+    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
+        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+            jw->rotate1 = jw->initialRot1;
+            jw->rotate2 = jw->initialRot2;
+            jw->rotate3 = jw->initialRot3;
+            jw->extent = jw->initialExtent;
+            jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
+            jw->warnlight = 0;
+            //log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
+       }
+
+    for (int i = 0; i < n_active_jw; i++) {
+        active_jw_t *ajw = &active_jw[i];
+        alert_off(ajw);
+    }
+
+    n_active_jw = 0;
 }
 
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be NULL
