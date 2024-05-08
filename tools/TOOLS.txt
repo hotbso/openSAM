@@ -1,0 +1,3 @@
+gen_height_variants.py
+======================
+Create all height variants by shifting the original AutoGate objects with a ANIM_trans directive
