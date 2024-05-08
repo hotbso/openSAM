@@ -146,6 +146,7 @@ dgs_set_active(void)
     }
 
     state = ACTIVE;
+    log_msg("dgs set to ACTIVE");
 }
 
 static void

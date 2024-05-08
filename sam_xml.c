@@ -339,7 +339,7 @@ collect_sam_xml(const char *xp_dir)
             }
 
             strcat(fn, "Earth nav data/apt.dat");
-            log_msg("Trying '%s'", fn);
+            //log_msg("Trying '%s'", fn);
             f = fopen(fn, "r");
             if (f) {
                 log_msg("Processing '%s'", fn);
