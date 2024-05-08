@@ -560,8 +560,9 @@ dgs_state_machine()
         // don't flood the log
         if (now > update_stand_log_ts + 2.0) {
             update_stand_log_ts = now;
-            log_msg("stand: %s, state: %s, status: %d, track: %d, lr: %d, distance: %0.2f, azimuth: %0.1f, brightness: %0.2f",
-                   nearest_stand->id, state_str[state], status, track, lr, distance, azimuth, brightness);
+            log_msg("stand: %s, state: %s, assoc: %d, status: %d, track: %d, lr: %d, distance: %0.2f, azimuth: %0.1f",
+                   nearest_stand->id, state_str[state], nearest_stand->dgs_assoc,
+                   status, track, lr, distance, azimuth);
         }
 
         memset(drefs, 0, sizeof(drefs));
