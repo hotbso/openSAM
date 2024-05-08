@@ -60,9 +60,9 @@ main(int argc, char **argv) {
     puts("Ramps");
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
         printf("%s\n", sc->name);
-        for (ramp_t *ramp = sc->ramps; ramp < sc->ramps + sc->n_ramps; ramp++) {
-            log_msg("%-40s %5.6f, %5.6f %6.2f", ramp->id,
-                    ramp->lat, ramp->lon, ramp->hdgt);
+        for (stand_t *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+            log_msg("%-40s %5.6f, %5.6f %6.2f", stand->id,
+                    stand->lat, stand->lon, stand->hdgt);
         }
         puts("\n");
     }

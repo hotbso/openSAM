@@ -43,7 +43,7 @@ static const float NEAR_SKIP = 2;       // don't consider jetways farther than t
 
 typedef struct _sam_jw sam_jw_t;
 typedef struct _sam_dgs sam_dgs_t;
-typedef struct _ramp ramp_t;
+typedef struct _stand stand_t;
 
 typedef struct _scenery {
     const char *name;
@@ -51,8 +51,8 @@ typedef struct _scenery {
     sam_jw_t *sam_jws;
     int n_sam_jws;
 
-    ramp_t *ramps;
-    int n_ramps;
+    stand_t *stands;
+    int n_stands;
 
     float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for FAR_SKIP */
 } scenery_t;

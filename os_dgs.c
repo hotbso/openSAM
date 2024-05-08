@@ -42,8 +42,8 @@ static const float GOOD_X = 2.0;            // for mw
 
 static const float REM_Z = 12;      	    // Distance remaining from here on
 
-static const float MAX_DGS_2_RAMP_X = 1.5f; // max offset/distance from DGS to stand
-static const float MAX_DGS_2_RAMP_Z = 70.0f;
+static const float MAX_DGS_2_STAND_X = 1.5f; // max offset/distance from DGS to stand
+static const float MAX_DGS_2_STAND_Z = 70.0f;
 
 static const float dgs_dist = 20.0f;        // distance from dgs to stand for azimuth computation
 
@@ -68,11 +68,11 @@ static float azimuth, distance;
 
 float plane_nw_z, plane_mw_z, plane_cg_z;   // z value of plane's 0 to fw, mw and cg
 
-static ramp_t *nearest_ramp;
-static float nearest_ramp_ts;    // timestamp of last find_nearest_ramp()
+static stand_t *nearest_stand;
+static float nearest_stand_ts;    // timestamp of last find_nearest_stand()
 static int is_marshaller;
 
-static int update_ramp_log_ts;   // throttling of logging
+static int update_stand_log_ts;   // throttling of logging
 static float sin_wave_prev;
 
 enum _DGS_DREF {
@@ -115,7 +115,7 @@ reset_state(state_t new_state)
         log_msg("setting state to %s", state_str[new_state]);
 
     state = new_state;
-    nearest_ramp = NULL;
+    nearest_stand = NULL;
 }
 
 // set mode to arrival
@@ -149,24 +149,24 @@ dgs_set_active(void)
 }
 
 static void
-xform_to_ref_frame(ramp_t *ramp)
+xform_to_ref_frame(stand_t *stand)
 {
-    if (ramp->ref_gen < ref_gen) {
-        XPLMWorldToLocal(ramp->lat, ramp->lon, XPLMGetDataf(plane_elevation_dr),
-                         &ramp->stand_x, &ramp->stand_y, &ramp->stand_z);
-        ramp->ref_gen = ref_gen;
-        ramp->dgs_assoc = 0;    // association is lost
+    if (stand->ref_gen < ref_gen) {
+        XPLMWorldToLocal(stand->lat, stand->lon, XPLMGetDataf(plane_elevation_dr),
+                         &stand->stand_x, &stand->stand_y, &stand->stand_z);
+        stand->ref_gen = ref_gen;
+        stand->dgs_assoc = 0;    // association is lost
     }
 }
 
 static inline void
-global_2_ramp(const ramp_t * ramp, float x, float z, float *x_l, float *z_l)
+global_2_stand(const stand_t * stand, float x, float z, float *x_l, float *z_l)
 {
-    float dx = x - ramp->stand_x;
-    float dz = z - ramp->stand_z;
+    float dx = x - stand->stand_x;
+    float dz = z - stand->stand_z;
 
-    *x_l =  dx * ramp->cos_hdgt + dz * ramp->sin_hdgt;
-    *z_l = -dx * ramp->sin_hdgt + dz * ramp->cos_hdgt;
+    *x_l =  dx * stand->cos_hdgt + dz * stand->sin_hdgt;
+    *z_l = -dx * stand->sin_hdgt + dz * stand->cos_hdgt;
 }
 
 //
@@ -178,7 +178,7 @@ global_2_ramp(const ramp_t * ramp, float x, float z, float *x_l, float *z_l)
 static float
 read_dgs_acc(void *ref)
 {
-    if (NULL == nearest_ramp)
+    if (NULL == nearest_stand)
         return 0.0f;
 
     stat_acc_called++;
@@ -194,15 +194,15 @@ read_dgs_acc(void *ref)
         log_msg("reference frame shift");
     }
 
-    xform_to_ref_frame(nearest_ramp);
+    xform_to_ref_frame(nearest_stand);
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
 
     int dr_index = (uint64_t)ref;
 
-    if (nearest_ramp->dgs_assoc) {
-        if (nearest_ramp->dgs_x != obj_x || nearest_ramp->dgs_z != obj_z)
+    if (nearest_stand->dgs_assoc) {
+        if (nearest_stand->dgs_x != obj_x || nearest_stand->dgs_z != obj_z)
             return 0.0f;
 
         if (DGS_DR_UNHIDE == dr_index) {
@@ -214,16 +214,16 @@ read_dgs_acc(void *ref)
     }
 
     float dgs_x_l, dgs_z_l;
-    global_2_ramp(nearest_ramp, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
+    global_2_stand(nearest_stand, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
     //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
-    if (fabs(dgs_x_l) > MAX_DGS_2_RAMP_X || dgs_z_l < -MAX_DGS_2_RAMP_Z)
+    if (fabs(dgs_x_l) > MAX_DGS_2_STAND_X || dgs_z_l < -MAX_DGS_2_STAND_Z)
         return 0.0;
 
-    // match, associate dgs to ramp
-    nearest_ramp->dgs_assoc = 1;
-    nearest_ramp->dgs_x = obj_x;
-    nearest_ramp->dgs_z = obj_z;
+    // match, associate dgs to stand
+    nearest_stand->dgs_assoc = 1;
+    nearest_stand->dgs_x = obj_x;
+    nearest_stand->dgs_z = obj_z;
 
     if (DGS_DR_UNHIDE == dr_index) {
         is_marshaller = 1;      // only Marshaller queries unhide
@@ -234,10 +234,10 @@ read_dgs_acc(void *ref)
 }
 
 static void
-find_nearest_ramp()
+find_nearest_stand()
 {
     double dist = 1.0E10;
-    ramp_t *min_ramp = NULL;
+    stand_t *min_stand = NULL;
 
     float plane_lat = XPLMGetDataf(plane_lat_dr);
     float plane_lon = XPLMGetDataf(plane_lon_dr);
@@ -254,18 +254,18 @@ find_nearest_ramp()
             continue;
         }
 
-        for (ramp_t *ramp = sc->ramps; ramp < sc->ramps + sc->n_ramps; ramp++) {
+        for (stand_t *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
 
             // heading in local system
-            float local_hdgt = RA(plane_hdgt - ramp->hdgt);
+            float local_hdgt = RA(plane_hdgt - stand->hdgt);
 
             if (fabs(local_hdgt) > 90.0)
-                continue;   // not looking to ramp
+                continue;   // not looking to stand
 
-            xform_to_ref_frame(ramp);
+            xform_to_ref_frame(stand);
 
             float local_x, local_z;
-            global_2_ramp(ramp, plane_x, plane_z, &local_x, &local_z);
+            global_2_stand(stand, plane_x, plane_z, &local_x, &local_z);
 
             // nose wheel
             float nw_z = local_z - plane_nw_z;
@@ -275,17 +275,17 @@ find_nearest_ramp()
             if (d > CAP_Z + 50) // fast exit
                 continue;
 
-            //log_msg("stand: %s, z: %2.1f, x: %2.1f", ramp->id, nw_z, nw_x);
+            //log_msg("stand: %s, z: %2.1f, x: %2.1f", stand->id, nw_z, nw_x);
 
             // behind
             if (nw_z < -4.0) {
-                //log_msg("behind: %s",ramp->id);
+                //log_msg("behind: %s",stand->id);
                 continue;
             }
 
             if (nw_z > 10.0) {
                 float angle = atan(nw_x / nw_z) / D2R;
-                //log_msg("angle to plane: %s, %3.1f",ramp->id, angle);
+                //log_msg("angle to plane: %s, %3.1f",stand->id, angle);
 
                 // check whether plane is in a +-60° sector relative to stand
                 if (fabsf(angle) > 60.0)
@@ -295,11 +295,11 @@ find_nearest_ramp()
                 float rel_to_stand = RA(-angle - local_hdgt);
 
                 //log_msg("rel_to_stand: %s, nw_x: %0.1f, local_hdgt %0.1f, rel_to_stand: %0.1f",
-                //      ramp->id, nw_x, local_hdgt, rel_to_stand);
+                //      stand->id, nw_x, local_hdgt, rel_to_stand);
 
                 if ((nw_x > 10.0 && rel_to_stand < -60.0)
                     || (nw_x < -10.0 && rel_to_stand > 60.0)) {
-                    //log_msg("drive by %s",ramp->id);
+                    //log_msg("drive by %s",stand->id);
                     continue;
                 }
             }
@@ -309,20 +309,20 @@ find_nearest_ramp()
             d = len2f(azi_weight * nw_x, nw_z);
 
             if (d < dist) {
-                //log_msg("new min: %s, z: %2.1f, x: %2.1f",ramp->id, nw_z, nw_x);
+                //log_msg("new min: %s, z: %2.1f, x: %2.1f",stand->id, nw_z, nw_x);
                 dist = d;
-                min_ramp = ramp;
+                min_stand = stand;
             }
         }
     }
 
-    if (min_ramp != NULL && min_ramp != nearest_ramp) {
+    if (min_stand != NULL && min_stand != nearest_stand) {
         is_marshaller = 0;
-        log_msg("ramp: %s, %f, %f, %f, dist: %f, dgs_dist: %0.2f", min_ramp->id,
-                min_ramp->lat, min_ramp->lon,
-                min_ramp->hdgt, dist, dgs_dist);
+        log_msg("stand: %s, %f, %f, %f, dist: %f, dgs_dist: %0.2f", min_stand->id,
+                min_stand->lat, min_stand->lon,
+                min_stand->hdgt, dist, dgs_dist);
 
-        nearest_ramp = min_ramp;
+        nearest_stand = min_stand;
         state = ENGAGED;
     }
 }
@@ -351,12 +351,12 @@ dgs_state_machine()
         return 2.0;
 
     // throttle costly search
-    if (INACTIVE < state && now > nearest_ramp_ts + 2.0) {
-        find_nearest_ramp();
-        nearest_ramp_ts = now;
+    if (INACTIVE < state && now > nearest_stand_ts + 2.0) {
+        find_nearest_stand();
+        nearest_stand_ts = now;
     }
 
-    if (nearest_ramp == NULL) {
+    if (nearest_stand == NULL) {
         state = ACTIVE;
         return 2.0;
     }
@@ -371,11 +371,11 @@ dgs_state_machine()
     // xform plane pos into stand local coordinate system
 
     float local_x, local_z;
-    global_2_ramp(nearest_ramp, XPLMGetDataf(plane_x_dr), XPLMGetDataf(plane_z_dr),
+    global_2_stand(nearest_stand, XPLMGetDataf(plane_x_dr), XPLMGetDataf(plane_z_dr),
                   &local_x, &local_z);
 
     // relative reading to stand +/- 180
-    float local_hdgt = RA(XPLMGetDataf(plane_true_psi_dr) - nearest_ramp->hdgt);
+    float local_hdgt = RA(XPLMGetDataf(plane_true_psi_dr) - nearest_stand->hdgt);
 
     // nose wheel
     float nw_z = local_z - plane_nw_z;
@@ -452,7 +452,7 @@ dgs_state_machine()
             float req_hdgt = -3.5 * azimuth;        // to track back to centerline
             float d_hdgt = req_hdgt - local_hdgt;   // degrees to turn
 
-            if (now > update_ramp_log_ts + 2.0)
+            if (now > update_stand_log_ts + 2.0)
                 log_msg("is_marshaller: %d, azimuth: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), ref: (%0.1f, %0.1f), "
                        "x: %0.1f, local_hdgt: %0.1f, d_hdgt: %0.1f",
                        is_marshaller, azimuth, mw_x, mw_z, nw_x, nw_z,
@@ -557,10 +557,10 @@ dgs_state_machine()
         float brightness = min_brightness + (1 - min_brightness) * powf(1 - XPLMGetDataf(percent_lights_dr), 1.5);
 
         // don't flood the log
-        if (now > update_ramp_log_ts + 2.0) {
-            update_ramp_log_ts = now;
-            log_msg("ramp: %s, state: %s, status: %d, track: %d, lr: %d, distance: %0.2f, azimuth: %0.1f, brightness: %0.2f",
-                   nearest_ramp->id, state_str[state], status, track, lr, distance, azimuth, brightness);
+        if (now > update_stand_log_ts + 2.0) {
+            update_stand_log_ts = now;
+            log_msg("stand: %s, state: %s, status: %d, track: %d, lr: %d, distance: %0.2f, azimuth: %0.1f, brightness: %0.2f",
+                   nearest_stand->id, state_str[state], status, track, lr, distance, azimuth, brightness);
         }
 
         memset(drefs, 0, sizeof(drefs));

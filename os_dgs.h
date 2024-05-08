@@ -20,7 +20,7 @@
 
 */
 
-struct _ramp {
+struct _stand {
     float lat, lon, hdgt;   // from apt.dat
 
     unsigned int ref_gen;   // only valid if this matches the generation of the ref frame

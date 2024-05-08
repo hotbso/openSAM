@@ -204,7 +204,7 @@ read_apt_dat(FILE *f, scenery_t *sc)
 {
     char line[2000];    // can be quite long
 
-    int max_ramps = 0;
+    int max_stands = 0;
 
     while (fgets(line, sizeof(line) - 1, f)) {
         char *cptr = strchr(line, '\r');
@@ -217,33 +217,33 @@ read_apt_dat(FILE *f, scenery_t *sc)
 
         if (line == strstr(line, "1300 ")) {
             //log_msg("%s", line);
-            if (sc->n_ramps == max_ramps) {
-                max_ramps += 100;
-                sc->ramps = realloc(sc->ramps, max_ramps * sizeof(ramp_t));
-                if (sc->ramps == NULL) {
+            if (sc->n_stands == max_stands) {
+                max_stands += 100;
+                sc->stands = realloc(sc->stands, max_stands * sizeof(stand_t));
+                if (sc->stands == NULL) {
                     log_msg("Can't allocate memory");
                     return 0;
                 }
             }
-            ramp_t *ramp = &sc->ramps[sc->n_ramps];
-            memset(ramp, 0, sizeof(ramp_t));
+            stand_t *stand = &sc->stands[sc->n_stands];
+            memset(stand, 0, sizeof(stand_t));
             int len;
             int n = sscanf(line + 5, "%f %f %f %*s %*s %n",
-                           &ramp->lat, &ramp->lon, &ramp->hdgt, &len);
+                           &stand->lat, &stand->lon, &stand->hdgt, &len);
             if (3 == n) {
-                strncpy(ramp->id, line + 5 + len, sizeof(ramp->id) - 1);
-                //log_msg("%d %d, %f %f %f '%s'", n, len, ramp->lat, ramp->lon, ramp->hdgt, ramp->id);
+                strncpy(stand->id, line + 5 + len, sizeof(stand->id) - 1);
+                //log_msg("%d %d, %f %f %f '%s'", n, len, stand->lat, stand->lon, stand->hdgt, stand->id);
 
-                ramp->hdgt = RA(ramp->hdgt);
-                ramp->sin_hdgt = sinf(D2R * ramp->hdgt);
-                ramp->cos_hdgt = cosf(D2R * ramp->hdgt);
-                sc->n_ramps++;
+                stand->hdgt = RA(stand->hdgt);
+                stand->sin_hdgt = sinf(D2R * stand->hdgt);
+                stand->cos_hdgt = cosf(D2R * stand->hdgt);
+                sc->n_stands++;
             }
         }
 
     }
 
-    sc->ramps = realloc(sc->ramps, sc->n_ramps * sizeof(ramp_t));
+    sc->stands = realloc(sc->stands, sc->n_stands * sizeof(stand_t));
     return 1;
 }
 
@@ -328,7 +328,7 @@ collect_sam_xml(const char *xp_dir)
 
             n_sceneries++;
 
-            // read ramps from apt.dat
+            // read stands from apt.dat
             fn[0] = '\0';
             if (is_absolute) {
                 strncpy(fn, scenery_path, sizeof(fn) - 100);
