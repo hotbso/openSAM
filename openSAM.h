@@ -125,6 +125,7 @@ extern int check_teleportation(void);
 static inline
 float RA(float angle)
 {
+    angle = fmodf(angle, 360.0f);
     if (angle > 180.0f)
         return angle - 360.0f;
 
