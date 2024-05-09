@@ -426,8 +426,11 @@ find_dockable_jws()
             ajw->x -= door_info[jw->door].x;
             ajw->z -= door_info[jw->door].z;
 
-            if (ajw->x > 0.0 || BETWEEN(ajw->psi, -170.0f, 20.0f))   // on the right side or pointing away
+            if (ajw->x > 0.0 || BETWEEN(ajw->psi, -160.0f, 20.0f)) { // on the right side or pointing away
+                //log_msg("pointing away: %s, x: %0.2f, psi: %0.1f",
+                //        jw->name, ajw->x, ajw->psi);
                 continue;
+            }
 
             ajw->dist = len2f(ajw->x, ajw->z);
             if (ajw->dist > active_jw[jw->door].dist)
