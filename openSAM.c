@@ -242,6 +242,9 @@ check_teleportation()
     if (parked_ngen != ngen || fabsf(parked_x - x) > 1.0f || fabsf(parked_y - y) > 1.0f) {
         log_msg("parked_ngen: %d, ngen: %d, parked_x: %0.3f, x: %0.3f, parked_y: %0.3f, y: %0.3f",
                 parked_ngen, ngen, parked_x, x, parked_y, y);
+
+        on_ground_ts = now + 10.0f; // wait for the dust to settle
+        on_ground = 1;
         return 1;
     }
 
@@ -264,13 +267,16 @@ flight_loop_cb(float inElapsedSinceLastCall,
     now = XPLMGetDataf(total_running_time_sec_dr);
     int og = (XPLMGetDataf(gear_fnrml_dr) != 0.0);
 
-    if (og != on_ground && now > on_ground_ts + 10.0) {
+    if (og != on_ground && now > on_ground_ts + 10.0f) {
         on_ground = og;
         on_ground_ts = now;
         log_msg("transition to on_ground: %d", on_ground);
-        dgs_set_active();
-    }
 
+        if (on_ground)
+            dgs_set_active();
+        else
+            dgs_set_inactive();
+    }
 
     float jw_loop_delay = 1.0f;
     float dgs_loop_delay = 1.0f;

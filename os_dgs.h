@@ -37,3 +37,4 @@ struct _stand {
 extern int dgs_init(void);
 extern float dgs_state_machine(void);
 extern void dgs_set_active(void);
+extern void dgs_set_inactive(void);

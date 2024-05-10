@@ -108,14 +108,12 @@ static const char *dgs_dlist_dr[] = {
 
 static float drefs[DGS_DR_NUM];
 
-static void
-reset_state(state_t new_state)
+void
+dgs_set_inactive(void)
 {
-    if (state != new_state)
-        log_msg("setting state to %s", state_str[new_state]);
-
-    state = new_state;
+    log_msg("dgs set to INACTIVE");
     nearest_stand = NULL;
+    state = INACTIVE;
 }
 
 // set mode to arrival
@@ -128,7 +126,7 @@ dgs_set_active(void)
     }
 
     // can be teleportation
-    reset_state(INACTIVE);
+    dgs_set_inactive();
 
     beacon_state = beacon_last_pos = XPLMGetDatai(beacon_dr);
     beacon_on_ts = beacon_off_ts = -10.0;
@@ -341,7 +339,7 @@ dgs_init()
                                  NULL, read_dgs_acc, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, (void *)(uint64_t)i, NULL);
 
-    reset_state(INACTIVE);
+    dgs_set_inactive();
     return 1;
 }
 
@@ -500,7 +498,7 @@ dgs_state_machine()
         case BAD:
             if (!beacon_on
                 && (now > timestamp + 5.0)) {
-                reset_state(INACTIVE);
+                dgs_set_inactive();
                 return loop_delay;
             }
 
@@ -526,7 +524,7 @@ dgs_state_machine()
                 if (!dont_connect_jetway)   // wait some seconds for the jw handler to catch up
                     dock_requested = 1;
 
-                reset_state(INACTIVE);
+                dgs_set_inactive();
                 return loop_delay;
             }
             break;
