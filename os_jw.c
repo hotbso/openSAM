@@ -935,8 +935,12 @@ jw_state_machine()
             for (int i = 0; i < n_active_jw; i++)
                 n_done += dock_drive(&active_jw[i]);
 
-            if (n_done == n_active_jw)
-               new_state = DOCKED;
+            if (n_done == n_active_jw) {
+                XPLMCommandRef cmdr = XPLMFindCommand("openSAM/post_dock");
+                if (cmdr)
+                    XPLMCommandOnce(cmdr);
+                new_state = DOCKED;
+            }
             else
                 return JW_ANIM_INTERVAL;
             break;
@@ -961,8 +965,13 @@ jw_state_machine()
                     ajw->timeout = now + JW_ANIM_TIMEOUT;
                     alert_on(ajw);
                     ajw->jw->warnlight = 1;
-                    new_state = UNDOCKING;
                 }
+
+                XPLMCommandRef cmdr = XPLMFindCommand("openSAM/pre_undock");
+                if (cmdr)
+                    XPLMCommandOnce(cmdr);
+
+                new_state = UNDOCKING;
             }
             break;
 
