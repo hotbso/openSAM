@@ -108,6 +108,24 @@ static const char *dgs_dlist_dr[] = {
 
 static float drefs[DGS_DR_NUM];
 
+// SAM1 drefs
+enum _SAM1_DREF {
+    SAM1_DR_STATUS,
+    SAM1_DR_LATERAL,
+    SAM1_DR_LONGITUDINAL,
+    SAM1_DR_ICAO,
+};
+
+enum _SAM1_STATE {
+    SAM1_TRACK = 1,
+    SAM1_STOP_ZONE,
+    SAM1_IDLE
+};
+static const float SAM1_LATERAL_OFF = 10.0f;   // switches off VDGS
+
+// dref values
+static float sam1_status, sam1_lateral, sam1_longitudinal;
+
 void
 dgs_set_inactive(void)
 {
@@ -169,16 +187,13 @@ global_2_stand(const stand_t * stand, float x, float z, float *x_l, float *z_l)
 }
 
 //
-// Accessor for the "opensam/dgs/..." datarefs
+// check whether dgs obj is the active one
 //
-// This function is called from draw loops, efficient coding required.
-//
-//
-static float
-read_dgs_acc(void *ref)
+static inline int
+is_dgs_active()
 {
     if (NULL == nearest_stand)
-        return 0.0f;
+        return 0;
 
     stat_acc_called++;
 
@@ -198,31 +213,39 @@ read_dgs_acc(void *ref)
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
 
-    int dr_index = (uint64_t)ref;
-
     if (nearest_stand->dgs_assoc) {
         if (nearest_stand->dgs_x != obj_x || nearest_stand->dgs_z != obj_z)
-            return 0.0f;
+            return 0;
+    } else {
+        float dgs_x_l, dgs_z_l;
+        global_2_stand(nearest_stand, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
+        //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
-        if (DGS_DR_UNHIDE == dr_index) {
-            is_marshaller = 1;      // only Marshaller queries unhide
-            return 1.0f;
-        }
+        if (fabs(dgs_x_l) > MAX_DGS_2_STAND_X || dgs_z_l < -MAX_DGS_2_STAND_Z)
+            return 0;
 
-        return drefs[dr_index];
+        // match, associate dgs to stand
+        nearest_stand->dgs_assoc = 1;
+        nearest_stand->dgs_x = obj_x;
+        nearest_stand->dgs_z = obj_z;
     }
 
-    float dgs_x_l, dgs_z_l;
-    global_2_stand(nearest_stand, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
-    //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
+    return 1;
+}
 
-    if (fabs(dgs_x_l) > MAX_DGS_2_STAND_X || dgs_z_l < -MAX_DGS_2_STAND_Z)
-        return 0.0;
+//
+// Accessor for the "opensam/dgs/..." datarefs
+//
+// This function is called from draw loops, efficient coding required.
+//
+//
+static float
+read_dgs_acc(void *ref)
+{
+    if (!is_dgs_active())
+        return 0.0f;
 
-    // match, associate dgs to stand
-    nearest_stand->dgs_assoc = 1;
-    nearest_stand->dgs_x = obj_x;
-    nearest_stand->dgs_z = obj_z;
+    int dr_index = (uint64_t)ref;
 
     if (DGS_DR_UNHIDE == dr_index) {
         is_marshaller = 1;      // only Marshaller queries unhide
@@ -230,6 +253,63 @@ read_dgs_acc(void *ref)
     }
 
     return drefs[dr_index];
+}
+
+//
+// Accessor for the "sam/..." docking related datarefs
+//
+// This function is called from draw loops, efficient coding required.
+//
+//
+static float
+read_sam1_acc(void *ref)
+{
+    int dr_index = (uint64_t)ref;
+    if (!is_dgs_active())
+        switch (dr_index) {
+            case SAM1_DR_STATUS:
+                return 0.0f;
+            case SAM1_DR_LATERAL:
+                return SAM1_LATERAL_OFF;           // switch off VDGS
+            case SAM1_DR_LONGITUDINAL:
+                return 0.0f;
+        }
+
+    //log_msg("read_sam1_acc: %d", dr_index);
+    switch (dr_index) {
+        case SAM1_DR_STATUS:
+            return sam1_status;
+        case SAM1_DR_LATERAL:
+            return sam1_lateral;
+        case SAM1_DR_LONGITUDINAL:
+            return sam1_longitudinal;
+    }
+
+    return 0.0f;
+}
+
+static int
+read_sam1_icao_acc(XPLMDataRef ref, int *values, int ofs, int n)
+{
+    UNUSED(ref);
+
+    if (values == NULL)
+        return 4;
+
+    if (n <= 0 || ofs < 0 || ofs >= 4)
+        return 0;
+
+    n = MIN(n, 4 - ofs);
+
+    for (int i = 0; i < n; i++) {
+        char c = acf_icao[ofs + i];
+        if (isalpha(c))
+            values[i] = (c - 'A') + 1;
+        else
+            values[i] = (c - '0') + 27;
+    }
+
+    return n;
 }
 
 static void
@@ -338,6 +418,22 @@ dgs_init()
         XPLMRegisterDataAccessor(dgs_dlist_dr[i], xplmType_Float, 0, NULL,
                                  NULL, read_dgs_acc, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, (void *)(uint64_t)i, NULL);
+
+    XPLMRegisterDataAccessor("sam/vdgs/status", xplmType_Float, 0, NULL,
+                                NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
+
+    XPLMRegisterDataAccessor("sam/docking/lateral", xplmType_Float, 0, NULL,
+                                NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_LATERAL, NULL);
+
+    XPLMRegisterDataAccessor("sam/docking/longitudinal", xplmType_Float, 0, NULL,
+                                NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_LONGITUDINAL, NULL);
+
+    XPLMRegisterDataAccessor("sam/docking/icao", xplmType_IntArray, 0, NULL, NULL,
+                                NULL, NULL, NULL, NULL, read_sam1_icao_acc, NULL,
+                                NULL, NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_ICAO, NULL);
 
     dgs_set_inactive();
     return 1;
@@ -555,14 +651,6 @@ dgs_state_machine()
         static const float min_brightness = 0.025;   // relativ to 1
         float brightness = min_brightness + (1 - min_brightness) * powf(1 - XPLMGetDataf(percent_lights_dr), 1.5);
 
-        // don't flood the log
-        if (now > update_stand_log_ts + 2.0) {
-            update_stand_log_ts = now;
-            log_msg("stand: %s, state: %s, assoc: %d, status: %d, track: %d, lr: %d, distance: %0.2f, azimuth: %0.1f",
-                   nearest_stand->id, state_str[state], nearest_stand->dgs_assoc,
-                   status, track, lr, distance, azimuth);
-        }
-
         memset(drefs, 0, sizeof(drefs));
         drefs[DGS_DR_STATUS] = status;
         drefs[DGS_DR_TRACK] = track;
@@ -579,6 +667,48 @@ dgs_state_machine()
         }
 
         drefs[DGS_DR_BRIGHTNESS] = brightness;
+
+        // translate to compatible SAM1 values
+        sam1_lateral = -x_dr;
+        sam1_longitudinal = z_dr;
+
+        switch (state) {
+            case ENGAGED:
+            case TRACK:
+                sam1_status = SAM1_TRACK;
+                break;
+
+            case GOOD:
+                sam1_status = SAM1_STOP_ZONE;
+                break;
+
+            case BAD:
+                sam1_status = SAM1_TRACK;
+                break;
+
+            case PARKED:
+            case DONE:
+                sam1_status = SAM1_IDLE;
+                sam1_longitudinal = 0.0;
+                break;
+
+            default:
+                sam1_status = SAM1_IDLE;
+                sam1_lateral = SAM1_LATERAL_OFF;
+                sam1_longitudinal = 0.0f;
+        }
+
+        // don't flood the log
+        if (now > update_stand_log_ts + 2.0) {
+            update_stand_log_ts = now;
+            log_msg("stand: %s, state: %s, assoc: %d, status: %d, track: %d, lr: %d, distance: %0.2f, azimuth: %0.1f",
+                   nearest_stand->id, state_str[state], nearest_stand->dgs_assoc,
+                   status, track, lr, distance, azimuth);
+            log_msg("sam1: status %0.0f, lateral: %0.1f, longitudinal: %0.1f",
+                    sam1_status, sam1_lateral, sam1_longitudinal);
+        }
+
+
     }
 
     return loop_delay;
