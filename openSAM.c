@@ -40,7 +40,7 @@
  * Headings (hdgt) are measured from -z (=true north) right turning
  *
  * Imagine looking from below to the sky you have the more traditional 'math' view
- * +x right, +z up, angles left turning from the +x-axis to the +z axis.
+ * +x right, +z up, angles left turning from the +x axis to the +z axis.
  *
  * So if alpha is a 'math' angle we have
  *
@@ -54,12 +54,21 @@
  * This is done by RA().
  *
  * So first of all we rotate and shift everything into the 'door' frame i.e.
- * acf nose pointing up to -z, door at (0,0), jetways to the left somewhere at -x and some z
+ * acf nose pointing up to -z, door at (0,0), jetways to the left somewhere at -x and some z.
  *
  * These values are kept in the "active_jw".
  *
  * Then we do our math in the door frame and transform everything back to the jetway frame
- * to get the ratation angles.
+ * to get the rotation angles.
+ *
+ * The datarefs for jetway animation are:
+ *  rotation1       tunnel relative to the placed object
+ *  rotation2       cabin relative to the tunnel
+ *  rotation3       tunnel relative to horizontal (= x-z plane)
+ *  wheelrotatec    wheel base relative to tunnel around the y-axis
+ *  wheelrotater    right wheel
+ *  wheelrotatel    left wheel
+ *  wheel           delta height in m of tunnel over wheelbase relative to horizontal
  *
  * Likewise for DGS we xform everything into the stand frame and go from there.
  *

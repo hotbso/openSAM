@@ -165,6 +165,7 @@ dgs_set_active(void)
     log_msg("dgs set to ACTIVE");
 }
 
+// xform lat,lon into the active global frame
 static void
 xform_to_ref_frame(stand_t *stand)
 {
@@ -176,6 +177,7 @@ xform_to_ref_frame(stand_t *stand)
     }
 }
 
+// xform global coordinates into the stand frame
 static inline void
 global_2_stand(const stand_t * stand, float x, float z, float *x_l, float *z_l)
 {
@@ -187,7 +189,8 @@ global_2_stand(const stand_t * stand, float x, float z, float *x_l, float *z_l)
 }
 
 //
-// check whether dgs obj is the active one
+// check whether dgs obj is the active one ...
+//   ... and on the fly make a match the active one
 //
 static inline int
 is_dgs_active()
@@ -260,7 +263,6 @@ read_dgs_acc(void *ref)
 //
 // This function is called from draw loops, efficient coding required.
 //
-//
 static float
 read_sam1_acc(void *ref)
 {
@@ -288,6 +290,11 @@ read_sam1_acc(void *ref)
     return 0.0f;
 }
 
+//
+// Accessor for the "sam/...icao[0]" docking related datarefs
+//
+// This function is called from draw loops, efficient coding required.
+//
 static int
 read_sam1_icao_acc(XPLMDataRef ref, int *values, int ofs, int n)
 {
@@ -668,7 +675,7 @@ dgs_state_machine()
 
         drefs[DGS_DR_BRIGHTNESS] = brightness;
 
-        // translate to compatible SAM1 values
+        // translate into compatible SAM1 values
         sam1_lateral = -x_dr;
         sam1_longitudinal = z_dr;
 
