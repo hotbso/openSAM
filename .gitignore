@@ -1,5 +1,6 @@
-OBJ*
+/OBJ_*/
 *.xpl
+/*.zip
 
 # Prerequisites
 *.d

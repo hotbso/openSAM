@@ -1,6 +1,6 @@
 PLUGDIR=openSAM-pkg/openSAM
 
-OBJDIR=./OBJ
+OBJDIR=./OBJ_win
 
 include version.mak
 
