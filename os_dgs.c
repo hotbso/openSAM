@@ -270,7 +270,7 @@ read_sam1_acc(void *ref)
     if (!is_dgs_active())
         switch (dr_index) {
             case SAM1_DR_STATUS:
-                return 0.0f;
+                return SAM1_IDLE;
             case SAM1_DR_LATERAL:
                 return SAM1_LATERAL_OFF;           // switch off VDGS
             case SAM1_DR_LONGITUDINAL:
