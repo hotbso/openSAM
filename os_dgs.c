@@ -42,7 +42,7 @@ static const float GOOD_X = 2.0;            // for mw
 
 static const float REM_Z = 12;      	    // Distance remaining from here on
 
-static const float MAX_DGS_2_STAND_X = 1.5f; // max offset/distance from DGS to stand
+static const float MAX_DGS_2_STAND_X = 2.0f; // max offset/distance from DGS to stand
 static const float MAX_DGS_2_STAND_Z = 70.0f;
 
 static const float dgs_dist = 20.0f;        // distance from dgs to stand for azimuth computation
