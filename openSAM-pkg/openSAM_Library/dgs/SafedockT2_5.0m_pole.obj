@@ -1498,11 +1498,9 @@ IDX	571
 IDX	572
 
 
-# shift everything by 0.0000 m
 
 ATTR_LOD	0 500
 ANIM_begin
-    ANIM_trans	   0.0000    0.0000    0.0000   0.0000    0.0000    0.0000	0 0	no_ref
     TRIS	0 444
     ATTR_light_level 0.0 1.0 opensam/dgs/vdgs_brightness	7000
     TRIS	444 36
@@ -1915,7 +1913,6 @@ ANIM_end
 
 ATTR_LOD	500 2000
 ANIM_begin
-    ANIM_trans	   0.0000    0.0000    0.0000   0.0000    0.0000    0.0000	0 0	no_ref
     TRIS	0 24
     TRIS	285 18
     TRIS	315 9

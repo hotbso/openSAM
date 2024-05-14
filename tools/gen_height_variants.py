@@ -45,8 +45,12 @@ def gen_variant(master, v_name, height, turn_180 = False):
     for l in lines:
         if magic in l:
             if turn_180 and not l.startswith("#"):
-                vlines.append("    ANIM_rotate 0.0 1.0 0.0 180.0 180.0	180.0 180.0	no_ref\n")
-            l = l.replace(magic, magic_repl)
+                vlines.append("    ANIM_rotate 0 1 0 180 180 0 1 no_ref\n")
+
+            if abs(dh) <= 0.03:
+                continue
+            else:
+               l = l.replace(magic, magic_repl)
 
         vlines.append(l)
 
