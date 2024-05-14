@@ -224,7 +224,12 @@ is_dgs_active()
         global_2_stand(nearest_stand, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
         //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
-        if (fabs(dgs_x_l) > MAX_DGS_2_STAND_X || dgs_z_l < -MAX_DGS_2_STAND_Z)
+        float obj_psi = XPLMGetDataf(draw_object_psi_dr);
+
+        // must be in a box +- MAX_DGS_2_STAND_X, MAX_DGS_2_STAND_Z
+        // and reasonably aligned with stand (or for SAM1 anti aligned)
+        if (fabs(dgs_x_l) > MAX_DGS_2_STAND_X || dgs_z_l < -MAX_DGS_2_STAND_Z
+            || BETWEEN(fabs(RA(nearest_stand->hdgt - obj_psi)), 10.0f, 170.0f))
             return 0;
 
         // match, associate dgs to stand
