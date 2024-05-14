@@ -20,15 +20,18 @@ The openSAM plugin defines commands:
 "Undock jetway" -> openSAM/undock_jwy
 "Toggle jetway" -> openSAM/toggle_jwy
 
-The first two comamnds are accessible through the menu as well.
+The first two commands are accessible through the menu as well.
 
-In addition it exports a dataref
-"opensam/jetway/status" with values:
+In addition it exports datarefs:
 
-    0 = no jetway
-    1 = jetway present, available for docking
+"opensam/jetway/number"
+    number of jetways at stand
+
+"opensam/jetway/status"
+    0 = no jetway(s)
+    1 = jetway(s) present, available for docking
     2 = docked
-   -1 = can't dock or jetway is in transit
+   -1 = can't dock or jetway(s) in transit
 
 Customize actions after docking / before undocking
 ==================================================
@@ -49,7 +52,7 @@ That should look familiar to users of AutoDGS.
 
 The problem of a second door
 ============================
-Up to now there is no reliable way to determine the position of a second door. 
+Up to now there is no reliable way to determine the position of a second door.
 Therefore door positions must be maintained in the config file "acf_door_position.txt".
 
 To find the position proceed as follows:

@@ -276,7 +276,11 @@ read_jw_acc(void *ref)
 static int
 jw_status_acc(void *ref)
 {
-    UNUSED(ref);
+    // opensam/jetway/number
+    if (ref == &n_active_jw)
+        return n_active_jw;
+
+    // opensam/jetway/status
     if (0 == n_active_jw)
         return 0;
 
@@ -1028,6 +1032,11 @@ jw_init()
     XPLMRegisterDataAccessor("opensam/jetway/status", xplmType_Int, 0, jw_status_acc,
                                  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, NULL, NULL);
+
+    XPLMRegisterDataAccessor("opensam/jetway/number", xplmType_Int, 0, jw_status_acc,
+                                 NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, NULL, NULL, &n_active_jw, NULL);
+
     reset_jetways();
 
     char fn[sizeof(base_dir) + 100];
