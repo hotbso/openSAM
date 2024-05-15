@@ -42,7 +42,7 @@ static const float GOOD_X = 2.0;            // for mw
 
 static const float REM_Z = 12;      	    // Distance remaining from here on
 
-static const float MAX_DGS_2_STAND_X = 2.0f; // max offset/distance from DGS to stand
+static const float MAX_DGS_2_STAND_X = 3.0f; // max offset/distance from DGS to stand
 static const float MAX_DGS_2_STAND_Z = 70.0f;
 
 static const float dgs_dist = 20.0f;        // distance from dgs to stand for azimuth computation
@@ -231,6 +231,8 @@ is_dgs_active()
         if (fabs(dgs_x_l) > MAX_DGS_2_STAND_X || dgs_z_l < -MAX_DGS_2_STAND_Z
             || BETWEEN(fabs(RA(nearest_stand->hdgt - obj_psi)), 10.0f, 170.0f))
             return 0;
+
+        log_msg("associating DGS: dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
         // match, associate dgs to stand
         nearest_stand->dgs_assoc = 1;
@@ -446,6 +448,12 @@ dgs_init()
     XPLMRegisterDataAccessor("sam/docking/icao", xplmType_IntArray, 0, NULL, NULL,
                                 NULL, NULL, NULL, NULL, read_sam1_icao_acc, NULL,
                                 NULL, NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_ICAO, NULL);
+
+    // some custom VDGS use "sam/docking/status", e.g. Gaya LOWW
+    XPLMRegisterDataAccessor("sam/docking/status", xplmType_Float, 0, NULL,
+                                NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
+
 
     dgs_set_inactive();
     return 1;
