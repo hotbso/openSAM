@@ -690,7 +690,7 @@ dgs_state_machine()
 
         // translate into compatible SAM1 values
         sam1_lateral = -x_dr;
-        sam1_longitudinal = z_dr;
+        sam1_longitudinal = MIN(z_dr, 30.0f);
 
         switch (state) {
             case ENGAGED:
@@ -699,14 +699,17 @@ dgs_state_machine()
                 break;
 
             case GOOD:
-                sam1_status = SAM1_STOP_ZONE;
+            case PARKED:
+                if (sam1_longitudinal < 0.1f)
+                    sam1_status = SAM1_STOP_ZONE;
+                else
+                    sam1_status = SAM1_TRACK;
                 break;
 
             case BAD:
                 sam1_status = SAM1_TRACK;
                 break;
 
-            case PARKED:
             case DONE:
                 sam1_status = SAM1_IDLE;
                 sam1_longitudinal = 0.0;
