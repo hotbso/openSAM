@@ -228,7 +228,8 @@ is_dgs_active()
 
         // must be in a box +- MAX_DGS_2_STAND_X, MAX_DGS_2_STAND_Z
         // and reasonably aligned with stand (or for SAM1 anti aligned)
-        if (fabs(dgs_x_l) > MAX_DGS_2_STAND_X || dgs_z_l < -MAX_DGS_2_STAND_Z
+        if (fabs(dgs_x_l) > MAX_DGS_2_STAND_X
+            || dgs_z_l < -MAX_DGS_2_STAND_Z || dgs_z_l > -5.0f
             || BETWEEN(fabs(RA(nearest_stand->hdgt - obj_psi)), 10.0f, 170.0f))
             return 0;
 
