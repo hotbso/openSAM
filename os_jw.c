@@ -430,9 +430,9 @@ find_dockable_jws()
             ajw->x -= door_info[jw->door].x;
             ajw->z -= door_info[jw->door].z;
 
-            if (ajw->x > 0.0 || BETWEEN(ajw->psi, -160.0f, 20.0f)) { // on the right side or pointing away
-                //log_msg("pointing away: %s, x: %0.2f, psi: %0.1f",
-                //        jw->name, ajw->x, ajw->psi);
+            if (ajw->x > 1.0f || BETWEEN(ajw->psi, -130.0f, 20.0f)) { // on the right side or pointing away
+                log_msg("pointing away: %s, x: %0.2f, ajw->psi: %0.1f",
+                        jw->name, ajw->x, ajw->psi);
                 continue;
             }
 
