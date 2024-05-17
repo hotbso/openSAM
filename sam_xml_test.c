@@ -40,7 +40,8 @@ main(int argc, char **argv) {
     printf("%d sceneries collected\n", n_sceneries);
 
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
-        printf("%s\n%d jetways collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n", sc->name, sc->n_sam_jws,
+        printf("%s: %d jetways, %d stands collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n",
+               sc->name, sc->n_sam_jws, sc->n_stands,
                sc->bb_lat_min, sc->bb_lon_min, sc->bb_lat_max, sc->bb_lon_max);
 
         for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {

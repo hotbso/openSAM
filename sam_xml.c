@@ -171,7 +171,6 @@ read_sam_xml(FILE *f, scenery_t *sc)
 {
     char line[2000];    // can be quite long
 
-    memset(sc, 0, sizeof(scenery_t));
     int max_sam_jws = 0;
 
     while (fgets(line, sizeof(line) - 1, f)) {
@@ -307,6 +306,8 @@ collect_sam_xml(const char *xp_dir)
             }
 
             scenery_t *sc = &sceneries[n_sceneries];
+            memset(sc, 0, sizeof(scenery_t));
+
             int rc = read_sam_xml(f, sc);
             fclose(f);
             if (!rc) {
@@ -325,8 +326,6 @@ collect_sam_xml(const char *xp_dir)
 
             if (sc->name == NULL)
                 sc->name = "unknown";
-
-            n_sceneries++;
 
             // read stands from apt.dat
             fn[0] = '\0';
@@ -350,6 +349,10 @@ collect_sam_xml(const char *xp_dir)
                     return 0;
                 }
             }
+
+            // don't save empty sceneries
+            if (sc->n_sam_jws > 0 || sc->n_stands > 0)
+                n_sceneries++;
         }
 
         fn[0] = '\0';
@@ -397,6 +400,16 @@ collect_sam_xml(const char *xp_dir)
 
             sc->bb_lon_min = MIN(sc->bb_lon_min, jw->bb_lon_min);
             sc->bb_lon_max = MAX(sc->bb_lon_max, jw->bb_lon_max);
+        }
+
+        for (stand_t *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+            float far_skip_dlon = far_skip_dlat / cosf(stand->lat * D2R);
+
+            sc->bb_lat_min = MIN(sc->bb_lat_min, stand->lat - far_skip_dlat);
+            sc->bb_lat_max = MAX(sc->bb_lat_max, stand->lat + far_skip_dlat);
+
+            sc->bb_lon_min = MIN(sc->bb_lon_min, stand->lon - far_skip_dlon);
+            sc->bb_lon_max = MAX(sc->bb_lon_max, stand->lon + far_skip_dlon);
         }
     }
 
