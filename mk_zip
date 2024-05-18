@@ -1,0 +1,3 @@
+#!/bin/bash
+rm -f openSAM.zip
+cd openSAM-pkg && /c/Program\ Files/7-Zip/7z.exe a ../openSAM.zip *
