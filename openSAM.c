@@ -645,6 +645,10 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
             }
         }
 
+        // SAM dgs don't like letters in pos 1-3
+        if (0 == strcmp(acf_icao, "A20N"))
+            strcpy(acf_icao, "A320");
+
         return;
     }
 }
