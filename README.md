@@ -19,3 +19,6 @@ https://pixabay.com/sound-effects/backing-up-beepwav-14889/
 
 ### Contributions by hotbso:
 This is in part a derived work from Autogate so the above mentioned licenses apply accordingly to the components of this project.
+
+### Home on x-plane.org
+https://forums.x-plane.org/index.php?/files/file/90865-opensam-an-open-source-replacement-for-sam-on-xp12/
