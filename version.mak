@@ -1,1 +1,1 @@
-VERSION=1.06-dev-1
+VERSION=1.06
