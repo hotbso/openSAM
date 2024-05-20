@@ -74,7 +74,7 @@
  *
  */
 
-
+static char xp_dir[512];
 static char pref_path[512];
 static const char *psep;
 static XPLMMenuID seasons_menu;
@@ -92,7 +92,7 @@ XPLMDataRef date_day_dr,
 
     draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
     beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr,
-    acf_door_x_dr, acf_door_y_dr, acf_door_z_dr,
+    acf_door_x_dr, acf_door_y_dr, acf_door_z_dr, acf_livery_path,
     gear_fnrml_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
@@ -424,7 +424,6 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     // Always use Unix-native paths on the Mac!
     XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
 
-    char xp_dir[512];
 	XPLMGetSystemPath(xp_dir);
     psep = XPLMGetDirectorySeparator();
 
@@ -475,6 +474,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     acf_door_x_dr = XPLMFindDataRef("sim/aircraft/view/acf_door_x");
     acf_door_y_dr = XPLMFindDataRef("sim/aircraft/view/acf_door_y");
     acf_door_z_dr = XPLMFindDataRef("sim/aircraft/view/acf_door_z");
+    acf_livery_path = XPLMFindDataRef("sim/aircraft/view/acf_livery_path");
 
     total_running_time_sec_dr = XPLMFindDataRef("sim/time/total_running_time_sec");
     vr_enabled_dr = XPLMFindDataRef("sim/graphics/VR/enabled");
@@ -650,5 +650,40 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
             strcpy(acf_icao, "A320");
 
         return;
+    }
+
+    // livery loaded
+    if (in_msg == XPLM_MSG_LIVERY_LOADED && in_param == 0) {
+
+        // check ToLiss A321 door config
+        if (0 != strcmp(acf_icao, "A321"))
+            return;
+
+        log_msg("A321 detected, checking door config");
+
+        char path[512];
+        strcpy(path, xp_dir);
+        int len = strlen(path);
+        int n = XPLMGetDatab(acf_livery_path, path + len, 0, sizeof(path) - len - 50);
+        path[len + n] = '\0';
+        strcat(path, "livery.tlscfg");
+        log_msg("tlscfg path: '%s'", path);
+
+        FILE *f = fopen(path, "r");
+        if (f) {
+            char line[150];
+            line[sizeof(line) - 1] = '\0';
+            while (fgets(line, sizeof(line) - 1, f)) {
+                if (NULL != strstr(line, "exit_Configuration")) {
+                    if (NULL == strstr(line, "CLASSIC")) {
+                        log_msg("door != CLASSIC, setting n_door to 1");
+                        n_door = 1;
+                    }
+                    break;
+                }
+            }
+
+            fclose(f);
+        }
     }
 }

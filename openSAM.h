@@ -23,6 +23,7 @@
 #include <math.h>
 
 #define XPLM200
+#define XPLM210
 #define XPLM300
 #include "XPLMPlugin.h"
 #include "XPLMDataAccess.h"
@@ -86,7 +87,7 @@ extern XPLMDataRef date_day_dr,
 
     draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
     beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr,
-    acf_door_x_dr, acf_door_y_dr, acf_door_z_dr,
+    acf_door_x_dr, acf_door_y_dr, acf_door_z_dr, acf_livery_path,
     gear_fnrml_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
