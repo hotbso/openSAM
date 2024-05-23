@@ -13,7 +13,7 @@ OBJECTS=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
 CC=gcc
 LD=gcc
 
-CFLAGS+=-DVERSION=\"$(VERSION)\"  -mdll -g0 -O2 -s -Wextra -Wall -fdiagnostics-color -Wno-format-overflow \
+CFLAGS+=-DVERSION=\"$(VERSION)\"  -mdll -g0 -O2 -s -Wextra -Wall -fdiagnostics-color -Wno-format-overflow -Wno-format-truncation \
     -DWINDOWS -DWIN32   -DIBM=1 \
 	-I$(SDK)/CHeaders/XPLM
 
@@ -32,7 +32,7 @@ $(TARGET): $(OBJECTS)
 	cp -p $(TARGET) "$(PLUGDIR)/win_x64/."
 
 clean:
-	rm $(OBJECTS) $(TARGET)
+	rm $(OBJECTS) $(TARGET) sam_xml_test.exe
 
 sam_xml_test.exe: sam_xml_test.c sam_xml.c log_msg.c $(HEADERS)
 	$(CC) -Wall -fdiagnostics-color -Wno-format-overflow -I$(SDK)/CHeaders/XPLM -DIBM=1 \
