@@ -683,7 +683,7 @@ dgs_state_machine()
             for (int i = 0; i < 4; i++)
                 drefs[DGS_DR_ICAO_0 + i] = acf_icao[i];
 
-            if (isalpha(acf_icao[3]))
+            if (isalpha((uint8_t)acf_icao[3]))
                 drefs[DGS_DR_ICAO_3] += 0.98;    // bug in VDGS
         }
 

@@ -588,7 +588,7 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         acf_icao[4] = '\0';
 
         for (int i=0; i < 4; i++)
-            acf_icao[i] = (isupper(acf_icao[i]) || isdigit(acf_icao[i])) ? acf_icao[i] : ' ';
+            acf_icao[i] = (isupper((uint8_t)acf_icao[i]) || isdigit((uint8_t)acf_icao[i])) ? acf_icao[i] : ' ';
 
         plane_cg_y = F2M * XPLMGetDataf(acf_cg_y_dr);
         plane_cg_z = F2M * XPLMGetDataf(acf_cg_z_dr);
