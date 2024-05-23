@@ -10,8 +10,8 @@ SOURCES=openSAM.c os_dgs.c os_jw.c sam_xml.c log_msg.c read_wav.c
 SDK=../SDK
 OBJECTS=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
 
-CC=x86_64-w64-mingw32-gcc
-LD=x86_64-w64-mingw32-gcc
+CC=gcc
+LD=gcc
 
 CFLAGS+=-DVERSION=\"$(VERSION)\"  -mdll -g0 -O2 -s -Wextra -Wall -fdiagnostics-color -Wno-format-overflow \
     -DWINDOWS -DWIN32   -DIBM=1 \
