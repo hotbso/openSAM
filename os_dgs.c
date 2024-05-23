@@ -216,31 +216,23 @@ is_dgs_active()
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
 
-    if (nearest_stand->dgs_assoc) {
-        if (nearest_stand->dgs_x != obj_x || nearest_stand->dgs_z != obj_z)
-            return 0;
-    } else {
-        float dgs_x_l, dgs_z_l;
-        global_2_stand(nearest_stand, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
-        //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
+    float dgs_x_l, dgs_z_l;
+    global_2_stand(nearest_stand, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
+    //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
-        float obj_psi = XPLMGetDataf(draw_object_psi_dr);
+    float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
-        // must be in a box +- MAX_DGS_2_STAND_X, MAX_DGS_2_STAND_Z
-        // and reasonably aligned with stand (or for SAM1 anti aligned)
-        if (fabs(dgs_x_l) > MAX_DGS_2_STAND_X
-            || dgs_z_l < -MAX_DGS_2_STAND_Z || dgs_z_l > -5.0f
-            || BETWEEN(fabs(RA(nearest_stand->hdgt - obj_psi)), 10.0f, 170.0f))
-            return 0;
+    // must be in a box +- MAX_DGS_2_STAND_X, MAX_DGS_2_STAND_Z
+    // and reasonably aligned with stand (or for SAM1 anti aligned)
+    if (fabs(dgs_x_l) > MAX_DGS_2_STAND_X
+        || dgs_z_l < -MAX_DGS_2_STAND_Z || dgs_z_l > -5.0f
+        || BETWEEN(fabs(RA(nearest_stand->hdgt - obj_psi)), 10.0f, 170.0f))
+        return 0;
 
-        log_msg("associating DGS: dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
+    //log_msg("associating DGS: dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
-        // match, associate dgs to stand
-        nearest_stand->dgs_assoc = 1;
-        nearest_stand->dgs_x = obj_x;
-        nearest_stand->dgs_z = obj_z;
-    }
-
+    // associate dgs to stand
+    nearest_stand->dgs_assoc = 1;
     return 1;
 }
 
