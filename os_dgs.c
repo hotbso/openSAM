@@ -165,6 +165,9 @@ dgs_set_active(void)
     log_msg("dgs set to ACTIVE");
 }
 
+static float last_dgs_x = -1E10f;
+static float last_dgs_z;
+
 // xform lat,lon into the active global frame
 static void
 xform_to_ref_frame(stand_t *stand)
@@ -174,6 +177,7 @@ xform_to_ref_frame(stand_t *stand)
                          &stand->stand_x, &stand->stand_y, &stand->stand_z);
         stand->ref_gen = ref_gen;
         stand->dgs_assoc = 0;    // association is lost
+        last_dgs_x = -1E10f;
     }
 }
 
@@ -189,8 +193,7 @@ global_2_stand(const stand_t * stand, float x, float z, float *x_l, float *z_l)
 }
 
 //
-// check whether dgs obj is the active one ...
-//   ... and on the fly make a match the active one
+// check whether dgs obj is the (an) active one
 //
 static inline int
 is_dgs_active()
@@ -198,23 +201,16 @@ is_dgs_active()
     if (NULL == nearest_stand)
         return 0;
 
-    stat_acc_called++;
-
-    // check for shift of reference frame
-    float lat_r = XPLMGetDataf(lat_ref_dr);
-    float lon_r = XPLMGetDataf(lon_ref_dr);
-
-    if (lat_r != lat_ref || lon_r != lon_ref) {
-        lat_ref = lat_r;
-        lon_ref = lon_r;
-        ref_gen++;
-        log_msg("reference frame shift");
-    }
-
-    xform_to_ref_frame(nearest_stand);
+    stat_dgs_acc++;
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
+
+    // if it's the same as last time fast exit
+    if (obj_x == last_dgs_x && obj_z == last_dgs_z) {
+        stat_dgs_acc_last++;
+        return 1;
+    }
 
     float dgs_x_l, dgs_z_l;
     global_2_stand(nearest_stand, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
@@ -231,8 +227,12 @@ is_dgs_active()
 
     //log_msg("associating DGS: dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
-    // associate dgs to stand
+    // we found one
     nearest_stand->dgs_assoc = 1;
+
+    // save for optimization
+    last_dgs_x = obj_x;
+    last_dgs_z = obj_z;
     return 1;
 }
 

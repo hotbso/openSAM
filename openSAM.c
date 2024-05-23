@@ -123,8 +123,8 @@ door_info_t door_info[MAX_DOOR];
 
 char acf_icao[5];
 
-unsigned long long int stat_sc_far_skip, stat_far_skip, stat_near_skip,
-    stat_acc_called, stat_jw_match;
+uint64_t stat_sc_far_skip, stat_far_skip, stat_near_skip,
+    stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last;
 
 int dock_requested, undock_requested, toggle_requested;
 
@@ -557,6 +557,8 @@ XPluginDisable(void)
     log_msg("scenery far skip: %llu", stat_sc_far_skip);
     log_msg("far skip:         %llu", stat_far_skip);
     log_msg("near skip:        %llu", stat_near_skip);
+    log_msg("dgs acc called:   %llu", stat_dgs_acc);
+    log_msg("last_dgs acc:     %llu", stat_dgs_acc_last);
 }
 
 

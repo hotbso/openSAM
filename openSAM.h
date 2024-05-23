@@ -92,8 +92,8 @@ extern XPLMDataRef date_day_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
 
-extern unsigned long long int stat_sc_far_skip, stat_far_skip, stat_near_skip,
-    stat_acc_called, stat_jw_match;
+extern uint64_t stat_sc_far_skip, stat_far_skip, stat_near_skip,
+    stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last;
 
 extern float now;           // current timestamp
 extern int on_ground;
