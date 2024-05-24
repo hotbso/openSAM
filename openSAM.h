@@ -25,6 +25,9 @@
 #define XPLM200
 #define XPLM210
 #define XPLM300
+#define XPLM301
+#define XPLM400
+
 #include "XPLMPlugin.h"
 #include "XPLMDataAccess.h"
 #include "XPLMUtilities.h"
@@ -65,7 +68,7 @@ typedef struct door_info_ {
     float x, y, z;
 } door_info_t;
 
-#define MAX_DOOR 2
+#define MAX_DOOR 3
 
 extern int n_door;
 extern door_info_t door_info[MAX_DOOR];
@@ -103,12 +106,15 @@ extern float lat_ref, lon_ref;
 extern unsigned int ref_gen;
 
 extern int dock_requested, undock_requested, toggle_requested;
+extern int auto_select_jws;
 
 // functions
 extern void log_msg(const char *fmt, ...);
 extern int collect_sam_xml(const char *xp_dir);
 extern int check_beacon(void);
 extern int check_teleportation(void);
+
+extern void toggle_ui(void);
 
 /* helpers */
 #define MAX(a,b) \

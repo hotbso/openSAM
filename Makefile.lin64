@@ -6,11 +6,11 @@ OBJDIR=./OBJ_lx
 
 TARGET=$(OBJDIR)/openSAM.xpl
 HEADERS=$(wildcard *.h)
-SOURCES=openSAM.c os_dgs.c os_jw.c sam_xml.c log_msg.c read_wav.c
+SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c sam_xml.c log_msg.c read_wav.c
 OBJECTS=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
 
 CFLAGS=-DVERSION=\"$(VERSION)\" \
-    -Wall -Wextra -I$(SDK)/CHeaders/XPLM  -fPIC -DLIN=1 -fno-stack-protector
+    -Wall -Wextra -I$(SDK)/CHeaders/XPLM  -I$(SDK)/CHeaders/Widgets -fPIC -DLIN=1 -fno-stack-protector
 
 LNFLAGS=-shared -rdynamic -nodefaultlibs -undefined_warning
 LIBS=

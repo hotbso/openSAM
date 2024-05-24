@@ -105,6 +105,8 @@ float lat_ref = -1000, lon_ref = -1000;
  * init with 1 so jetways never seen by the accessor won't be considered in find_dockable_jws() */
 unsigned int ref_gen = 1;
 
+int auto_select_jws;
+
 float parked_x, parked_y;
 int parked_ngen;
 
@@ -137,10 +139,10 @@ save_pref()
 
     // encode southern hemisphere with negative season
     int s = nh ? season : -season;
-    fprintf(f, "%d,%d", auto_season, s);
+    fprintf(f, "%d,%d,%d", auto_season, s, auto_select_jws);
     fclose(f);
 
-    log_msg("Saving pref auto_season: %d, season: %d", auto_season, s);
+    log_msg("Saving pref auto_season: %d, season: %d, auto_select_jws: %d", auto_season, s, auto_select_jws);
 }
 
 static void
@@ -151,14 +153,13 @@ load_pref()
         return;
 
     nh = 1;
-    if (2 == fscanf(f, "%i,%i", &auto_season, &season))
-        log_msg("From pref: auto_season: %d, seasons: %d",
-                auto_season,  season);
-    else {
-        auto_season = 0;
-        season = 0;
-        log_msg("Error reading pref");
-    }
+    auto_season = 0;
+    season = 0;
+    auto_select_jws = 1;
+
+    fscanf(f, "%i,%i,%i", &auto_season, &season, &auto_select_jws);
+    log_msg("From pref: auto_season: %d, seasons: %d, auto_select_jws: %d",
+            auto_season,  season, auto_select_jws);
 
     fclose(f);
 
@@ -238,6 +239,19 @@ cmd_activate_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
 
     log_msg("cmd manually_activate");
     dgs_set_active();
+    return 0;
+}
+
+static int
+cmd_toggle_ui_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
+{
+    UNUSED(cmdr);
+    UNUSED(ref);
+    if (xplm_CommandBegin != phase)
+        return 0;
+
+    log_msg("cmd toggle_ui");
+    toggle_ui();
     return 0;
 }
 
@@ -423,6 +437,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     // Always use Unix-native paths on the Mac!
     XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
+    XPLMEnableFeature("XPLM_USE_NATIVE_WIDGET_WINDOWS", 1);
 
 	XPLMGetSystemPath(xp_dir);
     psep = XPLMGetDirectorySeparator();
@@ -498,6 +513,9 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Manually activate searching for DGS");
     XPLMRegisterCommandHandler(activate_cmdr, cmd_activate_cb, 0, NULL);
 
+    XPLMCommandRef toggle_ui_cmdr = XPLMCreateCommand("openSAM/toggle_ui", "Toggle UI");
+    XPLMRegisterCommandHandler(toggle_ui_cmdr, cmd_toggle_ui_cb, 0, NULL);
+
     // build menues
     XPLMMenuID menu = XPLMFindPluginsMenu();
     XPLMMenuID os_menu = XPLMCreateMenu("openSAM", menu,
@@ -506,6 +524,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     // openSAM
     XPLMAppendMenuItemWithCommand(os_menu, "Dock Jetway", dock_cmdr);
     XPLMAppendMenuItemWithCommand(os_menu, "Undock Jetway", undock_cmdr);
+    XPLMAppendMenuItemWithCommand(os_menu, "Toggle UI", toggle_ui_cmdr);
 
     XPLMAppendMenuSeparator(os_menu);
 

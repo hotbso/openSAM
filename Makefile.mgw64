@@ -6,7 +6,7 @@ include version.mak
 
 TARGET=$(OBJDIR)/openSAM.xpl
 HEADERS=$(wildcard *.h)
-SOURCES=openSAM.c os_dgs.c os_jw.c sam_xml.c log_msg.c read_wav.c
+SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c sam_xml.c log_msg.c read_wav.c
 SDK=../SDK
 OBJECTS=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
 
@@ -15,10 +15,10 @@ LD=gcc
 
 CFLAGS+=-DVERSION=\"$(VERSION)\"  -mdll -g0 -O2 -s -Wextra -Wall -fdiagnostics-color -Wno-format-overflow -Wno-format-truncation \
     -DWINDOWS -DWIN32   -DIBM=1 \
-	-I$(SDK)/CHeaders/XPLM
+	-I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets
 
 LDFLAGS=-shared -static-libgcc -static -lpthread
-LIBS=-L$(SDK)/Libraries/Win -lXPLM_64
+LIBS=-L$(SDK)/Libraries/Win -lXPLM_64 -lXPWidgets_64
 
 all: $(TARGET) sam_xml_test.exe
 

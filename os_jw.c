@@ -20,7 +20,7 @@
 
 */
 
-#include <stddef.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -28,9 +28,6 @@
 
 #include "openSAM.h"
 #include "os_jw.h"
-
-#define XPLM400
-#include "XPLMSound.h"
 
 static const float JW_DRIVE_SPEED = 1.0;    // m/s
 static const float JW_TURN_SPEED = 10.0;    // °/s
@@ -71,45 +68,11 @@ static const char *dr_name_jw[] = {
     "warnlight"
 };
 
-typedef enum ajw_status_e {
-    AJW_PARKED,
-    AJW_TO_AP, AJW_AT_AP, AJW_TO_DOOR, AJW_DOCKED,  // sequence for docking
+int n_active_jw;
+active_jw_t active_jw[MAX_DOOR];
 
-    // AJW_TO_AP,                                   // sequence for undocking
-    AJW_TO_PARK
-} ajw_status_t;
-
-typedef struct active_jw_ {
-    sam_jw_t *jw;
-    ajw_status_t state;
-
-    // in door local coordinates
-    float x, y, z, psi;
-    float dist;         // distance to door
-
-    // target cabin position with corresponding dref values
-    float tgt_x, tgt_rot1, tgt_rot2, tgt_rot3, tgt_extent;
-    float ap_x;      // alignment point abeam door
-    float parked_x, parked_z;
-
-    double cabin_x, cabin_z;
-
-    int wait_wb_rot;    // waiting for wheel base rotation
-    float wb_rot;       // to this angle
-
-    float last_step_ts;
-    float timeout;      // so we don't get stuck
-
-    FMOD_CHANNEL *alert_chn;
-} active_jw_t;
-
-static int n_active_jw;
-static active_jw_t active_jw[MAX_DOOR];
-
-#define NEAR_JW_LIMIT 2 // max # of jetways we consider for docking
-#define MAX_NEAREST 10  // max # jetways / door we consider as nearest
-static active_jw_t nearest_jw[MAX_DOOR][MAX_NEAREST];
-static int n_nearest[MAX_DOOR];
+active_jw_t nearest_jw[MAX_DOOR][MAX_NEAREST];
+int n_nearest[MAX_DOOR];
 
 static sound_t alert;
 
@@ -540,6 +503,7 @@ select_jws()
 {
     if (n_door == 0)
         return 0;
+
     // from door 0 to n assign nearest jw
     for (int i = 0; i < n_door; i++)
         if (n_nearest[i] > 0)
@@ -988,10 +952,12 @@ jw_state_machine()
             break;
 
         case SELECT_JWS:
-            if (select_jws())
+            if (auto_select_jws)
+                select_jws();
+
+            // or wait for GUI selection
+            if (n_active_jw)
                 new_state = CAN_DOCK;
-            else
-                new_state = CANT_DOCK;
             break;
 
         case CAN_DOCK:
@@ -1056,8 +1022,10 @@ jw_state_machine()
 
             if (undock_requested || toggle_requested) {
                 log_msg("undocking requested");
-                for (int i = 0; i < n_active_jw; i++) {
+                for (int i = 0; i < n_door; i++) {
                     active_jw_t *ajw = &active_jw[i];
+                    if (NULL == ajw->jw)
+                        continue;
                     ajw->state = AJW_TO_AP;
                     ajw->last_step_ts = now;
                     ajw->timeout = now + JW_ANIM_TIMEOUT;
@@ -1075,8 +1043,12 @@ jw_state_machine()
 
         case UNDOCKING:
             n_done = 0;
-            for (int i = 0; i < n_active_jw; i++)
+            for (int i = 0; i < n_door; i++) {
+                active_jw_t *ajw = &active_jw[i];
+                if (NULL == ajw->jw)
+                    continue;
                 n_done += undock_drive(&active_jw[i]);
+            }
 
             if (n_done == n_active_jw)
                new_state = IDLE;

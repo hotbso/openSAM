@@ -10,7 +10,7 @@ OBJDIR=./OBJ_osx
 
 TARGET=$(OBJDIR)/openSAM.xpl
 HEADERS=$(wildcard *.h)
-SOURCES=openSAM.c os_dgs.c os_jw.c sam_xml.c log_msg.c read_wav.c
+SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c sam_xml.c log_msg.c read_wav.c
 OBJECTS_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o_arm))
 OBJECTS_x86=$(OBJECTS_arm:.o_arm=.o_x86)
 
@@ -19,12 +19,12 @@ CCa=oa64-clang -mmacosx-version-min=10.10
 
 DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -DNDEBUG
 
-CFLAGS+=-O2 -Wall -I$(SDK)/CHeaders/XPLM -DVERSION=\"$(VERSION)\" $(DEFS)
+CFLAGS+=-O2 -Wall -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets -DVERSION=\"$(VERSION)\" $(DEFS)
 
 LNFLAGS+=-dynamiclib -shared -rdynamic -fvisibility=hidden -Wl,-exported_symbols_list -Wl,linkscript.mac
 
 # https://pewpewthespells.com/blog/static_and_dynamic_libraries.html
-LIBS+= -F $(SDK)/Libraries/Mac -framework XPLM
+LIBS+= -F $(SDK)/Libraries/Mac -framework XPLM -framework XPWidgets
 
 # ships with macOS
 LIBS+=-liconv
