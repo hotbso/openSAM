@@ -47,6 +47,7 @@ static const char * const state_str[] = {
     "DOCKING", "DOCKED", "UNDOCKING", "CANT_DOCK" };
 
 static state_t state = IDLE;
+static state_t prev_state = IDLE;
 
 // keep in sync!
 typedef enum dr_code_e {
@@ -952,8 +953,21 @@ jw_state_machine()
             break;
 
         case SELECT_JWS:
-            if (auto_select_jws)
+            if (beacon_on) {
+                log_msg("SELECT_JWS and beacon goes on");
+                new_state = IDLE;
+                break;
+            }
+
+            if (auto_select_jws) {
                 select_jws();
+                break;
+            }
+
+            if (prev_state != state) {
+                ui_unlocked = 1;    // allow jw selection in the ui
+                update_ui(1);
+            }
 
             // or wait for GUI selection
             if (n_active_jw)
@@ -1064,9 +1078,21 @@ jw_state_machine()
 
     dock_requested = undock_requested = toggle_requested = 0;
 
+    prev_state = state;
+
     if (new_state != state) {
         log_msg("jw state transition %s -> %s, beacon: %d", state_str[state], state_str[new_state], beacon_on);
         state = new_state;
+
+        // from anywhere to idle nullifies all selections
+        if (state == IDLE) {
+            n_active_jw = 0;
+            memset(active_jw, 0, sizeof(active_jw));
+            memset(n_nearest, 0, sizeof(n_nearest));
+        }
+
+        ui_unlocked = 0;
+        update_ui(1);
         return -1;  // see you on next frame
     }
 

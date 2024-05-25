@@ -112,5 +112,6 @@ extern float jw_state_machine();
 extern void read_wav(const char *fname, sound_t *sound);
 
 // from os_ui.c
+extern int ui_unlocked; // the ui is unlocked for jw_selection
 extern void update_ui(int only_if_visible);
 

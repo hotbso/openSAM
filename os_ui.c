@@ -40,6 +40,8 @@ static widget_ctx_t ui_widget_ctx;
 
 static XPWidgetID ui_widget, jw_btn[MAX_DOOR][NEAR_JW_LIMIT], ok_btn, auto_btn;
 
+int ui_unlocked; // the ui is unlocked for jw_selection
+
 static void
 show_widget(widget_ctx_t *ctx)
 {
@@ -199,7 +201,7 @@ update_ui(int only_if_visible)
             XPHideWidget(jw_btn[i][j]);
 
     // if manual selection set label and unhide
-    if (!auto_select_jws) {
+    if (ui_unlocked && !auto_select_jws) {
         for (int i = 0; i < n_door; i++)
             for (int j = 0; j < n_nearest[i]; j++) {
                 active_jw_t *njw = &nearest_jw[i][j];
