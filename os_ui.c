@@ -277,7 +277,7 @@ create_ui()
              XPWidgetID btn = jw_btn[i][j] =
                 XPCreateWidget(left1, top, left1 + 50, top - 20, 1, "Jw", 0, ui_widget, xpWidgetClass_Button);
 
-            XPSetWidgetProperty(btn, xpProperty_ButtonBehavior, xpButtonBehaviorRadioButton);
+            XPSetWidgetProperty(btn, xpProperty_ButtonBehavior, xpButtonBehaviorCheckBox);
             XPAddWidgetCallback(btn, ui_widget_cb);
 
             left1 += col_spacing;
