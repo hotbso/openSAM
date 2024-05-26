@@ -108,6 +108,11 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
     if (msg == xpMsg_PushButtonPressed && widget_id == ok_btn) {
         log_msg("OK pressed");
 
+        if (! ui_unlocked) {    // if locked it's just a close
+            close_ui();
+            return 1;
+        }
+
         n_active_jw = 0;
 
         for (int i = 0; i < n_door; i++) {
