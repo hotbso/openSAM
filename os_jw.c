@@ -262,6 +262,35 @@ jw_status_acc(void *ref)
     return -1;
 }
 
+// opensam/jetway/door/status array by door
+//  0 = not docked
+//  1 = docked
+//
+static int
+jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n)
+{
+    UNUSED(ref);
+
+    if (values == NULL)
+        return MAX_DOOR;
+
+    if (n <= 0 || ofs < 0 || ofs >= MAX_DOOR)
+        return 0;
+
+    n = MIN(n, MAX_DOOR - ofs);
+
+    for (int i = 0; i < n; i++) {
+        active_jw_t *ajw = &active_jw[ofs + i];
+        sam_jw_t *jw = ajw->jw;
+        if (jw && ajw->state == AJW_DOCKED)
+            values[i] = 1;
+        else
+            values[i] = 0;
+    }
+
+    return n;
+}
+
 static void
 alert_complete(void *ref, FMOD_RESULT status)
 {
@@ -1123,6 +1152,10 @@ jw_init()
     XPLMRegisterDataAccessor("opensam/jetway/number", xplmType_Int, 0, jw_status_acc,
                                  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, &n_active_jw, NULL);
+
+    XPLMRegisterDataAccessor("opensam/jetway/door/status", xplmType_IntArray, 0, NULL, NULL,
+                                NULL, NULL, NULL, NULL, jw_door_status_acc, NULL,
+                                NULL, NULL, NULL, NULL, NULL, NULL);
 
     reset_jetways();
 

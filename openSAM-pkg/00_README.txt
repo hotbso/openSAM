@@ -33,6 +33,11 @@ In addition it exports datarefs:
     2 = docked
    -1 = can't dock or jetway(s) in transit
 
+"opensam/jetway/door/status" array per door
+    0 = no jetway docked at this door
+    1 = jetway docked at this door
+
+
 Customize actions after docking / before undocking
 ==================================================
 openSAM calls optional commands "openSAM/post_dock" and "openSAM/pre_undock".
