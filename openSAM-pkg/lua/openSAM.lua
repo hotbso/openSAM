@@ -25,11 +25,13 @@ function openSAM_post_dock()
 
     -- for ToLiss open door 1 + ext power on + chocks
     if PLANE_ICAO == "A319" or PLANE_ICAO == "A20N" or PLANE_ICAO == "A321" or PLANE_ICAO == "A346" then
-        if get("opensam/jetway/door/status", 0) then
+        if 1 == get("opensam/jetway/door/status", 0) then
+            logMsg("door 1: docked")
             set_array("AirbusFBW/PaxDoorModeArray", 0, 2)
         end
 
-        if get("opensam/jetway/door/status", 2) then
+        if 1 == get("opensam/jetway/door/status", 1) then
+            logMsg("door 2: docked")
             set_array("AirbusFBW/PaxDoorModeArray", 2, 2)
         end
 
