@@ -534,22 +534,29 @@ select_jws()
     if (n_door == 0)
         return;
 
-    // from door 0 to n assign nearest jw
-    for (int i = 0; i < n_door; i++)
-        if (n_nearest[i] > 0)
-            active_jw[i] = nearest_jw[i][0];
+    n_active_jw = 0;
 
-    // from door n down to 0 remove jetway if it's already assigned to a lower door #
-    for (int i = n_door - 1; i > 0; i--)
-        for (int j = 0; j < i; j++)
-            if (active_jw[i].jw == active_jw[j].jw)
-                active_jw[i].jw = NULL;
-
+    // from door 0 to n assign nearest jw that is not already assigned
     for (int i = 0; i < n_door; i++) {
-        sam_jw_t *jw = active_jw[i].jw;
-        if (jw) {
-            log_msg("active jetway for door %d: %s", i, jw->name);
-            n_active_jw++;
+        for (int j = 0; j < n_nearest[i]; j++) {
+            active_jw_t *candidate = &nearest_jw[i][j];
+
+            // log_msg("select_jw: door: %d, check: %s", i, candidate->jw->name);
+            // check whether it is already assigned
+            for (int k = 0; k < i; k++) {
+                if (active_jw[k].jw == candidate->jw) {
+                    candidate = NULL;
+                    break;
+                }
+            }
+
+            // candidate is free -> assign to door and exit to door loop
+            if (candidate) {
+                active_jw[i] =*candidate;
+                log_msg("active jetway for door %d: %s", i, candidate->jw->name);
+                n_active_jw++;
+                break;
+            }
         }
     }
 }
