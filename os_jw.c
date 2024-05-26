@@ -499,18 +499,18 @@ find_nearest_jws()
 }
 
 // auto select active jetways
-static int
+static void
 select_jws()
 {
     if (n_door == 0)
-        return 0;
+        return;
 
     // from door 0 to n assign nearest jw
     for (int i = 0; i < n_door; i++)
         if (n_nearest[i] > 0)
             active_jw[i] = nearest_jw[i][0];
 
-    // from door n down to 0 remove jetway if it's already assigned to alower door
+    // from door n down to 0 remove jetway if it's already assigned to a lower door #
     for (int i = n_door - 1; i > 0; i--)
         for (int j = 0; j < i; j++)
             if (active_jw[i].jw == active_jw[j].jw)
@@ -523,8 +523,6 @@ select_jws()
             n_active_jw++;
         }
     }
-
-    return n_active_jw;
 }
 
 static int
@@ -961,10 +959,7 @@ jw_state_machine()
 
             if (auto_select_jws) {
                 select_jws();
-                break;
-            }
-
-            if (prev_state != state) {
+            } else if (prev_state != state) {
                 ui_unlocked = 1;    // allow jw selection in the ui
                 update_ui(1);
             }
