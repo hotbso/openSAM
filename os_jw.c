@@ -28,6 +28,7 @@
 
 #include "openSAM.h"
 #include "os_jw.h"
+#include "os_jw_impl.h"
 
 static const float JW_DRIVE_SPEED = 1.0;    // m/s
 static const float JW_TURN_SPEED = 10.0;    // °/s

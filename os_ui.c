@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include "openSAM.h"
 #include "os_jw.h"
+#include "os_jw_impl.h"
 
 #include "XPLMDisplay.h"
 #include "XPWidgets.h"

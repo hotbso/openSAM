@@ -26,6 +26,7 @@
 
 #include "openSAM.h"
 #include "os_jw.h"
+#include "os_jw_impl.h"
 
 typedef struct WAV_FORMAT {
 	short		format;
