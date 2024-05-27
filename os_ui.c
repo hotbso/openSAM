@@ -39,7 +39,8 @@ typedef struct _widget_ctx
 
 static widget_ctx_t ui_widget_ctx;
 
-static XPWidgetID ui_widget, jw_btn[MAX_DOOR][NEAR_JW_LIMIT], confirm_btn, auto_btn;
+static XPWidgetID ui_widget, jw_btn[MAX_DOOR][NEAR_JW_LIMIT],
+    auto_btn, dock_btn, undock_btn;
 
 int ui_unlocked; // the ui is unlocked for jw_selection
 
@@ -106,27 +107,31 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
         return 1;
     }
 
-    if (msg == xpMsg_PushButtonPressed && widget_id == confirm_btn) {
-        log_msg("Confirm pressed");
+    if (msg == xpMsg_PushButtonPressed && widget_id == dock_btn) {
+        log_msg("Dock pressed");
+        if (! auto_select_jws && ui_unlocked) {
+            n_active_jw = 0;
 
-        if (! ui_unlocked) {    // if locked it's just a close
-            close_ui();
-            return 1;
-        }
-
-        n_active_jw = 0;
-
-        for (int i = 0; i < n_door; i++) {
-            for (int j = 0; j < n_nearest[i]; j++) {
-                int state = (uint64_t)XPGetWidgetProperty(jw_btn[i][j], xpProperty_ButtonState, NULL);
-                if (state) {
-                    log_msg("active jw for door %d is %s", i, nearest_jw[i][j].jw->name);
-                    active_jw[i] = nearest_jw[i][j];
-                    n_active_jw++;
+            for (int i = 0; i < n_door; i++) {
+                for (int j = 0; j < n_nearest[i]; j++) {
+                    int state = (uint64_t)XPGetWidgetProperty(jw_btn[i][j], xpProperty_ButtonState, NULL);
+                    if (state) {
+                        log_msg("active jw for door %d is %s", i, nearest_jw[i][j].jw->name);
+                        active_jw[i] = nearest_jw[i][j];
+                        n_active_jw++;
+                    }
                 }
             }
         }
 
+        XPLMCommandOnce(dock_cmdr);
+        close_ui();
+        return 1;
+    }
+
+    if (msg == xpMsg_PushButtonPressed && widget_id == undock_btn) {
+        log_msg("Undock pressed");
+        XPLMCommandOnce(undock_cmdr);
         close_ui();
         return 1;
     }
@@ -287,11 +292,18 @@ create_ui()
     }
 
     top -= 20;
-    left1 = left + 80;
-    confirm_btn = XPCreateWidget(left1, top, left1 + 40, top - 20, 1, "Confirm", 0, ui_widget, xpWidgetClass_Button);
-    XPSetWidgetProperty(confirm_btn, xpProperty_ButtonType, xpPushButton);
-    XPSetWidgetProperty(confirm_btn, xpProperty_ButtonBehavior, xpButtonBehaviorPushButton);
-    XPAddWidgetCallback(confirm_btn, ui_widget_cb);
+    left1 = left + margin;
+    dock_btn = XPCreateWidget(left1, top, left1 + 50, top - 20, 1, "Dock", 0, ui_widget, xpWidgetClass_Button);
+    XPSetWidgetProperty(dock_btn, xpProperty_ButtonType, xpPushButton);
+    XPSetWidgetProperty(dock_btn, xpProperty_ButtonBehavior, xpButtonBehaviorPushButton);
+    XPAddWidgetCallback(dock_btn, ui_widget_cb);
+
+    left1 = left + 2 * margin + 50;
+    undock_btn = XPCreateWidget(left1, top, left1 + 50, top - 20, 1, "Undock", 0, ui_widget, xpWidgetClass_Button);
+    XPSetWidgetProperty(undock_btn, xpProperty_ButtonType, xpPushButton);
+    XPSetWidgetProperty(undock_btn, xpProperty_ButtonBehavior, xpButtonBehaviorPushButton);
+    XPAddWidgetCallback(undock_btn, ui_widget_cb);
+
 }
 
 void
