@@ -70,6 +70,8 @@ extern active_jw_t active_jw[MAX_DOOR];
 extern active_jw_t nearest_jw[MAX_DOOR][MAX_NEAREST];
 extern int n_nearest[MAX_DOOR];
 
+extern void jw_auto_mode_change(void);
+
 // from os_read_wav.c
 extern void read_wav(const char *fname, sound_t *sound);
 

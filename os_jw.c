@@ -48,7 +48,7 @@ static const char * const state_str[] = {
     "DOCKING", "DOCKED", "UNDOCKING", "CANT_DOCK" };
 
 static state_t state = IDLE;
-static state_t prev_state = IDLE;
+static state_t prev_state = DISABLED;
 
 // keep in sync!
 typedef enum dr_code_e {
@@ -352,8 +352,17 @@ reset_jetways()
             alert_off(ajw);
     }
 
-    n_active_jw = 0;
-    memset(active_jw, 0, sizeof(active_jw));
+    state = IDLE;
+}
+
+// hook for the ui
+void
+jw_auto_mode_change()
+{
+    if (state == SELECT_JWS)
+        state = IDLE;
+    else
+        reset_jetways();    // an animation might be ongoing
 }
 
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be NULL
@@ -415,14 +424,6 @@ find_nearest_jws()
 
     float sin_psi = sinf(D2R * plane_psi);
     float cos_psi = cosf(D2R * plane_psi);
-
-    n_active_jw = 0;
-    memset(active_jw, 0, sizeof(active_jw));
-
-    for (int i = 0; i < MAX_DOOR; i++)
-        active_jw[i].dist = 1.0E10;
-
-    memset(nearest_jw, 0, sizeof(nearest_jw));
 
     for (int idoor = 0; idoor < MAX_DOOR; idoor++) {
         n_nearest[idoor] = 0;
@@ -965,6 +966,13 @@ jw_state_machine()
 
     switch (state) {
         case IDLE:
+            if (prev_state != IDLE) {
+                n_active_jw = 0;
+                memset(active_jw, 0, sizeof(active_jw));
+                memset(nearest_jw, 0, sizeof(nearest_jw));
+                memset(n_nearest, 0, sizeof(n_nearest));
+            }
+
             if (on_ground && !beacon_on) {
                 parked_x = XPLMGetDataf(plane_x_dr);
                 parked_y = XPLMGetDataf(plane_y_dr);

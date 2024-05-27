@@ -134,12 +134,8 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
     if (msg == xpMsg_ButtonStateChanged && widget_id == auto_btn) {
         auto_select_jws = (int)(uint64_t)param2;
         log_msg("auto_select_jws now: %d", auto_select_jws);
-        if (auto_select_jws) {
-            close_ui();
-            return 1;
-        }
 
-        update_ui(0);
+        jw_auto_mode_change();  // start over with new setting
         return 1;
     }
 

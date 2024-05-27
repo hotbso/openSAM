@@ -59,4 +59,3 @@ extern sam_jw_t sam3_lib_jw[];
 extern int jw_init(void);
 extern float jw_state_machine();
 extern void update_ui(int only_if_visible);
-
