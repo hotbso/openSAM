@@ -1,1 +1,1 @@
-VERSION=1.06
+VERSION=1.50-dev
