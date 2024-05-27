@@ -71,9 +71,9 @@ static const char *dr_name_jw[] = {
 };
 
 int n_active_jw;
-active_jw_t active_jw[MAX_DOOR];
+jw_ctx_t active_jw[MAX_DOOR];
 
-active_jw_t nearest_jw[MAX_DOOR][MAX_NEAREST];
+jw_ctx_t nearest_jw[MAX_DOOR][MAX_NEAREST];
 int n_nearest[MAX_DOOR];
 
 static sound_t alert;
@@ -132,7 +132,7 @@ fill_library_values(sam_jw_t *jw)
 // sam/jetways/15/rotate2  -> (15, DR_ROTATE2)
 //
 static float
-read_jw_acc(void *ref)
+jw_anim_acc(void *ref)
 {
     stat_acc_called++;
 
@@ -284,7 +284,7 @@ jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n)
     n = MIN(n, MAX_DOOR - ofs);
 
     for (int i = 0; i < n; i++) {
-        active_jw_t *ajw = &active_jw[ofs + i];
+        jw_ctx_t *ajw = &active_jw[ofs + i];
         sam_jw_t *jw = ajw->jw;
         if (jw && ajw->state == AJW_DOCKED)
             values[i] = 1;
@@ -300,13 +300,13 @@ alert_complete(void *ref, FMOD_RESULT status)
 {
     log_msg("fmod callback: %d", status);
 
-    active_jw_t *ajw = ref;
+    jw_ctx_t *ajw = ref;
     ajw->alert_chn = NULL;
 }
 
 
 static void
-alert_on(active_jw_t *ajw)
+alert_on(jw_ctx_t *ajw)
 {
     if (ajw->alert_chn)
         return;
@@ -325,7 +325,7 @@ alert_on(active_jw_t *ajw)
 }
 
 static void
-alert_off(active_jw_t *ajw)
+alert_off(jw_ctx_t *ajw)
 {
     if (ajw->alert_chn)
         XPLMStopAudio(ajw->alert_chn);
@@ -347,7 +347,7 @@ reset_jetways()
        }
 
     for (int i = 0; i < n_door; i++) {
-        active_jw_t *ajw = &active_jw[i];
+        jw_ctx_t *ajw = &active_jw[i];
         if (ajw->jw)
             alert_off(ajw);
     }
@@ -367,7 +367,7 @@ jw_auto_mode_change()
 
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be NULL
 static inline void
-jw_xy_to_sam_dr(const active_jw_t *ajw, float cabin_x, float cabin_z,
+jw_xy_to_sam_dr(const jw_ctx_t *ajw, float cabin_x, float cabin_z,
                 float *rot1, float *extent, float *rot2, float *rot3)
 {
     const sam_jw_t *jw = ajw->jw;
@@ -391,10 +391,10 @@ jw_xy_to_sam_dr(const active_jw_t *ajw, float cabin_x, float cabin_z,
 }
 
 static int
-ajw_compar(const void *a, const void *b)
+njw_compar(const void *a, const void *b)
 {
-    const active_jw_t *ajw_a = a;
-    const active_jw_t *ajw_b = b;
+    const jw_ctx_t *ajw_a = a;
+    const jw_ctx_t *ajw_b = b;
 
     if (ajw_a->dist < ajw_b->dist)
         return -1;
@@ -439,52 +439,52 @@ find_nearest_jws()
                 //log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
                 //        jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
 
-                active_jw_t tentative_ajw;
-                active_jw_t *ajw = &tentative_ajw;
-                memset(ajw, 0, sizeof(active_jw_t));
-                ajw->jw = jw;
+                jw_ctx_t tentative_njw;
+                jw_ctx_t *njw = &tentative_njw;
+                memset(njw, 0, sizeof(jw_ctx_t));
+                njw->jw = jw;
 
                 // rotate into plane local frame
                 float dx = jw->x - plane_x;
                 float dz = jw->z - plane_z;
-                ajw->x =  cos_psi * dx + sin_psi * dz;
-                ajw->z = -sin_psi * dx + cos_psi * dz;
-                ajw->psi = RA(jw->psi - plane_psi);
+                njw->x =  cos_psi * dx + sin_psi * dz;
+                njw->z = -sin_psi * dx + cos_psi * dz;
+                njw->psi = RA(jw->psi - plane_psi);
 
                 // xlate into door local frame
-                ajw->x -= door_info[idoor].x;
-                ajw->z -= door_info[idoor].z;
+                njw->x -= door_info[idoor].x;
+                njw->z -= door_info[idoor].z;
 
-                float rot1_d = RA((jw->initialRot1 + ajw->psi) - 90.0f);    // door frame
-                ajw->cabin_x = ajw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
-                ajw->cabin_z = ajw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
+                float rot1_d = RA((jw->initialRot1 + njw->psi) - 90.0f);    // door frame
+                njw->cabin_x = njw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
+                njw->cabin_z = njw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
 
-                if (ajw->cabin_x > 1.0f || BETWEEN(ajw->psi, -130.0f, 20.0f)) { // on the right side or pointing away
-                    log_msg("pointing away: %s, x: %0.2f, ajw->psi: %0.1f",
-                            jw->name, ajw->cabin_x, ajw->psi);
+                if (njw->cabin_x > 1.0f || BETWEEN(njw->psi, -130.0f, 20.0f)) { // on the right side or pointing away
+                    log_msg("pointing away: %s, x: %0.2f, njw->psi: %0.1f",
+                            jw->name, njw->cabin_x, njw->psi);
                     continue;
                 }
 
-                ajw->dist = len2f(ajw->cabin_x, ajw->cabin_z);
-                if (ajw->dist > dist_threshold)
+                njw->dist = len2f(njw->cabin_x, njw->cabin_z);
+                if (njw->dist > dist_threshold)
                     continue;
 
-                ajw->tgt_x = -jw->cabinLength;
+                njw->tgt_x = -jw->cabinLength;
                 // tgt z = 0.0
-                ajw->y = (jw->y + jw->height) - (plane_y + door_info[idoor].y);
+                njw->y = (jw->y + jw->height) - (plane_y + door_info[idoor].y);
 
-                jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
+                jw_xy_to_sam_dr(njw, njw->tgt_x, 0.0f, &njw->tgt_rot1, &njw->tgt_extent, &njw->tgt_rot2, &njw->tgt_rot3);
 
                 if (idoor == 0)
-                    ajw->tgt_rot2 += 3.0f;  // for door1 only
+                    njw->tgt_rot2 += 3.0f;  // for door1 only
 
-                if (!(BETWEEN(ajw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(ajw->tgt_rot2, jw->minRot2, jw->maxRot2)
-                    && BETWEEN(ajw->tgt_extent, jw->minExtent, jw->maxExtent))) {
+                if (!(BETWEEN(njw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(njw->tgt_rot2, jw->minRot2, jw->maxRot2)
+                    && BETWEEN(njw->tgt_extent, jw->minExtent, jw->maxExtent))) {
                     log_msg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
-                             jw->name, jw->door, ajw->tgt_rot1, ajw->tgt_rot2, ajw->tgt_rot3, ajw->tgt_extent);
+                             jw->name, jw->door, njw->tgt_rot1, njw->tgt_rot2, njw->tgt_rot3, njw->tgt_extent);
                     log_msg("  does not fulfil min max criteria in sam.xml");
-                    if (ajw->dist < 50.0f)
-                        log_msg("  as the distance of %0.1f m to the door is < 50.0 m we take it anyway", ajw->dist);
+                    if (njw->dist < 50.0f)
+                        log_msg("  as the distance of %0.1f m to the door is < 50.0 m we take it anyway", njw->dist);
                     else
                         continue;
                 }
@@ -492,39 +492,39 @@ find_nearest_jws()
                 // add to list
                 log_msg("candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f",
                         jw->name, jw->library_id, jw->door,
-                        ajw->x, ajw->z, ajw->y, ajw->psi, ajw->tgt_extent);
-                nearest_jw[idoor][n_nearest[idoor]] = tentative_ajw;
+                        njw->x, njw->z, njw->y, njw->psi, njw->tgt_extent);
+                nearest_jw[idoor][n_nearest[idoor]] = tentative_njw;
                 n_nearest[idoor]++;
 
                 // if full, sort by dist and trim down to NEAR_JW_LIMIT
                 if (n_nearest[idoor] == MAX_NEAREST) {
-                    qsort(&nearest_jw[idoor][0], MAX_NEAREST, sizeof(active_jw_t), ajw_compar);
+                    qsort(&nearest_jw[idoor][0], MAX_NEAREST, sizeof(jw_ctx_t), njw_compar);
                     n_nearest[idoor] = NEAR_JW_LIMIT;
                     dist_threshold = nearest_jw[idoor][NEAR_JW_LIMIT - 1].dist;
                 }
             }
 
         // final sort + trim down to limit
-        qsort(&nearest_jw[idoor][0], n_nearest[idoor], sizeof(active_jw_t), ajw_compar);
+        qsort(&nearest_jw[idoor][0], n_nearest[idoor], sizeof(jw_ctx_t), njw_compar);
         n_nearest[idoor] = MIN(n_nearest[idoor], NEAR_JW_LIMIT);
 
         for (int j = 0; j < n_nearest[idoor]; j++) {
-            active_jw_t *ajw = &nearest_jw[idoor][j];
-            sam_jw_t *jw = ajw->jw;
+            jw_ctx_t *njw = &nearest_jw[idoor][j];
+            sam_jw_t *jw = njw->jw;
 
             // compute x,z of parked jw
-            float rot1_d = RA((jw->initialRot1 + ajw->psi) - 90.0f);    // door frame
+            float rot1_d = RA((jw->initialRot1 + njw->psi) - 90.0f);    // door frame
             float r = jw->initialExtent + jw->cabinPos;
-            ajw->parked_x = ajw->x + r * cosf(rot1_d * D2R);
-            ajw->parked_z = ajw->z + r * sinf(rot1_d * D2R);
+            njw->parked_x = njw->x + r * cosf(rot1_d * D2R);
+            njw->parked_z = njw->z + r * sinf(rot1_d * D2R);
 
-            ajw->ap_x = ajw->tgt_x - JW_ALIGN_DIST;
+            njw->ap_x = njw->tgt_x - JW_ALIGN_DIST;
 
             jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 
             log_msg("door %d, nearest %s, lib_id: %d, dist %0.1f, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f",
-                    idoor, jw->name, jw->library_id, ajw->dist,
-                    ajw->x, ajw->z, ajw->y, ajw->psi, ajw->tgt_extent);
+                    idoor, jw->name, jw->library_id, njw->dist,
+                    njw->x, njw->z, njw->y, njw->psi, njw->tgt_extent);
             jws_found = 1;
         }
     }
@@ -544,7 +544,7 @@ select_jws()
     // from door 0 to n assign nearest jw that is not already assigned
     for (int i = 0; i < n_door; i++) {
         for (int j = 0; j < n_nearest[i]; j++) {
-            active_jw_t *candidate = &nearest_jw[i][j];
+            jw_ctx_t *candidate = &nearest_jw[i][j];
 
             // log_msg("select_jw: door: %d, check: %s", i, candidate->jw->name);
             // check whether it is already assigned
@@ -567,7 +567,7 @@ select_jws()
 }
 
 static int
-rotate_wheel_base(active_jw_t *ajw, float dt)
+rotate_wheel_base(jw_ctx_t *ajw, float dt)
 {
     sam_jw_t *jw = ajw->jw;
 
@@ -609,7 +609,7 @@ rotate_wheel_base(active_jw_t *ajw, float dt)
 
 // rotation1 + extend
 static void
-rotate_1_extend(active_jw_t *ajw, float cabin_x, float cabin_z)
+rotate_1_extend(jw_ctx_t *ajw, float cabin_x, float cabin_z)
 {
     sam_jw_t *jw = ajw->jw;
 
@@ -620,7 +620,7 @@ rotate_1_extend(active_jw_t *ajw, float cabin_x, float cabin_z)
 // rotation 3
 // return 1 when done
 static int
-rotate_3(active_jw_t *ajw, float tgt_rot3, float dt)
+rotate_3(jw_ctx_t *ajw, float tgt_rot3, float dt)
 {
     sam_jw_t *jw = ajw->jw;
 
@@ -645,7 +645,7 @@ rotate_3(active_jw_t *ajw, float tgt_rot3, float dt)
 // rotation 2
 // return 1 when done
 static int
-rotate_2(active_jw_t *ajw, float tgt_rot2, float dt) {
+rotate_2(jw_ctx_t *ajw, float tgt_rot2, float dt) {
     sam_jw_t *jw = ajw->jw;
 
     if (fabsf(jw->rotate2 - tgt_rot2) > 0.5) {
@@ -663,7 +663,7 @@ rotate_2(active_jw_t *ajw, float tgt_rot2, float dt) {
 
 // animate wheels for straight driving
 static void
-animate_wheels(active_jw_t *ajw, float ds)
+animate_wheels(jw_ctx_t *ajw, float ds)
 {
     sam_jw_t *jw = ajw->jw;
 
@@ -680,7 +680,7 @@ animate_wheels(active_jw_t *ajw, float ds)
 // drive jetway to the door
 // return 1 when done
 static int
-dock_drive(active_jw_t *ajw)
+dock_drive(jw_ctx_t *ajw)
 {
     sam_jw_t *jw = ajw->jw;
 
@@ -823,7 +823,7 @@ dock_drive(active_jw_t *ajw)
 // drive jetway to parked position
 // return 1 when done
 static float
-undock_drive(active_jw_t *ajw)
+undock_drive(jw_ctx_t *ajw)
 {
     sam_jw_t *jw = ajw->jw;
 
@@ -1026,7 +1026,7 @@ jw_state_machine()
             if (1 == dock_requested || toggle_requested) {
                 log_msg("docking requested");
                 for (int i = 0; i < n_door; i++) {
-                    active_jw_t *ajw = &active_jw[i];
+                    jw_ctx_t *ajw = &active_jw[i];
                     if (NULL == ajw->jw)
                         continue;
                     ajw->state = AJW_TO_AP;
@@ -1049,7 +1049,7 @@ jw_state_machine()
         case DOCKING:
             n_done = 0;
             for (int i = 0; i < n_door; i++) {
-                active_jw_t *ajw = &active_jw[i];
+                jw_ctx_t *ajw = &active_jw[i];
                 if (NULL == ajw->jw)
                     continue;
 
@@ -1080,7 +1080,7 @@ jw_state_machine()
             if (1 == undock_requested || toggle_requested) {
                 log_msg("undocking requested");
                 for (int i = 0; i < n_door; i++) {
-                    active_jw_t *ajw = &active_jw[i];
+                    jw_ctx_t *ajw = &active_jw[i];
                     if (NULL == ajw->jw)
                         continue;
                     ajw->state = AJW_TO_AP;
@@ -1101,7 +1101,7 @@ jw_state_machine()
         case UNDOCKING:
             n_done = 0;
             for (int i = 0; i < n_door; i++) {
-                active_jw_t *ajw = &active_jw[i];
+                jw_ctx_t *ajw = &active_jw[i];
                 if (NULL == ajw->jw)
                     continue;
                 n_done += undock_drive(&active_jw[i]);
@@ -1177,14 +1177,14 @@ jw_init()
         name[99] = '\0';
         snprintf(name, sizeof(name) - 1, "sam/jetway/%s", dr_name_jw[drc]);
         XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL,
-                                 NULL, read_jw_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, jw_anim_acc, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, (void *)(uint64_t)drc, NULL);
 
         for (int i = 1; i <= MAX_SAM3_LIB_JW; i++) {
             snprintf(name, sizeof(name) - 1, "sam/jetway/%02d/%s", i, dr_name_jw[drc]);
             uint64_t ctx = (uint64_t)i << 32|(uint64_t)drc;
             XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL,
-                                     NULL, read_jw_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                     NULL, jw_anim_acc, NULL, NULL, NULL, NULL, NULL, NULL,
                                      NULL, NULL, NULL, (void *)ctx, NULL);
         }
 

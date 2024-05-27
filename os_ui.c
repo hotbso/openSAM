@@ -208,7 +208,7 @@ update_ui(int only_if_visible)
     if (ui_unlocked && !auto_select_jws) {
         for (int i = 0; i < n_door; i++)
             for (int j = 0; j < n_nearest[i]; j++) {
-                active_jw_t *njw = &nearest_jw[i][j];
+                jw_ctx_t *njw = &nearest_jw[i][j];
                 sam_jw_t *jw = njw->jw;
 
                 if (NULL == jw)             // should never happen

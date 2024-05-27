@@ -37,7 +37,7 @@ typedef enum ajw_status_e {
     AJW_TO_PARK
 } ajw_status_t;
 
-typedef struct active_jw_ {
+typedef struct jw_ctx_ {
     sam_jw_t *jw;
     ajw_status_t state;
 
@@ -59,15 +59,15 @@ typedef struct active_jw_ {
     float timeout;      // so we don't get stuck
 
     FMOD_CHANNEL *alert_chn;
-} active_jw_t;
+} jw_ctx_t;
 
 #define NEAR_JW_LIMIT 2 // max # of jetways we consider for docking
 #define MAX_NEAREST 10  // max # jetways / door we consider as nearest
 
 extern int n_active_jw;
-extern active_jw_t active_jw[MAX_DOOR];
+extern jw_ctx_t active_jw[MAX_DOOR];
 
-extern active_jw_t nearest_jw[MAX_DOOR][MAX_NEAREST];
+extern jw_ctx_t nearest_jw[MAX_DOOR][MAX_NEAREST];
 extern int n_nearest[MAX_DOOR];
 
 extern void jw_auto_mode_change(void);
