@@ -1023,7 +1023,7 @@ jw_state_machine()
                 new_state = IDLE;
             }
 
-            if (dock_requested || toggle_requested) {
+            if (1 == dock_requested || toggle_requested) {
                 log_msg("docking requested");
                 for (int i = 0; i < n_door; i++) {
                     active_jw_t *ajw = &active_jw[i];
@@ -1077,7 +1077,7 @@ jw_state_machine()
                 undock_requested = 1;
             }
 
-            if (undock_requested || toggle_requested) {
+            if (1 == undock_requested || toggle_requested) {
                 log_msg("undocking requested");
                 for (int i = 0; i < n_door; i++) {
                     active_jw_t *ajw = &active_jw[i];
@@ -1119,7 +1119,10 @@ jw_state_machine()
             break;
     }
 
-    dock_requested = undock_requested = toggle_requested = 0;
+    // we use an extra cycle for dock/undock for better integration with the UI
+    dock_requested--;
+    undock_requested--;
+    toggle_requested = 0;
 
     prev_state = state;
 
@@ -1152,7 +1155,7 @@ cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
 
     log_msg("cmd_dock_jw_cb called");
 
-    *(int *)ref = 1;
+    *(int *)ref = 2;
      return 0;
 }
 
