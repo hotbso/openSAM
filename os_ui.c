@@ -39,7 +39,7 @@ typedef struct _widget_ctx
 
 static widget_ctx_t ui_widget_ctx;
 
-static XPWidgetID ui_widget, jw_btn[MAX_DOOR][NEAR_JW_LIMIT], ok_btn, auto_btn;
+static XPWidgetID ui_widget, jw_btn[MAX_DOOR][NEAR_JW_LIMIT], confirm_btn, auto_btn;
 
 int ui_unlocked; // the ui is unlocked for jw_selection
 
@@ -106,8 +106,8 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
         return 1;
     }
 
-    if (msg == xpMsg_PushButtonPressed && widget_id == ok_btn) {
-        log_msg("OK pressed");
+    if (msg == xpMsg_PushButtonPressed && widget_id == confirm_btn) {
+        log_msg("Confirm pressed");
 
         if (! ui_unlocked) {    // if locked it's just a close
             close_ui();
@@ -128,9 +128,6 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
         }
 
         close_ui();
-        if (n_active_jw)
-            XPLMCommandOnce(dock_cmdr);
-
         return 1;
     }
 
@@ -295,10 +292,10 @@ create_ui()
 
     top -= 20;
     left1 = left + 80;
-    ok_btn = XPCreateWidget(left1, top, left1 + 20, top - 20, 1, "Ok", 0, ui_widget, xpWidgetClass_Button);
-    XPSetWidgetProperty(ok_btn, xpProperty_ButtonType, xpPushButton);
-    XPSetWidgetProperty(ok_btn, xpProperty_ButtonBehavior, xpButtonBehaviorPushButton);
-    XPAddWidgetCallback(ok_btn, ui_widget_cb);
+    confirm_btn = XPCreateWidget(left1, top, left1 + 40, top - 20, 1, "Confirm", 0, ui_widget, xpWidgetClass_Button);
+    XPSetWidgetProperty(confirm_btn, xpProperty_ButtonType, xpPushButton);
+    XPSetWidgetProperty(confirm_btn, xpProperty_ButtonBehavior, xpButtonBehaviorPushButton);
+    XPAddWidgetCallback(confirm_btn, ui_widget_cb);
 }
 
 void
