@@ -73,8 +73,8 @@ static const char *dr_name_jw[] = {
 int n_active_jw;
 jw_ctx_t active_jw[MAX_DOOR];
 
-jw_ctx_t nearest_jw[MAX_DOOR][MAX_NEAREST];
-int n_nearest[MAX_DOOR];
+jw_ctx_t nearest_jw[MAX_NEAREST];
+int n_nearest;
 
 static sound_t alert;
 static int dock_requested, undock_requested, toggle_requested;
@@ -390,19 +390,90 @@ jw_xy_to_sam_dr(const jw_ctx_t *ajw, float cabin_x, float cabin_z,
     }
 }
 
-static int
-njw_compar(const void *a, const void *b)
+static void
+setup_active_jetways()
 {
-    const jw_ctx_t *ajw_a = a;
-    const jw_ctx_t *ajw_b = b;
+    float plane_x = XPLMGetDataf(plane_x_dr);
+    float plane_y = XPLMGetDataf(plane_y_dr);
+    float plane_z = XPLMGetDataf(plane_z_dr);
+    float plane_psi = XPLMGetDataf(plane_true_psi_dr);
 
-    if (ajw_a->dist < ajw_b->dist)
+    float sin_psi = sinf(D2R * plane_psi);
+    float cos_psi = cosf(D2R * plane_psi);
+
+    for (int i = 0; i < n_door; i++) {
+        jw_ctx_t *ajw = &active_jw[i];
+        sam_jw_t *jw = ajw->jw;
+
+        if (NULL == jw)
+            continue;
+
+        log_msg("setting up active jw for door: %d", i);
+
+        // rotate into plane local frame
+        float dx = jw->x - plane_x;
+        float dz = jw->z - plane_z;
+        ajw->x =  cos_psi * dx + sin_psi * dz;
+        ajw->z = -sin_psi * dx + cos_psi * dz;
+        ajw->psi = RA(jw->psi - plane_psi);
+
+        // xlate into door local frame
+        ajw->x -= door_info[i].x;
+        ajw->z -= door_info[i].z;
+
+        float rot1_d = RA((jw->initialRot1 + ajw->psi) - 90.0f);    // door frame
+        ajw->cabin_x = ajw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
+        ajw->cabin_z = ajw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
+
+
+        ajw->tgt_x = -jw->cabinLength;
+        // tgt z = 0.0
+        ajw->y = (jw->y + jw->height) - (plane_y + door_info[i].y);
+
+        jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
+
+        if (i == 0)
+            ajw->tgt_rot2 += 3.0f;  // for door1 only
+
+        float r = jw->initialExtent + jw->cabinPos;
+        ajw->parked_x = ajw->x + r * cosf(rot1_d * D2R);
+        ajw->parked_z = ajw->z + r * sinf(rot1_d * D2R);
+
+        ajw->ap_x = ajw->tgt_x - JW_ALIGN_DIST;
+
+        jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
+    }
+}
+
+// a fuzzy comparator for jetway by door number
+static int
+njw_compar(const void *a_, const void *b_)
+{
+    const jw_ctx_t *a = a_;
+    const jw_ctx_t *b = b_;
+
+    // height goes first
+    if (a->jw->height < b->jw->height - 1.0f)
         return -1;
 
-    if (ajw_a->dist == ajw_b->dist)
-        return 0;
+    if (a->jw->height > b->jw->height + 1.0f)
+        return 1;
 
-    return 1;
+    // then z
+    if (a->z < b->z - 0.5f)
+        return -1;
+
+    if (a->z > b->z + 0.5f)
+        return 1;
+
+    // then x, further left (= towards -x) is higher
+    if (a->x < b->x)
+        return 1;
+
+    if (a->x > b->x)
+        return -1;
+
+    return 0;
 }
 
 // find nearest jetways per door and save their info
@@ -414,7 +485,6 @@ find_nearest_jws()
         return 0;
     }
 
-    int jws_found = 0;
     n_active_jw = 0;
 
     float plane_x = XPLMGetDataf(plane_x_dr);
@@ -425,111 +495,98 @@ find_nearest_jws()
     float sin_psi = sinf(D2R * plane_psi);
     float cos_psi = cosf(D2R * plane_psi);
 
-    for (int idoor = 0; idoor < MAX_DOOR; idoor++) {
-        n_nearest[idoor] = 0;
-        float dist_threshold = 1.0E10f;
-
-        // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
-        // So we find the nearest jetways on the left and do some heuristics
-        for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
-            for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
-                if (jw->obj_ref_gen < ref_gen)  // not visible -> not dockable
-                    continue;
-
-                //log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
-                //        jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
-
-                jw_ctx_t tentative_njw;
-                jw_ctx_t *njw = &tentative_njw;
-                memset(njw, 0, sizeof(jw_ctx_t));
-                njw->jw = jw;
-
-                // rotate into plane local frame
-                float dx = jw->x - plane_x;
-                float dz = jw->z - plane_z;
-                njw->x =  cos_psi * dx + sin_psi * dz;
-                njw->z = -sin_psi * dx + cos_psi * dz;
-                njw->psi = RA(jw->psi - plane_psi);
-
-                // xlate into door local frame
-                njw->x -= door_info[idoor].x;
-                njw->z -= door_info[idoor].z;
-
-                float rot1_d = RA((jw->initialRot1 + njw->psi) - 90.0f);    // door frame
-                njw->cabin_x = njw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
-                njw->cabin_z = njw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
-
-                if (njw->cabin_x > 1.0f || BETWEEN(njw->psi, -130.0f, 20.0f)) { // on the right side or pointing away
-                    log_msg("pointing away: %s, x: %0.2f, njw->psi: %0.1f",
-                            jw->name, njw->cabin_x, njw->psi);
-                    continue;
-                }
-
-                njw->dist = len2f(njw->cabin_x, njw->cabin_z);
-                if (njw->dist > dist_threshold)
-                    continue;
-
-                njw->tgt_x = -jw->cabinLength;
-                // tgt z = 0.0
-                njw->y = (jw->y + jw->height) - (plane_y + door_info[idoor].y);
-
-                jw_xy_to_sam_dr(njw, njw->tgt_x, 0.0f, &njw->tgt_rot1, &njw->tgt_extent, &njw->tgt_rot2, &njw->tgt_rot3);
-
-                if (idoor == 0)
-                    njw->tgt_rot2 += 3.0f;  // for door1 only
-
-                if (!(BETWEEN(njw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(njw->tgt_rot2, jw->minRot2, jw->maxRot2)
-                    && BETWEEN(njw->tgt_extent, jw->minExtent, jw->maxExtent))) {
-                    log_msg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
-                             jw->name, jw->door, njw->tgt_rot1, njw->tgt_rot2, njw->tgt_rot3, njw->tgt_extent);
-                    log_msg("  does not fulfil min max criteria in sam.xml");
-                    if (njw->dist < 50.0f)
-                        log_msg("  as the distance of %0.1f m to the door is < 50.0 m we take it anyway", njw->dist);
-                    else
-                        continue;
-                }
-
-                // add to list
-                log_msg("candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f",
-                        jw->name, jw->library_id, jw->door,
-                        njw->x, njw->z, njw->y, njw->psi, njw->tgt_extent);
-                nearest_jw[idoor][n_nearest[idoor]] = tentative_njw;
-                n_nearest[idoor]++;
-
-                // if full, sort by dist and trim down to NEAR_JW_LIMIT
-                if (n_nearest[idoor] == MAX_NEAREST) {
-                    qsort(&nearest_jw[idoor][0], MAX_NEAREST, sizeof(jw_ctx_t), njw_compar);
-                    n_nearest[idoor] = NEAR_JW_LIMIT;
-                    dist_threshold = nearest_jw[idoor][NEAR_JW_LIMIT - 1].dist;
-                }
-            }
-
-        // final sort + trim down to limit
-        qsort(&nearest_jw[idoor][0], n_nearest[idoor], sizeof(jw_ctx_t), njw_compar);
-        n_nearest[idoor] = MIN(n_nearest[idoor], NEAR_JW_LIMIT);
-
-        for (int j = 0; j < n_nearest[idoor]; j++) {
-            jw_ctx_t *njw = &nearest_jw[idoor][j];
-            sam_jw_t *jw = njw->jw;
-
-            // compute x,z of parked jw
-            float rot1_d = RA((jw->initialRot1 + njw->psi) - 90.0f);    // door frame
-            float r = jw->initialExtent + jw->cabinPos;
-            njw->parked_x = njw->x + r * cosf(rot1_d * D2R);
-            njw->parked_z = njw->z + r * sinf(rot1_d * D2R);
-
-            njw->ap_x = njw->tgt_x - JW_ALIGN_DIST;
-
-            jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
-
-            log_msg("door %d, nearest %s, lib_id: %d, dist %0.1f, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f",
-                    idoor, jw->name, jw->library_id, njw->dist,
-                    njw->x, njw->z, njw->y, njw->psi, njw->tgt_extent);
-            jws_found = 1;
-        }
+    // compute the 'average' door location
+    float door_x = 0.0f;
+    float door_z = 0.0f;
+    for (int i = 0; i < n_door; i++) {
+        door_x += door_info[i].x;
+        door_z += door_info[i].z;
     }
 
-    return jws_found;
+    door_x /= n_door;
+    door_z /= n_door;
+
+    n_nearest = 0;
+    float dist_threshold = 1.0E10f;
+
+    // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
+    // So we find the nearest jetways on the left and do some heuristics
+    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
+        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+            if (jw->obj_ref_gen < ref_gen)  // not visible -> not dockable
+                continue;
+
+            //log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
+            //        jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
+
+            jw_ctx_t tentative_njw;
+            jw_ctx_t *njw = &tentative_njw;
+            memset(njw, 0, sizeof(jw_ctx_t));
+            njw->jw = jw;
+
+            // rotate into plane local frame
+            float dx = jw->x - plane_x;
+            float dz = jw->z - plane_z;
+            njw->x =  cos_psi * dx + sin_psi * dz;
+            njw->z = -sin_psi * dx + cos_psi * dz;
+            njw->psi = RA(jw->psi - plane_psi);
+
+            // xlate into door local frame
+            njw->x -= door_x;
+            njw->z -= door_z;
+
+            float rot1_d = RA((jw->initialRot1 + njw->psi) - 90.0f);    // door frame
+            njw->cabin_x = njw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
+            njw->cabin_z = njw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
+
+            if (njw->x > -1.0f || BETWEEN(njw->psi, -130.0f, 20.0f)) { // on the right side or pointing away
+                //log_msg("to far or pointing away: %s, x: %0.2f, njw->psi: %0.1f",
+                //        jw->name, njw->cabin_x, njw->psi);
+                continue;
+            }
+
+            if (njw->z > dist_threshold)
+                continue;
+
+            njw->tgt_x = -jw->cabinLength;
+            // tgt z = 0.0
+            njw->y = (jw->y + jw->height) - (plane_y + door_info[0].y);
+
+            jw_xy_to_sam_dr(njw, njw->tgt_x, 0.0f, &njw->tgt_rot1, &njw->tgt_extent, &njw->tgt_rot2, &njw->tgt_rot3);
+
+
+            if (!(BETWEEN(njw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(njw->tgt_rot2, jw->minRot2, jw->maxRot2)
+                && BETWEEN(njw->tgt_extent, jw->minExtent, jw->maxExtent))) {
+                log_msg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
+                         jw->name, jw->door, njw->tgt_rot1, njw->tgt_rot2, njw->tgt_rot3, njw->tgt_extent);
+                log_msg("  does not fulfil min max criteria in sam.xml");
+                float dist = len2f(njw->cabin_x, njw->cabin_z);
+                if (dist < 50.0f)
+                    log_msg("  as the distance of %0.1f m to the door is < 50.0 m we take it anyway", dist);
+                else
+                    continue;
+            }
+
+            // add to list
+            log_msg("candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f",
+                    jw->name, jw->library_id, jw->door,
+                    njw->x, njw->z, njw->y, njw->psi, njw->tgt_extent);
+            nearest_jw[n_nearest] = tentative_njw;
+            n_nearest++;
+
+            // if full, sort by dist and trim down to NEAR_JW_LIMIT
+            if (n_nearest == MAX_NEAREST) {
+                qsort(nearest_jw, MAX_NEAREST, sizeof(jw_ctx_t), njw_compar);
+                n_nearest = NEAR_JW_LIMIT;
+                dist_threshold = nearest_jw[NEAR_JW_LIMIT - 1].z;
+            }
+        }
+
+    // final sort + trim down to limit
+    qsort(nearest_jw, n_nearest, sizeof(jw_ctx_t), njw_compar);
+    n_nearest = MIN(n_nearest, NEAR_JW_LIMIT);
+
+    return n_nearest;
 }
 
 // auto select active jetways
@@ -543,26 +600,11 @@ select_jws()
 
     // from door 0 to n assign nearest jw that is not already assigned
     for (int i = 0; i < n_door; i++) {
-        for (int j = 0; j < n_nearest[i]; j++) {
-            jw_ctx_t *candidate = &nearest_jw[i][j];
-
-            // log_msg("select_jw: door: %d, check: %s", i, candidate->jw->name);
-            // check whether it is already assigned
-            for (int k = 0; k < i; k++) {
-                if (active_jw[k].jw == candidate->jw) {
-                    candidate = NULL;
-                    break;
-                }
-            }
-
-            // candidate is free -> assign to door and exit to door loop
-            if (candidate) {
-                active_jw[i] =*candidate;
-                log_msg("active jetway for door %d: %s", i, candidate->jw->name);
-                n_active_jw++;
-                break;
-            }
-        }
+        if (i >= n_nearest)
+            break;
+        active_jw[i] = nearest_jw[i];
+        log_msg("active jetway for door %d: %s", i, active_jw[i].jw->name);
+        n_active_jw++;
     }
 }
 
@@ -969,8 +1011,8 @@ jw_state_machine()
             if (prev_state != IDLE) {
                 n_active_jw = 0;
                 memset(active_jw, 0, sizeof(active_jw));
+                n_nearest = 0;
                 memset(nearest_jw, 0, sizeof(nearest_jw));
-                memset(n_nearest, 0, sizeof(n_nearest));
             }
 
             if (on_ground && !beacon_on) {
@@ -1013,8 +1055,10 @@ jw_state_machine()
             }
 
             // or wait for GUI selection
-            if (n_active_jw)
+            if (n_active_jw) {
+                setup_active_jetways();
                 new_state = CAN_DOCK;
+            }
             break;
 
         case CAN_DOCK:
@@ -1134,7 +1178,7 @@ jw_state_machine()
         if (state == IDLE) {
             n_active_jw = 0;
             memset(active_jw, 0, sizeof(active_jw));
-            memset(n_nearest, 0, sizeof(n_nearest));
+            n_nearest = 0;
         }
 
         ui_unlocked = 0;

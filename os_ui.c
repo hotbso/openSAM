@@ -113,11 +113,11 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
             n_active_jw = 0;
 
             for (int i = 0; i < n_door; i++) {
-                for (int j = 0; j < n_nearest[i]; j++) {
+                for (int j = 0; j < n_nearest; j++) {
                     int state = (uint64_t)XPGetWidgetProperty(jw_btn[i][j], xpProperty_ButtonState, NULL);
                     if (state) {
-                        log_msg("active jw for door %d is %s", i, nearest_jw[i][j].jw->name);
-                        active_jw[i] = nearest_jw[i][j];
+                        log_msg("active jw for door %d is %s", i, nearest_jw[j].jw->name);
+                        active_jw[i] = nearest_jw[j];
                         n_active_jw++;
                     }
                 }
@@ -144,43 +144,36 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
         return 1;
     }
 
+    // one of the jw select buttons
     if (msg == xpMsg_ButtonStateChanged) {
+        // find index of button
         int idoor = -1, ijw = -1;
         for (int i = 0; i < n_door; i++)
-            for (int j = 0; j < n_nearest[i]; j++)
+            for (int j = 0; j < n_nearest; j++)
                 if (jw_btn[i][j] == widget_id) {
                     idoor = i;
                     ijw = j;
                     break;
                 }
+
         if (idoor < 0 || ijw < 0) {
             log_msg("invalid button selection???");
             return 1;
         }
 
         int new_state = (int)(uint64_t)param2;
-        sam_jw_t *selected_jw = nearest_jw[idoor][ijw].jw;
+        log_msg("button door: %d, jw: %d pressed, name: %s, new_state: %d", idoor, ijw,
+                nearest_jw[ijw].jw->name, new_state);
 
-        log_msg("button door: %d, jw: %d pressed, name: %s, new_state: %d", idoor, ijw, selected_jw->name, new_state);
         // unselect all other buttons for the selected door
-        for (int j = 0; j < n_nearest[idoor]; j++) {
-            if (j == ijw)
-                continue;
-            log_msg("1 Unselecting door: %d, jw: %d", idoor, j);
-            XPSetWidgetProperty(jw_btn[idoor][j], xpProperty_ButtonState, 0);
-        }
+        for (int j = 0; j < n_nearest; j++)
+            if (j != ijw)
+                XPSetWidgetProperty(jw_btn[idoor][j], xpProperty_ButtonState, 0);
 
         // unselect selected jw for other doors
-        for (int i = 0; i < n_door; i++) {
-            if (i == idoor)
-                continue;
-
-            for (int j = 0; j < n_nearest[i]; j++)
-                if (nearest_jw[i][j].jw == selected_jw) {
-                    log_msg("2 Unselecting door: %d, jw: %d", i, j);
-                    XPSetWidgetProperty(jw_btn[i][j], xpProperty_ButtonState, 0);
-                }
-        }
+        for (int i = 0; i < n_door; i++)
+            if (i != idoor)
+                XPSetWidgetProperty(jw_btn[i][ijw], xpProperty_ButtonState, 0);
 
         return 1;
     }
@@ -207,8 +200,8 @@ update_ui(int only_if_visible)
     // if manual selection set label and unhide
     if (ui_unlocked && !auto_select_jws) {
         for (int i = 0; i < n_door; i++)
-            for (int j = 0; j < n_nearest[i]; j++) {
-                jw_ctx_t *njw = &nearest_jw[i][j];
+            for (int j = 0; j < n_nearest; j++) {
+                jw_ctx_t *njw = &nearest_jw[j];
                 sam_jw_t *jw = njw->jw;
 
                 if (NULL == jw)             // should never happen
@@ -239,7 +232,7 @@ create_ui()
     int left = xl + 50;
     int top = yr - 100;
     int width = 2 * margin + MAX_DOOR * col_spacing;
-    int height = 200;
+    int height = 240;
     int left1;
 
     ui_widget_ctx.l = left;

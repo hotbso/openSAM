@@ -38,12 +38,11 @@ typedef enum ajw_status_e {
 } ajw_status_t;
 
 typedef struct jw_ctx_ {
-    sam_jw_t *jw;
+    sam_jw_t *jw;           // == NULL means empty
     ajw_status_t state;
 
     // in door local coordinates
     float x, y, z, psi;
-    float dist;         // distance to door
 
     // target cabin position with corresponding dref values
     float tgt_x, tgt_rot1, tgt_rot2, tgt_rot3, tgt_extent;
@@ -61,14 +60,14 @@ typedef struct jw_ctx_ {
     FMOD_CHANNEL *alert_chn;
 } jw_ctx_t;
 
-#define NEAR_JW_LIMIT 2 // max # of jetways we consider for docking
+#define NEAR_JW_LIMIT 3 // max # of jetways we consider for docking
 #define MAX_NEAREST 10  // max # jetways / door we consider as nearest
 
 extern int n_active_jw;
 extern jw_ctx_t active_jw[MAX_DOOR];
 
-extern jw_ctx_t nearest_jw[MAX_DOOR][MAX_NEAREST];
-extern int n_nearest[MAX_DOOR];
+extern jw_ctx_t nearest_jw[MAX_NEAREST];
+extern int n_nearest;
 
 extern void jw_auto_mode_change(void);
 
