@@ -129,7 +129,7 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
 
         close_ui();
         if (n_active_jw)
-            dock_requested = 1;
+            XPLMCommandOnce(dock_cmdr);
 
         return 1;
     }

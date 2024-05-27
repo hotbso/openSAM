@@ -631,7 +631,7 @@ dgs_state_machine()
         case DONE:
             if (now > timestamp + 5.0) {
                 if (!dont_connect_jetway)   // wait some seconds for the jw handler to catch up
-                    dock_requested = 1;
+                    XPLMCommandOnce(dock_cmdr);
 
                 dgs_set_inactive();
                 return loop_delay;

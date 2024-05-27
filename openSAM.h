@@ -105,7 +105,7 @@ extern float lat_ref, lon_ref;
 // init with 1 so jetways never seen by the accessor won't be considered in find_dockable_jws()
 extern unsigned int ref_gen;
 
-extern int dock_requested, undock_requested, toggle_requested;
+extern XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr;
 extern int auto_select_jws;
 
 // functions

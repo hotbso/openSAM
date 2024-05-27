@@ -77,6 +77,9 @@ active_jw_t nearest_jw[MAX_DOOR][MAX_NEAREST];
 int n_nearest[MAX_DOOR];
 
 static sound_t alert;
+static int dock_requested, undock_requested, toggle_requested;
+
+XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr, toggle_ui_cmdr;
 
 //
 // fill in values for a library jetway
@@ -1131,9 +1134,32 @@ jw_state_machine()
     return 0.5;
 }
 
+static int
+cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
+{
+    UNUSED(cmdr);
+
+    if (xplm_CommandBegin != phase)
+        return 0;
+
+    log_msg("cmd_dock_jw_cb called");
+
+    *(int *)ref = 1;
+     return 0;
+}
+
 int
 jw_init()
 {
+    dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
+    XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, &dock_requested);
+
+    undock_cmdr = XPLMCreateCommand("openSAM/undock_jwy", "Undock jetway");
+    XPLMRegisterCommandHandler(undock_cmdr, cmd_dock_jw_cb, 0, &undock_requested);
+
+    toggle_cmdr = XPLMCreateCommand("openSAM/toggle_jwy", "Toggle jetway");
+    XPLMRegisterCommandHandler(toggle_cmdr, cmd_dock_jw_cb, 0, &toggle_requested);
+
     // create the jetway animation datarefs
     for (dr_code_t drc = DR_ROTATE1; drc < N_JW_DR; drc++) {
         char name[100];

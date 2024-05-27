@@ -128,8 +128,6 @@ char acf_icao[5];
 uint64_t stat_sc_far_skip, stat_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last;
 
-int dock_requested, undock_requested, toggle_requested;
-
 static void
 save_pref()
 {
@@ -213,20 +211,6 @@ read_season_acc(void *ref)
 
     //log_msg("accessor %s called, returns %d", dr_name[s], val);
     return val;
-}
-
-static int
-cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
-{
-    UNUSED(cmdr);
-
-    if (xplm_CommandBegin != phase)
-        return 0;
-
-    log_msg("cmd_dock_jw_cb called");
-
-    *(int *)ref = 1;
-     return 0;
 }
 
 static int
@@ -501,20 +485,23 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
                                  NULL, NULL, NULL, (void *)(long long)i, NULL);
 
     // own commands
-    XPLMCommandRef dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
-    XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, &dock_requested);
-
-    XPLMCommandRef undock_cmdr = XPLMCreateCommand("openSAM/undock_jwy", "Undock jetway");
-    XPLMRegisterCommandHandler(undock_cmdr, cmd_dock_jw_cb, 0, &undock_requested);
-
-    XPLMCommandRef toggle_cmdr = XPLMCreateCommand("openSAM/toggle_jwy", "Toggle jetway");
-    XPLMRegisterCommandHandler(toggle_cmdr, cmd_dock_jw_cb, 0, &toggle_requested);
-
     XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Manually activate searching for DGS");
     XPLMRegisterCommandHandler(activate_cmdr, cmd_activate_cb, 0, NULL);
 
     XPLMCommandRef toggle_ui_cmdr = XPLMCreateCommand("openSAM/toggle_ui", "Toggle UI");
     XPLMRegisterCommandHandler(toggle_ui_cmdr, cmd_toggle_ui_cb, 0, NULL);
+
+
+    load_pref();
+    set_menu();
+
+    if (!collect_sam_xml(xp_dir))
+        log_msg("Error collecting sam.xml files!");
+
+    log_msg("%d sceneries with sam jetways found", n_sceneries);
+
+    jw_init();
+    dgs_init();
 
     // build menues
     XPLMMenuID menu = XPLMFindPluginsMenu();
@@ -546,17 +533,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     season_item[3] = XPLMAppendMenuItem(seasons_menu, "Autumn", (void *)3, 0);
     // ---------------------
 
-    load_pref();
-    set_menu();
-
-    if (!collect_sam_xml(xp_dir))
-        log_msg("Error collecting sam.xml files!");
-
-    log_msg("%d sceneries with sam jetways found", n_sceneries);
-
-    jw_init();
-    dgs_init();
-
+    // ... and off we go
     XPLMRegisterFlightLoopCallback(flight_loop_cb, 2.0, NULL);
     return 1;
 }
