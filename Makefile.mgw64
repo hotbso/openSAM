@@ -10,6 +10,9 @@ SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c sam_xml.c log_msg.c read_wav.c
 SDK=../SDK
 OBJECTS=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
 
+DEPDIR := $(OBJDIR)/.deps
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
+
 CC=gcc
 LD=gcc
 
@@ -17,14 +20,24 @@ CFLAGS+=-DVERSION=\"$(VERSION)\"  -mdll -g0 -O2 -s -Wextra -Wall -fdiagnostics-c
     -DWINDOWS -DWIN32   -DIBM=1 \
 	-I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets
 
+COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS)  -c
+
 LDFLAGS=-shared -static-libgcc -static -lpthread
 LIBS=-L$(SDK)/Libraries/Win -lXPLM_64 -lXPWidgets_64
 
+$(OBJDIR)/%.o: %.c $(DEPDIR)/%.d version.mak | $(DEPDIR)
+	$(COMPILE.c) -o $@  $<
+
+target: $(TARGET)
+
 all: $(TARGET) sam_xml_test.exe
 
-$(OBJDIR)/%.o: %.c $(HEADERS) version.mak
-	mkdir -p $(OBJDIR)
-	$(CC) $(CFLAGS) -o $@ -c $<
+$(DEPDIR): ; @mkdir -p $@
+
+DEPFILES := $(SOURCES:%.c=$(DEPDIR)/%.d)
+$(DEPFILES):
+include $(wildcard $(DEPFILES))
+
 
 $(TARGET): $(OBJECTS)
 	$(LD) -o $(TARGET) $(LDFLAGS) $(OBJECTS) $(LIBS)
