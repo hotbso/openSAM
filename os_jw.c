@@ -386,7 +386,7 @@ jw_xy_to_sam_dr(const jw_ctx_t *ajw, float cabin_x, float cabin_z,
 
     if (rot3) {
         float net_length = dist + jw->cabinLength * cosf(r2 * D2R);
-        *rot3 = RA(-asinf(ajw->y / net_length) / D2R);
+        *rot3 = -atan2f(ajw->y, net_length) / D2R;
     }
 }
 
@@ -666,21 +666,20 @@ rotate_3(jw_ctx_t *ajw, float tgt_rot3, float dt)
 {
     sam_jw_t *jw = ajw->jw;
 
-    if (fabsf(jw->rotate3 - tgt_rot3) > 0.5) {
+    if (fabsf(jw->rotate3 - tgt_rot3) > 0.1) {
         float d_rot3 = (dt * JW_HEIGHT_SPEED / (jw->cabinPos + jw->extent)) / D2R;  // strictly it's atan
         if (jw->rotate3 >= tgt_rot3)
             jw->rotate3 = MAX(jw->rotate3 - d_rot3, tgt_rot3);
         else
-             jw->rotate3 = MIN(jw->rotate3 + d_rot3, tgt_rot3);
+            jw->rotate3 = MIN(jw->rotate3 + d_rot3, tgt_rot3);
     }
 
     jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 
-    if (fabsf(jw->rotate3 - tgt_rot3) > 0.5f) {
-        //log_msg("jw->rotate3: %0.3f,tgt_rot3: %0.3f", jw->rotate3, tgt_rot3);
+    if (fabsf(jw->rotate3 - tgt_rot3) > 0.1f)
         return 0;
-    }
 
+    jw->rotate3 = tgt_rot3;
     return 1;
 }
 
@@ -695,7 +694,7 @@ rotate_2(jw_ctx_t *ajw, float tgt_rot2, float dt) {
         if (jw->rotate2 >= tgt_rot2)
             jw->rotate2 = MAX(jw->rotate2 - d_rot2, tgt_rot2);
         else
-             jw->rotate2 = MIN(jw->rotate2 + d_rot2, tgt_rot2);
+            jw->rotate2 = MIN(jw->rotate2 + d_rot2, tgt_rot2);
         return fabsf(jw->rotate2 - tgt_rot2) <= 0.5;
     }
 
