@@ -548,8 +548,8 @@ find_nearest_jws()
                          jw->name, jw->door, njw->tgt_rot1, njw->tgt_rot2, njw->tgt_rot3, njw->tgt_extent);
                 log_msg("  does not fulfil min max criteria in sam.xml");
                 float extra_extent = njw->tgt_extent - jw->maxExtent;
-                if (extra_extent < 20.0f)
-                    log_msg("  as extra extent e of %0.1f m  < 20.0 m we take it anyway", extra_extent);
+                if (extra_extent < 10.0f)
+                    log_msg("  as extra extent of %0.1f m < 10.0 m we take it anyway", extra_extent);
                 else
                     continue;
             }
