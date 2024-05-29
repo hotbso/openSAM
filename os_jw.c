@@ -78,6 +78,7 @@ int n_nearest;
 
 static sound_t alert;
 static int dock_requested, undock_requested, toggle_requested;
+static float plane_x, plane_y, plane_z, plane_psi, sin_psi, cos_psi;
 
 XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr, toggle_ui_cmdr;
 
@@ -390,17 +391,12 @@ jw_xy_to_sam_dr(const jw_ctx_t *ajw, float cabin_x, float cabin_z,
     }
 }
 
+//
+// fill in all data required for animation
+//
 static void
 setup_active_jetways()
 {
-    float plane_x = XPLMGetDataf(plane_x_dr);
-    float plane_y = XPLMGetDataf(plane_y_dr);
-    float plane_z = XPLMGetDataf(plane_z_dr);
-    float plane_psi = XPLMGetDataf(plane_true_psi_dr);
-
-    float sin_psi = sinf(D2R * plane_psi);
-    float cos_psi = cosf(D2R * plane_psi);
-
     for (int i = 0; i < n_door; i++) {
         jw_ctx_t *ajw = &active_jw[i];
         sam_jw_t *jw = ajw->jw;
@@ -485,16 +481,6 @@ find_nearest_jws()
         return 0;
     }
 
-    n_active_jw = 0;
-
-    float plane_x = XPLMGetDataf(plane_x_dr);
-    float plane_y = XPLMGetDataf(plane_y_dr);
-    float plane_z = XPLMGetDataf(plane_z_dr);
-    float plane_psi = XPLMGetDataf(plane_true_psi_dr);
-
-    float sin_psi = sinf(D2R * plane_psi);
-    float cos_psi = cosf(D2R * plane_psi);
-
     // compute the 'average' door location
     float door_x = 0.0f;
     float door_z = 0.0f;
@@ -539,7 +525,8 @@ find_nearest_jws()
             njw->cabin_x = njw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
             njw->cabin_z = njw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
 
-            if (njw->x > -1.0f || BETWEEN(njw->psi, -130.0f, 20.0f)) { // on the right side or pointing away
+            if (njw->x > -1.0f || BETWEEN(njw->psi, -130.0f, 20.0f) ||  // on the right side or pointing away
+                njw->x < -80.0f || fabsf(njw->z) > 80.0f) {             // or far away
                 //log_msg("to far or pointing away: %s, x: %0.2f, njw->psi: %0.1f",
                 //        jw->name, njw->cabin_x, njw->psi);
                 continue;
@@ -560,9 +547,9 @@ find_nearest_jws()
                 log_msg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
                          jw->name, jw->door, njw->tgt_rot1, njw->tgt_rot2, njw->tgt_rot3, njw->tgt_extent);
                 log_msg("  does not fulfil min max criteria in sam.xml");
-                float dist = len2f(njw->cabin_x, njw->cabin_z);
-                if (dist < 50.0f)
-                    log_msg("  as the distance of %0.1f m to the door is < 50.0 m we take it anyway", dist);
+                float extra_extent = njw->tgt_extent - jw->maxExtent;
+                if (extra_extent < 20.0f)
+                    log_msg("  as extra extent e of %0.1f m  < 20.0 m we take it anyway", extra_extent);
                 else
                     continue;
             }
@@ -1015,9 +1002,18 @@ jw_state_machine()
             }
 
             if (on_ground && !beacon_on) {
-                parked_x = XPLMGetDataf(plane_x_dr);
-                parked_y = XPLMGetDataf(plane_y_dr);
+                plane_x = XPLMGetDataf(plane_x_dr);
+                plane_y = XPLMGetDataf(plane_y_dr);
+                plane_z = XPLMGetDataf(plane_z_dr);
+                plane_psi = XPLMGetDataf(plane_true_psi_dr);
+
+                sin_psi = sinf(D2R * plane_psi);
+                cos_psi = cosf(D2R * plane_psi);
+
+                parked_x = plane_x;
+                parked_y = plane_y;
                 parked_ngen = ref_gen;
+
                 new_state = PARKED;
             }
             break;
@@ -1030,7 +1026,7 @@ jw_state_machine()
             if (XPLM_NAV_NOT_FOUND != ref) {
                 XPLMGetNavAidInfo(ref, NULL, NULL, NULL, NULL, NULL, NULL, airport_id,
                         NULL, NULL);
-                log_msg("parked on airport: %s, lat,lon: %0.4f,%0.4f", airport_id, lat, lon);
+                log_msg("parked on airport: %s, lat,lon: %0.5f,%0.5f", airport_id, lat, lon);
             }
 
             if (find_nearest_jws())
