@@ -1,1 +1,1 @@
-VERSION=1.50-dev
+VERSION=1.50-b1
