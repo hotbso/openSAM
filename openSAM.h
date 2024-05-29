@@ -81,7 +81,7 @@ extern int dont_connect_jetway;     // e.g. for ZIBO with own ground service
 
 extern int beacon_state, beacon_last_pos;   // beacon state, last switch_pos, ts of last switch actions
 extern float beacon_off_ts, beacon_on_ts;
-extern float parked_x, parked_y;
+extern float parked_x, parked_z;
 extern  int parked_ngen;
 
 extern XPLMDataRef date_day_dr,

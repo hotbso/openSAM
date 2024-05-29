@@ -107,7 +107,7 @@ unsigned int ref_gen = 1;
 
 int auto_select_jws;
 
-float parked_x, parked_y;
+float parked_x, parked_z;
 int parked_ngen;
 
 float now;          // current timestamp
@@ -243,12 +243,12 @@ int
 check_teleportation()
 {
     float x = XPLMGetDataf(plane_x_dr);
-    float y = XPLMGetDataf(plane_y_dr);
+    float z = XPLMGetDataf(plane_z_dr);
     int ngen = ref_gen;
 
-    if (parked_ngen != ngen || fabsf(parked_x - x) > 1.0f || fabsf(parked_y - y) > 1.0f) {
-        log_msg("parked_ngen: %d, ngen: %d, parked_x: %0.3f, x: %0.3f, parked_y: %0.3f, y: %0.3f",
-                parked_ngen, ngen, parked_x, x, parked_y, y);
+    if (parked_ngen != ngen || fabsf(parked_x - x) > 1.0f || fabsf(parked_z - z) > 1.0f) {
+        log_msg("parked_ngen: %d, ngen: %d, parked_x: %0.3f, x: %0.3f, parked_z: %0.3f, z: %0.3f",
+                parked_ngen, ngen, parked_x, x, parked_z, z);
 
         on_ground_ts = now + 10.0f; // wait for the dust to settle
         on_ground = 1;

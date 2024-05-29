@@ -1011,7 +1011,7 @@ jw_state_machine()
                 cos_psi = cosf(D2R * plane_psi);
 
                 parked_x = plane_x;
-                parked_y = plane_y;
+                parked_z = plane_z;
                 parked_ngen = ref_gen;
 
                 new_state = PARKED;
