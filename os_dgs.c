@@ -211,19 +211,13 @@ global_2_stand(const stand_t * stand, float x, float z, float *x_l, float *z_l)
 //
 // check whether dgs obj is the (an) active one
 //
-
-static float obj_x, obj_z, obj_psi;
-
 static inline int
-is_dgs_active()
+is_dgs_active(float obj_x, float obj_z, float obj_psi)
 {
     if (NULL == nearest_stand)
         return 0;
 
     stat_dgs_acc++;
-
-    obj_x = XPLMGetDataf(draw_object_x_dr);
-    obj_z = XPLMGetDataf(draw_object_z_dr);
 
     // if it's the same as last time fast exit
     if (obj_x == last_dgs_x && obj_z == last_dgs_z) {
@@ -234,8 +228,6 @@ is_dgs_active()
     float dgs_x_l, dgs_z_l;
     global_2_stand(nearest_stand, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
     //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
-
-    obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
     // must be in a box +- MAX_DGS_2_STAND_X, MAX_DGS_2_STAND_Z
     // and reasonably aligned with stand (or for SAM1 anti aligned)
@@ -264,7 +256,12 @@ is_dgs_active()
 static float
 read_dgs_acc(void *ref)
 {
-    if (!is_dgs_active())
+
+    float obj_x = XPLMGetDataf(draw_object_x_dr);
+    float obj_z = XPLMGetDataf(draw_object_z_dr);
+    float obj_psi = XPLMGetDataf(draw_object_psi_dr);
+
+    if (!is_dgs_active(obj_x, obj_z, obj_psi))
         return 0.0f;
 
     int dr_index = (uint64_t)ref;
@@ -293,7 +290,8 @@ static float
 read_sam1_acc(void *ref)
 {
     int dr_index = (uint64_t)ref;
-    if (!is_dgs_active())
+    if (!is_dgs_active(XPLMGetDataf(draw_object_x_dr), XPLMGetDataf(draw_object_z_dr),
+                       XPLMGetDataf(draw_object_psi_dr)))
         switch (dr_index) {
             case SAM1_DR_STATUS:
                 return SAM1_IDLE;
