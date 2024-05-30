@@ -17652,101 +17652,91 @@ IDX	11692
 
 ATTR_LOD	0 500
 GLOBAL_luminance 200
+TRIS	0 14589
 ANIM_begin
-    ANIM_hide       0.0 0.0 opensam/dgs/unhide
-    TRIS	0 14589
+    ANIM_hide	1.0 2.0	opensam/dgs/status
+    ANIM_hide	4.0 4.0	opensam/dgs/status
+    TRIS	14589 5796
+ANIM_end
+ANIM_begin
+    ANIM_hide	0.0 0.0	opensam/dgs/track
+    ANIM_hide	2.0 9.0	opensam/dgs/track
+    TRIS	20385 5796
+ANIM_end
+ANIM_begin
+    ANIM_hide	0.0 1.0	opensam/dgs/status
+    ANIM_hide	3.0 9.0	opensam/dgs/status
+    TRIS	26181 5796
+ANIM_end
+ANIM_begin
+    ANIM_hide	0.0 1.0	opensam/dgs/track
+    ANIM_hide	6.0 1000.0	opensam/dgs/distance
     ANIM_begin
-        ANIM_hide	1.0 2.0	opensam/dgs/status
-        ANIM_hide	4.0 4.0	opensam/dgs/status
-        TRIS	14589 5796
-    ANIM_end
-    ANIM_begin
-        ANIM_hide	0.0 0.0	opensam/dgs/track
-        ANIM_hide	2.0 9.0	opensam/dgs/track
-        TRIS	20385 5796
-    ANIM_end
-    ANIM_begin
-        ANIM_hide	0.0 1.0	opensam/dgs/status
-        ANIM_hide	3.0 9.0	opensam/dgs/status
-        TRIS	26181 5796
-    ANIM_end
-    ANIM_begin
-        ANIM_hide	0.0 1.0	opensam/dgs/track
-        ANIM_hide	6.0 1000.0	opensam/dgs/distance
+        ANIM_trans	  -0.1924    1.4478   -0.0000	  -0.1924    1.4478   -0.0000	0 0	no_ref
+        ANIM_rotate	  -1.0000    0.0000   -0.0000	135.00   0.00	-0.5 6.0	opensam/dgs/distance
+        ANIM_rotate	  -0.3467    0.2428   -0.9060	  0.00  75.40	-0.5 6.0	opensam/dgs/distance
+        TRIS	31977 1377
         ANIM_begin
-            ANIM_trans	  -0.1924    1.4478   -0.0000	  -0.1924    1.4478   -0.0000	0 0	no_ref
-            ANIM_rotate	  -1.0000    0.0000   -0.0000	135.00   0.00	-0.5 6.0	opensam/dgs/distance
-            ANIM_rotate	  -0.3467    0.2428   -0.9060	  0.00  75.40	-0.5 6.0	opensam/dgs/distance
-            TRIS	31977 1377
+            ANIM_trans	  -0.0410   -0.2535   -0.0341	  -0.0410   -0.2535   -0.0341	0 0	no_ref
+            ANIM_rotate	  -0.4824   -0.1521    0.8626	 40.16   0.00	-0.5 6.0	opensam/dgs/distance
+            ANIM_rotate	  -0.3747   -0.9271    0.0051	  0.00 129.78	-0.5 6.0	opensam/dgs/distance
+            TRIS	33354 558
             ANIM_begin
-                ANIM_trans	  -0.0410   -0.2535   -0.0341	  -0.0410   -0.2535   -0.0341	0 0	no_ref
-                ANIM_rotate	  -0.4824   -0.1521    0.8626	 40.16   0.00	-0.5 6.0	opensam/dgs/distance
-                ANIM_rotate	  -0.3747   -0.9271    0.0051	  0.00 129.78	-0.5 6.0	opensam/dgs/distance
-                TRIS	33354 558
-                ANIM_begin
-                    ANIM_trans	  -0.0730   -0.2558    0.0196	  -0.0730   -0.2558    0.0196	0 0	no_ref
-                    ANIM_rotate	   1.0000    0.0000    0.0000	 30.00   0.00	-0.5 6.0	opensam/dgs/distance
-                    ANIM_rotate	   0.6947   -0.1862   -0.6947	  0.00  42.18	-0.5 6.0	opensam/dgs/distance
-                    TRIS	33912 966
-                ANIM_end
-            ANIM_end
-        ANIM_end
-        ANIM_begin
-            ANIM_trans	   0.1774    1.4480    0.0000	   0.1774    1.4480    0.0000	0 0	no_ref
-            ANIM_rotate	  -1.0000    0.0000   -0.0000	135.00   0.00	-0.5 6.0	opensam/dgs/distance
-            ANIM_rotate	  -0.3467   -0.2428    0.9060	  0.00  75.40	-0.5 6.0	opensam/dgs/distance
-            TRIS	34878 1377
-            ANIM_begin
-                ANIM_trans	   0.0514   -0.2540   -0.0341	   0.0514   -0.2540   -0.0341	0 0	no_ref
-                ANIM_rotate	  -0.4824    0.1521   -0.8626	 40.16   0.00	-0.5 6.0	opensam/dgs/distance
-                ANIM_rotate	  -0.3747    0.9271   -0.0051	  0.00 129.78	-0.5 6.0	opensam/dgs/distance
-                TRIS	36255 558
-                ANIM_begin
-                    ANIM_trans	   0.0731   -0.2555    0.0196	   0.0731   -0.2555    0.0196	0 0	no_ref
-                    ANIM_rotate	   1.0000    0.0000    0.0000	 30.00   0.00	-0.5 6.0	opensam/dgs/distance
-                    ANIM_rotate	   0.6947    0.1862    0.6947	  0.00  42.18	-0.5 6.0	opensam/dgs/distance
-                    TRIS	36813 960
-                ANIM_end
+                ANIM_trans	  -0.0730   -0.2558    0.0196	  -0.0730   -0.2558    0.0196	0 0	no_ref
+                ANIM_rotate	   1.0000    0.0000    0.0000	 30.00   0.00	-0.5 6.0	opensam/dgs/distance
+                ANIM_rotate	   0.6947   -0.1862   -0.6947	  0.00  42.18	-0.5 6.0	opensam/dgs/distance
+                TRIS	33912 966
             ANIM_end
         ANIM_end
     ANIM_end
     ANIM_begin
-        ANIM_hide	-10.0 5.999	opensam/dgs/distance
-        TRIS	37773 2754
+        ANIM_trans	   0.1774    1.4480    0.0000	   0.1774    1.4480    0.0000	0 0	no_ref
+        ANIM_rotate	  -1.0000    0.0000   -0.0000	135.00   0.00	-0.5 6.0	opensam/dgs/distance
+        ANIM_rotate	  -0.3467   -0.2428    0.9060	  0.00  75.40	-0.5 6.0	opensam/dgs/distance
+        TRIS	34878 1377
         ANIM_begin
-            ANIM_hide	2.0 2.0	opensam/dgs/lr
-            ANIM_trans	  -0.4322    1.4148    0.0972	  -0.4322    1.4148    0.0972	0 0	no_ref
-            ANIM_rotate	  -0.8923   -0.4513    0.0113	135.04   0.00	-1.0 1	sim/graphics/animation/sin_wave_2
-            ANIM_rotate	  -0.8565    0.3890    0.3394	  0.00 136.90	-1.0 1	sim/graphics/animation/sin_wave_2
-            TRIS	40527 1524
+            ANIM_trans	   0.0514   -0.2540   -0.0341	   0.0514   -0.2540   -0.0341	0 0	no_ref
+            ANIM_rotate	  -0.4824    0.1521   -0.8626	 40.16   0.00	-0.5 6.0	opensam/dgs/distance
+            ANIM_rotate	  -0.3747    0.9271   -0.0051	  0.00 129.78	-0.5 6.0	opensam/dgs/distance
+            TRIS	36255 558
+            ANIM_begin
+                ANIM_trans	   0.0731   -0.2555    0.0196	   0.0731   -0.2555    0.0196	0 0	no_ref
+                ANIM_rotate	   1.0000    0.0000    0.0000	 30.00   0.00	-0.5 6.0	opensam/dgs/distance
+                ANIM_rotate	   0.6947    0.1862    0.6947	  0.00  42.18	-0.5 6.0	opensam/dgs/distance
+                TRIS	36813 960
+            ANIM_end
         ANIM_end
-        ANIM_begin
-            ANIM_hide	1.0 1.0	opensam/dgs/lr
-            ANIM_trans	   0.4177    1.4152    0.0975	   0.4177    1.4152    0.0975	0 0	no_ref
-            ANIM_rotate	  -0.8923    0.4513   -0.0113	135.04   0.00	-1.0 1	sim/graphics/animation/sin_wave_2
-            ANIM_rotate	  -0.8565   -0.3890   -0.3393	  0.00 136.90	-1.0 1	sim/graphics/animation/sin_wave_2
-            TRIS	42051 1518
-        ANIM_end
-        ANIM_begin
-            ANIM_hide	0.0 0.0	opensam/dgs/lr
-            ANIM_hide	2.0 3.0	opensam/dgs/lr
-            TRIS	43569 1518
-        ANIM_end
-        ANIM_begin
-            ANIM_hide	0.0 1.0	opensam/dgs/lr
-            TRIS	45087 1524
-        ANIM_end
-    ANIM_end
-    ANIM_begin
-        ANIM_hide	0.0 3.0	opensam/dgs/status
-        ANIM_hide	5.0 9.0	opensam/dgs/status
-        TRIS	46611 5796
     ANIM_end
 ANIM_end
-
-ATTR_LOD	500 4000
 ANIM_begin
-    ANIM_hide       0.0 0.0 sam/season/spring
-    TRIS	0 14589
-    TRIS	52407 5796
+    ANIM_hide	-10.0 5.999	opensam/dgs/distance
+    TRIS	37773 2754
+    ANIM_begin
+        ANIM_hide	2.0 2.0	opensam/dgs/lr
+        ANIM_trans	  -0.4322    1.4148    0.0972	  -0.4322    1.4148    0.0972	0 0	no_ref
+        ANIM_rotate	  -0.8923   -0.4513    0.0113	135.04   0.00	-1.0 1	sim/graphics/animation/sin_wave_2
+        ANIM_rotate	  -0.8565    0.3890    0.3394	  0.00 136.90	-1.0 1	sim/graphics/animation/sin_wave_2
+        TRIS	40527 1524
+    ANIM_end
+    ANIM_begin
+        ANIM_hide	1.0 1.0	opensam/dgs/lr
+        ANIM_trans	   0.4177    1.4152    0.0975	   0.4177    1.4152    0.0975	0 0	no_ref
+        ANIM_rotate	  -0.8923    0.4513   -0.0113	135.04   0.00	-1.0 1	sim/graphics/animation/sin_wave_2
+        ANIM_rotate	  -0.8565   -0.3890   -0.3393	  0.00 136.90	-1.0 1	sim/graphics/animation/sin_wave_2
+        TRIS	42051 1518
+    ANIM_end
+    ANIM_begin
+        ANIM_hide	0.0 0.0	opensam/dgs/lr
+        ANIM_hide	2.0 3.0	opensam/dgs/lr
+        TRIS	43569 1518
+    ANIM_end
+    ANIM_begin
+        ANIM_hide	0.0 1.0	opensam/dgs/lr
+        TRIS	45087 1524
+    ANIM_end
+ANIM_end
+ANIM_begin
+    ANIM_hide	0.0 3.0	opensam/dgs/status
+    ANIM_hide	5.0 9.0	opensam/dgs/status
+    TRIS	46611 5796
 ANIM_end

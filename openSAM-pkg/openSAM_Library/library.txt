@@ -15,7 +15,7 @@ PUBLIC
 
 # DOCKINGS
 EXPORT   		SAM3_Library/marshaller/marshaller.agp			dgs/marshaller.agp
-EXPORT   		SAM3_Library/marshaller/marshaller_high.agp		blank/blank.agp
+EXPORT   		SAM3_Library/marshaller/marshaller_high.agp		dgs/marshaller_high.agp
 EXPORT  		SAM3_Library/VDGS/VDGS_marker.agp 				blank/blank.agp
 EXPORT  		SAM3_Library/VDGS/Safedock-T2-24.obj			dgs/SafedockT2.obj
 EXPORT  		SAM3_Library/VDGS/Safedock-T2-24-Pole.obj		dgs/SafedockT2-6m-pole.obj
@@ -111,7 +111,7 @@ EXPORT  		SAM_Library/dockings/Safegate_5.0m.obj			dgs/SafedockT2_5.0m.obj
 EXPORT			SAM_Library/dockings/marshaller.obj				dgs/Marshaller.obj
 # DOCKINGS SAM2
 EXPORT   		SAM_Library/dockings/marshaller.agp					dgs/marshaller.agp
-EXPORT   		SAM_Library/dockings/marshaller_high.agp			blank/blank.agp
+EXPORT   		SAM_Library/dockings/marshaller_high.agp			dgs/marshaller_high.agp
 EXPORT  		SAM_Library/dockings/Safegate_2.5m.agp				dgs/SafedockT2_2.5m.agp
 EXPORT  		SAM_Library/dockings/Safegate_3.0m.agp				dgs/SafedockT2_3.0m.agp
 EXPORT  		SAM_Library/dockings/Safegate_3.5m.agp				dgs/SafedockT2_3.5m.agp

@@ -29,6 +29,8 @@
 #include "openSAM.h"
 #include "os_dgs.h"
 
+#include "XPLMInstance.h"
+
 // DGS _A = angles [°] (to centerline), _X, _Z = [m] (to stand)
 static const float CAP_A = 15;              // Capture
 static const float CAP_Z = 100;	            // (50-80 in Safedock2 flier)
@@ -70,13 +72,15 @@ float plane_nw_z, plane_mw_z, plane_cg_z;   // z value of plane's 0 to fw, mw an
 
 static stand_t *nearest_stand;
 static float nearest_stand_ts;    // timestamp of last find_nearest_stand()
+
 static int is_marshaller;
+static float marshaller_x, marshaller_y, marshaller_z, marshaller_y_0, marshaller_psi;
 
 static int update_stand_log_ts;   // throttling of logging
 static float sin_wave_prev;
 
 enum _DGS_DREF {
-    DGS_DR_UNHIDE,
+    DGS_DR_IDENT,
     DGS_DR_STATUS,
     DGS_DR_LR,
     DGS_DR_TRACK,
@@ -92,7 +96,7 @@ enum _DGS_DREF {
 
 // keep exactly the same order as list above
 static const char *dgs_dlist_dr[] = {
-    "opensam/dgs/unhide",
+    "opensam/dgs/ident",
     "opensam/dgs/status",
     "opensam/dgs/lr",
     "opensam/dgs/track",
@@ -126,12 +130,24 @@ static const float SAM1_LATERAL_OFF = 10.0f;   // switches off VDGS
 // dref values
 static float sam1_status, sam1_lateral, sam1_longitudinal;
 
+static XPLMObjectRef marshaller_obj, stairs_obj;
+static XPLMInstanceRef marshaller_inst, stairs_inst;
+
 void
 dgs_set_inactive(void)
 {
     log_msg("dgs set to INACTIVE");
     nearest_stand = NULL;
     state = INACTIVE;
+
+    if (marshaller_inst) {
+        XPLMDestroyInstance(marshaller_inst);
+        marshaller_inst = NULL;
+        if (stairs_inst) {
+            XPLMDestroyInstance(stairs_inst);
+            stairs_inst = NULL;
+        }
+    }
 }
 
 // set mode to arrival
@@ -195,6 +211,9 @@ global_2_stand(const stand_t * stand, float x, float z, float *x_l, float *z_l)
 //
 // check whether dgs obj is the (an) active one
 //
+
+static float obj_x, obj_z, obj_psi;
+
 static inline int
 is_dgs_active()
 {
@@ -203,8 +222,8 @@ is_dgs_active()
 
     stat_dgs_acc++;
 
-    float obj_x = XPLMGetDataf(draw_object_x_dr);
-    float obj_z = XPLMGetDataf(draw_object_z_dr);
+    obj_x = XPLMGetDataf(draw_object_x_dr);
+    obj_z = XPLMGetDataf(draw_object_z_dr);
 
     // if it's the same as last time fast exit
     if (obj_x == last_dgs_x && obj_z == last_dgs_z) {
@@ -216,13 +235,13 @@ is_dgs_active()
     global_2_stand(nearest_stand, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
     //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
-    float obj_psi = XPLMGetDataf(draw_object_psi_dr);
+    obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
     // must be in a box +- MAX_DGS_2_STAND_X, MAX_DGS_2_STAND_Z
     // and reasonably aligned with stand (or for SAM1 anti aligned)
-    if (fabs(dgs_x_l) > MAX_DGS_2_STAND_X
+    if (fabsf(dgs_x_l) > MAX_DGS_2_STAND_X
         || dgs_z_l < -MAX_DGS_2_STAND_Z || dgs_z_l > -5.0f
-        || BETWEEN(fabs(RA(nearest_stand->hdgt - obj_psi)), 10.0f, 170.0f))
+        || BETWEEN(fabsf(RA(nearest_stand->hdgt - obj_psi)), 10.0f, 170.0f))
         return 0;
 
     //log_msg("associating DGS: dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
@@ -250,9 +269,16 @@ read_dgs_acc(void *ref)
 
     int dr_index = (uint64_t)ref;
 
-    if (DGS_DR_UNHIDE == dr_index) {
-        is_marshaller = 1;      // only Marshaller queries unhide
-        return 1.0f;
+    if (DGS_DR_IDENT == dr_index) {
+        if (fabsf(RA(nearest_stand->hdgt - obj_psi)) > 10.0f)   // no anti alignment for the Marshaller
+            return 0.0;
+
+        is_marshaller = 1;      // only marshaller queries ident
+        marshaller_x = obj_x;
+        marshaller_y = XPLMGetDataf(draw_object_y_dr);
+        marshaller_z = obj_z;
+        marshaller_psi = obj_psi;
+        return 0.0f;
     }
 
     return drefs[dr_index];
@@ -404,6 +430,16 @@ find_nearest_stand()
 
     if (min_stand != NULL && min_stand != nearest_stand) {
         is_marshaller = 0;
+
+        if (marshaller_inst) {
+            XPLMDestroyInstance(marshaller_inst);
+            marshaller_inst = NULL;
+            if (stairs_inst) {
+                XPLMDestroyInstance(stairs_inst);
+                stairs_inst = NULL;
+            }
+        }
+
         log_msg("stand: %s, %f, %f, %f, dist: %f, dgs_dist: %0.2f", min_stand->id,
                 min_stand->lat, min_stand->lon,
                 min_stand->hdgt, dist, dgs_dist);
@@ -447,6 +483,17 @@ dgs_init()
                                 NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
                                 NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
 
+    marshaller_obj = XPLMLoadObject("Custom Scenery/openSAM_Library/dgs/Marshaller.obj");
+    if (NULL == marshaller_obj) {
+        log_msg("Could not load Marshaller.obj");
+        return 0;
+    }
+
+    stairs_obj = XPLMLoadObject("Resources/default scenery/airport scenery/Ramp_Equipment/Stair_Maint_1.obj");
+    if (NULL == stairs_obj) {
+        log_msg("Could not load Stair_Maint_1.obj");
+        return 0;
+    }
 
     dgs_set_inactive();
     return 1;
@@ -495,19 +542,19 @@ dgs_state_machine()
 
     // ref pos on logitudinal axis of acf blending from mw to nw as we come closer
     // should be nw if dist is below 6 m
-    float a = clampf((nw_z - 6.0) / 20.0, 0.0, 1.0);
-    float plane_z_dr = (1.0 - a) * plane_nw_z + a * plane_mw_z;
+    float a = clampf((nw_z - 6.0f) / 20.0f, 0.0f, 1.0f);
+    float plane_z_dr = (1.0f - a) * plane_nw_z + a * plane_mw_z;
     float z_dr = local_z - plane_z_dr;
     float x_dr = local_x + plane_z_dr * sin(D2R * local_hdgt);
 
-    if (fabs(x_dr) > 0.5 && z_dr > 0)
-        azimuth = atanf(x_dr / (z_dr + 0.5 * dgs_dist)) / D2R;
+    if (fabs(x_dr) > 0.5f && z_dr > 0)
+        azimuth = atanf(x_dr / (z_dr + 0.5f * dgs_dist)) / D2R;
     else
         azimuth = 0.0;
 
     float azimuth_nw;
     if (nw_z > 0)
-        azimuth_nw = atanf(nw_x / (nw_z + 0.5 * dgs_dist)) / D2R;
+        azimuth_nw = atanf(nw_x / (nw_z + 0.5f * dgs_dist)) / D2R;
     else
         azimuth_nw = 0.0;
 
@@ -557,10 +604,10 @@ dgs_state_machine()
 
             // compute distance and guidance commands
             azimuth = clampf(azimuth, -AZI_A, AZI_A);
-            float req_hdgt = -3.5 * azimuth;        // to track back to centerline
+            float req_hdgt = -3.5f * azimuth;        // to track back to centerline
             float d_hdgt = req_hdgt - local_hdgt;   // degrees to turn
 
-            if (now > update_stand_log_ts + 2.0)
+            if (now > update_stand_log_ts + 2.0f)
                 log_msg("is_marshaller: %d, azimuth: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), ref: (%0.1f, %0.1f), "
                        "x: %0.1f, local_hdgt: %0.1f, d_hdgt: %0.1f",
                        is_marshaller, azimuth, mw_x, mw_z, nw_x, nw_z,
@@ -597,7 +644,7 @@ dgs_state_machine()
             // @stop position*/
             status = 2; lr = 3;
 
-            int parkbrake_set = (XPLMGetDataf(parkbrake_dr) > 0.5);
+            int parkbrake_set = (XPLMGetDataf(parkbrake_dr) > 0.5f);
             if (!locgood)
                 new_state = TRACK;
             else if (parkbrake_set || !beacon_on)
@@ -606,7 +653,7 @@ dgs_state_machine()
 
         case BAD:
             if (!beacon_on
-                && (now > timestamp + 5.0)) {
+                && (now > timestamp + 5.0f)) {
                 dgs_set_inactive();
                 return loop_delay;
             }
@@ -629,7 +676,7 @@ dgs_state_machine()
             break;
 
         case DONE:
-            if (now > timestamp + 5.0) {
+            if (now > timestamp + 5.0f) {
                 if (!dont_connect_jetway)   // wait some seconds for the jw handler to catch up
                     XPLMCommandOnce(dock_cmdr);
 
@@ -714,8 +761,63 @@ dgs_state_machine()
                 sam1_longitudinal = 0.0f;
         }
 
+        if (is_marshaller && BETWEEN(state, ENGAGED, PARKED)) {
+            XPLMDrawInfo_t drawinfo = {.structSize = sizeof(XPLMDrawInfo_t)};
+            drawinfo.heading = marshaller_psi;
+            drawinfo.pitch = drawinfo.roll = 0.0;
+
+            if (NULL == marshaller_inst) {
+                log_msg("place marshaller at %0.2f, %0.2f, %0.2f, hdg: %0.1f°",
+                        marshaller_x, marshaller_y, marshaller_z, marshaller_psi);
+
+                marshaller_inst = XPLMCreateInstance(marshaller_obj, dgs_dlist_dr);
+                if (marshaller_inst == NULL) {
+                    log_msg("error creating marshaller instance");
+                    state = DISABLED;
+                    return 0.0;
+                }
+
+                // now check whether it's Marshaller_high
+
+                XPLMProbeInfo_t probeinfo = {.structSize = sizeof(XPLMProbeInfo_t)};
+                XPLMProbeRef probe_ref = XPLMCreateProbe(xplm_ProbeY);
+                if (probe_ref &&
+                    (xplm_ProbeHitTerrain == XPLMProbeTerrainXYZ(probe_ref, marshaller_x, marshaller_y, marshaller_z,
+                                                                 &probeinfo))) {
+                    marshaller_y_0 = probeinfo.locationY;   // ground 0
+
+                    if (marshaller_y - marshaller_y_0 > 2.0f) {
+                        log_msg("Marshaller_high detected, place stairs");
+                        static const char * null[] = {NULL};
+                        stairs_inst = XPLMCreateInstance(stairs_obj, null);
+                        if (stairs_inst == NULL) {
+                            log_msg("error creating stairs instance");
+                            state = DISABLED;
+                            return 0.0;
+                        }
+
+                        // move slightly to the plane
+                        static const float delta_z = 1.0f;
+                        drawinfo.x = marshaller_x - delta_z * nearest_stand->sin_hdgt;
+                        drawinfo.y = marshaller_y_0;
+                        drawinfo.z = marshaller_z + delta_z * nearest_stand->cos_hdgt;
+                        XPLMInstanceSetPosition(stairs_inst, &drawinfo, NULL);
+                    }
+                }
+
+                if (probe_ref)
+                    XPLMDestroyProbe(probe_ref);
+            }
+
+            // update datarefs
+            drawinfo.x = marshaller_x;
+            drawinfo.y = marshaller_y;
+            drawinfo.z = marshaller_z;
+            XPLMInstanceSetPosition(marshaller_inst, &drawinfo, drefs);
+        }
+
         // don't flood the log
-        if (now > update_stand_log_ts + 2.0) {
+        if (now > update_stand_log_ts + 2.0f) {
             update_stand_log_ts = now;
             log_msg("stand: %s, state: %s, assoc: %d, status: %d, track: %d, lr: %d, distance: %0.2f, azimuth: %0.1f",
                    nearest_stand->id, state_str[state], nearest_stand->dgs_assoc,
