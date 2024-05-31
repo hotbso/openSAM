@@ -75,6 +75,9 @@ static float nearest_stand_ts;    // timestamp of last find_nearest_stand()
 // track the max local z (= closest to stand) of dgs objs for nearest_stand
 static float max_dgs_z_l, max_dgs_z_l_ts;
 
+// flag if stand is associated with a dgs
+static int dgs_assoc;
+
 static int is_marshaller;
 static float marshaller_x, marshaller_y, marshaller_z, marshaller_y_0, marshaller_psi;
 static XPLMObjectRef marshaller_obj, stairs_obj;
@@ -194,7 +197,7 @@ xform_to_ref_frame(stand_t *stand)
         XPLMWorldToLocal(stand->lat, stand->lon, XPLMGetDataf(plane_elevation_dr),
                          &stand->stand_x, &stand->stand_y, &stand->stand_z);
         stand->ref_gen = ref_gen;
-        stand->dgs_assoc = 0;    // association is lost
+        dgs_assoc = 0;    // association is lost
         max_dgs_z_l = last_dgs_x = -1.0E10;
         max_dgs_z_l_ts = 1.0E10;
     }
@@ -232,7 +235,7 @@ is_dgs_active(float obj_x, float obj_z, float obj_psi)
     global_2_stand(nearest_stand, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
     //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
-    if (nearest_stand->dgs_assoc && dgs_z_l < max_dgs_z_l)
+    if (dgs_assoc && dgs_z_l < max_dgs_z_l)
         return 0;   // already have a closer one
 
     // must be in a box +- MAX_DGS_2_STAND_X, MAX_DGS_2_STAND_Z
@@ -244,15 +247,13 @@ is_dgs_active(float obj_x, float obj_z, float obj_psi)
 
     // we found one
     if (dgs_z_l > max_dgs_z_l) {
-        if (nearest_stand->dgs_assoc)
-            nearest_stand->dgs_assoc = 0;   // associated to a new dgs
-
+        is_marshaller = 0;   // associated to a new dgs
         max_dgs_z_l = dgs_z_l;
         max_dgs_z_l_ts = XPLMGetDataf(total_running_time_sec_dr);
         log_msg("associating DGS: dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
     }
 
-    nearest_stand->dgs_assoc = 1;
+    dgs_assoc = 1;
 
     // save for optimization
     last_dgs_x = obj_x;
@@ -460,7 +461,8 @@ find_nearest_stand()
                 min_stand->hdgt, dist, dgs_dist);
 
         nearest_stand = min_stand;
-        max_dgs_z_l = -1.0E10;
+        dgs_assoc = 0;
+        last_dgs_x = max_dgs_z_l = -1.0E10;
         max_dgs_z_l_ts = 1.0E10;
         state = ENGAGED;
     }
@@ -836,7 +838,7 @@ dgs_state_machine()
         if (now > update_stand_log_ts + 2.0f) {
             update_stand_log_ts = now;
             log_msg("stand: %s, state: %s, assoc: %d, status: %d, track: %d, lr: %d, distance: %0.2f, azimuth: %0.1f",
-                   nearest_stand->id, state_str[state], nearest_stand->dgs_assoc,
+                   nearest_stand->id, state_str[state], dgs_assoc,
                    status, track, lr, distance, azimuth);
             log_msg("sam1: status %0.0f, lateral: %0.1f, longitudinal: %0.1f",
                     sam1_status, sam1_lateral, sam1_longitudinal);

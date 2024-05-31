@@ -27,9 +27,6 @@ struct _stand {
     double stand_x, stand_y, stand_z;
     float cos_hdgt, sin_hdgt;
 
-    // flag if stand is associated with a dgs
-    int dgs_assoc;
-
     char id[40];
 };
 
