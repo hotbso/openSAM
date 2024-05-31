@@ -33,7 +33,7 @@
 
 // DGS _A = angles [°] (to centerline), _X, _Z = [m] (to stand)
 static const float CAP_A = 15;              // Capture
-static const float CAP_Z = 100;	            // (50-80 in Safedock2 flier)
+static const float CAP_Z = 140;	            // (50-80 in Safedock2 flier)
 
 static const float AZI_A = 15;              // provide azimuth guidance
 static const float AZI_DISP_A = 10;         // max value for display
@@ -72,9 +72,13 @@ float plane_nw_z, plane_mw_z, plane_cg_z;   // z value of plane's 0 to fw, mw an
 
 static stand_t *nearest_stand;
 static float nearest_stand_ts;    // timestamp of last find_nearest_stand()
+// track the max local z (= closest to stand) of dgs objs for nearest_stand
+static float max_dgs_z_l, max_dgs_z_l_ts;
 
 static int is_marshaller;
 static float marshaller_x, marshaller_y, marshaller_z, marshaller_y_0, marshaller_psi;
+static XPLMObjectRef marshaller_obj, stairs_obj;
+static XPLMInstanceRef marshaller_inst, stairs_inst;
 
 static int update_stand_log_ts;   // throttling of logging
 static float sin_wave_prev;
@@ -130,8 +134,6 @@ static const float SAM1_LATERAL_OFF = 10.0f;   // switches off VDGS
 // dref values
 static float sam1_status, sam1_lateral, sam1_longitudinal;
 
-static XPLMObjectRef marshaller_obj, stairs_obj;
-static XPLMInstanceRef marshaller_inst, stairs_inst;
 
 void
 dgs_set_inactive(void)
@@ -193,7 +195,8 @@ xform_to_ref_frame(stand_t *stand)
                          &stand->stand_x, &stand->stand_y, &stand->stand_z);
         stand->ref_gen = ref_gen;
         stand->dgs_assoc = 0;    // association is lost
-        last_dgs_x = -1E10f;
+        max_dgs_z_l = last_dgs_x = -1.0E10;
+        max_dgs_z_l_ts = 1.0E10;
     }
 }
 
@@ -229,6 +232,9 @@ is_dgs_active(float obj_x, float obj_z, float obj_psi)
     global_2_stand(nearest_stand, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
     //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
+    if (nearest_stand->dgs_assoc && dgs_z_l < max_dgs_z_l)
+        return 0;   // already have a closer one
+
     // must be in a box +- MAX_DGS_2_STAND_X, MAX_DGS_2_STAND_Z
     // and reasonably aligned with stand (or for SAM1 anti aligned)
     if (fabsf(dgs_x_l) > MAX_DGS_2_STAND_X
@@ -236,9 +242,16 @@ is_dgs_active(float obj_x, float obj_z, float obj_psi)
         || BETWEEN(fabsf(RA(nearest_stand->hdgt - obj_psi)), 10.0f, 170.0f))
         return 0;
 
-    //log_msg("associating DGS: dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
-
     // we found one
+    if (dgs_z_l > max_dgs_z_l) {
+        if (nearest_stand->dgs_assoc)
+            nearest_stand->dgs_assoc = 0;   // associated to a new dgs
+
+        max_dgs_z_l = dgs_z_l;
+        max_dgs_z_l_ts = XPLMGetDataf(total_running_time_sec_dr);
+        log_msg("associating DGS: dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
+    }
+
     nearest_stand->dgs_assoc = 1;
 
     // save for optimization
@@ -270,12 +283,16 @@ read_dgs_acc(void *ref)
         if (fabsf(RA(nearest_stand->hdgt - obj_psi)) > 10.0f)   // no anti alignment for the Marshaller
             return 0.0;
 
-        is_marshaller = 1;      // only marshaller queries ident
-        marshaller_x = obj_x;
-        marshaller_y = XPLMGetDataf(draw_object_y_dr);
-        marshaller_z = obj_z;
-        marshaller_psi = obj_psi;
-        return 0.0f;
+        // if last nearest dgs was found 2 seconds ago
+        // this should be the nearest one in this stand's bbox
+        if (now > max_dgs_z_l_ts + 2.0f) {
+            is_marshaller = 1;      // only marshaller queries ident
+            marshaller_x = obj_x;
+            marshaller_y = XPLMGetDataf(draw_object_y_dr);
+            marshaller_z = obj_z;
+            marshaller_psi = obj_psi;
+            return 0.0f;
+        }
     }
 
     return drefs[dr_index];
@@ -443,10 +460,11 @@ find_nearest_stand()
                 min_stand->hdgt, dist, dgs_dist);
 
         nearest_stand = min_stand;
+        max_dgs_z_l = -1.0E10;
+        max_dgs_z_l_ts = 1.0E10;
         state = ENGAGED;
     }
 }
-
 
 int
 dgs_init()
