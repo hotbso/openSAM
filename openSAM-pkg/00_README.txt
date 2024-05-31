@@ -11,6 +11,8 @@ If you must keep the SAM_Library (e.g. for Zero Dollar Payware freeware)
 - If not already done link or copy the SAM_library into "Custom Scenery"
 - Make sure openSAM_Library is above SAM_Library in scenery_packs.ini
 - Within openSAM_Library copy "library-with_SAM_Library.txt" to "library.txt"
+  I recommend to open a shell window in openSAM_Library and issue the
+  command "copy library-with_SAM_Library.txt library.txt" or "cp ..."
 
 Usage
 =====
@@ -18,9 +20,10 @@ The openSAM plugin defines commands:
 
 "Dock jetway"   -> openSAM/dock_jwy
 "Undock jetway" -> openSAM/undock_jwy
+"Toggle UI"     -> openSAM/toggle_ui
 "Toggle jetway" -> openSAM/toggle_jwy
 
-The first two commands are accessible through the menu as well.
+The first three commands are accessible through the menu as well.
 
 In addition it exports datarefs:
 
