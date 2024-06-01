@@ -481,25 +481,25 @@ dgs_init()
                                  NULL, NULL, NULL, (void *)(uint64_t)i, NULL);
 
     XPLMRegisterDataAccessor("sam/vdgs/status", xplmType_Float, 0, NULL,
-                                NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
+                             NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
 
     XPLMRegisterDataAccessor("sam/docking/lateral", xplmType_Float, 0, NULL,
-                                NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_LATERAL, NULL);
+                             NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_LATERAL, NULL);
 
     XPLMRegisterDataAccessor("sam/docking/longitudinal", xplmType_Float, 0, NULL,
-                                NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_LONGITUDINAL, NULL);
+                             NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_LONGITUDINAL, NULL);
 
     XPLMRegisterDataAccessor("sam/docking/icao", xplmType_IntArray, 0, NULL, NULL,
-                                NULL, NULL, NULL, NULL, read_sam1_icao_acc, NULL,
-                                NULL, NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_ICAO, NULL);
+                             NULL, NULL, NULL, NULL, read_sam1_icao_acc, NULL,
+                             NULL, NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_ICAO, NULL);
 
     // some custom VDGS use "sam/docking/status", e.g. Gaya LOWW
     XPLMRegisterDataAccessor("sam/docking/status", xplmType_Float, 0, NULL,
-                                NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
+                             NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
 
     marshaller_obj = XPLMLoadObject("Custom Scenery/openSAM_Library/dgs/Marshaller.obj");
     if (NULL == marshaller_obj) {
@@ -843,8 +843,6 @@ dgs_state_machine()
             log_msg("sam1: status %0.0f, lateral: %0.1f, longitudinal: %0.1f",
                     sam1_status, sam1_lateral, sam1_longitudinal);
         }
-
-
     }
 
     return loop_delay;

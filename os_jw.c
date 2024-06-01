@@ -50,7 +50,7 @@ static const char * const state_str[] = {
 static state_t state = IDLE;
 static state_t prev_state = DISABLED;
 
-// keep in sync!
+// keep in sync with array below !
 typedef enum dr_code_e {
     DR_ROTATE1, DR_ROTATE2, DR_ROTATE3, DR_EXTENT,
     DR_WHEELS, DR_WHEELROTATEC, DR_WHEELROTATER, DR_WHEELROTATEL,
@@ -299,7 +299,7 @@ jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n)
 static void
 alert_complete(void *ref, FMOD_RESULT status)
 {
-    log_msg("fmod callback: %d", status);
+    UNUSED(status);
 
     jw_ctx_t *ajw = ref;
     ajw->alert_chn = NULL;
@@ -375,7 +375,6 @@ jw_xy_to_sam_dr(const jw_ctx_t *ajw, float cabin_x, float cabin_z,
 
     float dist = len2f(cabin_x - ajw->x, cabin_z - ajw->z);
 
-    //float rot1_d = asinf((cabin_z - ajw->z)/ dist) / D2R;   // door frame
     float rot1_d = atan2(cabin_z - ajw->z, cabin_x - ajw->x) / D2R;   // door frame
     *rot1 =  RA(rot1_d + 90.0f - ajw->psi);
     *extent = dist - jw->cabinPos;
@@ -472,7 +471,7 @@ njw_compar(const void *a_, const void *b_)
     return 0;
 }
 
-// find nearest jetways per door and save their info
+// find nearest jetways, order by z (= door number, hopefully)
 static int
 find_nearest_jws()
 {
@@ -585,7 +584,7 @@ select_jws()
 
     n_active_jw = 0;
 
-    // from door 0 to n assign nearest jw that is not already assigned
+    // from door 0 to n assign nearest jw
     for (int i = 0; i < n_door; i++) {
         if (i >= n_nearest)
             break;
@@ -971,7 +970,7 @@ undock_drive(jw_ctx_t *ajw)
     return 0;
 }
 
-// the state machine triggered by the flight loop
+// the state machine called from the flight loop
 float
 jw_state_machine()
 {
@@ -1230,19 +1229,20 @@ jw_init()
     }
 
     XPLMRegisterDataAccessor("opensam/jetway/status", xplmType_Int, 0, jw_status_acc,
-                                 NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                 NULL, NULL, NULL, NULL, NULL);
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL);
 
     XPLMRegisterDataAccessor("opensam/jetway/number", xplmType_Int, 0, jw_status_acc,
-                                 NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                 NULL, NULL, NULL, &n_active_jw, NULL);
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, &n_active_jw, NULL);
 
     XPLMRegisterDataAccessor("opensam/jetway/door/status", xplmType_IntArray, 0, NULL, NULL,
-                                NULL, NULL, NULL, NULL, jw_door_status_acc, NULL,
-                                NULL, NULL, NULL, NULL, NULL, NULL);
+                             NULL, NULL, NULL, NULL, jw_door_status_acc, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL);
 
     reset_jetways();
 
+    // load alert sound
     char fn[sizeof(base_dir) + 100];
     strcpy(fn, base_dir);
     strcat(fn, "sound/alert.wav");
