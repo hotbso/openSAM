@@ -833,9 +833,9 @@ dock_drive(jw_ctx_t *ajw)
         rotate_1_extend(ajw, ajw->cabin_x, ajw->cabin_z);
         animate_wheels(ajw, ds);
 
-        float eps = MAX(2.0f * dt * JW_DRIVE_SPEED, 0.1f);
-        //log_msg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - ajw->cabin_x), fabs(ajw->cabin_z));
-        if (fabs(tgt_x - ajw->cabin_x) < eps && fabs(ajw->cabin_z) < eps)  {
+        float eps = MAX(2.0f * dt * JW_DRIVE_SPEED, 0.05f);
+        //log_msg("eps: %0.3f, d_x: %0.3f", eps, fabs(tgt_x - ajw->cabin_x));
+        if (fabs(tgt_x - ajw->cabin_x) < eps) {
             ajw->state = AJW_DOCKED;
             log_msg("door reached");
             jw->warnlight = 0;
