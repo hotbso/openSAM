@@ -1197,6 +1197,24 @@ cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
      return 0;
 }
 
+// intercept XP12's standard cmd
+static int
+cmd_xp12_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
+{
+    UNUSED(cmdr);
+    UNUSED(ref);
+
+    if (xplm_CommandBegin != phase)
+        return 1;
+
+    log_msg("cmd_xp12_dock_jw_cb called");
+
+    if (CAN_DOCK == state || DOCKED == state)
+        toggle_requested = 2;
+
+    return 1;       // pass on to XP12, likely there is no XP12 jw here 8-)
+}
+
 int
 jw_init()
 {
@@ -1208,6 +1226,11 @@ jw_init()
 
     toggle_cmdr = XPLMCreateCommand("openSAM/toggle_jwy", "Toggle jetway");
     XPLMRegisterCommandHandler(toggle_cmdr, cmd_dock_jw_cb, 0, &toggle_requested);
+
+    // augment XP12's standard cmd
+    XPLMCommandRef xp12_toggle_cmdr = XPLMFindCommand("sim/ground_ops/jetway");
+    if (xp12_toggle_cmdr)
+        XPLMRegisterCommandHandler(xp12_toggle_cmdr, cmd_xp12_dock_jw_cb, 1, NULL);
 
     // create the jetway animation datarefs
     for (dr_code_t drc = DR_ROTATE1; drc < N_JW_DR; drc++) {
