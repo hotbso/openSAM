@@ -25,7 +25,11 @@ The openSAM plugin defines commands:
 
 The first three commands are accessible through the menu as well.
 
-In addition it exports datarefs:
+openSAM augments XP12's standard command "sim/ground_ops/jetway":
+    - if there is a SAM jetway operate it
+    - otherwise try to operate a XP12 standard jetway (if there is none it's a noop)
+
+In addition openSAM exports datarefs:
 
 "opensam/jetway/number"
     number of jetways at stand
