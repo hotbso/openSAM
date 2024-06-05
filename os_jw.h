@@ -23,7 +23,7 @@
 struct _sam_jw  {
 
     // local x,z computed from the xml's lat/lon
-    double xml_x, xml_y, xml_z;
+    float xml_x, xml_y, xml_z;
     unsigned int xml_ref_gen;   // only valid if this matches the generation of the ref frame
 
     // values from the actually drawn object

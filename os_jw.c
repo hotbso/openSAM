@@ -139,7 +139,6 @@ jw_anim_acc(void *ref)
 
     float lat = XPLMGetDataf(plane_lat_dr);
     float lon = XPLMGetDataf(plane_lon_dr);
-    float elevation = XPLMGetDataf(plane_elevation_dr);
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
@@ -172,7 +171,16 @@ jw_anim_acc(void *ref)
             }
 
             if (jw->xml_ref_gen < ref_gen) {
-                XPLMWorldToLocal(jw->latitude, jw->longitude, elevation, &jw->xml_x, &jw->xml_y, &jw->xml_z);
+                // this stuff runs once when a jw in a scenery comes in sight
+                // so it should not be too costly
+                double  x, y ,z;
+                XPLMWorldToLocal(jw->latitude, jw->longitude, 0.0f, &x, &y, &z);
+                if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
+                    log_msg("terrain probe failed???");
+                    return 0.0f;
+                }
+                jw->xml_x = probeinfo.locationX;
+                jw->xml_z = probeinfo.locationZ;
                 jw->xml_ref_gen = ref_gen;
             }
 
@@ -501,8 +509,8 @@ find_nearest_jws()
             if (jw->obj_ref_gen < ref_gen)  // not visible -> not dockable
                 continue;
 
-            //log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
-            //        jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
+            log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
+                    jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
 
             jw_ctx_t tentative_njw;
             jw_ctx_t *njw = &tentative_njw;
@@ -526,8 +534,8 @@ find_nearest_jws()
 
             if (njw->x > -1.0f || BETWEEN(njw->psi, -130.0f, 20.0f) ||  // on the right side or pointing away
                 njw->x < -80.0f || fabsf(njw->z) > 80.0f) {             // or far away
-                //log_msg("to far or pointing away: %s, x: %0.2f, njw->psi: %0.1f",
-                //        jw->name, njw->cabin_x, njw->psi);
+                log_msg("to far or pointing away: %s, x: %0.2f, njw->psi: %0.1f",
+                        jw->name, njw->cabin_x, njw->psi);
                 continue;
             }
 

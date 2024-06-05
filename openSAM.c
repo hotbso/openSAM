@@ -128,6 +128,9 @@ char acf_icao[5];
 uint64_t stat_sc_far_skip, stat_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last;
 
+XPLMProbeInfo_t probeinfo = {.structSize = sizeof(XPLMProbeInfo_t)};
+XPLMProbeRef probe_ref;
+
 static void
 save_pref()
 {
@@ -548,6 +551,9 @@ XPluginStop(void)
 PLUGIN_API void
 XPluginDisable(void)
 {
+    if (probe_ref)
+        XPLMDestroyProbe(probe_ref);
+
     save_pref();
     log_msg("acc called:       %llu", stat_acc_called);
     log_msg("scenery far skip: %llu", stat_sc_far_skip);
@@ -561,6 +567,12 @@ XPluginDisable(void)
 PLUGIN_API int
 XPluginEnable(void)
 {
+    probe_ref = XPLMCreateProbe(xplm_ProbeY);
+    if (NULL == probe_ref) {
+        log_msg("Can't create terrain probe");
+        return 0;
+    }
+
     return 1;
 }
 

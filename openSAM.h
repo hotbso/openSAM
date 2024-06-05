@@ -108,6 +108,10 @@ extern unsigned int ref_gen;
 extern XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr;
 extern int auto_select_jws;
 
+// terrain probe
+extern XPLMProbeInfo_t probeinfo;
+extern XPLMProbeRef probe_ref;
+
 // functions
 extern void log_msg(const char *fmt, ...);
 extern int collect_sam_xml(const char *xp_dir);

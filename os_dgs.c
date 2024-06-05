@@ -797,11 +797,8 @@ dgs_state_machine()
 
                 // now check whether it's Marshaller_high
 
-                XPLMProbeInfo_t probeinfo = {.structSize = sizeof(XPLMProbeInfo_t)};
-                XPLMProbeRef probe_ref = XPLMCreateProbe(xplm_ProbeY);
-                if (probe_ref &&
-                    (xplm_ProbeHitTerrain == XPLMProbeTerrainXYZ(probe_ref, marshaller_x, marshaller_y, marshaller_z,
-                                                                 &probeinfo))) {
+                if (xplm_ProbeHitTerrain == XPLMProbeTerrainXYZ(probe_ref, marshaller_x, marshaller_y, marshaller_z,
+                                                               &probeinfo)) {
                     marshaller_y_0 = probeinfo.locationY;   // ground 0
 
                     if (marshaller_y - marshaller_y_0 > 2.0f) {
@@ -822,9 +819,6 @@ dgs_state_machine()
                         XPLMInstanceSetPosition(stairs_inst, &drawinfo, NULL);
                     }
                 }
-
-                if (probe_ref)
-                    XPLMDestroyProbe(probe_ref);
             }
 
             // update datarefs
