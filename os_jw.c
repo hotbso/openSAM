@@ -30,6 +30,9 @@
 #include "os_jw.h"
 #include "os_jw_impl.h"
 
+static const float SAM_2_OBJ_MAX = 2.5;     // m, max delta between coords in sam.xml and object
+static const float SAM_2_OBJ_HDG_MAX = 5;   // °, likewise for heading
+
 static const float JW_DRIVE_SPEED = 1.0;    // m/s
 static const float JW_TURN_SPEED = 10.0;    // °/s
 static const float JW_HEIGHT_SPEED = 0.1;   // m/s
@@ -142,6 +145,7 @@ jw_anim_acc(void *ref)
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
+    float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
     // check for shift of reference frame
     float lat_r = XPLMGetDataf(lat_ref_dr);
@@ -170,6 +174,9 @@ jw_anim_acc(void *ref)
                 continue;
             }
 
+            if (fabsf(RA(jw->heading - obj_psi)) > SAM_2_OBJ_HDG_MAX)
+                continue;
+
             if (jw->xml_ref_gen < ref_gen) {
                 // this stuff runs once when a jw in a scenery comes in sight
                 // so it should not be too costly
@@ -179,12 +186,13 @@ jw_anim_acc(void *ref)
                     log_msg("terrain probe failed???");
                     return 0.0f;
                 }
+
                 jw->xml_x = probeinfo.locationX;
                 jw->xml_z = probeinfo.locationZ;
                 jw->xml_ref_gen = ref_gen;
             }
 
-            if (fabs(obj_x - jw->xml_x) > NEAR_SKIP || fabs(obj_z - jw->xml_z) > NEAR_SKIP) {
+            if (fabs(obj_x - jw->xml_x) > SAM_2_OBJ_MAX || fabs(obj_z - jw->xml_z) > SAM_2_OBJ_MAX) {
                 stat_near_skip++;
                 continue;
             }
@@ -196,7 +204,7 @@ jw_anim_acc(void *ref)
                 jw->x = obj_x;
                 jw->z = obj_z;
                 jw->y = XPLMGetDataf(draw_object_y_dr);
-                jw->psi = XPLMGetDataf(draw_object_psi_dr);
+                jw->psi = obj_psi;
             }
 
             stat_jw_match++;

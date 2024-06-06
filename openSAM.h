@@ -42,8 +42,6 @@
 static const float D2R = M_PI/180.0;
 static const float F2M = 0.3048;	    // 1 ft [m]
 static const float LAT_2_M = 111120;    // 1° lat in m
-static const float FAR_SKIP = 5000;     // don't consider jetways farther than that
-static const float NEAR_SKIP = 2;       // don't consider jetways farther than that
 
 typedef struct _sam_jw sam_jw_t;
 typedef struct _sam_dgs sam_dgs_t;
