@@ -730,6 +730,9 @@ dock_drive(jw_ctx_t *ajw)
     if (ajw->state == AJW_DOCKED)
         return 1;
 
+    if (now < ajw->start_ts)
+        return 0;
+
     // guard against a hung animation
     if (now > ajw->timeout) {
         log_msg("dock_drive() timeout!");
@@ -872,6 +875,9 @@ undock_drive(jw_ctx_t *ajw)
 
     if (ajw->state == AJW_PARKED)
         return 1;
+
+    if (now < ajw->start_ts)
+        return 0;
 
     // guard against a hung animation
     if (now > ajw->timeout) {
@@ -1079,17 +1085,23 @@ jw_state_machine()
 
             if (1 == dock_requested || toggle_requested) {
                 log_msg("docking requested");
+                int active_door = 0;
                 for (int i = 0; i < n_door; i++) {
                     jw_ctx_t *ajw = &active_jw[i];
                     if (NULL == ajw->jw)
                         continue;
+
                     ajw->state = AJW_TO_AP;
-                    ajw->last_step_ts = now;
-                    ajw->timeout = now + JW_ANIM_TIMEOUT;
+                    // staggered start for docking low to high
+                    ajw->start_ts = now + active_door * 5.0f;
+                    ajw->last_step_ts = ajw->start_ts;
+                    ajw->timeout = ajw->start_ts + JW_ANIM_TIMEOUT;
                     alert_on(ajw);
                     ajw->jw->warnlight = 1;
-                    new_state = DOCKING;
+                    active_door++;
                 }
+
+                new_state = DOCKING;
             }
             break;
 
@@ -1133,13 +1145,18 @@ jw_state_machine()
 
             if (1 == undock_requested || toggle_requested) {
                 log_msg("undocking requested");
+                int active_door = n_door;
                 for (int i = 0; i < n_door; i++) {
                     jw_ctx_t *ajw = &active_jw[i];
                     if (NULL == ajw->jw)
                         continue;
+
+                    active_door--;
                     ajw->state = AJW_TO_AP;
-                    ajw->last_step_ts = now;
-                    ajw->timeout = now + JW_ANIM_TIMEOUT;
+                    // staggered start for undocking high to low
+                    ajw->start_ts = now + active_door * 5.0f;
+                    ajw->last_step_ts = ajw->start_ts;
+                    ajw->timeout = ajw->start_ts + JW_ANIM_TIMEOUT;
                     alert_on(ajw);
                     ajw->jw->warnlight = 1;
                 }

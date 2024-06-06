@@ -54,6 +54,7 @@ typedef struct jw_ctx_ {
     int wait_wb_rot;    // waiting for wheel base rotation
     float wb_rot;       // to this angle
 
+    float start_ts;     // actually start operation if now > start_ts
     float last_step_ts;
     float timeout;      // so we don't get stuck
 
