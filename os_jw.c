@@ -436,7 +436,6 @@ setup_active_jetways()
         ajw->cabin_x = ajw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
         ajw->cabin_z = ajw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
 
-
         ajw->tgt_x = -jw->cabinLength;
         // tgt z = 0.0
         ajw->y = (jw->y + jw->height) - (plane_y + door_info[i].y);
@@ -536,14 +535,10 @@ find_nearest_jws()
             njw->x -= door_x;
             njw->z -= door_z;
 
-            float rot1_d = RA((jw->initialRot1 + njw->psi) - 90.0f);    // door frame
-            njw->cabin_x = njw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
-            njw->cabin_z = njw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
-
-            if (njw->x > -1.0f || BETWEEN(njw->psi, -130.0f, 20.0f) ||  // on the right side or pointing away
+            if (njw->x > 1.0f || BETWEEN(njw->psi, -130.0f, 20.0f) ||   // on the right side or pointing away
                 njw->x < -80.0f || fabsf(njw->z) > 80.0f) {             // or far away
-                log_msg("to far or pointing away: %s, x: %0.2f, njw->psi: %0.1f",
-                        jw->name, njw->cabin_x, njw->psi);
+                log_msg("to far or pointing away: %s, x: %0.2f, z: %0.2f, njw->psi: %0.1f",
+                        jw->name, njw->x, njw->z, njw->psi);
                 continue;
             }
 
