@@ -149,14 +149,15 @@ save_pref()
 static void
 load_pref()
 {
+    // set some reasonable default values in case there is no pref file
+    nh = 1;
+    auto_season = 1;
+    season = 1;
+    auto_select_jws = 1;
+
     FILE *f  = fopen(pref_path, "r");
     if (NULL == f)
         return;
-
-    nh = 1;
-    auto_season = 0;
-    season = 0;
-    auto_select_jws = 1;
 
     fscanf(f, "%i,%i,%i", &auto_season, &season, &auto_select_jws);
     log_msg("From pref: auto_season: %d, seasons: %d, auto_select_jws: %d",
@@ -433,7 +434,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMGetPrefsPath(pref_path);
     XPLMExtractFileAndPath(pref_path);
     strcat(pref_path, psep);
-    strcat(pref_path, "sam_se.prf");
+    strcat(pref_path, "openSAM.prf");
 
     // get my base dir
     XPLMGetPluginInfo(XPLMGetMyID(), NULL, base_dir, NULL, NULL);
@@ -496,7 +497,6 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
 
     load_pref();
-    set_menu();
 
     if (!collect_sam_xml(xp_dir))
         log_msg("Error collecting sam.xml files!");
@@ -535,6 +535,8 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     season_item[2] = XPLMAppendMenuItem(seasons_menu, "Summer", (void *)2, 0);
     season_item[3] = XPLMAppendMenuItem(seasons_menu, "Autumn", (void *)3, 0);
     // ---------------------
+
+    set_menu();
 
     // ... and off we go
     XPLMRegisterFlightLoopCallback(flight_loop_cb, 2.0, NULL);
