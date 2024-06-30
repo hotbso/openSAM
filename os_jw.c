@@ -178,12 +178,28 @@ jw_anim_acc(void *ref)
                 continue;
 
             if (jw->xml_ref_gen < ref_gen) {
+                // we must iterate to get the elevation of the jetway
+                //
                 // this stuff runs once when a jw in a scenery comes in sight
                 // so it should not be too costly
+                //
                 double  x, y ,z;
-                XPLMWorldToLocal(jw->latitude, jw->longitude, 0.0f, &x, &y, &z);
+                XPLMWorldToLocal(jw->latitude, jw->longitude, 0.0, &x, &y, &z);
                 if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
                     log_msg("terrain probe failed???");
+                    return 0.0f;
+                }
+
+                // xform back to world to get an approximation for the elevation
+                double lat, lon, elevation;
+                XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ,
+                                 &lat, &lon, &elevation);
+                //log_msg("elevation: %0.2f", elevation);
+
+                // and again to local with SAM's lat/lon and the approx elevation
+                XPLMWorldToLocal(jw->latitude, jw->longitude, elevation, &x, &y, &z);
+                if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
+                    log_msg("terrain probe 2 failed???");
                     return 0.0f;
                 }
 
