@@ -553,7 +553,7 @@ find_nearest_jws()
 
             if (njw->x > 1.0f || BETWEEN(njw->psi, -130.0f, 20.0f) ||   // on the right side or pointing away
                 njw->x < -80.0f || fabsf(njw->z) > 80.0f) {             // or far away
-                log_msg("to far or pointing away: %s, x: %0.2f, z: %0.2f, njw->psi: %0.1f",
+                log_msg("too far or pointing away: %s, x: %0.2f, z: %0.2f, njw->psi: %0.1f",
                         jw->name, njw->x, njw->z, njw->psi);
                 continue;
             }
