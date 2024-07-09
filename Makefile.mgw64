@@ -23,7 +23,7 @@ CFLAGS+=-DVERSION=\"$(VERSION)\"  -mdll -g0 -O2 -s -Wextra -Wall -fdiagnostics-c
 COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS)  -c
 
 LDFLAGS=-shared -static-libgcc -static -lpthread
-LIBS=-L$(SDK)/Libraries/Win -lXPLM_64 -lXPWidgets_64
+LIBS=-L$(SDK)/Libraries/Win -lXPLM_64 -lXPWidgets_64 -l:libexpat.a
 
 $(OBJDIR)/%.o: %.c $(DEPDIR)/%.d version.mak | $(DEPDIR)
 	$(COMPILE.c) -o $@  $<
@@ -50,4 +50,4 @@ clean:
 sam_xml_test.exe: sam_xml_test.c sam_xml.c log_msg.c $(HEADERS)
 	$(CC) -Wall -fdiagnostics-color -Wno-format-overflow -I$(SDK)/CHeaders/XPLM -DIBM=1 \
     -DWINDOWS -DWIN32 -DLOCAL_DEBUGSTRING -o sam_xml_test.exe \
-        sam_xml_test.c sam_xml.c log_msg.c
+        sam_xml_test.c sam_xml.c log_msg.c -l:libexpat.a

@@ -22,3 +22,26 @@ This is in part a derived work from Autogate so the above mentioned licenses app
 
 ### Home on x-plane.org
 https://forums.x-plane.org/index.php?/files/file/90865-opensam-an-open-source-replacement-for-sam-on-xp12/
+
+## Build
+
+### Windows
+The build process is performed on msys2 with the mingw64 personality.\
+Install expat with "pacman -S expat"
+make -f Makefile.mgw64
+
+### Linux
+make -f Makefile.lin64
+
+### macOS on Linux
+The build process is performed on Linux with an osxcross environment.\
+Install expat, -arm64 installs universal libraries. "-s" install static libraries only.
+
+export MACOSX_DEPLOYMENT_TARGET=12.0
+omp install -s -arm64 expat
+
+make -f Makefile.osxcross
+
+### macOS on macOS
+port install expat +universal
+make -f Makefile.mac64

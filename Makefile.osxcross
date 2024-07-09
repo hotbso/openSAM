@@ -14,8 +14,8 @@ SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c sam_xml.c log_msg.c read_wav.c
 OBJECTS_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o_arm))
 OBJECTS_x86=$(OBJECTS_arm:.o_arm=.o_x86)
 
-CCx=o64-clang -mmacosx-version-min=10.10
-CCa=oa64-clang -mmacosx-version-min=10.10
+CCx=o64-clang -mmacosx-version-min=12.0
+CCa=oa64-clang -mmacosx-version-min=12.0
 
 DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -DNDEBUG
 
@@ -24,10 +24,10 @@ CFLAGS+=-O2 -Wall -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets -DVERSION=\"$
 LNFLAGS+=-dynamiclib -shared -rdynamic -fvisibility=hidden -Wl,-exported_symbols_list -Wl,linkscript.mac
 
 # https://pewpewthespells.com/blog/static_and_dynamic_libraries.html
-LIBS+= -F $(SDK)/Libraries/Mac -framework XPLM -framework XPWidgets
+LIBS+= -F $(SDK)/Libraries/Mac -framework XPLM -framework XPWidgets /osxcross/target/macports/pkgs/opt/local/lib/libexpat.a
 
 # ships with macOS
-LIBS+=-liconv
+LIBS+=
 
 #test:
 #    $(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))

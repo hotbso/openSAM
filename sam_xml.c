@@ -22,11 +22,29 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+#include <expat.h>
+
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 #include "openSAM.h"
 #include "os_jw.h"
 #include "os_dgs.h"
+
+// context for element handlers
+typedef struct _expat_ctx {
+    XML_Parser parser;
+    bool in_jetways;
+    bool in_sets;
+    scenery_t *sc;
+    int max_sam_jws;
+} expat_ctx_t;
 
 scenery_t *sceneries;
 int n_sceneries;
@@ -34,72 +52,49 @@ static int max_sceneries;
 
 sam_jw_t sam3_lib_jw[MAX_SAM3_LIB_JW + 1];
 
+static const int BUFSIZE = 4096;
+
 static int
-extract_int(const char *line, const char *prop) {
-    const char *cptr;
-
-    if (NULL == (cptr = strstr(line, prop)))
-        return 0;
-
-    if (NULL == (cptr = strchr(cptr, '"')))
-        return 0;
-    cptr++;
-
-    int res = atoi(cptr);
-    //log_msg("%15s '%s' %d", prop, cptr, res);
-    return res;
+extract_int(const XML_Char **attr, const char *prop) {
+    for (int i = 0; attr[i]; i += 2)
+        if (0 == strcmp(attr[i], prop))
+            return atoi(attr[i+1]);
+    return 0;
 }
 
 static float
-extract_float(const char *line, const char *prop) {
-    const char *cptr;
-
-    if (NULL == (cptr = strstr(line, prop)))
-        return 0.0f;
-
-    if (NULL == (cptr = strchr(cptr, '"')))
-        return 0.0f;
-    cptr++;
-
-    float res = atof(cptr);
-    //log_msg("%15s '%s' %8.3f", prop, cptr, res);
-    return res;
+extract_float(const XML_Char **attr, const char *prop) {
+    for (int i = 0; attr[i]; i += 2)
+        if (0 == strcmp(attr[i], prop))
+            return atof(attr[i+1]);
+    return 0;
 }
 
 static void
-extract_str(const char *line, const char *prop, char *value, int value_len) {
-    const char *cptr, *cptr1;
-
+extract_str(const XML_Char **attr, const char *prop, char *value, int value_len) {
     value[0] = '\0';
-    if (NULL == (cptr = strstr(line, prop)))
-        return;
-
-    if (NULL == (cptr = strchr(cptr, '"')))
-        return;
-    cptr++;
-
-    if (NULL == (cptr1 = strchr(cptr, '"')))
-        return;
-
-    int len = cptr1 - cptr;
-    if (len > value_len - 1)
-        len = value_len - 1;
-    value[len] = '\0';
-    strncpy(value, cptr, len);
-    //log_msg("%15s %s\n", prop, value);
+    for (int i = 0; attr[i]; i += 2)
+        if (0 == strcmp(attr[i], prop)) {
+            int len = strlen(attr[i+1]);
+            if (len > value_len - 1)
+                len = value_len - 1;
+            value[len] = '\0';
+            strncpy(value, attr[i+1], len);
+            return;
+        }
 }
 
 #define GET_INT_PROP(p) \
-    sam_jw->p = extract_int(line, #p);
+    sam_jw->p = extract_int(attr, #p);
 
 #define GET_FLOAT_PROP(p) \
-    sam_jw->p = extract_float(line, #p);
+    sam_jw->p = extract_float(attr, #p);
 
 #define GET_STR_PROP(p) \
-    extract_str(line, #p, sam_jw->p, sizeof(sam_jw->p));
+    extract_str(attr, #p, sam_jw->p, sizeof(sam_jw->p));
 
 static void
-get_jw_props(const char *line, sam_jw_t *sam_jw)
+get_jw_props(const XML_Char **attr, sam_jw_t *sam_jw)
 {
     memset(sam_jw, 0, sizeof(*sam_jw));
 
@@ -131,7 +126,7 @@ get_jw_props(const char *line, sam_jw_t *sam_jw)
     GET_FLOAT_PROP(initialExtent)
 
     char buffer[10];
-    extract_str(line, "forDoorLocation", buffer, sizeof(buffer));
+    extract_str(attr, "forDoorLocation", buffer, sizeof(buffer));
     if (0 == strcmp(buffer, "LF2"))
         sam_jw->door = 1;
 
@@ -139,63 +134,112 @@ get_jw_props(const char *line, sam_jw_t *sam_jw)
         sam_jw->door = 2;
 }
 
-static int
-read_library_xml(FILE *f)
-{
-    char line[2000];    // can be quite long
 
-    while (fgets(line, sizeof(line) - 1, f)) {
-        char *cptr = strstr(line, "<set ");
-        if (NULL == cptr)
-            continue;
+static void XMLCALL
+start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
+    expat_ctx_t *ctx = user_data;
 
-        if ((cptr = strchr(line, '\r')))
-            *cptr = '\0';
+    if (0 == strcmp(name, "jetways")) {
+        ctx->in_jetways = true;
+        return;
+    }
 
+    if (0 == strcmp(name, "sets")) {
+        ctx->in_sets = true;
+        return;
+    }
+
+    if (ctx->in_jetways && (0 == strcmp(name, "jetway"))) {
+        scenery_t *sc = ctx->sc;
+
+        if (sc->n_sam_jws == ctx->max_sam_jws) {
+            ctx->max_sam_jws += 100;
+            sc->sam_jws = realloc(sc->sam_jws, ctx->max_sam_jws * sizeof(sam_jw_t));
+            if (sc->sam_jws == NULL) {
+                log_msg("Can't allocate memory");
+                XML_StopParser(ctx->parser, XML_FALSE);
+                return;
+            }
+        }
+
+        get_jw_props(attr, &sc->sam_jws[sc->n_sam_jws]);
+        sc->n_sam_jws++;
+        return;
+    }
+
+    if (ctx->in_sets && (0 == strcmp(name, "set"))) {
         sam_jw_t sam_jw;
-        memset(&sam_jw, 0, sizeof(sam_jw));
-        get_jw_props(line, &sam_jw);
+
+        get_jw_props(attr, &sam_jw);
         if (!BETWEEN(sam_jw.id, 1, MAX_SAM3_LIB_JW)) {
-            log_msg("invalid line '%s', %d", line, sam_jw.id);
-            return 0;
+            log_msg("invalid library jw '%s', %d", sam_jw.name, sam_jw.id);
+            return;
         }
 
         sam3_lib_jw[sam_jw.id] = sam_jw;
+        return;
+    }
+}
+
+static void XMLCALL
+end_element(void *user_data, const XML_Char *name) {
+    expat_ctx_t *ctx = user_data;
+
+    if (0 == strcmp(name, "jetways")) {
+        ctx->in_jetways = false;
+        return;
     }
 
-    return 1;
+    if (0 == strcmp(name, "sets")) {
+        ctx->in_sets = false;
+        return;
+    }
 }
 
 static int
-read_sam_xml(FILE *f, scenery_t *sc)
+read_sam_xml(int fd, scenery_t *sc)
 {
-    char line[2000];    // can be quite long
+    int rc = 0;
+    XML_Parser parser = XML_ParserCreate(NULL);
+    if (NULL == parser)
+        goto out;
 
-    int max_sam_jws = 0;
+    expat_ctx_t ctx;
+    memset(&ctx, 0, sizeof(ctx));
+    ctx.parser = parser;
+    ctx.sc = sc;
 
-    while (fgets(line, sizeof(line) - 1, f)) {
-        char *cptr = strchr(line, '\r');
-        if (cptr)
-            *cptr = '\0';
+    XML_SetUserData(parser, &ctx);
+    XML_SetElementHandler(parser, start_element, end_element);
 
-        if (strstr(line, "<jetway ")) {
-            //log_msg("%s", line);
-            if (sc->n_sam_jws == max_sam_jws) {
-                max_sam_jws += 100;
-                sc->sam_jws = realloc(sc->sam_jws, max_sam_jws * sizeof(sam_jw_t));
-                if (sc->sam_jws == NULL) {
-                    log_msg("Can't allocate memory");
-                    return 0;
-                }
-            }
-
-            get_jw_props(line, &sc->sam_jws[sc->n_sam_jws]);
-            sc->n_sam_jws++;
+    for (;;) {
+        void *buf = XML_GetBuffer(parser, BUFSIZE);
+        int len = read(fd, buf, BUFSIZE);
+        if (len < 0) {
+            log_msg("error reading sam.xml");
+            goto out;
         }
+
+        if (XML_ParseBuffer(parser, len, len == 0) == XML_STATUS_ERROR) {
+            log_msg("Parse error at line %u: %s",
+                    XML_GetCurrentLineNumber(parser),
+                    XML_ErrorString(XML_GetErrorCode(parser)));
+            goto out;
+        }
+
+        if (len == 0)
+            break;
     }
 
-    sc->sam_jws = realloc(sc->sam_jws, sc->n_sam_jws * sizeof(sam_jw_t));   // shrink to actual
-    return 1;
+    if (sc)
+        sc->sam_jws = realloc(sc->sam_jws, sc->n_sam_jws * sizeof(sam_jw_t));   // shrink to actual
+    rc = 1;
+
+  out:
+    if (parser)
+        XML_ParserFree(parser);
+    parser = NULL;
+    return rc;
 }
 
 static int
@@ -289,10 +333,9 @@ collect_sam_xml(const char *xp_dir)
         int path_len = strlen(fn);
 
         strcat(fn, "sam.xml");
-
         //log_msg("Trying '%s'", fn);
-        FILE *f = fopen(fn, "r");
-        if (f) {
+        int fd = open(fn, O_RDONLY|O_BINARY);
+        if (fd > 0) {
             log_msg("Processing '%s'", fn);
 
             if (n_sceneries == max_sceneries) {
@@ -300,7 +343,7 @@ collect_sam_xml(const char *xp_dir)
                 sceneries = realloc(sceneries, max_sceneries * sizeof(scenery_t));
                 if (sceneries == NULL) {
                     log_msg("Can't allocate memory");
-                    fclose(scp); fclose(f);
+                    fclose(scp); close(fd);
                     return 0;
                 }
             }
@@ -308,8 +351,8 @@ collect_sam_xml(const char *xp_dir)
             scenery_t *sc = &sceneries[n_sceneries];
             memset(sc, 0, sizeof(scenery_t));
 
-            int rc = read_sam_xml(f, sc);
-            fclose(f);
+            int rc = read_sam_xml(fd, sc);
+            close(fd);
             if (!rc) {
                 fclose(scp);
                 return 0;
@@ -339,7 +382,7 @@ collect_sam_xml(const char *xp_dir)
 
             strcat(fn, "Earth nav data/apt.dat");
             //log_msg("Trying '%s'", fn);
-            f = fopen(fn, "r");
+            FILE *f = fopen(fn, "r");
             if (f) {
                 log_msg("Processing '%s'", fn);
                 rc = read_apt_dat(f, sc);
@@ -366,11 +409,11 @@ collect_sam_xml(const char *xp_dir)
 
         strcat(fn, "libraryjetways.xml");
         //log_msg("Trying '%s'", fn);
-        f = fopen(fn, "r");
-        if (f) {
+        fd = open(fn, O_RDONLY|O_BINARY);
+        if (fd > 0) {
             log_msg("Processing '%s'", fn);
-            int rc = read_library_xml(f);
-            fclose(f);
+            int rc = read_sam_xml(fd, NULL);
+            close(fd);
             if (!rc)
                 return 0;
             continue;
@@ -378,6 +421,7 @@ collect_sam_xml(const char *xp_dir)
     }
 
     fclose(scp);
+
     sceneries = realloc(sceneries, n_sceneries * sizeof(scenery_t));
 
     static const float far_skip_dlat = FAR_SKIP / LAT_2_M;

@@ -13,7 +13,7 @@ CFLAGS=-DVERSION=\"$(VERSION)\" \
     -Wall -Wextra -I$(SDK)/CHeaders/XPLM  -I$(SDK)/CHeaders/Widgets -fPIC -DLIN=1 -fno-stack-protector
 
 LNFLAGS=-shared -rdynamic -nodefaultlibs -undefined_warning
-LIBS=
+LIBS=-l:libexpat.a
 
 all: $(TARGET)
     $(shell [ -d $(OBJDIR) ] || mkdir $(OBJDIR))

@@ -14,7 +14,7 @@ SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c sam_xml.c log_msg.c read_wav.c
 OBJECTS_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o_arm))
 OBJECTS_x86=$(OBJECTS_arm:.o_arm=.o_x86)
 
-CCx=clang -target x86_64-apple-macos10.10
+CCx=clang -target x86_64-apple-macos11
 CCa=clang -target arm64-apple-macos11
 
 DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -DNDEBUG
@@ -26,8 +26,8 @@ LNFLAGS+=-dynamiclib -shared -rdynamic -fvisibility=hidden -Wl,-exported_symbols
 # https://pewpewthespells.com/blog/static_and_dynamic_libraries.html
 LIBS+= -F $(SDK)/Libraries/Mac -framework XPLM -framework XPWidgets
 
-# ships with macOS
-LIBS+=-liconv
+# ships with macOS or macPorts
+LIBS+=/opt/local/lib/libexpat.a
 
 #test:
 #    $(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
