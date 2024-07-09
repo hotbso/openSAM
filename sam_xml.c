@@ -54,86 +54,77 @@ sam_jw_t sam3_lib_jw[MAX_SAM3_LIB_JW + 1];
 
 static const int BUFSIZE = 4096;
 
-static int
-extract_int(const XML_Char **attr, const char *prop) {
+static const char *
+lookup_attr(const XML_Char **attr, const char *name) {
     for (int i = 0; attr[i]; i += 2)
-        if (0 == strcmp(attr[i], prop))
-            return atoi(attr[i+1]);
-    return 0;
+        if (0 == strcmp(attr[i], name))
+            return attr[i+1];
+
+    return NULL;
 }
 
-static float
-extract_float(const XML_Char **attr, const char *prop) {
-    for (int i = 0; attr[i]; i += 2)
-        if (0 == strcmp(attr[i], prop))
-            return atof(attr[i+1]);
-    return 0;
+#define GET_INT_ATTR(n) \
+{ \
+    const char *val = lookup_attr(attr, #n); \
+    if (val) \
+        sam_jw->n = atoi(val); \
+}
+
+#define GET_FLOAT_ATTR(n) \
+{ \
+    const char *val = lookup_attr(attr, #n); \
+    if (val) \
+        sam_jw->n = atof(val); \
+}
+
+#define GET_STR_ATTR(n) \
+{ \
+    const char *val = lookup_attr(attr, #n); \
+    if (val) \
+        strncpy(sam_jw->n, val, sizeof(sam_jw->n) - 1); \
 }
 
 static void
-extract_str(const XML_Char **attr, const char *prop, char *value, int value_len) {
-    value[0] = '\0';
-    for (int i = 0; attr[i]; i += 2)
-        if (0 == strcmp(attr[i], prop)) {
-            int len = strlen(attr[i+1]);
-            if (len > value_len - 1)
-                len = value_len - 1;
-            value[len] = '\0';
-            strncpy(value, attr[i+1], len);
-            return;
-        }
-}
-
-#define GET_INT_PROP(p) \
-    sam_jw->p = extract_int(attr, #p);
-
-#define GET_FLOAT_PROP(p) \
-    sam_jw->p = extract_float(attr, #p);
-
-#define GET_STR_PROP(p) \
-    extract_str(attr, #p, sam_jw->p, sizeof(sam_jw->p));
-
-static void
-get_jw_props(const XML_Char **attr, sam_jw_t *sam_jw)
+get_jw_attrs(const XML_Char **attr, sam_jw_t *sam_jw)
 {
     memset(sam_jw, 0, sizeof(*sam_jw));
 
-    GET_INT_PROP(id)
-    GET_STR_PROP(name)
-    GET_FLOAT_PROP(latitude)
-    GET_FLOAT_PROP(longitude)
-    GET_FLOAT_PROP(heading)
-    GET_FLOAT_PROP(height)
-    GET_FLOAT_PROP(wheelPos)
-    GET_FLOAT_PROP(cabinPos)
-    GET_FLOAT_PROP(cabinLength)
-    GET_FLOAT_PROP(wheelDiameter)
-    GET_FLOAT_PROP(wheelDistance)
-    GET_STR_PROP(sound)
-    GET_FLOAT_PROP(minRot1)
-    GET_FLOAT_PROP(maxRot1)
-    GET_FLOAT_PROP(minRot2)
-    GET_FLOAT_PROP(maxRot2)
-    GET_FLOAT_PROP(minRot3)
-    GET_FLOAT_PROP(maxRot3)
-    GET_FLOAT_PROP(minExtent)
-    GET_FLOAT_PROP(maxExtent)
-    GET_FLOAT_PROP(minWheels)
-    GET_FLOAT_PROP(maxWheels)
-    GET_FLOAT_PROP(initialRot1)
-    GET_FLOAT_PROP(initialRot2)
-    GET_FLOAT_PROP(initialRot3)
-    GET_FLOAT_PROP(initialExtent)
+    GET_INT_ATTR(id)
+    GET_STR_ATTR(name)
+    GET_FLOAT_ATTR(latitude)
+    GET_FLOAT_ATTR(longitude)
+    GET_FLOAT_ATTR(heading)
+    GET_FLOAT_ATTR(height)
+    GET_FLOAT_ATTR(wheelPos)
+    GET_FLOAT_ATTR(cabinPos)
+    GET_FLOAT_ATTR(cabinLength)
+    GET_FLOAT_ATTR(wheelDiameter)
+    GET_FLOAT_ATTR(wheelDistance)
+    GET_STR_ATTR(sound)
+    GET_FLOAT_ATTR(minRot1)
+    GET_FLOAT_ATTR(maxRot1)
+    GET_FLOAT_ATTR(minRot2)
+    GET_FLOAT_ATTR(maxRot2)
+    GET_FLOAT_ATTR(minRot3)
+    GET_FLOAT_ATTR(maxRot3)
+    GET_FLOAT_ATTR(minExtent)
+    GET_FLOAT_ATTR(maxExtent)
+    GET_FLOAT_ATTR(minWheels)
+    GET_FLOAT_ATTR(maxWheels)
+    GET_FLOAT_ATTR(initialRot1)
+    GET_FLOAT_ATTR(initialRot2)
+    GET_FLOAT_ATTR(initialRot3)
+    GET_FLOAT_ATTR(initialExtent)
 
-    char buffer[10];
-    extract_str(attr, "forDoorLocation", buffer, sizeof(buffer));
-    if (0 == strcmp(buffer, "LF2"))
-        sam_jw->door = 1;
+    const char *cptr = lookup_attr(attr, "forDoorLocation");
+    if (cptr) {
+        if (0 == strcmp(cptr, "LF2"))
+            sam_jw->door = 1;
 
-    if (0 == strcmp(buffer, "LU1"))
-        sam_jw->door = 2;
+        else if (0 == strcmp(cptr, "LU1"))
+            sam_jw->door = 2;
+    }
 }
-
 
 static void XMLCALL
 start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
@@ -162,7 +153,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
             }
         }
 
-        get_jw_props(attr, &sc->sam_jws[sc->n_sam_jws]);
+        get_jw_attrs(attr, &sc->sam_jws[sc->n_sam_jws]);
         sc->n_sam_jws++;
         return;
     }
@@ -170,7 +161,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
     if (ctx->in_sets && (0 == strcmp(name, "set"))) {
         sam_jw_t sam_jw;
 
-        get_jw_props(attr, &sam_jw);
+        get_jw_attrs(attr, &sam_jw);
         if (!BETWEEN(sam_jw.id, 1, MAX_SAM3_LIB_JW)) {
             log_msg("invalid library jw '%s', %d", sam_jw.name, sam_jw.id);
             return;
