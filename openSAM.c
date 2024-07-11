@@ -365,16 +365,9 @@ menu_cb(void *menu_ref, void *item_ref)
         auto_season = !auto_season;
         set_season_auto();
     } else {
-        int checked;
-        XPLMCheckMenuItemState(seasons_menu, season_item[entry], &checked);
-        log_msg("menu_cb: entry %d, checked: %d", entry, checked);
-
-        if (checked == 1 && entry != season) { // checking a prior unchecked entry
-            season = entry;
-        } // else nothing, unchecking is not possible
-
+        season = entry;
         auto_season = 0;    // selecting a season always goes to manual mode
-   }
+    }
 
     set_menu();
     save_pref();
