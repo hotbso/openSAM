@@ -111,7 +111,7 @@ extern XPLMProbeInfo_t probeinfo;
 extern XPLMProbeRef probe_ref;
 
 // functions
-extern void log_msg(const char *fmt, ...);
+extern void log_msg(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern int collect_sam_xml(const char *xp_dir);
 extern int check_beacon(void);
 extern int check_teleportation(void);
