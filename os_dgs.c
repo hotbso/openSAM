@@ -763,9 +763,10 @@ dgs_state_machine()
 
             case GOOD:
             case PARKED:
-                if (sam1_longitudinal < 0.1f)
+                if (sam1_longitudinal < 0.1f) {
                     sam1_status = SAM1_STOP_ZONE;
-                else
+                    sam1_lateral = 0.0f;
+                } else
                     sam1_status = SAM1_TRACK;
                 break;
 
