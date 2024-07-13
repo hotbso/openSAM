@@ -6,7 +6,7 @@ include version.mak
 
 TARGET=$(OBJDIR)/openSAM.xpl
 HEADERS=$(wildcard *.h)
-SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c sam_xml.c log_msg.c read_wav.c
+SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c os_anim.c sam_xml.c log_msg.c read_wav.c
 SDK=../SDK
 OBJECTS=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
 

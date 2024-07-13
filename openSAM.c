@@ -30,6 +30,7 @@
 #include "openSAM.h"
 #include "os_dgs.h"
 #include "os_jw.h"
+#include "os_anim.h"
 
 #include "XPLMPlanes.h"
 
@@ -125,11 +126,13 @@ door_info_t door_info[MAX_DOOR];
 
 char acf_icao[5];
 
-uint64_t stat_sc_far_skip, stat_far_skip, stat_near_skip,
-    stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last;
+unsigned long long stat_sc_far_skip, stat_far_skip, stat_near_skip,
+    stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,
+    stat_anim_acc_called, stat_auto_drf_called;
 
 XPLMProbeInfo_t probeinfo = {.structSize = sizeof(XPLMProbeInfo_t)};
 XPLMProbeRef probe_ref;
+XPLMMenuID anim_menu;
 
 static void
 save_pref()
@@ -273,7 +276,7 @@ flight_loop_cb(float inElapsedSinceLastCall,
     UNUSED(inCounter);
     UNUSED(inRefcon);
 
-    static float jw_next_ts, dgs_next_ts;
+    static float jw_next_ts, dgs_next_ts, anim_next_ts;
 
     now = XPLMGetDataf(total_running_time_sec_dr);
     int og = (XPLMGetDataf(gear_fnrml_dr) != 0.0);
@@ -291,6 +294,8 @@ flight_loop_cb(float inElapsedSinceLastCall,
 
     float jw_loop_delay = 1.0f;
     float dgs_loop_delay = 1.0f;
+    float anim_loop_delay = 5.0f;
+
     if (jw_next_ts <= now) {
         jw_loop_delay = jw_state_machine();
         jw_next_ts = now + jw_loop_delay;
@@ -301,7 +306,12 @@ flight_loop_cb(float inElapsedSinceLastCall,
         dgs_next_ts = now + dgs_loop_delay;
     }
 
-    return MIN(jw_loop_delay, dgs_loop_delay);
+    if (anim_next_ts <= now) {
+        anim_loop_delay = anim_state_machine();
+        anim_next_ts = now + anim_loop_delay;
+    }
+
+    return MIN(anim_loop_delay, MIN(jw_loop_delay, dgs_loop_delay));
 }
 
 // set season according to date
@@ -498,6 +508,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     jw_init();
     dgs_init();
+    anim_init();
 
     // build menues
     XPLMMenuID menu = XPLMFindPluginsMenu();
@@ -508,6 +519,11 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMAppendMenuItemWithCommand(os_menu, "Dock Jetway", dock_cmdr);
     XPLMAppendMenuItemWithCommand(os_menu, "Undock Jetway", undock_cmdr);
     XPLMAppendMenuItemWithCommand(os_menu, "Toggle UI", toggle_ui_cmdr);
+    XPLMAppendMenuSeparator(os_menu);
+
+    // openSAM -> Remote control
+    int rc_menu_item = XPLMAppendMenuItem(os_menu, "Remote Control", NULL, 0);
+    anim_menu = XPLMCreateMenu("Remote Control", os_menu, rc_menu_item, anim_menu_cb, NULL);
 
     XPLMAppendMenuSeparator(os_menu);
 
@@ -550,12 +566,14 @@ XPluginDisable(void)
         XPLMDestroyProbe(probe_ref);
 
     save_pref();
-    log_msg("acc called:       %llu", stat_acc_called);
-    log_msg("scenery far skip: %llu", stat_sc_far_skip);
-    log_msg("far skip:         %llu", stat_far_skip);
-    log_msg("near skip:        %llu", stat_near_skip);
-    log_msg("dgs acc called:   %llu", stat_dgs_acc);
-    log_msg("last_dgs acc:     %llu", stat_dgs_acc_last);
+    log_msg("acc called:               %llu", stat_acc_called);
+    log_msg("scenery far skip:         %llu", stat_sc_far_skip);
+    log_msg("far skip:                 %llu", stat_far_skip);
+    log_msg("near skip:                %llu", stat_near_skip);
+    log_msg("dgs acc called:           %llu", stat_dgs_acc);
+    log_msg("last_dgs acc:             %llu", stat_dgs_acc_last);
+    log_msg("stat_anim_acc_called:     %llu", stat_anim_acc_called);
+    log_msg("stat_auto_drf_called:     %llu", stat_auto_drf_called);
 }
 
 

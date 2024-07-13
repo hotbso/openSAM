@@ -28,24 +28,53 @@
 #include "openSAM.h"
 #include "os_dgs.h"
 #include "os_jw.h"
+#include "os_anim.h"
 
 int
 main(int argc, char **argv) {
 
-    if (!collect_sam_xml("E:/X-Plane-12-test")) {
+    if (!collect_sam_xml("E:/X-Plane-12")) {
         log_msg("Error reading sam.xml files");
         exit(2);
     }
 
-    printf("%d sceneries collected\n", n_sceneries);
+    printf("\n%d sceneries collected\n", n_sceneries);
+
+    printf("%d datarefs collected\n", n_sam_drfs);
+
+    for (int i = 0; i < n_sam_drfs; i++) {
+        sam_drf_t *drf = &sam_drfs[i];
+        printf("%2d: %s, auto_play: %d, randomize_phase: %d, augment_wind_speed: %d\n",
+               i, drf->name, drf->autoplay, drf->randomize_phase, drf->augment_wind_speed);
+
+        for (int j = 0; j < drf->n_tv; j++)
+            printf("   t: %6.2f, v: %6.2f\n", drf->t[j], drf->v[j]);
+
+        puts("");
+    }
 
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
         printf("%s: %d jetways, %d stands collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n",
                sc->name, sc->n_sam_jws, sc->n_stands,
                sc->bb_lat_min, sc->bb_lon_min, sc->bb_lat_max, sc->bb_lon_max);
 
+        puts("\nObjects");
+        for (int i = 0; i < sc->n_sam_objs; i++) {
+            sam_obj_t *obj = &sc->sam_objs[i];
+            printf("%2d: %s %5.6f %5.6f %5.6f %5.6f\n", i, obj->id, obj->latitude, obj->longitude,
+                   obj->elevation, obj->heading);
+        }
+
+        puts("\nAnimations");
+        for (int i = 0; i < sc->n_sam_anims; i++) {
+            sam_anim_t *anim = &sc->sam_anims[i];
+            printf("'%s' '%s', obj: '%s', drf: '%s'\n", anim->label, anim->title,
+                   sc->sam_objs[anim->obj_idx].id, sam_drfs[anim->drf_idx].name);
+        }
+
+        puts("\nJetways");
         for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
-            log_msg("%s %5.6f %5.6f door: %d", jw->name, jw->latitude, jw->longitude, jw->door);
+            printf("%s %5.6f %5.6f door: %d\n", jw->name, jw->latitude, jw->longitude, jw->door);
         }
         puts("\n");
     }

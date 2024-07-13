@@ -10,7 +10,7 @@ OBJDIR=./OBJ_mac
 
 TARGET=$(OBJDIR)/openSAM.xpl
 HEADERS=$(wildcard *.h)
-SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c sam_xml.c log_msg.c read_wav.c
+SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c os_anim.c sam_xml.c log_msg.c read_wav.c
 OBJECTS_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o_arm))
 OBJECTS_x86=$(OBJECTS_arm:.o_arm=.o_x86)
 

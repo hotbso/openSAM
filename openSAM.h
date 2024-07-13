@@ -46,15 +46,23 @@ static const float LAT_2_M = 111120;    // 1° lat in m
 typedef struct _sam_jw sam_jw_t;
 typedef struct _sam_dgs sam_dgs_t;
 typedef struct _stand stand_t;
+typedef struct _sam_obj sam_obj_t;
+typedef struct _sam_anim sam_anim_t;
 
 typedef struct _scenery {
-    const char *name;
+    char name[52];
 
     sam_jw_t *sam_jws;
     int n_sam_jws;
 
     stand_t *stands;
     int n_stands;
+
+    sam_obj_t *sam_objs;
+    int n_sam_objs;
+
+    sam_anim_t *sam_anims;
+    int n_sam_anims;
 
     float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for FAR_SKIP */
 } scenery_t;
@@ -93,8 +101,9 @@ extern XPLMDataRef date_day_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
 
-extern uint64_t stat_sc_far_skip, stat_far_skip, stat_near_skip,
-    stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last;
+extern unsigned long long stat_sc_far_skip, stat_far_skip, stat_near_skip,
+    stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,
+    stat_anim_acc_called, stat_auto_drf_called;
 
 extern float now;           // current timestamp
 extern int on_ground;
@@ -103,6 +112,7 @@ extern float lat_ref, lon_ref;
 // init with 1 so jetways never seen by the accessor won't be considered in find_dockable_jws()
 extern unsigned int ref_gen;
 
+extern XPLMMenuID anim_menu;
 extern XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr;
 extern int auto_select_jws;
 
