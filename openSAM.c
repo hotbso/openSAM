@@ -292,21 +292,21 @@ flight_loop_cb(float inElapsedSinceLastCall,
             dgs_set_inactive();
     }
 
-    float jw_loop_delay = 1.0f;
-    float dgs_loop_delay = 1.0f;
-    float anim_loop_delay = 5.0f;
+    float jw_loop_delay = jw_next_ts - now;
+    float dgs_loop_delay = dgs_next_ts - now;
+    float anim_loop_delay = anim_next_ts - now;
 
-    if (jw_next_ts <= now) {
+    if (jw_loop_delay <= 0.0f) {
         jw_loop_delay = jw_state_machine();
         jw_next_ts = now + jw_loop_delay;
     }
 
-    if (dgs_next_ts <= now) {
+    if (dgs_loop_delay <= 0.0f) {
         dgs_loop_delay = dgs_state_machine();
         dgs_next_ts = now + dgs_loop_delay;
     }
 
-    if (anim_next_ts <= now) {
+    if (anim_loop_delay <= 0.0f) {
         anim_loop_delay = anim_state_machine();
         anim_next_ts = now + anim_loop_delay;
     }
