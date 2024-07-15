@@ -501,7 +501,7 @@ dgs_init()
                              NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
                              NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
 
-    marshaller_obj = XPLMLoadObject("Custom Scenery/openSAM_Library/dgs/Marshaller.obj");
+    marshaller_obj = XPLMLoadObject("Resources/plugins/openSAM/objects/Marshaller.obj");
     if (NULL == marshaller_obj) {
         log_msg("Could not load Marshaller.obj");
         return 0;
