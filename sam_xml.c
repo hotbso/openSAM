@@ -616,29 +616,26 @@ collect_sam_xml(const char *xp_dir)
 
             int rc = parse_sam_xml(fd, sc);
             close(fd);
-            if (!rc) {
-                fclose(scp);
-                return 0;
-            }
+            if (rc) {
+                // read stands from apt.dat
+                strcpy(path_end, "/Earth nav data/apt.dat");
 
-            // read stands from apt.dat
-            strcpy(path_end, "/Earth nav data/apt.dat");
-
-            //log_msg("Trying '%s'", fn);
-            FILE *f = fopen(fn, "r");
-            if (f) {
-                log_msg("Processing '%s'", fn);
-                rc = parse_apt_dat(f, sc);
-                fclose(f);
-                if (!rc) {
-                    fclose(scp);
-                    return 0;
+                //log_msg("Trying '%s'", fn);
+                FILE *f = fopen(fn, "r");
+                if (f) {
+                    log_msg("Processing '%s'", fn);
+                    rc = parse_apt_dat(f, sc);
+                    fclose(f);
+                    if (!rc) {
+                        fclose(scp);
+                        return 0;
+                    }
                 }
-            }
 
-            // don't save empty sceneries
-            if (sc->n_sam_jws > 0 || sc->n_stands > 0 || sc->n_sam_anims > 0)
-                n_sceneries++;
+                // don't save empty sceneries
+                if (sc->n_sam_jws > 0 || sc->n_stands > 0 || sc->n_sam_anims > 0)
+                    n_sceneries++;
+            }
         }
 
         strcpy(path_end, "/libraryjetways.xml");
