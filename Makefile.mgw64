@@ -16,7 +16,7 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 CC=gcc
 LD=gcc
 
-CFLAGS+=-DVERSION=\"$(VERSION)\"  -mdll -g0 -O2 -s -Wextra -Wall -fdiagnostics-color -Wno-format-overflow -Wno-format-truncation \
+CFLAGS+=-DVERSION=\"$(VERSION)\"   -g0 -O2 -Wextra -Wall -fdiagnostics-color -Wno-format-overflow -Wno-format-truncation \
     -DWINDOWS -DWIN32   -DIBM=1 \
 	-I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets
 
