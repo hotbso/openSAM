@@ -7,7 +7,7 @@ LIBRARY
 ####     Scenery Animation Manager - Library 3.0.0    ####
 ##########################################################
 
-### Without SAM_library, replace only dockings from SAM_Library
+### With SAM_library, replace only dockings from SAM_Library
 
 PUBLIC
 
