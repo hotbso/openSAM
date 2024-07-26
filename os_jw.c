@@ -545,7 +545,7 @@ find_nearest_jws()
             float dz = jw->z - plane_z;
             njw->x =  cos_psi * dx + sin_psi * dz;
             njw->z = -sin_psi * dx + cos_psi * dz;
-            njw->psi = RA(jw->psi - plane_psi);
+            njw->psi = RA(jw->psi + jw->initialRot1 - plane_psi);
 
             // xlate into door local frame
             njw->x -= door_x;
