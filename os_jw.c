@@ -751,11 +751,19 @@ dock_drive(jw_ctx_t *ajw)
         // but doesn't make much of a difference.
         double drive_angle = atan2(-ajw->cabin_z, tgt_x - ajw->cabin_x) / D2R;
 
+        // wb_rot is drive_angle in the 'tunnel frame'
+        float wb_rot = RA(drive_angle - rot1_d);
+
+        // avoid compression of jetway
+        if (jw->extent <= jw->minExtent && wb_rot < -90.0f) {
+            wb_rot = -90.0f;
+            drive_angle = RA(rot1_d + -90.0f);
+        }
+
+        ajw->wb_rot = wb_rot;
         ajw->cabin_x += cos(drive_angle * D2R) * ds;
         ajw->cabin_z += sin(drive_angle * D2R) * ds;
 
-        // wb_rot is drive_angle in the 'tunnel frame'
-        ajw->wb_rot = RA(drive_angle - rot1_d);
 
         //log_msg("to ap: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f, drive_angle: %0.2f, wb_rot: %0.2f",
         //        rot1_d, ajw->cabin_x, ajw->cabin_z, drive_angle, ajw->wb_rot);
@@ -934,12 +942,22 @@ undock_drive(jw_ctx_t *ajw)
         double ds = dt * JW_DRIVE_SPEED;
         double drive_angle = atan2(tgt_z - ajw->cabin_z, tgt_x - ajw->cabin_x) / D2R;
 
+        // wb_rot is drive_angle in the 'tunnel frame'
+        float wb_rot = RA(drive_angle - rot1_d);
+
+        // avoid compression of jetway
+        if (jw->extent <= jw->minExtent && wb_rot > 90.0f) {
+            wb_rot = 90.0f;
+            drive_angle = RA(rot1_d + 90.0f);
+        }
+
+        ajw->wb_rot = wb_rot;
+
         ajw->cabin_x += cos(drive_angle * D2R) * ds;
         ajw->cabin_z += sin(drive_angle * D2R) * ds;
         //log_msg("to parked: rot1_d: %.2f, ajw->cabin_x: %0.3f, ajw->cabin_z: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f, drive_angle: %0.2f",
         //       rot1_d, ajw->cabin_x, ajw->cabin_z, wheel_x, wheel_z, drive_angle);
 
-        ajw->wb_rot = RA(drive_angle - rot1_d);
         if (rotate_wheel_base(ajw, dt)) {
             ajw->wait_wb_rot = 1;
             return 0;
