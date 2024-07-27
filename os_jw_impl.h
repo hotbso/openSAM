@@ -79,3 +79,7 @@ extern void read_wav(const char *fname, sound_t *sound);
 extern int ui_unlocked; // the ui is unlocked for jw_selection
 extern void update_ui(int only_if_visible);
 
+// from os_sound.c
+extern sound_t alert;
+extern void alert_on(jw_ctx_t *ajw);
+extern void alert_off(jw_ctx_t *ajw);

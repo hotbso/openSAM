@@ -79,7 +79,6 @@ jw_ctx_t active_jw[MAX_DOOR];
 jw_ctx_t nearest_jw[MAX_NEAREST];
 int n_nearest;
 
-static sound_t alert;
 static int dock_requested, undock_requested, toggle_requested;
 static float plane_x, plane_y, plane_z, plane_psi, sin_psi, cos_psi;
 
@@ -326,43 +325,6 @@ jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n)
     }
 
     return n;
-}
-
-static void
-alert_complete(void *ref, FMOD_RESULT status)
-{
-    UNUSED(status);
-
-    jw_ctx_t *ajw = ref;
-    ajw->alert_chn = NULL;
-}
-
-
-static void
-alert_on(jw_ctx_t *ajw)
-{
-    if (ajw->alert_chn)
-        return;
-    ajw->alert_chn = XPLMPlayPCMOnBus(alert.data, alert.size, FMOD_SOUND_FORMAT_PCM16,
-                                      alert.sample_rate, alert.num_channels, 1,
-                                      xplm_AudioExteriorUnprocessed,
-                                      alert_complete, ajw);
-#if 0
-    sam_jw_t *jw = ajw->jw;
-
-    static FMOD_VECTOR velocity = {0.0f, 0.0f, 0.0f};
-    FMOD_VECTOR position = {jw->xml_x, jw->xml_y + 1.5f, jw->xml_z};
-
-    XPLMSetAudioPosition(ajw->alert_chn, &position, &velocity);
-#endif
-}
-
-static void
-alert_off(jw_ctx_t *ajw)
-{
-    if (ajw->alert_chn)
-        XPLMStopAudio(ajw->alert_chn);
-    ajw->alert_chn = NULL;
 }
 
 static void

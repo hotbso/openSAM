@@ -1,14 +1,23 @@
-PLUGDIR=openSAM-pkg/openSAM
+PLUGDIR_XP12=openSAM-pkg/openSAM
+PLUGDIR_XP11=openSAM-pkg_XP11/openSAM
 
+SDK=../SDK
 OBJDIR=./OBJ_win
 
 include version.mak
 
-TARGET=$(OBJDIR)/openSAM.xpl
+TARGET_XP12=$(OBJDIR)/openSAM.xpl
+TARGET_XP11=$(OBJDIR)/openSAM.xpl_x11
+
 HEADERS=$(wildcard *.h)
 SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c os_anim.c sam_xml.c log_msg.c read_wav.c
-SDK=../SDK
-OBJECTS=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
+OBJECTS:=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
+OBJECTS_XP12=$(OBJECTS) $(OBJDIR)/os_sound.o
+OBJECTS_XP11=$(OBJECTS) $(OBJDIR)/os_sound_xp11.o
+
+# all sources to the dep files
+SOURCES_DEP=$(SOURCES) os_sound.c os_sound_xp11.c
+DEPFILES=$(SOURCES_DEP:%.c=$(DEPDIR)/%.d)
 
 DEPDIR := $(OBJDIR)/.deps
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
@@ -28,24 +37,31 @@ LIBS=-L$(SDK)/Libraries/Win -lXPLM_64 -lXPWidgets_64 -l:libexpat.a
 $(OBJDIR)/%.o: %.c $(DEPDIR)/%.d version.mak | $(DEPDIR)
 	$(COMPILE.c) -o $@  $<
 
-target: $(TARGET)
+install: install_xp12 install_xp11 
 
-all: $(TARGET) sam_xml_test.exe
+all: install sam_xml_test.exe
 
 $(DEPDIR): ; @mkdir -p $@
 
-DEPFILES := $(SOURCES:%.c=$(DEPDIR)/%.d)
 $(DEPFILES):
 include $(wildcard $(DEPFILES))
 
+$(TARGET_XP12): $(OBJECTS_XP12)
+	$(LD) -o $(TARGET_XP12) $(LDFLAGS) $(OBJECTS_XP12) $(LIBS)
 
-$(TARGET): $(OBJECTS)
-	$(LD) -o $(TARGET) $(LDFLAGS) $(OBJECTS) $(LIBS)
-	mkdir -p "$(PLUGDIR)/win_x64"
-	cp -p $(TARGET) "$(PLUGDIR)/win_x64/."
+install_xp12: $(TARGET_XP12)
+	mkdir -p "$(PLUGDIR_XP12)/win_x64"
+	cp -p $(TARGET_XP12) "$(PLUGDIR_XP12)/win_x64/."
+
+$(TARGET_XP11): $(OBJECTS_XP11)
+	$(LD) -o $(TARGET_XP11) $(LDFLAGS) $(OBJECTS_XP11) $(LIBS)
+    
+install_xp11: $(TARGET_XP11)
+	mkdir -p "$(PLUGDIR_XP11)/win_x64"
+	cp -p $(TARGET_XP11) "$(PLUGDIR_XP11)/win_x64/openSAM.xpl"
 
 clean:
-	rm $(OBJECTS) $(TARGET) sam_xml_test.exe
+	rm -f ./$(OBJDIR)/* sam_xml_test.exe
 
 sam_xml_test.exe: sam_xml_test.c sam_xml.c log_msg.c $(HEADERS)
 	$(CC) -Wall -fdiagnostics-color -Wno-format-overflow -I$(SDK)/CHeaders/XPLM -DIBM=1 \

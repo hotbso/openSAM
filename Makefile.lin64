@@ -1,13 +1,18 @@
-PLUGDIR=openSAM-pkg/openSAM
+PLUGDIR_XP12=openSAM-pkg/openSAM
+PLUGDIR_XP11=openSAM-pkg_XP11/openSAM
 include version.mak
 
 SDK=../SDK
 OBJDIR=./OBJ_lx
 
-TARGET=$(OBJDIR)/openSAM.xpl
+TARGET_XP12=$(OBJDIR)/openSAM.xpl
+TARGET_XP11=$(OBJDIR)/openSAM.xpl_xp11
+
 HEADERS=$(wildcard *.h)
 SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c os_anim.c sam_xml.c log_msg.c read_wav.c
 OBJECTS=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
+OBJECTS_XP12=$(OBJECTS) $(OBJDIR)/os_sound.o
+OBJECTS_XP11=$(OBJECTS) $(OBJDIR)/os_sound_xp11.o
 
 CFLAGS=-DVERSION=\"$(VERSION)\" \
     -Wall -Wextra -Wno-format-overflow -Wno-format-truncation \
@@ -16,16 +21,21 @@ CFLAGS=-DVERSION=\"$(VERSION)\" \
 LNFLAGS=-shared -rdynamic -nodefaultlibs -undefined_warning
 LIBS=-lexpat
 
-all: $(TARGET)
+all: $(TARGET_XP12) $(TARGET_XP11)
     $(shell [ -d $(OBJDIR) ] || mkdir $(OBJDIR))
 
 $(OBJDIR)/%.o: %.c version.mak
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-$(TARGET): $(OBJECTS)
-	$(CC) -o $(TARGET) $(LNFLAGS) $(OBJECTS) $(LIBS)
-	mkdir -p "$(PLUGDIR)/lin_x64"
-	cp -p $(TARGET) "$(PLUGDIR)/lin_x64/."
+$(TARGET_XP12): $(OBJECTS_XP12)
+	$(CC) -o $(TARGET_XP12) $(LNFLAGS) $(OBJECTS_XP12) $(LIBS)
+	mkdir -p "$(PLUGDIR_XP12)/lin_x64"
+	cp -p $(TARGET_XP12) "$(PLUGDIR_XP12)/lin_x64/openSAM.xpl"
+
+$(TARGET_XP11): $(OBJECTS_XP11)
+	$(CC) -o $(TARGET_XP11) $(LNFLAGS) $(OBJECTS_XP11) $(LIBS)
+	mkdir -p "$(PLUGDIR_XP11)/lin_x64"
+	cp -p $(TARGET_XP11) "$(PLUGDIR_XP11)/lin_x64/openSAM.xpl"
 
 clean:
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f ./$(OBJDIR)/*
