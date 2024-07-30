@@ -92,8 +92,7 @@ sound_init()
     }
 
     return 1;
-};
-
+}
 void
 alert_on(jw_ctx_t *ajw)
 {
