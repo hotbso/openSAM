@@ -26,6 +26,12 @@
 
 sound_t alert;
 
+int
+sound_init()
+{
+    return 1;
+};
+
 void
 alert_on(jw_ctx_t *ajw)
 {
@@ -34,6 +40,12 @@ alert_on(jw_ctx_t *ajw)
 
 void
 alert_off(jw_ctx_t *ajw)
+{
+    UNUSED(ajw);
+}
+
+void
+alert_setpos(jw_ctx_t *ajw)
 {
     UNUSED(ajw);
 }

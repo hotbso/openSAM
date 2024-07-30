@@ -28,6 +28,12 @@
 
 sound_t alert;
 
+int
+sound_init()
+{
+    return 1;
+};
+
 static void
 alert_complete(void *ref, FMOD_RESULT status)
 {
@@ -46,14 +52,10 @@ alert_on(jw_ctx_t *ajw)
                                       alert.sample_rate, alert.num_channels, 1,
                                       xplm_AudioExteriorUnprocessed,
                                       alert_complete, ajw);
-#if 0
-    sam_jw_t *jw = ajw->jw;
 
-    static FMOD_VECTOR velocity = {0.0f, 0.0f, 0.0f};
-    FMOD_VECTOR position = {jw->xml_x, jw->xml_y + 1.5f, jw->xml_z};
-
-    XPLMSetAudioPosition(ajw->alert_chn, &position, &velocity);
-#endif
+    alert_setpos(ajw);
+    XPLMSetAudioFadeDistance(ajw->alert_chn, 20.0f, 150.0f );
+    XPLMSetAudioVolume(ajw->alert_chn, 1.3f);
 }
 
 void
@@ -62,4 +64,19 @@ alert_off(jw_ctx_t *ajw)
     if (ajw->alert_chn)
         XPLMStopAudio(ajw->alert_chn);
     ajw->alert_chn = NULL;
+}
+
+void
+alert_setpos(jw_ctx_t *ajw)
+{
+    const sam_jw_t *jw = ajw->jw;
+
+    static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
+    FMOD_VECTOR pos;
+
+    float rot1 = RA((jw->rotate1 + jw->psi) - 90.0f);
+    pos.x = jw->x + (jw->extent + jw->cabinPos) * cosf(rot1 * D2R);
+    pos.y = jw->y + jw->height;
+    pos.z = jw->z + (jw->extent + jw->cabinPos) * sinf(rot1 * D2R);
+    XPLMSetAudioPosition(ajw->alert_chn, &pos, &vel);
 }
