@@ -24,12 +24,14 @@ CCa=oa64-clang -mmacosx-version-min=12.0
 
 DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -DNDEBUG
 
-CFLAGS+=-O2 -Wall -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets -DVERSION=\"$(VERSION)\" $(DEFS)
+CFLAGS+=-O2 -Wall -Wno-deprecated-declarations \
+    -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets -DVERSION=\"$(VERSION)\" $(DEFS)
 
 LNFLAGS+=-dynamiclib -shared -rdynamic -fvisibility=hidden -Wl,-exported_symbols_list -Wl,linkscript.mac
 
 # https://pewpewthespells.com/blog/static_and_dynamic_libraries.html
-LIBS+= -F $(SDK)/Libraries/Mac -framework XPLM -framework XPWidgets /osxcross/target/macports/pkgs/opt/local/lib/libexpat.a
+LIBS+= -F $(SDK)/Libraries/Mac -framework XPLM -framework XPWidgets -framework OpenAL \
+    /osxcross/target/macports/pkgs/opt/local/lib/libexpat.a
 
 # ships with macOS
 LIBS+=

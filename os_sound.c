@@ -28,6 +28,12 @@
 
 sound_t alert;
 
+int
+sound_init()
+{
+    return 1;
+};
+
 static void
 alert_complete(void *ref, FMOD_RESULT status)
 {
@@ -62,4 +68,10 @@ alert_off(jw_ctx_t *ajw)
     if (ajw->alert_chn)
         XPLMStopAudio(ajw->alert_chn);
     ajw->alert_chn = NULL;
+}
+
+void
+alert_setpos(jw_ctx_t *ajw)
+{
+    UNUSED(ajw);
 }

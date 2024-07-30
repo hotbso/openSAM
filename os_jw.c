@@ -843,6 +843,7 @@ dock_drive(jw_ctx_t *ajw)
         }
     }
 
+    alert_setpos(ajw);
     return 0;
 }
 
@@ -980,6 +981,7 @@ undock_drive(jw_ctx_t *ajw)
         }
     }
 
+    alert_setpos(ajw);
     return 0;
 }
 
@@ -1242,6 +1244,22 @@ cmd_xp12_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
 int
 jw_init()
 {
+    // load alert sound
+    char fn[sizeof(base_dir) + 100];
+    strcpy(fn, base_dir);
+    strcat(fn, "sound/alert.wav");
+    read_wav(fn, &alert);
+    if (alert.data)
+        log_msg("alert sound loaded, channels: %d, bit_rate: %d, size: %d",
+                alert.num_channels, alert.sample_rate, alert.size);
+    else {
+        log_msg("Could not load sound");
+        return 0;
+    }
+
+    if (!sound_init())
+        return 0;
+
     dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
     XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, &dock_requested);
 
@@ -1288,15 +1306,6 @@ jw_init()
                              NULL, NULL, NULL, NULL, NULL, NULL);
 
     reset_jetways();
-
-    // load alert sound
-    char fn[sizeof(base_dir) + 100];
-    strcpy(fn, base_dir);
-    strcat(fn, "sound/alert.wav");
-    read_wav(fn, &alert);
-    if (alert.data)
-        log_msg("alert sound loaded, channels: %d, bit_rate: %d, size: %d",
-                alert.num_channels, alert.sample_rate, alert.size);
 
     return 1;
 }

@@ -81,5 +81,7 @@ extern void update_ui(int only_if_visible);
 
 // from os_sound.c
 extern sound_t alert;
+extern int sound_init(void);
 extern void alert_on(jw_ctx_t *ajw);
 extern void alert_off(jw_ctx_t *ajw);
+extern void alert_setpos(jw_ctx_t *ajw);
