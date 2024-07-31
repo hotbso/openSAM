@@ -33,7 +33,7 @@ $(TARGET_XP12): $(OBJECTS_XP12)
 	cp -p $(TARGET_XP12) "$(PLUGDIR_XP12)/lin_x64/openSAM.xpl"
 
 $(TARGET_XP11): $(OBJECTS_XP11)
-	$(CC) -o $(TARGET_XP11) $(LNFLAGS) $(OBJECTS_XP11) $(LIBS)
+	$(CC) -o $(TARGET_XP11) $(LNFLAGS) $(OBJECTS_XP11) $(LIBS) -lopenal
 	mkdir -p "$(PLUGDIR_XP11)/lin_x64"
 	cp -p $(TARGET_XP11) "$(PLUGDIR_XP11)/lin_x64/openSAM.xpl"
 

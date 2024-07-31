@@ -2,7 +2,7 @@
 An open source implementation of SAM that drives jetways and provides VDGS and Marshaller service.
 
 ## Credits
-Jonathan Harris (aka Marginal) (https://github.com/Marginal) for creating Autogate
+Jonathan Harris (aka Marginal) (https://github.com/Marginal) for creating Autogate\
 @Papickx + @cxn0026 for providing better textures and day + night lighting
 
 ## License
@@ -28,6 +28,16 @@ https://forums.x-plane.org/index.php?/files/file/90865-opensam-an-open-source-re
 ### Windows
 The build process is performed on msys2 with the mingw64 personality.\
 Install expat with "pacman -S expat"
+
+For the XP11 version a linkable OpenAL32.dll was obtained as follows:
+- get copy of libOpenAL32.dll e.g. from XP11's dll folder
+- pick libOpenAL's *include/AL* header files, e.g. from the msys2 system
+- run within a msys2 shell:
+```
+gendef OpenAL32.dll
+dlltool -d OpenAL32.def -D OpenAL32.dll -k -a -l libopenal32.a -v
+```
+
 make -f Makefile.mgw64
 
 ### Linux
@@ -43,5 +53,5 @@ omp install -s -arm64 expat
 make -f Makefile.osxcross
 
 ### macOS on macOS
-port install expat +universal
+port install expat +universal\
 make -f Makefile.mac64

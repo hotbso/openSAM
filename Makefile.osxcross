@@ -24,12 +24,14 @@ CCa=oa64-clang -mmacosx-version-min=12.0
 
 DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -DNDEBUG
 
-CFLAGS+=-O2 -Wall -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets -DVERSION=\"$(VERSION)\" $(DEFS)
+CFLAGS+=-O2 -Wall -Wno-deprecated-declarations \
+    -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets -DVERSION=\"$(VERSION)\" $(DEFS)
 
 LNFLAGS+=-dynamiclib -shared -rdynamic -fvisibility=hidden -Wl,-exported_symbols_list -Wl,linkscript.mac
 
 # https://pewpewthespells.com/blog/static_and_dynamic_libraries.html
-LIBS+= -F $(SDK)/Libraries/Mac -framework XPLM -framework XPWidgets /osxcross/target/macports/pkgs/opt/local/lib/libexpat.a
+LIBS+= -F $(SDK)/Libraries/Mac -framework XPLM -framework XPWidgets \
+    /osxcross/target/macports/pkgs/opt/local/lib/libexpat.a
 
 # ships with macOS
 LIBS+=
@@ -58,10 +60,10 @@ $(TARGET_XP12): $(TARGET_XP12)_arm $(TARGET_XP12)_x86
 	cp -p $(TARGET_XP12) "$(PLUGDIR_XP12)/mac_x64/openSAM.xpl"
 
 $(TARGET_XP11)_arm: $(OBJECTS_XP11_arm)
-	$(CCa) -o $@ $(LNFLAGS) $(OBJECTS_XP11_arm) $(LIBS)
+	$(CCa) -o $@ $(LNFLAGS) $(OBJECTS_XP11_arm) $(LIBS) -framework OpenAL
 
 $(TARGET_XP11)_x86: $(OBJECTS_XP11_x86)
-	$(CCx) -o $@ $(LNFLAGS) $(OBJECTS_XP11_x86) $(LIBS)
+	$(CCx) -o $@ $(LNFLAGS) $(OBJECTS_XP11_x86) $(LIBS) -framework OpenAL
 
 $(TARGET_XP11): $(TARGET_XP11)_arm $(TARGET_XP11)_x86
 	lipo -create -output $@ $(TARGET_XP11)_arm $(TARGET_XP11)_x86
