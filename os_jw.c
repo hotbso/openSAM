@@ -536,16 +536,18 @@ find_nearest_jws()
                          jw->name, jw->door, njw->tgt_rot1, njw->tgt_rot2, njw->tgt_rot3, njw->tgt_extent);
                 log_msg("  does not fulfil min max criteria in sam.xml");
                 float extra_extent = njw->tgt_extent - jw->maxExtent;
-                if (extra_extent < 10.0f)
-                    log_msg("  as extra extent of %0.1f m < 10.0 m we take it anyway", extra_extent);
-                else
+                if (extra_extent < 10.0f) {
+                    log_msg("  as extra extent of %0.1f m < 10.0 m we take it as a soft match", extra_extent);
+                    njw->soft_match = 1;
+                } else
                     continue;
             }
 
             // add to list
-            log_msg("candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, extent: %.1f",
+            log_msg("candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
+                    "rot1: %0.1f, extent: %.1f",
                     jw->name, jw->library_id, jw->door,
-                    njw->x, njw->z, njw->y, njw->psi, njw->tgt_extent);
+                    njw->x, njw->z, njw->y, njw->psi, njw->tgt_rot1, njw->tgt_extent);
             nearest_jw[n_nearest] = tentative_njw;
             n_nearest++;
 
@@ -557,9 +559,11 @@ find_nearest_jws()
             }
         }
 
-    // final sort + trim down to limit
-    qsort(nearest_jw, n_nearest, sizeof(jw_ctx_t), njw_compar);
-    n_nearest = MIN(n_nearest, NEAR_JW_LIMIT);
+    if (n_nearest > 1) {
+        // final sort + trim down to limit
+        qsort(nearest_jw, n_nearest, sizeof(jw_ctx_t), njw_compar);
+        n_nearest = MIN(n_nearest, NEAR_JW_LIMIT);
+    }
 
     return n_nearest;
 }
@@ -571,15 +575,29 @@ select_jws()
     if (n_door == 0)
         return;
 
+    int have_hard_match = 0;
+    for (int i = 0; i < n_nearest; i++)
+        if (! nearest_jw[i].soft_match) {
+            have_hard_match = 1;
+            break;
+        }
+
     n_active_jw = 0;
 
     // from door 0 to n assign nearest jw
-    for (int i = 0; i < n_door; i++) {
-        if (i >= n_nearest)
+    int ijw = 0;
+    for (int idoor = 0; idoor < n_door; idoor++) {
+        // filter out soft matches
+        if (have_hard_match && nearest_jw[ijw].soft_match)
+            ijw++;
+
+        if (ijw >= n_nearest)
             break;
-        active_jw[i] = nearest_jw[i];
-        log_msg("active jetway for door %d: %s", i, active_jw[i].jw->name);
+
+        active_jw[idoor] = nearest_jw[ijw];
+        log_msg("active jetway for door %d: %s", idoor, active_jw[idoor].jw->name);
         n_active_jw++;
+        ijw++;
     }
 }
 

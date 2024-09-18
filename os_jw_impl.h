@@ -44,6 +44,8 @@ typedef struct jw_ctx_ {
     // in door local coordinates
     float x, y, z, psi;
 
+    int soft_match;     // does not really fulfill matching criteria
+
     // target cabin position with corresponding dref values
     float tgt_x, tgt_rot1, tgt_rot2, tgt_rot3, tgt_extent;
     float ap_x;      // alignment point abeam door
