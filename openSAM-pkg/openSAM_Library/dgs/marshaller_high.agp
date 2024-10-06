@@ -8,6 +8,8 @@ TEXTURE_WIDTH 10
 HIDE_TILES
 
 OBJECT marshaller_ident.obj
+#object_wed Marshaller.obj
+
 TILE -5 -5 5 5
 ROTATION 0
 OBJ_DELTA 0 0 0 2.32 0

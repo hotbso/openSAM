@@ -7,11 +7,33 @@ LIBRARY
 ####     Scenery Animation Manager - Library 3.0.0    ####
 ##########################################################
 
-### Without SAM_library, replace everything from SAM_Library
+### Without SAM_library, replace everything but dockings from SAM_Library
 
-PUBLIC
+# openSAM native
+EXPORT   		openSAM/dgs/marshaller.agp			    dgs/marshaller.agp
+EXPORT   		openSAM/dgs/marshaller_high.agp		    dgs/marshaller_high.agp
+EXPORT  		openSAM/dgs/Safedock-T2_2.5m.obj		dgs/SafedockT2_2.5m.obj
+EXPORT  		openSAM/dgs/Safedock-T2_3.0m.obj		dgs/SafedockT2_3.0m.obj
+EXPORT  		openSAM/dgs/Safedock-T2_3.5m.obj		dgs/SafedockT2_3.5m.obj
+EXPORT  		openSAM/dgs/Safedock-T2_4.0m.obj		dgs/SafedockT2_4.0m.obj
+EXPORT  		openSAM/dgs/Safedock-T2_4.5m.obj		dgs/SafedockT2_4.5m.obj
+EXPORT  		openSAM/dgs/Safedock-T2_5.0m.obj		dgs/SafedockT2_5.0m.obj
+EXPORT  		openSAM/dgs/Safedock-T2_5.5m.obj		dgs/SafedockT2_5.5m.obj
+EXPORT  		openSAM/dgs/Safedock-T2_6.0m.obj		dgs/SafedockT2_6.0m.obj
+EXPORT  		openSAM/dgs/Safedock-T2_6.5m.obj		dgs/SafedockT2_6.5m.obj
+EXPORT  		openSAM/dgs/Safedock-T2_7.0m.obj		dgs/SafedockT2_7.0m.obj
+EXPORT  		openSAM/dgs/Safedock-T2_2.5m_pole.obj	dgs/SafedockT2_2.5m_pole.obj
+EXPORT  		openSAM/dgs/Safedock-T2_3.0m_pole.obj	dgs/SafedockT2_3.0m_pole.obj
+EXPORT  		openSAM/dgs/Safedock-T2_3.5m_pole.obj	dgs/SafedockT2_3.5m_pole.obj
+EXPORT  		openSAM/dgs/Safedock-T2_4.0m_pole.obj	dgs/SafedockT2_4.0m_pole.obj
+EXPORT  		openSAM/dgs/Safedock-T2_4.5m_pole.obj	dgs/SafedockT2_4.5m_pole.obj
+EXPORT  		openSAM/dgs/Safedock-T2_5.0m_pole.obj	dgs/SafedockT2_5.0m_pole.obj
 
+# stuff below should not show up in WED
 
+DEPRECATED
+
+# SAM3 
 
 # DOCKINGS
 EXPORT   		SAM3_Library/marshaller/marshaller.agp			dgs/marshaller.agp
@@ -62,11 +84,6 @@ EXPORT 	SAM3_Library/bridges/Type01_solid.fac						blank/blank.fac
 EXPORT 	SAM3_Library/bridges/Type02_solid.fac						blank/blank.fac
 EXPORT 	SAM3_Library/bridges/Type01_glas.fac						blank/blank.fac
 
-
-
-
-
-DEPRECATED
 # DOCKINGS SAM1
 EXPORT  		SAM_Library/dockings/FMT_2.5m.obj 				dgs/SafedockT2_2.5m_180.obj
 EXPORT  		SAM_Library/dockings/FMT_3.0m.obj 				dgs/SafedockT2_3.0m_180.obj

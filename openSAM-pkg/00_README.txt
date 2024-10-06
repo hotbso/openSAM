@@ -1,3 +1,4 @@
+============
 Installation
 ============
 - Remove the SAM plugin (but keep the embedded SAM_Library somewhere)
@@ -14,6 +15,7 @@ If you must keep the SAM_Library (e.g. for Zero Dollar Payware freeware)
   I recommend to open a shell window in openSAM_Library and issue the
   command "copy library-with_SAM_Library.txt library.txt" or "cp ..."
 
+=====
 Usage
 =====
 The openSAM plugin defines commands:
@@ -46,12 +48,12 @@ In addition openSAM exports datarefs:
 
 
 Customize actions after docking / before undocking
-==================================================
+--------------------------------------------------
 openSAM calls optional commands "openSAM/post_dock" and "openSAM/pre_undock".
 See a sample in the lua directory for the ToLiss fleet and more examples in the contributed directory.
 
 Activation of DGS
-=================
+-----------------
 After you LAND (= some air time!) on an airport the plugin activates and searches actively for
 suitable stands in the direction that you are taxiing. Note that you MUST have your beacon on.
 Once you come closer the VDGS or the Marshaller give appropriate guidance information.
@@ -63,7 +65,7 @@ Beacon on, of course!
 That should look familiar to users of AutoDGS.
 
 The problem of a second door
-============================
+----------------------------
 Up to now there is no reliable way to determine the position of a second door.
 Therefore door positions must be maintained in the config file "acf_door_position.txt".
 
@@ -79,3 +81,11 @@ correct line to enter in "acf_door_position.txt" is:
 B742 2 -2.93 1.77 -14.40
 
 Please share results so they can be included in future updates.
+
+=====================================================================
+"Zero configuration Marshaller and VDGS service" for scenery creators
+=====================================================================
+This is for sceneries with no or XP12 default jetways that should be equipped with Marshallers or VDGS.
+In WED just place the appropriate assets from 'openSAM' in the library pane into the scenery.
+Then copy file "openSAM_Library/zero_config_dgs/sam.xml" into your scenery and you are done.
+
