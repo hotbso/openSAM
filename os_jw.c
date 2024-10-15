@@ -157,6 +157,8 @@ jw_anim_acc(void *ref)
         log_msg("reference frame shift");
     }
 
+    sam_jw_t *jw = NULL;
+
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
         // cheap check against bounding box
         if (lat < sc->bb_lat_min || lat > sc->bb_lat_max
@@ -165,25 +167,25 @@ jw_anim_acc(void *ref)
             continue;
         }
 
-        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+        for (sam_jw_t *jw_ = sc->sam_jws; jw_ < sc->sam_jws + sc->n_sam_jws; jw_++) {
             // cheap check against bounding box
-            if (lat < jw->bb_lat_min || lat > jw->bb_lat_max
-                || RA(lon - jw->bb_lon_min) < 0 || RA(lon - jw->bb_lon_max) > 0) {
+            if (lat < jw_->bb_lat_min || lat > jw_->bb_lat_max
+                || RA(lon - jw_->bb_lon_min) < 0 || RA(lon - jw_->bb_lon_max) > 0) {
                 stat_far_skip++;
                 continue;
             }
 
-            if (fabsf(RA(jw->heading - obj_psi)) > SAM_2_OBJ_HDG_MAX)
+            if (fabsf(RA(jw_->heading - obj_psi)) > SAM_2_OBJ_HDG_MAX)
                 continue;
 
-            if (jw->xml_ref_gen < ref_gen) {
+            if (jw_->xml_ref_gen < ref_gen) {
                 // we must iterate to get the elevation of the jetway
                 //
                 // this stuff runs once when a jw in a scenery comes in sight
                 // so it should not be too costly
                 //
                 double  x, y ,z;
-                XPLMWorldToLocal(jw->latitude, jw->longitude, 0.0, &x, &y, &z);
+                XPLMWorldToLocal(jw_->latitude, jw_->longitude, 0.0, &x, &y, &z);
                 if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
                     log_msg("terrain probe failed???");
                     return 0.0f;
@@ -196,81 +198,84 @@ jw_anim_acc(void *ref)
                 //log_msg("elevation: %0.2f", elevation);
 
                 // and again to local with SAM's lat/lon and the approx elevation
-                XPLMWorldToLocal(jw->latitude, jw->longitude, elevation, &x, &y, &z);
+                XPLMWorldToLocal(jw_->latitude, jw_->longitude, elevation, &x, &y, &z);
                 if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
                     log_msg("terrain probe 2 failed???");
                     return 0.0f;
                 }
 
-                jw->xml_x = probeinfo.locationX;
-                jw->xml_z = probeinfo.locationZ;
-                jw->xml_ref_gen = ref_gen;
+                jw_->xml_x = probeinfo.locationX;
+                jw_->xml_z = probeinfo.locationZ;
+                jw_->xml_ref_gen = ref_gen;
             }
 
-            if (fabs(obj_x - jw->xml_x) > SAM_2_OBJ_MAX || fabs(obj_z - jw->xml_z) > SAM_2_OBJ_MAX) {
-                stat_near_skip++;
-                continue;
+            if (fabs(obj_x - jw_->xml_x) <= SAM_2_OBJ_MAX && fabs(obj_z - jw_->xml_z) <= SAM_2_OBJ_MAX) {
+                // have a match
+                if (jw_->obj_ref_gen < ref_gen) {
+                    // use higher precision values of the actually drawn object
+                    jw_->obj_ref_gen = ref_gen;
+                    jw_->x = obj_x;
+                    jw_->z = obj_z;
+                    jw_->y = XPLMGetDataf(draw_object_y_dr);
+                    jw_->psi = obj_psi;
+                }
+
+                stat_jw_match++;
+                jw = jw_;
+                goto out;   // of 2 loops
             }
 
-            // have a match
-            if (jw->obj_ref_gen < ref_gen) {
-                // use higher precision values of the actually drawn object
-                jw->obj_ref_gen = ref_gen;
-                jw->x = obj_x;
-                jw->z = obj_z;
-                jw->y = XPLMGetDataf(draw_object_y_dr);
-                jw->psi = obj_psi;
-            }
-
-            stat_jw_match++;
-
-            uint64_t ctx = (uint64_t)ref;
-            dr_code_t drc = ctx & 0xffffffff;
-            int id = ctx >> 32;
-
-            switch (drc) {
-                case DR_ROTATE1:
-                    // a one shot event on first access
-                    if (id > 0 && 0 == jw->library_id) {
-                        jw->library_id = id;
-                        fill_library_values(jw);
-                    }
-                    return jw->rotate1;
-                    break;
-                case DR_ROTATE2:
-                    return jw->rotate2;
-                    break;
-                case DR_ROTATE3:
-                    return jw->rotate3;
-                    break;
-                case DR_EXTENT:
-                    return jw->extent;
-                    break;
-                case DR_WHEELS:
-                    return jw->wheels;
-                    break;
-                case DR_WHEELROTATEC:
-                    return jw->wheelrotatec;
-                    break;
-                case DR_WHEELROTATER:
-                    return jw->wheelrotater;
-                    break;
-                case DR_WHEELROTATEL:
-                    return jw->wheelrotatel;
-                    break;
-                case DR_WARNLIGHT:
-                    return jw->warnlight;
-                    break;
-                default:
-                    log_msg("Accessor got invalid DR code: %d", drc);
-                    return 0.0f;
-            }
-
-            return 0.0;
+            stat_near_skip++;
         }
     }
 
-    return 0.0;
+   out:
+    uint64_t ctx = (uint64_t)ref;
+    dr_code_t drc = ctx & 0xffffffff;
+    int id = ctx >> 32;
+
+    if (NULL == jw)
+        return 0.0f;
+
+    switch (drc) {
+        case DR_ROTATE1:
+            // a one shot event on first access
+            if (id > 0 && 0 == jw->library_id) {
+                jw->library_id = id;
+                fill_library_values(jw);
+            }
+            return jw->rotate1;
+            break;
+        case DR_ROTATE2:
+            return jw->rotate2;
+            break;
+        case DR_ROTATE3:
+            return jw->rotate3;
+            break;
+        case DR_EXTENT:
+            return jw->extent;
+            break;
+        case DR_WHEELS:
+            return jw->wheels;
+            break;
+        case DR_WHEELROTATEC:
+            return jw->wheelrotatec;
+            break;
+        case DR_WHEELROTATER:
+            return jw->wheelrotater;
+            break;
+        case DR_WHEELROTATEL:
+            return jw->wheelrotatel;
+            break;
+        case DR_WARNLIGHT:
+            return jw->warnlight;
+            break;
+        default:
+            log_msg("Accessor got invalid DR code: %d", drc);
+            return 0.0f;
+    }
+
+    return 0.0f;
 }
 
 // opensam/jetway/status dataref
