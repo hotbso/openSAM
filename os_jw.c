@@ -469,6 +469,81 @@ njw_compar(const void *a_, const void *b_)
     return 0;
 }
 
+// filter list of jetways jw[] for candidates and add them to nearest_jw[]
+static void
+filter_candidates(sam_jw_t *jw, int n_jw, float door_x, float door_z, float *dist_threshold)
+{
+    // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
+    // So we find the nearest jetways on the left and do some heuristics
+
+    for (;n_jw-- > 0; jw++) {
+        if (jw->obj_ref_gen < ref_gen)  // not visible -> not dockable
+            continue;
+
+        log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
+                jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
+
+        jw_ctx_t tentative_njw = {0};
+        jw_ctx_t *njw = &tentative_njw;
+        njw->jw = jw;
+
+        // rotate into plane local frame
+        float dx = jw->x - plane_x;
+        float dz = jw->z - plane_z;
+        njw->x =  cos_psi * dx + sin_psi * dz;
+        njw->z = -sin_psi * dx + cos_psi * dz;
+        njw->psi = RA(jw->psi + jw->initialRot1 - plane_psi);
+
+        // xlate into door local frame
+        njw->x -= door_x;
+        njw->z -= door_z;
+
+        if (njw->x > 1.0f || BETWEEN(njw->psi, -130.0f, 20.0f) ||   // on the right side or pointing away
+            njw->x < -80.0f || fabsf(njw->z) > 80.0f) {             // or far away
+            log_msg("too far or pointing away: %s, x: %0.2f, z: %0.2f, njw->psi: %0.1f",
+                    jw->name, njw->x, njw->z, njw->psi);
+            continue;
+        }
+
+        if (njw->z > *dist_threshold)
+            continue;
+
+        njw->tgt_x = -jw->cabinLength;
+        // tgt z = 0.0
+        njw->y = (jw->y + jw->height) - (plane_y + door_info[0].y);
+
+        jw_xy_to_sam_dr(njw, njw->tgt_x, 0.0f, &njw->tgt_rot1, &njw->tgt_extent, &njw->tgt_rot2, &njw->tgt_rot3);
+
+        if (!(BETWEEN(njw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(njw->tgt_rot2, jw->minRot2, jw->maxRot2)
+            && BETWEEN(njw->tgt_extent, jw->minExtent, jw->maxExtent))) {
+            log_msg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
+                     jw->name, jw->door, njw->tgt_rot1, njw->tgt_rot2, njw->tgt_rot3, njw->tgt_extent);
+            log_msg("  does not fulfil min max criteria in sam.xml");
+            float extra_extent = njw->tgt_extent - jw->maxExtent;
+            if (extra_extent < 10.0f) {
+                log_msg("  as extra extent of %0.1f m < 10.0 m we take it as a soft match", extra_extent);
+                njw->soft_match = 1;
+            } else
+                continue;
+        }
+
+        // add to list
+        log_msg("--> candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
+                "rot1: %0.1f, extent: %.1f",
+                jw->name, jw->library_id, jw->door,
+                njw->x, njw->z, njw->y, njw->psi, njw->tgt_rot1, njw->tgt_extent);
+        nearest_jw[n_nearest] = *njw;
+        n_nearest++;
+
+        // if full, sort by dist and trim down to NEAR_JW_LIMIT
+        if (n_nearest == MAX_NEAREST) {
+            qsort(nearest_jw, MAX_NEAREST, sizeof(jw_ctx_t), njw_compar);
+            n_nearest = NEAR_JW_LIMIT;
+            *dist_threshold = nearest_jw[NEAR_JW_LIMIT - 1].z;
+        }
+    }
+}
+
 // find nearest jetways, order by z (= door number, hopefully)
 static int
 find_nearest_jws()
@@ -492,83 +567,11 @@ find_nearest_jws()
     n_nearest = 0;
     float dist_threshold = 1.0E10f;
 
-    // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
-    // So we find the nearest jetways on the left and do some heuristics
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
-        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
-            if (jw->obj_ref_gen < ref_gen)  // not visible -> not dockable
-                continue;
+        filter_candidates(sc->sam_jws, sc->n_sam_jws, door_x, door_z, &dist_threshold);
 
-            log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
-                    jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
-
-            jw_ctx_t tentative_njw;
-            jw_ctx_t *njw = &tentative_njw;
-            memset(njw, 0, sizeof(jw_ctx_t));
-            njw->jw = jw;
-
-            // rotate into plane local frame
-            float dx = jw->x - plane_x;
-            float dz = jw->z - plane_z;
-            njw->x =  cos_psi * dx + sin_psi * dz;
-            njw->z = -sin_psi * dx + cos_psi * dz;
-            njw->psi = RA(jw->psi + jw->initialRot1 - plane_psi);
-
-            // xlate into door local frame
-            njw->x -= door_x;
-            njw->z -= door_z;
-
-            if (njw->x > 1.0f || BETWEEN(njw->psi, -130.0f, 20.0f) ||   // on the right side or pointing away
-                njw->x < -80.0f || fabsf(njw->z) > 80.0f) {             // or far away
-                log_msg("too far or pointing away: %s, x: %0.2f, z: %0.2f, njw->psi: %0.1f",
-                        jw->name, njw->x, njw->z, njw->psi);
-                continue;
-            }
-
-            if (njw->z > dist_threshold)
-                continue;
-
-            njw->tgt_x = -jw->cabinLength;
-            // tgt z = 0.0
-            njw->y = (jw->y + jw->height) - (plane_y + door_info[0].y);
-
-            jw_xy_to_sam_dr(njw, njw->tgt_x, 0.0f, &njw->tgt_rot1, &njw->tgt_extent, &njw->tgt_rot2, &njw->tgt_rot3);
-
-
-            if (!(BETWEEN(njw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(njw->tgt_rot2, jw->minRot2, jw->maxRot2)
-                && BETWEEN(njw->tgt_extent, jw->minExtent, jw->maxExtent))) {
-                log_msg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
-                         jw->name, jw->door, njw->tgt_rot1, njw->tgt_rot2, njw->tgt_rot3, njw->tgt_extent);
-                log_msg("  does not fulfil min max criteria in sam.xml");
-                float extra_extent = njw->tgt_extent - jw->maxExtent;
-                if (extra_extent < 10.0f) {
-                    log_msg("  as extra extent of %0.1f m < 10.0 m we take it as a soft match", extra_extent);
-                    njw->soft_match = 1;
-                } else
-                    continue;
-            }
-
-            // add to list
-            log_msg("candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
-                    "rot1: %0.1f, extent: %.1f",
-                    jw->name, jw->library_id, jw->door,
-                    njw->x, njw->z, njw->y, njw->psi, njw->tgt_rot1, njw->tgt_extent);
-            nearest_jw[n_nearest] = tentative_njw;
-            n_nearest++;
-
-            // if full, sort by dist and trim down to NEAR_JW_LIMIT
-            if (n_nearest == MAX_NEAREST) {
-                qsort(nearest_jw, MAX_NEAREST, sizeof(jw_ctx_t), njw_compar);
-                n_nearest = NEAR_JW_LIMIT;
-                dist_threshold = nearest_jw[NEAR_JW_LIMIT - 1].z;
-            }
-        }
-
-    if (n_nearest > 1) {
-        // final sort + trim down to limit
+    if (n_nearest > 1)  // final sort + trim down to limit
         qsort(nearest_jw, n_nearest, sizeof(jw_ctx_t), njw_compar);
-        n_nearest = MIN(n_nearest, NEAR_JW_LIMIT);
-    }
 
     return n_nearest;
 }
