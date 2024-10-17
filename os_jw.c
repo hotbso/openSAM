@@ -79,6 +79,12 @@ jw_ctx_t active_jw[MAX_DOOR];
 jw_ctx_t nearest_jw[MAX_NEAREST];
 int n_nearest;
 
+// zero config jw structures
+static sam_jw_t zc_jws[150];    // static for now
+static int zc_max_jws = 150;
+static int zc_n_jws;
+static unsigned int zc_ref_gen;  // change of ref_gen invalidates the whole list
+
 static int dock_requested, undock_requested, toggle_requested;
 static float plane_x, plane_y, plane_z, plane_psi, sin_psi, cos_psi;
 
@@ -144,6 +150,7 @@ jw_anim_acc(void *ref)
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
+    float obj_y = XPLMGetDataf(draw_object_y_dr);
     float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
     // check for shift of reference frame
@@ -155,6 +162,12 @@ jw_anim_acc(void *ref)
         lon_ref = lon_r;
         ref_gen++;
         log_msg("reference frame shift");
+    }
+
+    if (zc_ref_gen < ref_gen) {
+        // from a different frame = stale data
+        zc_n_jws = 0;
+        zc_ref_gen = ref_gen;
     }
 
     sam_jw_t *jw = NULL;
@@ -216,7 +229,7 @@ jw_anim_acc(void *ref)
                     jw_->obj_ref_gen = ref_gen;
                     jw_->x = obj_x;
                     jw_->z = obj_z;
-                    jw_->y = XPLMGetDataf(draw_object_y_dr);
+                    jw_->y = obj_y;
                     jw_->psi = obj_psi;
                 }
 
@@ -229,14 +242,52 @@ jw_anim_acc(void *ref)
         }
     }
 
+    // no match of custom jw
+    // check against the zero config table
+    for (sam_jw_t *jw_ = zc_jws; jw_ < zc_jws + zc_n_jws; jw_++) {
+        if (obj_x == jw_->x && obj_z == jw_->z && obj_y == jw_->y) {
+            stat_jw_match++;
+            jw = jw_;
+            break;
+        }
+
+        stat_near_skip++;
+    }
+
    out:
     uint64_t ctx = (uint64_t)ref;
     dr_code_t drc = ctx & 0xffffffff;
     int id = ctx >> 32;
 
-    if (NULL == jw)
-        return 0.0f;
+    if (NULL == jw) {
+        if (0 == id)
+            return 0.0f;    // unconfigured custom jw
+        else {
+            // unconfigured library jw, add to zc_jws table
+            if (zc_n_jws == zc_max_jws)
+                return 0.0f;
 
+            jw = &zc_jws[zc_n_jws++];
+            *jw = (sam_jw_t){0};
+            jw->obj_ref_gen = ref_gen;
+            jw->x = obj_x;
+            jw->z = obj_z;
+            jw->y = obj_y;
+            jw->psi = obj_psi;
+            jw->is_zc_jw = 1;
+            strcpy(jw->name, "zc_");
+            jw->library_id = id;
+            fill_library_values(jw);
+
+            jw->initialRot2 = 5.0f;
+            jw->initialExtent = 1.0f;
+
+            log_msg("added to zc table: %s, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
+                    jw->name, jw->x, jw->z, jw->y, jw->psi);
+        }
+    }
+
+    //log_msg("jw: %p, jw->name: %s", jw, jw->name);
     switch (drc) {
         case DR_ROTATE1:
             // a one shot event on first access
@@ -500,8 +551,9 @@ filter_candidates(sam_jw_t *jw, int n_jw, float door_x, float door_z, float *dis
 
         if (njw->x > 1.0f || BETWEEN(njw->psi, -130.0f, 20.0f) ||   // on the right side or pointing away
             njw->x < -80.0f || fabsf(njw->z) > 80.0f) {             // or far away
-            log_msg("too far or pointing away: %s, x: %0.2f, z: %0.2f, njw->psi: %0.1f",
-                    jw->name, njw->x, njw->z, njw->psi);
+            if (fabsf(njw->x) < 120.0f && fabsf(njw->z) < 120.0f)   // don't pollute the log with jws VERY far away
+                log_msg("too far or pointing away: %s, x: %0.2f, z: %0.2f, njw->psi: %0.1f",
+                        jw->name, njw->x, njw->z, njw->psi);
             continue;
         }
 
@@ -564,14 +616,31 @@ find_nearest_jws()
     door_x /= n_door;
     door_z /= n_door;
 
+    if (zc_ref_gen < ref_gen) {
+        // from a different frame = stale data
+        zc_n_jws = 0;
+        zc_ref_gen = ref_gen;
+    }
+
     n_nearest = 0;
     float dist_threshold = 1.0E10f;
 
+    // custom jws
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
         filter_candidates(sc->sam_jws, sc->n_sam_jws, door_x, door_z, &dist_threshold);
 
+    // and zero config jetways
+    filter_candidates(zc_jws, zc_n_jws, door_x, door_z, &dist_threshold);
+
     if (n_nearest > 1)  // final sort + trim down to limit
         qsort(nearest_jw, n_nearest, sizeof(jw_ctx_t), njw_compar);
+
+    // fake names for zc jetways
+    for (int i = 0; i < n_nearest; i++) {
+        sam_jw_t *jw = nearest_jw[i].jw;
+        if (jw->is_zc_jw)
+            snprintf(jw->name, sizeof(jw->name) -1, "zc_%d", i + 1);
+    }
 
     return n_nearest;
 }
