@@ -190,7 +190,7 @@ static float last_dgs_x = -1E10f;
 static float last_dgs_z;
 
 // xform lat,lon into the active global frame
-static void
+void
 xform_to_ref_frame(stand_t *stand)
 {
     if (stand->ref_gen < ref_gen) {
@@ -204,7 +204,7 @@ xform_to_ref_frame(stand_t *stand)
 }
 
 // xform global coordinates into the stand frame
-static inline void
+void
 global_2_stand(const stand_t * stand, float x, float z, float *x_l, float *z_l)
 {
     float dx = x - stand->stand_x;

@@ -30,6 +30,8 @@
 #include "os_jw.h"
 #include "os_jw_impl.h"
 
+#include "os_dgs.h"
+
 static const float SAM_2_OBJ_MAX = 2.5;     // m, max delta between coords in sam.xml and object
 static const float SAM_2_OBJ_HDG_MAX = 5;   // °, likewise for heading
 
@@ -128,6 +130,43 @@ fill_library_values(sam_jw_t *jw)
 
     jw->minWheels = ljw->minWheels;
     jw->maxWheels = ljw->maxWheels;
+}
+
+static stand_t *
+find_stand_for_jw(sam_jw_t *jw)
+{
+    double dist = 1.0E10;
+    stand_t *min_stand = NULL;
+
+    float plane_lat = XPLMGetDataf(plane_lat_dr);
+    float plane_lon = XPLMGetDataf(plane_lon_dr);
+
+    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+        // cheap check against bounding box
+        if (plane_lat < sc->bb_lat_min || plane_lat > sc->bb_lat_max
+            || RA(plane_lon - sc->bb_lon_min) < 0 || RA(plane_lon - sc->bb_lon_max) > 0) {
+            continue;
+        }
+
+        for (stand_t *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+            xform_to_ref_frame(stand);
+
+            float local_x, local_z;
+            global_2_stand(stand, jw->x, jw->z, &local_x, &local_z);
+            if (local_x > 2.0f)     // on the right
+                continue;
+
+            float d = len2f(local_x, local_z);
+
+            if (d < dist) {
+                //log_msg("new min: %s, z: %2.1f, x: %2.1f",stand->id, local_z, local_x);
+                dist = d;
+                min_stand = stand;
+            }
+        }
+    }
+
+    return min_stand;
 }
 
 //
@@ -278,16 +317,28 @@ jw_anim_acc(void *ref)
             strcpy(jw->name, "zc_");
             jw->library_id = id;
             fill_library_values(jw);
+            stand_t *stand = jw->stand = find_stand_for_jw(jw);
+            if (stand) {
+                // cabin should point perpendicular to stand
+                jw->initialRot2 = RA((stand->hdgt + 90.0f) - jw->psi);
+                log_msg("jw->psi: %0.1f, stand->hdgt: %0.1f, initialRot2: %0.1f",
+                        jw->psi, stand->hdgt, jw->initialRot2);
+            } else
+                jw->initialRot2 = 5.0f;
 
-            jw->initialRot2 = 5.0f;
-            jw->initialExtent = 1.0f;
+            jw->initialExtent = 0.3f;
+            jw->initialRot3 = -2.5f;
 
-            log_msg("added to zc table: %s, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
-                    jw->name, jw->x, jw->z, jw->y, jw->psi);
+            jw->rotate2 = jw->initialRot2;
+            jw->rotate3 = jw->initialRot3;
+            jw->extent = jw->initialExtent;
+            jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
+
+            log_msg("added to zc table: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
+                    stand ? stand->id : "<NULL>", jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
         }
     }
 
-    //log_msg("jw: %p, jw->name: %s", jw, jw->name);
     switch (drc) {
         case DR_ROTATE1:
             // a one shot event on first access
@@ -638,8 +689,23 @@ find_nearest_jws()
     // fake names for zc jetways
     for (int i = 0; i < n_nearest; i++) {
         sam_jw_t *jw = nearest_jw[i].jw;
-        if (jw->is_zc_jw)
-            snprintf(jw->name, sizeof(jw->name) -1, "zc_%d", i + 1);
+        if (jw->is_zc_jw) {
+            stand_t *stand = jw->stand;
+            if (stand) {
+                // stand->id can be eveything from "A11" to "A11 - Terminal 1 (class C)"
+                char buf[sizeof(stand->id)];
+                strcpy(buf, stand->id);
+                // truncate at ' ' or after 10 chars max
+                char *cptr = strchr(buf, ' ');
+                if (cptr)
+                    *cptr = '\0';
+                int len = strlen(buf);
+                if (len > 10)
+                    buf[10] = '\0';
+                snprintf(jw->name, sizeof(jw->name) -1, "%s_%d", buf, i + 1);
+            } else
+                snprintf(jw->name, sizeof(jw->name) -1, "zc_%d", i + 1);
+        }
     }
 
     return n_nearest;
