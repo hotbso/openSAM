@@ -576,6 +576,54 @@ find_nearest_jws()
     return n_nearest;
 }
 
+
+// det of 2 column vectors x,y
+static inline float
+det(float x1, float x2, float y1, float y2)
+{
+    return x1 * y2 - x2 * y1;
+}
+
+// check whether extended nearest jw i would crash into parked jw j
+static
+int jw_collision_check(int i, int j)
+{
+    // S = start, E = extended, P = parked; all (x, z) vectors
+    // we solve
+    //  S1 + s * (E1 - S1) = S2 + t * (P2 - S2)
+    //  s * (E1 - S1) + t * -(P2 - S2) = S2 - S1
+    //          A                B          C
+    // if the solutions for s, t are in [0,1] there is collision
+
+    const jw_ctx_t *njw1 = &nearest_jw[i];
+    const jw_ctx_t *njw2 = &nearest_jw[j];
+
+    // x, z in the door frame
+    float A1 = njw1->tgt_x - njw1->x;
+    float A2 =    0.0f     - njw1->z;
+
+    float B1 = -(njw2->parked_x - njw2->x);
+    float B2 = -(njw2->parked_z - njw2->z);
+
+    float C1 = njw2->x - njw1->x;
+    float C2 = njw2->z - njw1->z;
+
+    float d = det(A1, A2, B1, B2);
+    if (fabsf(d) < 0.2)
+        return 0;
+
+    float s = det(C1, C2, B1, B2) / d;
+    float t = det(A1, A2, C1, C2) / d;
+    log_msg("check between jw %d and %d, s = %0.2f, t = %0.2f", i, j, s, t);
+
+    if (BETWEEN(t, 0.0f, 1.0f) || BETWEEN(s, 0.0f, 1.0f)) {
+        log_msg("collision between jw %d and %d, s = %0.2f, t = %0.2f", i, j, s, t);
+        return 1;
+    }
+
+    return 0;
+}
+
 // auto select active jetways
 static void
 select_jws()
@@ -602,11 +650,23 @@ select_jws()
         if (ijw >= n_nearest)
             break;
 
+        for (int jjw = ijw + 1; jjw < n_nearest; jjw++)
+            if (jw_collision_check(ijw, jjw)) {
+                ijw++;
+                break;
+            }
+
+        if (ijw >= n_nearest)
+            break;
+
         active_jw[idoor] = nearest_jw[ijw];
         log_msg("active jetway for door %d: %s", idoor, active_jw[idoor].jw->name);
         n_active_jw++;
         ijw++;
     }
+
+    if (n_active_jw == 0)
+        log_msg("Oh no, no active jetways left in select_jws()!");
 }
 
 static int
