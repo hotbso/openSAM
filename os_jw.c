@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 #include <sys/types.h>
 
 #include "openSAM.h"
@@ -132,10 +133,13 @@ fill_library_values(sam_jw_t *jw)
     jw->maxWheels = ljw->maxWheels;
 }
 
+//
+// find the stand the jetway belongs to
+//
 static stand_t *
 find_stand_for_jw(sam_jw_t *jw)
 {
-    double dist = 1.0E10;
+    float dist = 1.0E10;
     stand_t *min_stand = NULL;
 
     float plane_lat = XPLMGetDataf(plane_lat_dr);
@@ -167,6 +171,51 @@ find_stand_for_jw(sam_jw_t *jw)
     }
 
     return min_stand;
+}
+
+//
+// configure a zc library jetway
+//
+static sam_jw_t *
+configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
+{
+    if (zc_n_jws == zc_max_jws)
+        return NULL;
+
+    sam_jw_t *jw = &zc_jws[zc_n_jws++];
+    *jw = (sam_jw_t){0};
+    jw->obj_ref_gen = ref_gen;
+    jw->x = obj_x;
+    jw->z = obj_z;
+    jw->y = obj_y;
+    jw->psi = obj_psi;
+    jw->is_zc_jw = 1;
+    strcpy(jw->name, "zc_");
+    jw->library_id = id;
+    fill_library_values(jw);
+
+    stand_t *stand = jw->stand = find_stand_for_jw(jw);
+    if (stand) {
+        // delta = cabin points perpendicular to stand
+        float delta = RA((stand->hdgt + 90.0f) - jw->psi);
+        // randomize
+        float delta_r = (0.2f + 0.8f * (0.01f * (rand() % 100))) * delta;
+        jw->initialRot2 = delta_r;
+        log_msg("jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, initialRot2: %0.1f",
+                jw->psi, stand->hdgt, delta, jw->initialRot2);
+    } else
+        jw->initialRot2 = 5.0f;
+
+    jw->initialExtent = 0.3f;
+    jw->initialRot3 = -3.0f * 0.01f * (rand() % 100);
+
+    jw->rotate2 = jw->initialRot2;
+    jw->rotate3 = jw->initialRot3;
+    jw->extent = jw->initialExtent;
+    jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
+    log_msg("added to zc table: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
+            stand ? stand->id : "<NULL>", jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
+    return jw;
 }
 
 //
@@ -208,6 +257,10 @@ jw_anim_acc(void *ref)
         zc_n_jws = 0;
         zc_ref_gen = ref_gen;
     }
+
+    uint64_t ctx = (uint64_t)ref;
+    dr_code_t drc = ctx & 0xffffffff;
+    int id = ctx >> 32;
 
     sam_jw_t *jw = NULL;
 
@@ -274,7 +327,7 @@ jw_anim_acc(void *ref)
 
                 stat_jw_match++;
                 jw = jw_;
-                goto out;   // of 2 loops
+                goto out;   // of nested loops
             }
 
             stat_near_skip++;
@@ -287,58 +340,19 @@ jw_anim_acc(void *ref)
         if (obj_x == jw_->x && obj_z == jw_->z && obj_y == jw_->y) {
             stat_jw_match++;
             jw = jw_;
-            break;
+            goto out;
         }
 
         stat_near_skip++;
     }
 
+    if (NULL == jw && id > 0)   // unconfigured library jetway
+        jw = configure_zc_jw(id, obj_x, obj_z, obj_y, obj_psi);
+
+    if (NULL == jw)    // still unconfigured -> bad luck
+        return 0.0f;
+
    out:
-    uint64_t ctx = (uint64_t)ref;
-    dr_code_t drc = ctx & 0xffffffff;
-    int id = ctx >> 32;
-
-    if (NULL == jw) {
-        if (0 == id)
-            return 0.0f;    // unconfigured custom jw
-        else {
-            // unconfigured library jw, add to zc_jws table
-            if (zc_n_jws == zc_max_jws)
-                return 0.0f;
-
-            jw = &zc_jws[zc_n_jws++];
-            *jw = (sam_jw_t){0};
-            jw->obj_ref_gen = ref_gen;
-            jw->x = obj_x;
-            jw->z = obj_z;
-            jw->y = obj_y;
-            jw->psi = obj_psi;
-            jw->is_zc_jw = 1;
-            strcpy(jw->name, "zc_");
-            jw->library_id = id;
-            fill_library_values(jw);
-            stand_t *stand = jw->stand = find_stand_for_jw(jw);
-            if (stand) {
-                // cabin should point perpendicular to stand
-                jw->initialRot2 = RA((stand->hdgt + 90.0f) - jw->psi);
-                log_msg("jw->psi: %0.1f, stand->hdgt: %0.1f, initialRot2: %0.1f",
-                        jw->psi, stand->hdgt, jw->initialRot2);
-            } else
-                jw->initialRot2 = 5.0f;
-
-            jw->initialExtent = 0.3f;
-            jw->initialRot3 = -2.5f;
-
-            jw->rotate2 = jw->initialRot2;
-            jw->rotate3 = jw->initialRot3;
-            jw->extent = jw->initialExtent;
-            jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
-
-            log_msg("added to zc table: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
-                    stand ? stand->id : "<NULL>", jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
-        }
-    }
-
     switch (drc) {
         case DR_ROTATE1:
             // a one shot event on first access
@@ -445,8 +459,16 @@ reset_jetways()
             jw->extent = jw->initialExtent;
             jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
             jw->warnlight = 0;
-            //log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
        }
+
+    for (sam_jw_t *jw = zc_jws; jw < zc_jws + zc_n_jws; jw++) {
+        jw->rotate1 = jw->initialRot1;
+        jw->rotate2 = jw->initialRot2;
+        jw->rotate3 = jw->initialRot3;
+        jw->extent = jw->initialExtent;
+        jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
+        jw->warnlight = 0;
+    }
 
     for (int i = 0; i < n_door; i++) {
         jw_ctx_t *ajw = &active_jw[i];
@@ -692,7 +714,7 @@ find_nearest_jws()
         if (jw->is_zc_jw) {
             stand_t *stand = jw->stand;
             if (stand) {
-                // stand->id can be eveything from "A11" to "A11 - Terminal 1 (class C)"
+                // stand->id can be eveything from "A11" to "A11 - Terminal 1 (cat C)"
                 char buf[sizeof(stand->id)];
                 strcpy(buf, stand->id);
                 // truncate at ' ' or after 10 chars max
@@ -1467,6 +1489,6 @@ jw_init()
                              NULL, NULL, NULL, NULL, NULL, NULL);
 
     reset_jetways();
-
+    srand(time(NULL));
     return 1;
 }
