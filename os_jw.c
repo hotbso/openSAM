@@ -519,12 +519,9 @@ jw_xy_to_sam_dr(const jw_ctx_t *ajw, float cabin_x, float cabin_z,
 static void
 setup_active_jetways()
 {
-    for (int i = 0; i < n_door; i++) {
+    for (int i = 0; i < n_active_jw; i++) {
         jw_ctx_t *ajw = &active_jw[i];
         sam_jw_t *jw = ajw->jw;
-
-        if (NULL == jw)
-            continue;
 
         log_msg("setting up active jw for door: %d", i);
 
@@ -793,11 +790,21 @@ select_jws()
     if (n_door == 0)
         return;
 
+    int have_hard_match = 0;
+    for (int i = 0; i < n_active_jw; i++)
+        if (! active_jw[i].soft_match) {
+            have_hard_match = 1;
+            break;
+        }
 
     n_active_jw = 0;
-
     int ijw = 0;
     while (ijw < n_nearest) {
+        if (have_hard_match && nearest_jw[ijw].soft_match) {
+            ijw++;
+            continue;
+        }
+
         // skip over collisions
         int collision = 0;
         for (int jjw = ijw + 1; jjw < n_nearest; jjw++)
@@ -814,20 +821,10 @@ select_jws()
         active_jw[n_active_jw] = nearest_jw[ijw];
         log_msg("active jetway for door %d: %s", n_active_jw, active_jw[n_active_jw].jw->name);
         n_active_jw++;
+        if (n_active_jw >= n_door)
+            break;
         ijw++;
     }
-
-    int have_hard_match = 0;
-    for (int i = 0; i < n_active_jw; i++)
-        if (! active_jw[i].soft_match) {
-            have_hard_match = 1;
-            break;
-        }
-#if 0
-    // filter out soft matches
-        while (ijw < n_nearest && have_hard_match && nearest_jw[ijw].soft_match)
-            ijw++;
-#endif
 
     if (n_active_jw == 0)
         log_msg("Oh no, no active jetways left in select_jws()!");
