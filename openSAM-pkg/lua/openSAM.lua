@@ -24,17 +24,8 @@ function openSAM_post_dock()
     logMsg("openSAM_post_dock called")
 
     -- for ToLiss open door 1 + ext power on + chocks
-    if PLANE_ICAO == "A319" or PLANE_ICAO == "A20N" or PLANE_ICAO == "A321" or PLANE_ICAO == "A346" then
-        if 1 == get("opensam/jetway/door/status", 0) then
-            logMsg("door 1: docked")
-            set_array("AirbusFBW/PaxDoorModeArray", 0, 2)
-        end
-
-        if 1 == get("opensam/jetway/door/status", 1) then
-            logMsg("door 2: docked")
-            set_array("AirbusFBW/PaxDoorModeArray", 2, 2)
-        end
-
+    if PLANE_ICAO == "A319" or PLANE_ICAO == "A20N" or PLANE_ICAO == "A321" or PLANE_ICAO == "A346" or PLANE_ICAO == "A339" then
+        set_array("AirbusFBW/PaxDoorModeArray", 0, 2)
         set("AirbusFBW/EnableExternalPower", 1)
         set("AirbusFBW/Chocks", 1)
         return
@@ -46,9 +37,10 @@ function openSAM_pre_undock()
     logMsg("openSAM_pre_undock")
 
     -- for ToLiss ensure doors are closed
-    if PLANE_ICAO == "A319" or PLANE_ICAO == "A20N" or PLANE_ICAO == "A321" or PLANE_ICAO == "A346" then
+    if PLANE_ICAO == "A319" or PLANE_ICAO == "A20N" or PLANE_ICAO == "A321" or PLANE_ICAO == "A346" or PLANE_ICAO == "A339" then
         set_array("AirbusFBW/PaxDoorModeArray", 0, 0)
         set_array("AirbusFBW/PaxDoorModeArray", 2, 0)
+        set_array("AirbusFBW/PaxDoorModeArray", 6, 0)
         return
     end
 end
