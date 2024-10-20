@@ -616,17 +616,17 @@ filter_candidates(sam_jw_t *jw, int n_jw, float door_x, float door_z, float *dis
         float dz = jw->z - plane_z;
         njw->x =  cos_psi * dx + sin_psi * dz;
         njw->z = -sin_psi * dx + cos_psi * dz;
-        njw->psi = RA(jw->psi + jw->initialRot1 - plane_psi);
+        njw->psi = RA(jw->psi - plane_psi);
 
         // xlate into door local frame
         njw->x -= door_x;
         njw->z -= door_z;
 
-        if (njw->x > 1.0f || BETWEEN(njw->psi, -130.0f, 20.0f) ||   // on the right side or pointing away
+        if (njw->x > 1.0f || BETWEEN(RA(njw->psi + jw->initialRot1), -130.0f, 20.0f) ||   // on the right side or pointing away
             njw->x < -80.0f || fabsf(njw->z) > 80.0f) {             // or far away
             if (fabsf(njw->x) < 120.0f && fabsf(njw->z) < 120.0f)   // don't pollute the log with jws VERY far away
-                log_msg("too far or pointing away: %s, x: %0.2f, z: %0.2f, njw->psi: %0.1f",
-                        jw->name, njw->x, njw->z, njw->psi);
+                log_msg("too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw->psi + jw->initialRot1): %0.1f",
+                        jw->name, njw->x, njw->z, njw->psi + jw->initialRot1);
             continue;
         }
 
@@ -651,6 +651,11 @@ filter_candidates(sam_jw_t *jw, int n_jw, float door_x, float door_z, float *dis
             } else
                 continue;
         }
+
+        float rot1_d = RA((jw->initialRot1 + njw->psi) - 90.0f);    // door frame
+        float r = jw->initialExtent + jw->cabinPos;
+        njw->parked_x = njw->x + r * cosf(rot1_d * D2R);
+        njw->parked_z = njw->z + r * sinf(rot1_d * D2R);
 
         // add to list
         log_msg("--> candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
@@ -724,9 +729,9 @@ find_nearest_jws()
                 int len = strlen(buf);
                 if (len > 10)
                     buf[10] = '\0';
-                snprintf(jw->name, sizeof(jw->name) -1, "%s_%d", buf, i + 1);
+                snprintf(jw->name, sizeof(jw->name) -1, "%s_%c", buf, i + 'A');
             } else
-                snprintf(jw->name, sizeof(jw->name) -1, "zc_%d", i + 1);
+                snprintf(jw->name, sizeof(jw->name) -1, "zc_%c", i + 'A');
         }
     }
 
@@ -757,7 +762,7 @@ int jw_collision_check(int i, int j)
 
     // x, z in the door frame
     float A1 = njw1->tgt_x - njw1->x;
-    float A2 =    0.0f     - njw1->z;
+    float A2 =             - njw1->z;   // tgt_z is 0 in the door frame
 
     float B1 = -(njw2->parked_x - njw2->x);
     float B2 = -(njw2->parked_z - njw2->z);
@@ -771,9 +776,9 @@ int jw_collision_check(int i, int j)
 
     float s = det(C1, C2, B1, B2) / d;
     float t = det(A1, A2, C1, C2) / d;
-    log_msg("check between jw %d and %d, s = %0.2f, t = %0.2f", i, j, s, t);
+    log_msg("check between jw %d and %d, d = %0.2f, s = %0.2f, t = %0.2f", i, j, d, s, t);
 
-    if (BETWEEN(t, 0.0f, 1.0f) || BETWEEN(s, 0.0f, 1.0f)) {
+    if (BETWEEN(t, 0.0f, 1.0f) && BETWEEN(s, 0.0f, 1.0f)) {
         log_msg("collision between jw %d and %d, s = %0.2f, t = %0.2f", i, j, s, t);
         return 1;
     }
@@ -788,39 +793,41 @@ select_jws()
     if (n_door == 0)
         return;
 
-    int have_hard_match = 0;
-    for (int i = 0; i < n_nearest; i++)
-        if (! nearest_jw[i].soft_match) {
-            have_hard_match = 1;
-            break;
-        }
 
     n_active_jw = 0;
 
-    // from door 0 to n assign nearest jw
     int ijw = 0;
-    for (int idoor = 0; idoor < n_door; idoor++) {
-        // filter out soft matches
-        if (have_hard_match && nearest_jw[ijw].soft_match)
-            ijw++;
-
-        if (ijw >= n_nearest)
-            break;
-
+    while (ijw < n_nearest) {
+        // skip over collisions
+        int collision = 0;
         for (int jjw = ijw + 1; jjw < n_nearest; jjw++)
             if (jw_collision_check(ijw, jjw)) {
-                ijw++;
+                collision = 1;
                 break;
             }
 
-        if (ijw >= n_nearest)
-            break;
+        if (collision) {
+            ijw++;
+            continue;
+        }
 
-        active_jw[idoor] = nearest_jw[ijw];
-        log_msg("active jetway for door %d: %s", idoor, active_jw[idoor].jw->name);
+        active_jw[n_active_jw] = nearest_jw[ijw];
+        log_msg("active jetway for door %d: %s", n_active_jw, active_jw[n_active_jw].jw->name);
         n_active_jw++;
         ijw++;
     }
+
+    int have_hard_match = 0;
+    for (int i = 0; i < n_active_jw; i++)
+        if (! active_jw[i].soft_match) {
+            have_hard_match = 1;
+            break;
+        }
+#if 0
+    // filter out soft matches
+        while (ijw < n_nearest && have_hard_match && nearest_jw[ijw].soft_match)
+            ijw++;
+#endif
 
     if (n_active_jw == 0)
         log_msg("Oh no, no active jetways left in select_jws()!");
