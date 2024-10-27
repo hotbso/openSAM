@@ -230,6 +230,7 @@ jw_anim_acc(void *ref)
     }
 
    out:
+    ;
     uint64_t ctx = (uint64_t)ref;
     dr_code_t drc = ctx & 0xffffffff;
     int id = ctx >> 32;

@@ -693,7 +693,7 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
             char acf_file[256];
 
             XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, acf_file, acf_path);
-            log_msg(acf_path);
+            log_msg("acf path: '%s'", acf_path);
 
             FILE *acf = fopen(acf_path, "r");
             if (acf) {
