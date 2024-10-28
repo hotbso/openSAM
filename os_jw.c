@@ -84,6 +84,14 @@ static float plane_x, plane_y, plane_z, plane_psi, sin_psi, cos_psi;
 
 XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr, toggle_ui_cmdr;
 
+
+// set wheels height
+static inline void
+jw_set_wheels(sam_jw_t *jw)
+{
+    jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
+}
+
 //
 // fill in values for a library jetway
 //
@@ -342,7 +350,7 @@ reset_jetways()
             jw->rotate2 = jw->initialRot2;
             jw->rotate3 = jw->initialRot3;
             jw->extent = jw->initialExtent;
-            jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
+            jw_set_wheels(jw);
             jw->warnlight = 0;
             //log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
        }
@@ -391,52 +399,41 @@ jw_xy_to_sam_dr(const jw_ctx_t *ajw, float cabin_x, float cabin_z,
 }
 
 //
-// fill in all data required for animation
+// fill in geometry data related to specific door
 //
 static void
-setup_active_jetways()
+jw_ctx_for_door(jw_ctx_t *ajw, const door_info_t *door_info)
 {
-    for (int i = 0; i < n_door; i++) {
-        jw_ctx_t *ajw = &active_jw[i];
-        sam_jw_t *jw = ajw->jw;
+    sam_jw_t *jw = ajw->jw;
 
-        if (NULL == jw)
-            continue;
+    // rotate into plane local frame
+    float dx = jw->x - plane_x;
+    float dz = jw->z - plane_z;
+    ajw->x =  cos_psi * dx + sin_psi * dz;
+    ajw->z = -sin_psi * dx + cos_psi * dz;
+    ajw->psi = RA(jw->psi - plane_psi);
 
-        log_msg("setting up active jw for door: %d", i);
+    // xlate into door local frame
+    ajw->x -= door_info->x;
+    ajw->z -= door_info->z;
 
-        // rotate into plane local frame
-        float dx = jw->x - plane_x;
-        float dz = jw->z - plane_z;
-        ajw->x =  cos_psi * dx + sin_psi * dz;
-        ajw->z = -sin_psi * dx + cos_psi * dz;
-        ajw->psi = RA(jw->psi - plane_psi);
+    float rot1_d = RA((jw->initialRot1 + ajw->psi) - 90.0f);    // door frame
+    ajw->cabin_x = ajw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
+    ajw->cabin_z = ajw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
 
-        // xlate into door local frame
-        ajw->x -= door_info[i].x;
-        ajw->z -= door_info[i].z;
+    ajw->tgt_x = -jw->cabinLength;
+    // tgt z = 0.0
+    ajw->y = (jw->y + jw->height) - (plane_y + door_info->y);
 
-        float rot1_d = RA((jw->initialRot1 + ajw->psi) - 90.0f);    // door frame
-        ajw->cabin_x = ajw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
-        ajw->cabin_z = ajw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
+    jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
 
-        ajw->tgt_x = -jw->cabinLength;
-        // tgt z = 0.0
-        ajw->y = (jw->y + jw->height) - (plane_y + door_info[i].y);
+    float r = jw->initialExtent + jw->cabinPos;
+    ajw->parked_x = ajw->x + r * cosf(rot1_d * D2R);
+    ajw->parked_z = ajw->z + r * sinf(rot1_d * D2R);
 
-        jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
+    ajw->ap_x = ajw->tgt_x - JW_ALIGN_DIST;
 
-        if (i == 0)
-            ajw->tgt_rot2 += 3.0f;  // for door1 only
-
-        float r = jw->initialExtent + jw->cabinPos;
-        ajw->parked_x = ajw->x + r * cosf(rot1_d * D2R);
-        ajw->parked_z = ajw->z + r * sinf(rot1_d * D2R);
-
-        ajw->ap_x = ajw->tgt_x - JW_ALIGN_DIST;
-
-        jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
-    }
+    jw_set_wheels(jw);
 }
 
 // a fuzzy comparator for jetway by door number
@@ -472,7 +469,7 @@ njw_compar(const void *a_, const void *b_)
 
 // filter list of jetways jw[] for candidates and add them to nearest_jw[]
 static void
-filter_candidates(sam_jw_t *jw, int n_jw, float door_x, float door_z, float *dist_threshold)
+filter_candidates(sam_jw_t *jw, int n_jw, const door_info_t *door_info, float *dist_threshold)
 {
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
     // So we find the nearest jetways on the left and do some heuristics
@@ -487,33 +484,18 @@ filter_candidates(sam_jw_t *jw, int n_jw, float door_x, float door_z, float *dis
         jw_ctx_t tentative_njw = {0};
         jw_ctx_t *njw = &tentative_njw;
         njw->jw = jw;
+        jw_ctx_for_door(njw, door_info);
 
-        // rotate into plane local frame
-        float dx = jw->x - plane_x;
-        float dz = jw->z - plane_z;
-        njw->x =  cos_psi * dx + sin_psi * dz;
-        njw->z = -sin_psi * dx + cos_psi * dz;
-        njw->psi = RA(jw->psi + jw->initialRot1 - plane_psi);
-
-        // xlate into door local frame
-        njw->x -= door_x;
-        njw->z -= door_z;
-
-        if (njw->x > 1.0f || BETWEEN(njw->psi, -130.0f, 20.0f) ||   // on the right side or pointing away
+        if (njw->x > 1.0f || BETWEEN(RA(njw->psi + jw->initialRot1), -130.0f, 20.0f) ||   // on the right side or pointing away
             njw->x < -80.0f || fabsf(njw->z) > 80.0f) {             // or far away
-            log_msg("too far or pointing away: %s, x: %0.2f, z: %0.2f, njw->psi: %0.1f",
-                    jw->name, njw->x, njw->z, njw->psi);
+            if (fabsf(njw->x) < 120.0f && fabsf(njw->z) < 120.0f)   // don't pollute the log with jws VERY far away
+                log_msg("too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw->psi + jw->initialRot1): %0.1f",
+                        jw->name, njw->x, njw->z, njw->psi + jw->initialRot1);
             continue;
         }
 
         if (njw->z > *dist_threshold)
             continue;
-
-        njw->tgt_x = -jw->cabinLength;
-        // tgt z = 0.0
-        njw->y = (jw->y + jw->height) - (plane_y + door_info[0].y);
-
-        jw_xy_to_sam_dr(njw, njw->tgt_x, 0.0f, &njw->tgt_rot1, &njw->tgt_extent, &njw->tgt_rot2, &njw->tgt_rot3);
 
         if (!(BETWEEN(njw->tgt_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(njw->tgt_rot2, jw->minRot2, jw->maxRot2)
             && BETWEEN(njw->tgt_extent, jw->minExtent, jw->maxExtent))) {
@@ -554,25 +536,29 @@ find_nearest_jws()
         return 0;
     }
 
+    door_info_t avg_di;
     // compute the 'average' door location
-    float door_x = 0.0f;
-    float door_z = 0.0f;
+    avg_di.x = 0.0f;
+    avg_di.z = 0.0f;
     for (int i = 0; i < n_door; i++) {
-        door_x += door_info[i].x;
-        door_z += door_info[i].z;
+        avg_di.x += door_info[i].x;
+        avg_di.z += door_info[i].z;
     }
 
-    door_x /= n_door;
-    door_z /= n_door;
+    avg_di.x /= n_door;
+    avg_di.z /= n_door;
+    avg_di.y = door_info[0].y;
 
     n_nearest = 0;
     float dist_threshold = 1.0E10f;
 
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
-        filter_candidates(sc->sam_jws, sc->n_sam_jws, door_x, door_z, &dist_threshold);
+        filter_candidates(sc->sam_jws, sc->n_sam_jws, &avg_di, &dist_threshold);
 
-    if (n_nearest > 1)  // final sort + trim down to limit
+    if (n_nearest > 1) { // final sort + trim down to limit
         qsort(nearest_jw, n_nearest, sizeof(jw_ctx_t), njw_compar);
+        n_nearest = MIN(n_nearest, NEAR_JW_LIMIT);
+    }
 
     return n_nearest;
 }
@@ -658,7 +644,7 @@ rotate_1_extend(jw_ctx_t *ajw, float cabin_x, float cabin_z)
     sam_jw_t *jw = ajw->jw;
 
     jw_xy_to_sam_dr(ajw, cabin_x, cabin_z, &jw->rotate1, &jw->extent, NULL, NULL);
-    jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
+    jw_set_wheels(jw);
 }
 
 // rotation 3
@@ -676,7 +662,7 @@ rotate_3(jw_ctx_t *ajw, float tgt_rot3, float dt)
             jw->rotate3 = MIN(jw->rotate3 + d_rot3, tgt_rot3);
     }
 
-    jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
+    jw_set_wheels(jw);
 
     if (fabsf(jw->rotate3 - tgt_rot3) > 0.1f)
         return 0;
@@ -1092,7 +1078,19 @@ jw_state_machine()
 
             // or wait for GUI selection
             if (n_active_jw) {
-                setup_active_jetways();
+                for (int i = 0; i < n_door; i++) {
+                    jw_ctx_t *ajw = &active_jw[i];
+                    sam_jw_t *jw = ajw->jw;
+
+                    if (NULL == jw)
+                        continue;
+
+                    log_msg("setting up active jw for door: %d", i);
+                    jw_ctx_for_door(ajw, &door_info[i]);
+                    if (i == 0) // slightly slant towards the nose cone for door LF1
+                        ajw->tgt_rot2 += 3.0f;
+                }
+
                 new_state = CAN_DOCK;
             }
             break;
