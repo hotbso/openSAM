@@ -28,9 +28,15 @@ function openSAM_post_dock()
         set_array("AirbusFBW/PaxDoorModeArray", 0, 2)
         set("AirbusFBW/EnableExternalPower", 1)
         set("AirbusFBW/Chocks", 1)
-        return
     end
 
+    if PLANE_ICAO == "A346" or PLANE_ICAO == "A339" then
+        set("AirbusFBW/EnableExternalPowerB", 1)
+    end
+
+    if (PLANE_ICAO == "A321" or PLANE_ICAO == "A339") and get("opensam/jetway/door/status", 1) == 1 then
+        set_array("AirbusFBW/PaxDoorModeArray", 2, 2)
+    end
 end
 
 function openSAM_pre_undock()
