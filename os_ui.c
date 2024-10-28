@@ -113,6 +113,8 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
             n_active_jw = 0;
 
             for (int i = 0; i < n_door; i++) {
+                active_jw[i].jw = NULL;     // default to empty
+                // check for a selected button
                 for (int j = 0; j < n_nearest; j++) {
                     int state = (uint64_t)XPGetWidgetProperty(jw_btn[i][j], xpProperty_ButtonState, NULL);
                     if (state) {
