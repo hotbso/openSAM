@@ -23,6 +23,8 @@
 static const float FAR_SKIP = 5000;     // (m) don't consider jetways farther away
 
 struct _sam_jw  {
+    int is_zc_jw;   // is a zero config jw
+    stand_t *stand; // back pointer to stand for zc jetways
 
     // local x,z computed from the xml's lat/lon
     float xml_x, xml_y, xml_z;

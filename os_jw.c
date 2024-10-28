@@ -24,11 +24,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 #include <sys/types.h>
 
 #include "openSAM.h"
 #include "os_jw.h"
 #include "os_jw_impl.h"
+
+#include "os_dgs.h"
 
 static const float SAM_2_OBJ_MAX = 2.5;     // m, max delta between coords in sam.xml and object
 static const float SAM_2_OBJ_HDG_MAX = 5;   // °, likewise for heading
@@ -78,6 +81,12 @@ jw_ctx_t active_jw[MAX_DOOR];
 
 jw_ctx_t nearest_jw[MAX_NEAREST];
 int n_nearest;
+
+// zero config jw structures
+static sam_jw_t zc_jws[150];    // static for now
+static int zc_max_jws = 150;
+static int zc_n_jws;
+static unsigned int zc_ref_gen;  // change of ref_gen invalidates the whole list
 
 static int dock_requested, undock_requested, toggle_requested;
 static float plane_x, plane_y, plane_z, plane_psi, sin_psi, cos_psi;
@@ -133,6 +142,120 @@ fill_library_values(sam_jw_t *jw)
 }
 
 //
+// find the stand the jetway belongs to
+//
+static stand_t *
+find_stand_for_jw(sam_jw_t *jw)
+{
+    float dist = 1.0E10;
+    stand_t *min_stand = NULL;
+
+    float plane_lat = XPLMGetDataf(plane_lat_dr);
+    float plane_lon = XPLMGetDataf(plane_lon_dr);
+
+    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+        // cheap check against bounding box
+        if (plane_lat < sc->bb_lat_min || plane_lat > sc->bb_lat_max
+            || RA(plane_lon - sc->bb_lon_min) < 0 || RA(plane_lon - sc->bb_lon_max) > 0) {
+            continue;
+        }
+
+        for (stand_t *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+            xform_to_ref_frame(stand);
+
+            float local_x, local_z;
+            global_2_stand(stand, jw->x, jw->z, &local_x, &local_z);
+            if (local_x > 2.0f)     // on the right
+                continue;
+
+            float d = len2f(local_x, local_z);
+
+            if (d < dist) {
+                //log_msg("new min: %s, z: %2.1f, x: %2.1f",stand->id, local_z, local_x);
+                dist = d;
+                min_stand = stand;
+            }
+        }
+    }
+
+    return min_stand;
+}
+
+//
+// configure a zc library jetway
+//
+static sam_jw_t *
+configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
+{
+    if (zc_n_jws == zc_max_jws)
+        return NULL;
+
+    // library jetways may be in view from very far away when stand information is not
+    // yet available. We won't see details anyway.
+    if (len2f(obj_x - XPLMGetDataf(plane_x_dr), obj_z - XPLMGetDataf(plane_z_dr)) > 0.5f * FAR_SKIP
+        || fabsf(obj_y - XPLMGetDataf(plane_y_dr)) > 1000.0f)
+        return NULL;
+
+    sam_jw_t *jw = &zc_jws[zc_n_jws++];
+    *jw = (sam_jw_t){0};
+    jw->obj_ref_gen = ref_gen;
+    jw->x = obj_x;
+    jw->z = obj_z;
+    jw->y = obj_y;
+    jw->psi = obj_psi;
+    jw->is_zc_jw = 1;
+    strcpy(jw->name, "zc_");
+    jw->library_id = id;
+    fill_library_values(jw);
+
+    stand_t *stand = jw->stand = find_stand_for_jw(jw);
+    if (stand) {
+        // delta = cabin points perpendicular to stand
+        float delta = RA((stand->hdgt + 90.0f) - jw->psi);
+        // randomize
+        float delta_r = (0.2f + 0.8f * (0.01f * (rand() % 100))) * delta;
+        jw->initialRot2 = delta_r;
+        log_msg("jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, initialRot2: %0.1f",
+                jw->psi, stand->hdgt, delta, jw->initialRot2);
+    } else
+        jw->initialRot2 = 5.0f;
+
+    jw->initialExtent = 0.3f;
+    jw->initialRot3 = -3.0f * 0.01f * (rand() % 100);
+
+    jw->rotate2 = jw->initialRot2;
+    jw->rotate3 = jw->initialRot3;
+    jw->extent = jw->initialExtent;
+    jw_set_wheels(jw);
+    log_msg("added to zc table stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
+            stand ? stand->id : "<NULL>", jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
+    return jw;
+}
+
+// check for shift of reference frame
+static inline void
+check_ref_frame_shift()
+{
+    // check for shift of reference frame
+    float lat_r = XPLMGetDataf(lat_ref_dr);
+    float lon_r = XPLMGetDataf(lon_ref_dr);
+
+    if (lat_r != lat_ref || lon_r != lon_ref) {
+        lat_ref = lat_r;
+        lon_ref = lon_r;
+        ref_gen++;
+        log_msg("reference frame shift");
+    }
+
+    if (zc_ref_gen < ref_gen) {
+        // from a different frame = stale data
+        log_msg("zc_jws deleted");
+        zc_n_jws = 0;
+        zc_ref_gen = ref_gen;
+    }
+}
+
+//
 // Accessor for the "sam/jetway/..." datarefs
 //
 // This function is called from draw loops, efficient coding required.
@@ -152,18 +275,14 @@ jw_anim_acc(void *ref)
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
+    float obj_y = XPLMGetDataf(draw_object_y_dr);
     float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
-    // check for shift of reference frame
-    float lat_r = XPLMGetDataf(lat_ref_dr);
-    float lon_r = XPLMGetDataf(lon_ref_dr);
+    check_ref_frame_shift();
 
-    if (lat_r != lat_ref || lon_r != lon_ref) {
-        lat_ref = lat_r;
-        lon_ref = lon_r;
-        ref_gen++;
-        log_msg("reference frame shift");
-    }
+    uint64_t ctx = (uint64_t)ref;
+    dr_code_t drc = ctx & 0xffffffff;
+    int id = ctx >> 32;
 
     sam_jw_t *jw = NULL;
 
@@ -224,28 +343,38 @@ jw_anim_acc(void *ref)
                     jw_->obj_ref_gen = ref_gen;
                     jw_->x = obj_x;
                     jw_->z = obj_z;
-                    jw_->y = XPLMGetDataf(draw_object_y_dr);
+                    jw_->y = obj_y;
                     jw_->psi = obj_psi;
                 }
 
                 stat_jw_match++;
                 jw = jw_;
-                goto out;   // of 2 loops
+                goto out;   // of nested loops
             }
 
             stat_near_skip++;
         }
     }
 
-   out:
-    ;
-    uint64_t ctx = (uint64_t)ref;
-    dr_code_t drc = ctx & 0xffffffff;
-    int id = ctx >> 32;
+    // no match of custom jw
+    // check against the zero config table
+    for (sam_jw_t *jw_ = zc_jws; jw_ < zc_jws + zc_n_jws; jw_++) {
+        if (obj_x == jw_->x && obj_z == jw_->z && obj_y == jw_->y) {
+            stat_jw_match++;
+            jw = jw_;
+            goto out;
+        }
 
-    if (NULL == jw)
+        stat_near_skip++;
+    }
+
+    if (NULL == jw && BETWEEN(id, 1, MAX_SAM3_LIB_JW))   // unconfigured library jetway
+        jw = configure_zc_jw(id, obj_x, obj_z, obj_y, obj_psi);
+
+    if (NULL == jw)    // still unconfigured -> bad luck
         return 0.0f;
 
+   out:
     switch (drc) {
         case DR_ROTATE1:
             // a one shot event on first access
@@ -331,11 +460,7 @@ jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n)
 
     for (int i = 0; i < n; i++) {
         jw_ctx_t *ajw = &active_jw[ofs + i];
-        sam_jw_t *jw = ajw->jw;
-        if (jw && ajw->state == AJW_DOCKED)
-            values[i] = 1;
-        else
-            values[i] = 0;
+        values[i] = (ajw->jw && ajw->state == AJW_DOCKED) ? 1 : 0;
     }
 
     return n;
@@ -352,8 +477,16 @@ reset_jetways()
             jw->extent = jw->initialExtent;
             jw_set_wheels(jw);
             jw->warnlight = 0;
-            //log_msg("%s %5.6f %5.6f", jw->name, jw->latitude, jw->longitude);
        }
+
+    for (sam_jw_t *jw = zc_jws; jw < zc_jws + zc_n_jws; jw++) {
+        jw->rotate1 = jw->initialRot1;
+        jw->rotate2 = jw->initialRot2;
+        jw->rotate3 = jw->initialRot3;
+        jw->extent = jw->initialExtent;
+        jw_set_wheels(jw);
+        jw->warnlight = 0;
+    }
 
     for (int i = 0; i < n_door; i++) {
         jw_ctx_t *ajw = &active_jw[i];
@@ -536,8 +669,13 @@ find_nearest_jws()
         return 0;
     }
 
-    door_info_t avg_di;
+    // in case we move from a SAM airport to one with XP12 default
+    // or autogate jetways this test never executes in the data accessors
+    // so we may end up with a stale zc_jws table here
+    check_ref_frame_shift();
+
     // compute the 'average' door location
+    door_info_t avg_di;
     avg_di.x = 0.0f;
     avg_di.z = 0.0f;
     for (int i = 0; i < n_door; i++) {
@@ -552,12 +690,38 @@ find_nearest_jws()
     n_nearest = 0;
     float dist_threshold = 1.0E10f;
 
+    // custom jws
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
         filter_candidates(sc->sam_jws, sc->n_sam_jws, &avg_di, &dist_threshold);
+
+    // and zero config jetways
+    filter_candidates(zc_jws, zc_n_jws, &avg_di, &dist_threshold);
 
     if (n_nearest > 1) { // final sort + trim down to limit
         qsort(nearest_jw, n_nearest, sizeof(jw_ctx_t), njw_compar);
         n_nearest = MIN(n_nearest, NEAR_JW_LIMIT);
+    }
+
+    // fake names for zc jetways
+    for (int i = 0; i < n_nearest; i++) {
+        sam_jw_t *jw = nearest_jw[i].jw;
+        if (jw->is_zc_jw) {
+            stand_t *stand = jw->stand;
+            if (stand) {
+                // stand->id can be eveything from "A11" to "A11 - Terminal 1 (cat C)"
+                char buf[sizeof(stand->id)];
+                strcpy(buf, stand->id);
+                // truncate at ' ' or after 10 chars max
+                char *cptr = strchr(buf, ' ');
+                if (cptr)
+                    *cptr = '\0';
+                int len = strlen(buf);
+                if (len > 10)
+                    buf[10] = '\0';
+                snprintf(jw->name, sizeof(jw->name) -1, "%s_%c", buf, i + 'A');
+            } else
+                snprintf(jw->name, sizeof(jw->name) -1, "zc_%c", i + 'A');
+        }
     }
 
     return n_nearest;
@@ -619,7 +783,7 @@ select_jws()
 
     int have_hard_match = 0;
     for (int i = 0; i < n_nearest; i++)
-        if (! nearest_jw[i].soft_match) {
+        if (!nearest_jw[i].soft_match) {
             have_hard_match = 1;
             break;
         }
@@ -1385,6 +1549,6 @@ jw_init()
                              NULL, NULL, NULL, NULL, NULL, NULL);
 
     reset_jetways();
-
+    srand(time(NULL));
     return 1;
 }

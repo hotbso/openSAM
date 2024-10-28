@@ -87,5 +87,15 @@ Please share results so they can be included in future updates.
 =====================================================================
 This is for sceneries with no or XP12 default jetways that should be equipped with Marshallers or VDGS.
 In WED just place the appropriate assets from 'openSAM' in the library pane into the scenery.
+SAM_Library is not required.
 Then copy file "openSAM_Library/zero_config_dgs/sam.xml" into your scenery and you are done.
 
+=============================================================
+"Zero configuration SAM library jetways" for scenery creators
+=============================================================
+In case XP12 default jetways are not sufficient SAM library jetways can be used with zero configuration.
+SAM_Library in required.
+Just place them with proper initial orientation of the tunnel in WED. At runtime the cabin will point
+perpendicular to the stand with slight randown variations.
+Use of SAM's authoring tool is not necessary.
+Then copy file "openSAM_Library/zero_config_dgs/sam.xml" into your scenery and you are done.
