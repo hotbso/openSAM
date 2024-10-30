@@ -1,1 +1,1 @@
-VERSION=1.70
+VERSION=2.00-beta-1
