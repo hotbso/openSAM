@@ -313,6 +313,8 @@ toggle_ui(void) {
         return;
     }
 
-    update_ui(0);
-    show_widget(&ui_widget_ctx);
+    if (! is_helicopter) {
+        update_ui(0);
+        show_widget(&ui_widget_ctx);
+    }
 }

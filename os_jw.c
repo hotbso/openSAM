@@ -1259,6 +1259,9 @@ jw_state_machine()
                 parked_z = plane_z;
                 parked_ngen = ref_gen;
 
+                // reset stale command invocations
+                dock_requested = undock_requested = toggle_requested = 0;
+
                 new_state = PARKED;
             }
             break;
@@ -1456,7 +1459,6 @@ static int
 cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
 {
     UNUSED(cmdr);
-
     if (xplm_CommandBegin != phase)
         return 0;
 

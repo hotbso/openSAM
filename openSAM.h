@@ -84,6 +84,7 @@ extern char acf_icao[];
 extern char base_dir[512];          // base directory of openSAM
 extern int use_engine_running;      // instead of beacon, e.g. MD11
 extern int dont_connect_jetway;     // e.g. for ZIBO with own ground service
+extern int is_helicopter;
 
 extern int beacon_state, beacon_last_pos;   // beacon state, last switch_pos, ts of last switch actions
 extern float beacon_off_ts, beacon_on_ts;

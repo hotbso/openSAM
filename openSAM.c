@@ -90,7 +90,7 @@ static const char *dr_name[] = {"sam/season/winter", "sam/season/spring",
 
 XPLMDataRef date_day_dr,
     plane_x_dr, plane_y_dr, plane_z_dr, plane_lat_dr, plane_lon_dr, plane_elevation_dr,
-    plane_true_psi_dr, plane_y_agl_dr, lat_ref_dr, lon_ref_dr,
+    plane_true_psi_dr, plane_y_agl_dr, lat_ref_dr, lon_ref_dr, is_helicopter_dr,
 
     draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
     beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr,
@@ -120,6 +120,7 @@ float beacon_off_ts, beacon_on_ts;
 
 int use_engine_running;              // instead of beacon, e.g. MD11
 int dont_connect_jetway;             // e.g. for ZIBO with own ground service
+int is_helicopter;
 static float plane_cg_y;
 
 int n_door;
@@ -297,14 +298,16 @@ flight_loop_cb(float inElapsedSinceLastCall,
     float dgs_loop_delay = dgs_next_ts - now;
     float anim_loop_delay = anim_next_ts - now;
 
-    if (jw_loop_delay <= 0.0f) {
-        jw_loop_delay = jw_state_machine();
-        jw_next_ts = now + jw_loop_delay;
-    }
+    if (! is_helicopter) {
+        if (jw_loop_delay <= 0.0f) {
+            jw_loop_delay = jw_state_machine();
+            jw_next_ts = now + jw_loop_delay;
+        }
 
-    if (dgs_loop_delay <= 0.0f) {
-        dgs_loop_delay = dgs_state_machine();
-        dgs_next_ts = now + dgs_loop_delay;
+        if (dgs_loop_delay <= 0.0f) {
+            dgs_loop_delay = dgs_state_machine();
+            dgs_next_ts = now + dgs_loop_delay;
+        }
     }
 
     if (anim_loop_delay <= 0.0f) {
@@ -463,6 +466,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     plane_elevation_dr= XPLMFindDataRef("sim/flightmodel/position/elevation");
     plane_true_psi_dr = XPLMFindDataRef("sim/flightmodel2/position/true_psi");
     plane_y_agl_dr = XPLMFindDataRef("sim/flightmodel2/position/y_agl");
+    is_helicopter_dr  = XPLMFindDataRef("sim/aircraft2/metadata/is_helicopter");
 
     draw_object_x_dr = XPLMFindDataRef("sim/graphics/animation/draw_object_x");
     draw_object_y_dr = XPLMFindDataRef("sim/graphics/animation/draw_object_y");
@@ -642,10 +646,18 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         } else
             plane_nw_z = plane_mw_z = plane_cg_z;         // fall back to CG
 
-        // check whether acf is listed in exception files
+        is_helicopter = XPLMGetDatai(is_helicopter_dr);
+
         use_engine_running = 0;
         dont_connect_jetway = 0;
 
+        log_msg("plane loaded: %s, is_helicopter: %d",
+                acf_icao, is_helicopter);
+
+        if (is_helicopter)
+            return;
+
+        // check whether acf is listed in exception files
         char line[200];
         if (find_icao_in_file(acf_icao, base_dir, "acf_use_engine_running.txt", line, sizeof(line))) {
             use_engine_running = 1;
