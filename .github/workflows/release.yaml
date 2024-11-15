@@ -1,0 +1,62 @@
+name: Build and Release Executables
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        target: [windows, linux, mac]
+        xp_version: [11, 12]
+        exclude:
+          - os: windows-latest
+            target: linux
+          - os: windows-latest
+            target: mac
+          - os: ubuntu-latest
+            target: windows
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get XPlane SDK
+        shell: bash
+        run: |
+            SDK_VERSION=411
+            curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o "XPSDK${SDK_VERSION}.zip"
+            unzip XPSDK${SDK_VERSION}.zip
+      
+      - name: Build Executable
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          XP_VERSION: ${{ matrix.xp_version }}
+        run: |
+          echo "Building for $TARGET with X-Plane $XP_VERSION"
+            
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: ./build
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ github.workspace }}/build/windows-latest-build/o4xp_2_xp12.exe
+            ${{ github.workspace }}/build/ubuntu-latest-build/o4xp_2_xp12_ubuntu-latest
+            ${{ github.workspace }}/build/macos-13-build/o4xp_2_xp12_macos-13
+          prerelease: ${{ contains(github.ref_name, '-') }}
