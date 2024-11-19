@@ -30,7 +30,6 @@ jobs:
           OS: ${{ matrix.os }}
           XP_VERSION: ${{ matrix.xp_version }}
         run: |
-          ls SDK
           if [ $OS == "ubuntu-latest" ]; then
             make -f Makefile.lin64
           else
