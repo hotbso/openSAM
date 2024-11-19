@@ -3,7 +3,7 @@ PLUGDIR_XP11=openSAM-pkg_XP11/openSAM
 
 SDK=../SDK
 OPENAL=../libOpenAL32
-OBJDIR=./OBJ_win
+OBJDIR=./OBJ
 
 include version.mak
 

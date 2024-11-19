@@ -13,6 +13,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
         xp_version: [11, 12]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v3
 
@@ -23,6 +24,11 @@ jobs:
             curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o "XPSDK${SDK_VERSION}.zip"
             unzip XPSDK${SDK_VERSION}.zip
             mv SDK ../
+
+      - uses: melusina-org/setup-macports@v1
+        if: startsWith(matrix.os, 'macos')
+        with:
+          macports-version: 2.7.1
       
       - name: Build Executable
         shell: bash
@@ -30,14 +36,21 @@ jobs:
           OS: ${{ matrix.os }}
           XP_VERSION: ${{ matrix.xp_version }}
         run: |
+          if [ $XP_VERSION == "11" ]; then
+            export MK_TARG=openSAM.xpl_xp11
+          else
+            export MK_TARG=openSAM.xpl
+          fi
+
           if [ $OS == "ubuntu-latest" ]; then
-            make -f Makefile.lin64
+            sudo apt-get -y install libopenal1 libopenal-dev
+            make -f Makefile.lin64 ./OBJ/${MK_TARG}
           else
             if [ $OS == "windows-latest" ]; then
-              make -f Makefile.mgw64
+              make -f Makefile.mgw64 ./OBJ/${MK_TARG}
             else
-              brew install expat
-              make -f Makefile.mac64
+              port install expat +universal
+              make -f Makefile.mac64 ./OBJ/${MK_TARG}
             fi
           fi
             
