@@ -37,6 +37,8 @@ jobs:
               make -f Makefile.mgw64
             else
               brew install expat
+              brew install clang
+              brew install llvm
               make -f Makefile.osxcross
             fi
           fi
