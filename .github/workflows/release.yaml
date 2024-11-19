@@ -22,6 +22,7 @@ jobs:
             SDK_VERSION=411
             curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o "XPSDK${SDK_VERSION}.zip"
             unzip XPSDK${SDK_VERSION}.zip
+            mv SDK ../
       
       - name: Build Executable
         shell: bash
