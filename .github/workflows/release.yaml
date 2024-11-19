@@ -29,13 +29,14 @@ jobs:
           OS: ${{ matrix.os }}
           XP_VERSION: ${{ matrix.xp_version }}
         run: |
+          ls SDK
           if [ $OS == "ubuntu-latest" ]; then
             make -f Makefile.lin64
           else
             if [ $OS == "windows-latest" ]; then
               make -f Makefile.mgw64
             else
-              port install expat +universal
+              brew install expat
               make -f Makefile.osxcross
             fi
           fi
