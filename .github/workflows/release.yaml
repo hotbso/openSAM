@@ -11,16 +11,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
-        target: [windows, linux, mac]
+        os: [windows-latest, ubuntu-latest, macos-latest]
         xp_version: [11, 12]
-        exclude:
-          - os: windows-latest
-            target: linux
-          - os: windows-latest
-            target: mac
-          - os: ubuntu-latest
-            target: windows
     steps:
       - uses: actions/checkout@v3
 
@@ -34,10 +26,19 @@ jobs:
       - name: Build Executable
         shell: bash
         env:
-          TARGET: ${{ matrix.target }}
+          OS: ${{ matrix.os }}
           XP_VERSION: ${{ matrix.xp_version }}
         run: |
-          echo "Building for $TARGET with X-Plane $XP_VERSION"
+          if [ $OS == "ubuntu-latest" ]; then
+            make -f Makefile.lin64
+          else
+            if [ $OS == "windows-latest" ]; then
+              make -f Makefile.mgw64
+            else
+              port install expat +universal
+              make -f Makefile.osxcross
+            fi
+          fi
             
 
   release:
