@@ -44,13 +44,13 @@ jobs:
 
           if [ $OS == "ubuntu-latest" ]; then
             sudo apt-get -y install libopenal1 libopenal-dev
-            make -f Makefile.lin64 ./OBJ/${MK_TARG}
+            make -f Makefile.lin64 OBJDIR=./OBJ ./OBJ/${MK_TARG}
           else
             if [ $OS == "windows-latest" ]; then
-              make -f Makefile.mgw64 ./OBJ/${MK_TARG}
+              make -f Makefile.mgw64 OBJDIR=./OBJ ./OBJ/${MK_TARG}
             else
               port install expat +universal
-              make -f Makefile.mac64 ./OBJ/${MK_TARG}
+              make -f Makefile.mac64 OBJDIR=./OBJ ./OBJ/${MK_TARG}
             fi
           fi
             
