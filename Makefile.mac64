@@ -8,7 +8,7 @@ PLUGDIR_XP11=openSAM-pkg_XP11/openSAM
 include version.mak
 
 SDK=../SDK
-OBJDIR=./OBJ_mac
+OBJDIR=./OBJ_osx
 
 TARGET_XP12=$(OBJDIR)/openSAM.xpl
 TARGET_XP11=$(OBJDIR)/openSAM.xpl_xp11

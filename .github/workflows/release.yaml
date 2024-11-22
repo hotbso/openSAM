@@ -7,20 +7,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-linux-macos:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
-        target: [windows, linux, mac]
-        xp_version: [11, 12]
-        exclude:
-          - os: windows-latest
-            target: linux
-          - os: windows-latest
-            target: mac
-          - os: ubuntu-latest
-            target: windows
+        os: [ubuntu-latest, macos-latest]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v3
 
@@ -30,33 +22,220 @@ jobs:
             SDK_VERSION=411
             curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o "XPSDK${SDK_VERSION}.zip"
             unzip XPSDK${SDK_VERSION}.zip
-      
+            mv SDK ../
+
+      - uses: melusina-org/setup-macports@v1
+        if: startsWith(matrix.os, 'macos')
+        with:
+          macports-version: 2.7.1
+
       - name: Build Executable
         shell: bash
         env:
-          TARGET: ${{ matrix.target }}
-          XP_VERSION: ${{ matrix.xp_version }}
+          OS: ${{ matrix.os }}
         run: |
-          echo "Building for $TARGET with X-Plane $XP_VERSION"
-            
+          TAG=${GITHUB_REF##*/}
+          if [ ! -z "$TAG" ]; then
+            echo "VERSION=$TAG" > version.mak
+          fi
+
+          if [ $OS == "ubuntu-latest" ]; then
+            sudo apt-get -y install libopenal1 libopenal-dev
+            make -f Makefile.lin64
+          else
+            port selfupdate
+            port install expat +universal
+            make -f Makefile.mac64
+          fi
+
+          tar cvf binary.tar openSAM-pkg*/openSAM/*_x64
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}
+          path: |
+            binary.tar
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-expat
+            make
+
+      - uses: actions/checkout@v3
+
+      - name: Get XPlane SDK
+        shell: bash
+        run: |
+            SDK_VERSION=411
+            curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o "XPSDK${SDK_VERSION}.zip"
+            unzip XPSDK${SDK_VERSION}.zip
+            mv SDK ../
+
+      - name: Get libOpenal32
+        shell: bash
+        run: |
+            curl -L https://github.com/hotbso/libOpenAL32/archive/refs/heads/main.zip -o libOpenal32.zip
+            unzip libOpenal32.zip
+
+      - name: Build Windows binaries
+        shell: msys2 {0}
+        run: |
+            TAG=${GITHUB_REF##*/}
+            if [ ! -z "$TAG" ]; then
+              echo "VERSION=$TAG" > version.mak
+            fi
+            make -f Makefile.mgw64 OPENAL=./libOpenAL32-main
+            tar cvf binary.tar openSAM-pkg*/openSAM/*_x64
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-windows
+          path: |
+            binary.tar
 
   release:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build-linux-macos, build-windows]
+
     steps:
       - uses: actions/checkout@v3
 
+      - name: setup crc32 tool
+        shell: bash
+        run: |
+            sudo apt-get update
+            sudo apt-get install -y libarchive-zip-perl
+            TAG=${GITHUB_REF##*/}
+            if [ ! -z "$TAG" ]; then
+              echo "VERSION=$TAG" > version.mak
+            fi
+
       - name: Download Build Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: ./build
+
+      - name: List artifacts
+        shell: bash
+        run: |
+            pwd
+            ls -lR ./build
+
+      - name: Consolidate platform builds
+        shell: bash
+        run: |
+            pwd
+            for t in ./build/*/binary.tar
+            do
+              tar xvf $t
+            done
+            bash ./sync_xp11_pkg.sh
+
+      - name: Prepare Skunkcrafts Updater
+        shell: bash
+        run: |
+            # at this point version.mak should have the version number
+            source version.mak
+
+            for XP_VERSION in XP11 XP12; do
+              if [ $XP_VERSION == "XP11" ]; then
+                OPENSAM_ARTIFACT=openSAM-pkg_XP11
+              else
+                OPENSAM_ARTIFACT=openSAM-pkg
+              fi
+
+              RELEASE_FOLDER=release/${XP_VERSION}
+              OPENSAM_FOLDER=$RELEASE_FOLDER/openSAM
+              OPENSAM_LIBRARY_FOLDER=$RELEASE_FOLDER/openSAM_Library
+
+              mkdir -p ${OPENSAM_FOLDER}
+              mkdir -p ${OPENSAM_FOLDER}/lua
+              mkdir -p ${OPENSAM_LIBRARY_FOLDER}
+
+              echo "=============== RELEASE FOLDER  ==============="
+              cp -r ${OPENSAM_ARTIFACT}/LICENSE $RELEASE_FOLDER/.
+              cp -r ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt $RELEASE_FOLDER/.
+              cp -r ${OPENSAM_ARTIFACT}/00_README.txt $RELEASE_FOLDER/.
+
+              echo "=============== OPEN SAM ARTIFACT ==============="
+              rsync -av  ${OPENSAM_ARTIFACT}/openSAM/ ${OPENSAM_FOLDER}/
+              cp -r openSAM-pkg/lua/* ${OPENSAM_FOLDER}/lua
+              cp -r ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_FOLDER}/LICENSE
+              cp -r ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_FOLDER}/Credits_and_Licensing.txt
+              cp -r ${OPENSAM_ARTIFACT}/00_README.txt ${OPENSAM_FOLDER}/00_README.txt
+              ls -l ${OPENSAM_FOLDER}
+              echo
+
+              echo "=============== OPEN SAM LIBRARY ARTIFACT ==============="
+              rsync -av  ${OPENSAM_ARTIFACT}/openSAM_Library/ ${OPENSAM_LIBRARY_FOLDER}/
+              cp -r ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_LIBRARY_FOLDER}/LICENSE
+              cp -r ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_LIBRARY_FOLDER}/Credits_and_Licensing.txt
+              cp -r ${OPENSAM_ARTIFACT}/00_README.txt ${OPENSAM_LIBRARY_FOLDER}/00_README.txt
+              ls -l ${OPENSAM_LIBRARY_FOLDER}
+
+              ## skunkcrafts for openSAM_Library
+              sed -e "s|@FOLDER_NAME@|${OPENSAM_LIBRARY_FOLDER}|g" \
+                -e "s|@XP_VERSION@|${XP_VERSION}|g" \
+                -e "s|@VERSION@|${VERSION}|g" \
+                -e "s|@NAME@|Library|g" \
+                skunkcrafts_updater.cfg.template > "${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater.cfg"
+              ## skunkcrafts for openSAM
+              sed -e "s|@FOLDER_NAME@|${OPENSAM_FOLDER}|g" \
+                -e "s|@XP_VERSION@|${XP_VERSION}|g" \
+                -e "s|@VERSION@|${VERSION}|g" \
+                -e "s|@NAME@||g" \
+                skunkcrafts_updater.cfg.template > "${OPENSAM_FOLDER}/skunkcrafts_updater.cfg"
+
+              find ${OPENSAM_FOLDER}/ -type f ! \( -name '*skunkcrafts_updater*' -o -path '*skunkcrafts_updater*' \) -print0 | while IFS= read -r -d '' file; do
+                checksum_hex=$(crc32 "$file")
+                # Convert hex checksum to uint32 decimal
+                checksum_decimal=$((16#$checksum_hex))
+                # Remove "release/" prefix from $file
+                modified_file="${file#${OPENSAM_FOLDER}/}"
+                echo "$modified_file|$checksum_decimal" >> ${OPENSAM_FOLDER}/skunkcrafts_updater_whitelist.txt
+              done
+
+              find ${OPENSAM_LIBRARY_FOLDER}/ -type f ! \( -name '*skunkcrafts_updater*' -o -path '*skunkcrafts_updater*' \) -print0 | while IFS= read -r -d '' file; do
+                checksum_hex=$(crc32 "$file")
+                # Convert hex checksum to uint32 decimal
+                checksum_decimal=$((16#$checksum_hex))
+                # Remove "release/" prefix from $file
+                modified_file="${file#${OPENSAM_LIBRARY_FOLDER}/}"
+                echo "$modified_file|$checksum_decimal" >> ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_whitelist.txt
+              done
+
+              touch ${OPENSAM_FOLDER}/skunkcrafts_updater_blacklist.txt
+              touch ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_blacklist.txt
+
+              (cd ${RELEASE_FOLDER} && 7z a "${{ github.workspace }}/openSAM-${XP_VERSION}-${VERSION}.zip" *)
+            done
+
+            # push to release branch
+            git checkout -b release
+            git config --global user.email "release@opensam.com"
+            git config --global user.name "GH Release"
+            git add release/
+            git commit -m "Release ${VERSION}"
+            git push -f -u origin release
+
+
+
 
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            ${{ github.workspace }}/build/windows-latest-build/o4xp_2_xp12.exe
-            ${{ github.workspace }}/build/ubuntu-latest-build/o4xp_2_xp12_ubuntu-latest
-            ${{ github.workspace }}/build/macos-13-build/o4xp_2_xp12_macos-13
+            ${{ github.workspace }}/openSAM*.zip
           prerelease: ${{ contains(github.ref_name, '-') }}
