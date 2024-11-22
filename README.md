@@ -3,7 +3,8 @@ An open source implementation of SAM that drives jetways and provides VDGS and M
 
 ## Credits
 Jonathan Harris (aka Marginal) (https://github.com/Marginal) for creating Autogate\
-@Papickx + @cxn0026 for providing better textures and day + night lighting
+@Papickx + @cxn0026 for providing better textures and day + night lighting \
+@zodiac1214 (aka cfanap) (https://github.com/zodiac1214) for creating the automated build and release system including skunkcrafts support
 
 ## License
 Please observe that this material is covered by various licenses.
