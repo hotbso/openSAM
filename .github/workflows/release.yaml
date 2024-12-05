@@ -189,12 +189,22 @@ jobs:
                 -e "s|@VERSION@|${VERSION}|g" \
                 -e "s|@NAME@|Library|g" \
                 skunkcrafts_updater.cfg.template > "${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater.cfg"
+              sed -e "s|@FOLDER_NAME@|${OPENSAM_LIBRARY_FOLDER}|g" \
+                -e "s|@XP_VERSION@|${XP_VERSION}|g" \
+                -e "s|@VERSION@|${VERSION}|g" \
+                -e "s|@NAME@|Library|g" \
+                skunkcrafts_updater_beta.cfg.template > "${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_beta.cfg"
               ## skunkcrafts for openSAM
               sed -e "s|@FOLDER_NAME@|${OPENSAM_FOLDER}|g" \
                 -e "s|@XP_VERSION@|${XP_VERSION}|g" \
                 -e "s|@VERSION@|${VERSION}|g" \
                 -e "s|@NAME@||g" \
                 skunkcrafts_updater.cfg.template > "${OPENSAM_FOLDER}/skunkcrafts_updater.cfg"
+              sed -e "s|@FOLDER_NAME@|${OPENSAM_FOLDER}|g" \
+                -e "s|@XP_VERSION@|${XP_VERSION}|g" \
+                -e "s|@VERSION@|${VERSION}|g" \
+                -e "s|@NAME@||g" \
+                skunkcrafts_updater_beta.cfg.template > "${OPENSAM_FOLDER}/skunkcrafts_updater_beta.cfg"
 
               find ${OPENSAM_FOLDER}/ -type f ! \( -name '*skunkcrafts_updater*' -o -path '*skunkcrafts_updater*' \) -print0 | while IFS= read -r -d '' file; do
                 checksum_hex=$(crc32 "$file")
@@ -220,13 +230,27 @@ jobs:
               (cd ${RELEASE_FOLDER} && 7z a "${{ github.workspace }}/openSAM-${XP_VERSION}-${VERSION}.zip" *)
             done
 
-            # push to release branch
-            git checkout -b release
+            TAG=${GITHUB_REF##*/}
+            TARGET_BRANCH="release"
+            # if TAG contains -
+            if [[ $TAG == *"-"* ]]; then
+                echo "This is a beta release"
+                TARGET_BRANCH="beta"
+            fi
+            git checkout -b ${TARGET_BRANCH}
             git config --global user.email "release@opensam.com"
             git config --global user.name "GH Release"
             git add release/
-            git commit -m "Release ${VERSION}"
-            git push -f -u origin release
+            git commit -m "new ${TARGET_BRANCH} - ${TAG}"
+            git push -f -u origin ${TARGET_BRANCH}
+
+            # push to release branch
+            #git checkout -b release
+            #git config --global user.email "release@opensam.com"
+            #git config --global user.name "GH Release"
+            #git add release/
+            #git commit -m "Release ${VERSION}"
+            #git push -f -u origin release
 
 
 
