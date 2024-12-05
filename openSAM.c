@@ -251,6 +251,9 @@ cmd_toggle_ui_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
 int
 check_teleportation()
 {
+	if (! on_ground)
+		return 0;
+
     float x = XPLMGetDataf(plane_x_dr);
     float z = XPLMGetDataf(plane_z_dr);
     int ngen = ref_gen;
@@ -258,9 +261,6 @@ check_teleportation()
     if (parked_ngen != ngen || fabsf(parked_x - x) > 1.0f || fabsf(parked_z - z) > 1.0f) {
         log_msg("parked_ngen: %d, ngen: %d, parked_x: %0.3f, x: %0.3f, parked_z: %0.3f, z: %0.3f",
                 parked_ngen, ngen, parked_x, x, parked_z, z);
-
-        on_ground_ts = now + 10.0f; // wait for the dust to settle
-        on_ground = 1;
         return 1;
     }
 
