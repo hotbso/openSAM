@@ -197,7 +197,7 @@ configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
         return NULL;
 
     sam_jw_t *jw = &zc_jws[zc_n_jws++];
-    *jw = (sam_jw_t){0};
+    *jw = (sam_jw_t){};
     jw->obj_ref_gen = ref_gen;
     jw->x = obj_x;
     jw->z = obj_z;
@@ -281,7 +281,7 @@ jw_anim_acc(void *ref)
     check_ref_frame_shift();
 
     uint64_t ctx = (uint64_t)ref;
-    dr_code_t drc = ctx & 0xffffffff;
+    dr_code_t drc = (dr_code_t)(ctx & 0xffffffff);
     int id = ctx >> 32;
 
     sam_jw_t *jw = NULL;
@@ -573,8 +573,8 @@ jw_ctx_for_door(jw_ctx_t *ajw, const door_info_t *door_info)
 static int
 njw_compar(const void *a_, const void *b_)
 {
-    const jw_ctx_t *a = a_;
-    const jw_ctx_t *b = b_;
+    const jw_ctx_t *a = (const jw_ctx_t *)a_;
+    const jw_ctx_t *b = (const jw_ctx_t *)b_;
 
     // height goes first
     if (a->jw->height < b->jw->height - 1.0f)
@@ -614,7 +614,7 @@ filter_candidates(sam_jw_t *jw, int n_jw, const door_info_t *door_info, float *d
         log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
                 jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
 
-        jw_ctx_t tentative_njw = {0};
+        jw_ctx_t tentative_njw = {};
         jw_ctx_t *njw = &tentative_njw;
         njw->jw = jw;
         jw_ctx_for_door(njw, door_info);
@@ -1266,21 +1266,22 @@ jw_state_machine()
             }
             break;
 
-        case PARKED:
-            // find airport I'm on now to ease debugging
-            lat = XPLMGetDataf(plane_lat_dr);
-            lon = XPLMGetDataf(plane_lon_dr);
-            XPLMNavRef ref = XPLMFindNavAid(NULL, NULL, &lat, &lon, NULL, xplm_Nav_Airport);
-            if (XPLM_NAV_NOT_FOUND != ref) {
-                XPLMGetNavAidInfo(ref, NULL, NULL, NULL, NULL, NULL, NULL, airport_id,
-                        NULL, NULL);
-                log_msg("parked on airport: %s, lat,lon: %0.5f,%0.5f", airport_id, lat, lon);
-            }
+        case PARKED: {
+                // find airport I'm on now to ease debugging
+                lat = XPLMGetDataf(plane_lat_dr);
+                lon = XPLMGetDataf(plane_lon_dr);
+                XPLMNavRef ref = XPLMFindNavAid(NULL, NULL, &lat, &lon, NULL, xplm_Nav_Airport);
+                if (XPLM_NAV_NOT_FOUND != ref) {
+                    XPLMGetNavAidInfo(ref, NULL, NULL, NULL, NULL, NULL, NULL, airport_id,
+                            NULL, NULL);
+                    log_msg("parked on airport: %s, lat,lon: %0.5f,%0.5f", airport_id, lat, lon);
+                }
 
-            if (find_nearest_jws())
-                new_state = SELECT_JWS;
-            else
-                new_state = CANT_DOCK;
+                if (find_nearest_jws())
+                    new_state = SELECT_JWS;
+                else
+                    new_state = CANT_DOCK;
+            }
             break;
 
         case SELECT_JWS:
@@ -1520,7 +1521,7 @@ jw_init()
         XPLMRegisterCommandHandler(xp12_toggle_cmdr, cmd_xp12_dock_jw_cb, 1, NULL);
 
     // create the jetway animation datarefs
-    for (dr_code_t drc = DR_ROTATE1; drc < N_JW_DR; drc++) {
+    for (int drc = DR_ROTATE1; drc < N_JW_DR; drc++) {
         char name[100];
         name[99] = '\0';
         snprintf(name, sizeof(name) - 1, "sam/jetway/%s", dr_name_jw[drc]);

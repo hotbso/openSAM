@@ -11,32 +11,32 @@ TARGET_XP12=$(OBJDIR)/openSAM.xpl
 TARGET_XP11=$(OBJDIR)/openSAM.xpl_xp11
 
 HEADERS=$(wildcard *.h)
-SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c os_anim.c sam_xml.c log_msg.c read_wav.c
-OBJECTS:=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o))
+SOURCES=openSAM.cpp os_dgs.cpp os_jw.cpp os_ui.cpp os_anim.cpp sam_xml.cpp log_msg.cpp read_wav.cpp
+OBJECTS:=$(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o))
 OBJECTS_XP12=$(OBJECTS) $(OBJDIR)/os_sound.o
 OBJECTS_XP11=$(OBJECTS) $(OBJDIR)/os_sound_xp11.o
 
 # all sources to the dep files
-SOURCES_DEP=$(SOURCES) os_sound.c os_sound_xp11.c
-DEPFILES=$(SOURCES_DEP:%.c=$(DEPDIR)/%.d)
+SOURCES_DEP=$(SOURCES) os_sound.cpp os_sound_xp11.cpp
+DEPFILES=$(SOURCES_DEP:%.cpp=$(DEPDIR)/%.d)
 
 DEPDIR := $(OBJDIR)/.deps
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 
-CC=gcc
-LD=gcc
+CXX=g++
+LD=g++
 
 CFLAGS+=-DVERSION=\"$(VERSION)\"   -g0 -O2 -Wextra -Wall -fdiagnostics-color -Wno-format-overflow -Wno-format-truncation \
     -DWINDOWS -DWIN32   -DIBM=1 \
 	-I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets -I$(OPENAL)
 
-COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS)  -c
+COMPILE.cpp = $(CXX) $(DEPFLAGS) $(CFLAGS)  -c
 
 LDFLAGS=-shared -static-libgcc -static -lpthread
 LIBS=-L$(SDK)/Libraries/Win -lXPLM_64 -lXPWidgets_64 -l:libexpat.a
 
-$(OBJDIR)/%.o: %.c $(DEPDIR)/%.d version.mak | $(DEPDIR)
-	$(COMPILE.c) -o $@  $<
+$(OBJDIR)/%.o: %.cpp $(DEPDIR)/%.d version.mak | $(DEPDIR)
+	$(COMPILE.cpp) -o $@  $<
 
 install: install_xp12 install_xp11
 
@@ -64,7 +64,7 @@ install_xp11: $(TARGET_XP11)
 clean:
 	rm -f ./$(OBJDIR)/* sam_xml_test.exe
 
-sam_xml_test.exe: sam_xml_test.c sam_xml.c log_msg.c $(HEADERS)
-	$(CC) -Wall -fdiagnostics-color -Wno-format-overflow -I$(SDK)/CHeaders/XPLM -DIBM=1 \
+sam_xml_test.exe: sam_xml_test.cpp sam_xml.cpp log_msg.cpp $(HEADERS)
+	$(CXX) -Wall -fdiagnostics-color -Wno-format-overflow -I$(SDK)/CHeaders/XPLM -DIBM=1 \
     -DWINDOWS -DWIN32 -DLOCAL_DEBUGSTRING -o sam_xml_test.exe \
-        sam_xml_test.c sam_xml.c log_msg.c -l:libexpat.a
+        sam_xml_test.cpp sam_xml.cpp log_msg.cpp -l:libexpat.a

@@ -41,7 +41,7 @@ sound_t alert;
 
 static ALuint snd_src;
 static ALuint snd_buffer;
-static const ALfloat zero[3];
+static const ALfloat zero[3] = {};
 static int paused;
 
 static XPLMDataRef audio_dr, paused_dr, view_external_dr;

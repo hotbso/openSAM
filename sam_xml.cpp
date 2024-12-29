@@ -108,7 +108,7 @@ lookup_attr(const XML_Char **attr, const char *name) {
 static void
 get_jw_attrs(const XML_Char **attr, sam_jw_t *sam_jw)
 {
-    *sam_jw = (sam_jw_t){0};
+    *sam_jw = (sam_jw_t){};
 
     GET_INT_ATTR(sam_jw, id)
     GET_STR_ATTR(sam_jw, name)
@@ -170,7 +170,7 @@ lookup_obj(const scenery_t *sc, const char *id)
 // expat's callbacks
 static void XMLCALL
 start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
-    expat_ctx_t *ctx = user_data;
+    expat_ctx_t *ctx = (expat_ctx_t *)user_data;
 
     if (0 == strcmp(name, "scenery")) {
         GET_STR_ATTR(ctx->sc, name);
@@ -192,7 +192,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
 
         if (sc->n_sam_jws == ctx->max_sam_jws) {
             ctx->max_sam_jws += 100;
-            sc->sam_jws = realloc(sc->sam_jws, ctx->max_sam_jws * sizeof(sam_jw_t));
+            sc->sam_jws = (sam_jw_t *)realloc(sc->sam_jws, ctx->max_sam_jws * sizeof(sam_jw_t));
             if (sc->sam_jws == NULL)
                 goto oom;
         }
@@ -228,13 +228,13 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
 
         if (n_sam_drfs == ctx->max_sam_drfs) {
             ctx->max_sam_drfs += 100;
-            sam_drfs = realloc(sam_drfs, ctx->max_sam_drfs * sizeof(sam_drf_t));
+            sam_drfs = (sam_drf_t *)realloc(sam_drfs, ctx->max_sam_drfs * sizeof(sam_drf_t));
             if (sam_drfs == NULL)
                 goto oom;
         }
 
         ctx->cur_dataref = &sam_drfs[n_sam_drfs];
-        *(ctx->cur_dataref) = (sam_drf_t){0};
+        *(ctx->cur_dataref) = (sam_drf_t){};
 
         GET_STR_ATTR(ctx->cur_dataref, name);
         if (ctx->cur_dataref->name[0] == '\0') {
@@ -295,14 +295,14 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
 
         if (sc->n_sam_objs == ctx->max_sam_objs) {
             ctx->max_sam_objs += 100;
-            sc->sam_objs = realloc(sc->sam_objs, ctx->max_sam_objs * sizeof(sam_obj_t));
+            sc->sam_objs = (sam_obj_t *)realloc(sc->sam_objs, ctx->max_sam_objs * sizeof(sam_obj_t));
             if (sc->sam_objs == NULL)
                 goto oom;
         }
 
         sam_obj_t *obj = &sc->sam_objs[sc->n_sam_objs];
 
-        *obj = (sam_obj_t){0};
+        *obj = (sam_obj_t){};
         GET_STR_ATTR(obj, id);
         GET_FLOAT_ATTR(obj, latitude);
         GET_FLOAT_ATTR(obj, longitude);
@@ -323,14 +323,14 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
 
         if (sc->n_sam_anims == ctx->max_sam_anims) {
             ctx->max_sam_anims += 100;
-            sc->sam_anims = realloc(sc->sam_anims, ctx->max_sam_anims * sizeof(sam_anim_t));
+            sc->sam_anims = (sam_anim_t *)realloc(sc->sam_anims, ctx->max_sam_anims * sizeof(sam_anim_t));
             if (sc->sam_anims == NULL)
                 goto oom;
         }
 
         sam_anim_t *anim = &sc->sam_anims[sc->n_sam_anims];
 
-        *anim = (sam_anim_t){0};
+        *anim = (sam_anim_t){};
         GET_STR_ATTR(anim, label);
         GET_STR_ATTR(anim, title);
 
@@ -362,7 +362,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
 
 static void XMLCALL
 end_element(void *user_data, const XML_Char *name) {
-    expat_ctx_t *ctx = user_data;
+    expat_ctx_t *ctx = (expat_ctx_t *)user_data;
 
     if (0 == strcmp(name, "jetways"))
         ctx->in_jetways = false;
@@ -393,7 +393,7 @@ end_element(void *user_data, const XML_Char *name) {
 static int
 parse_sam_xml(int fd, scenery_t *sc)
 {
-    *sc = (scenery_t){0};
+    *sc = (scenery_t){};
 
     int rc = 0;
     XML_Parser parser = XML_ParserCreate(NULL);
@@ -457,14 +457,14 @@ parse_apt_dat(FILE *f, scenery_t *sc)
             //log_msg("%s", line);
             if (sc->n_stands == max_stands) {
                 max_stands += 100;
-                sc->stands = realloc(sc->stands, max_stands * sizeof(stand_t));
+                sc->stands = (stand_t *)realloc(sc->stands, max_stands * sizeof(stand_t));
                 if (sc->stands == NULL) {
                     log_msg("Can't allocate memory");
                     return 0;
                 }
             }
             stand_t *stand = &sc->stands[sc->n_stands];
-            *stand = (stand_t){0};
+            *stand = (stand_t){};
             int len;
             int n = sscanf(line + 5, "%f %f %f %*s %*s %n",
                            &stand->lat, &stand->lon, &stand->hdgt, &len);
@@ -524,7 +524,7 @@ mk_sam_fn(const char *xp_dir, char *line, char *fn, int fn_size)
 
 #define REALLOC_CHECK(ptr, n, type) \
 if (ptr) { \
-    ptr = realloc(ptr, (n) * sizeof(type)); \
+    ptr = (type *)realloc(ptr, (n) * sizeof(type)); \
     if ((n) > 0 && NULL == ptr) { \
         log_msg("out of memory " #ptr); \
         return 0; \
@@ -547,7 +547,7 @@ collect_sam_xml(const char *xp_dir)
     }
 
     max_sceneries = 100;
-    sceneries = realloc(sceneries, max_sceneries * sizeof(scenery_t));
+    sceneries = (scenery_t *)realloc(sceneries, max_sceneries * sizeof(scenery_t));
     if (sceneries == NULL) {
         log_msg("Can't allocate memory");
         fclose(scp);
@@ -604,7 +604,7 @@ collect_sam_xml(const char *xp_dir)
 
             if (n_sceneries == max_sceneries) {
                 max_sceneries += 100;
-                sceneries = realloc(sceneries, max_sceneries * sizeof(scenery_t));
+                sceneries = (scenery_t *)realloc(sceneries, max_sceneries * sizeof(scenery_t));
                 if (sceneries == NULL) {
                     log_msg("Can't allocate memory");
                     fclose(scp); close(fd);

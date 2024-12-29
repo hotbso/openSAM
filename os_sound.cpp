@@ -39,7 +39,7 @@ alert_complete(void *ref, FMOD_RESULT status)
 {
     UNUSED(status);
 
-    jw_ctx_t *ajw = ref;
+    jw_ctx_t *ajw = (jw_ctx_t *)ref;
     ajw->alert_chn = NULL;
 }
 

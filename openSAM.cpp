@@ -132,7 +132,7 @@ unsigned long long stat_sc_far_skip, stat_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,
     stat_anim_acc_called, stat_auto_drf_called;
 
-XPLMProbeInfo_t probeinfo = {.structSize = sizeof(XPLMProbeInfo_t)};
+XPLMProbeInfo_t probeinfo;
 XPLMProbeRef probe_ref;
 XPLMMenuID anim_menu;
 
@@ -426,6 +426,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 {
     log_msg("Startup " VERSION);
 
+    probeinfo.structSize = sizeof(XPLMProbeInfo_t);
     strcpy(out_name, "openSAM " VERSION);
     strcpy(out_sig, "openSAM.hotbso");
     strcpy(out_desc, "A plugin that emulates SAM");

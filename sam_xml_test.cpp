@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
 
 #include "openSAM.h"
 #include "os_dgs.h"
@@ -32,6 +33,8 @@
 
 int
 main(int argc, char **argv) {
+
+    std::cout << "sam_xml_test starting\n";
 
     if (!collect_sam_xml("E:/X-Plane-12")) {
         log_msg("Error reading sam.xml files");
