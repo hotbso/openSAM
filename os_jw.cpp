@@ -491,7 +491,7 @@ reset_jetways()
     for (int i = 0; i < n_door; i++) {
         JwCtx *ajw = &active_jw[i];
         if (ajw->jw)
-            alert_off(ajw);
+            ajw->alert_off();
     }
 
     state = IDLE;
@@ -534,37 +534,35 @@ jw_xy_to_sam_dr(const JwCtx *ajw, float cabin_x, float cabin_z,
 //
 // fill in geometry data related to specific door
 //
-static void
-jw_ctx_for_door(JwCtx *ajw, const door_info_t *door_info)
+void
+JwCtx::setup_for_door(const door_info_t *door_info)
 {
-    SamJw *jw = ajw->jw;
-
     // rotate into plane local frame
     float dx = jw->x - plane_x;
     float dz = jw->z - plane_z;
-    ajw->x =  cos_psi * dx + sin_psi * dz;
-    ajw->z = -sin_psi * dx + cos_psi * dz;
-    ajw->psi = RA(jw->psi - plane_psi);
+    x =  cos_psi * dx + sin_psi * dz;
+    z = -sin_psi * dx + cos_psi * dz;
+    psi = RA(jw->psi - plane_psi);
 
     // xlate into door local frame
-    ajw->x -= door_info->x;
-    ajw->z -= door_info->z;
+    x -= door_info->x;
+    z -= door_info->z;
 
-    float rot1_d = RA((jw->initialRot1 + ajw->psi) - 90.0f);    // door frame
-    ajw->cabin_x = ajw->x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
-    ajw->cabin_z = ajw->z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
+    float rot1_d = RA((jw->initialRot1 + psi) - 90.0f);    // door frame
+    cabin_x = x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
+    cabin_z = z + (jw->extent + jw->cabinPos) * sinf(rot1_d * D2R);
 
-    ajw->tgt_x = -jw->cabinLength;
+    tgt_x = -jw->cabinLength;
     // tgt z = 0.0
-    ajw->y = (jw->y + jw->height) - (plane_y + door_info->y);
+    y = (jw->y + jw->height) - (plane_y + door_info->y);
 
-    jw_xy_to_sam_dr(ajw, ajw->tgt_x, 0.0f, &ajw->tgt_rot1, &ajw->tgt_extent, &ajw->tgt_rot2, &ajw->tgt_rot3);
+    jw_xy_to_sam_dr(this, tgt_x, 0.0f, &tgt_rot1, &tgt_extent, &tgt_rot2, &tgt_rot3);
 
     float r = jw->initialExtent + jw->cabinPos;
-    ajw->parked_x = ajw->x + r * cosf(rot1_d * D2R);
-    ajw->parked_z = ajw->z + r * sinf(rot1_d * D2R);
+    parked_x = x + r * cosf(rot1_d * D2R);
+    parked_z = z + r * sinf(rot1_d * D2R);
 
-    ajw->ap_x = ajw->tgt_x - JW_ALIGN_DIST;
+    ap_x = tgt_x - JW_ALIGN_DIST;
 
     jw_set_wheels(jw);
 }
@@ -617,7 +615,7 @@ filter_candidates(SamJw *jw, int n_jw, const door_info_t *door_info, float *dist
         JwCtx tentative_njw = {};
         JwCtx *njw = &tentative_njw;
         njw->jw = jw;
-        jw_ctx_for_door(njw, door_info);
+        njw->setup_for_door(door_info);
 
         if (njw->x > 1.0f || BETWEEN(RA(njw->psi + jw->initialRot1), -130.0f, 20.0f) ||   // on the right side or pointing away
             njw->x < -80.0f || fabsf(njw->z) > 80.0f) {             // or far away
@@ -946,7 +944,7 @@ dock_drive(JwCtx *ajw)
         jw->rotate3 = ajw->tgt_rot3;
         jw->extent = ajw->tgt_extent;
         jw->warnlight = 0;
-        alert_off(ajw);
+        ajw->alert_off();
         return 1;   // -> done
     }
 
@@ -1069,12 +1067,12 @@ dock_drive(JwCtx *ajw)
             ajw->state = AJW_DOCKED;
             log_msg("door reached");
             jw->warnlight = 0;
-            alert_off(ajw);
+            ajw->alert_off();
             return 1;   // done
         }
     }
 
-    alert_setpos(ajw);
+    ajw->alert_setpos();
     return 0;
 }
 
@@ -1101,7 +1099,7 @@ undock_drive(JwCtx *ajw)
         jw->rotate3 = jw->initialRot3;
         jw->extent = jw->initialExtent;
         jw->warnlight = 0;
-        alert_off(ajw);
+        ajw->alert_off();
         return 1;   // -> done
     }
 
@@ -1206,13 +1204,13 @@ undock_drive(JwCtx *ajw)
         if (fabs(tgt_x - ajw->cabin_x) < eps && fabs(tgt_z -ajw->cabin_z) < eps)  {
             ajw->state = AJW_PARKED;
             jw->warnlight = 0;
-            alert_off(ajw);
+            ajw->alert_off();
             log_msg("park position reached");
             return 1;   // done
         }
     }
 
-    alert_setpos(ajw);
+    ajw->alert_setpos();
     return 0;
 }
 
@@ -1308,7 +1306,7 @@ jw_state_machine()
                         continue;
 
                     log_msg("setting up active jw for door: %d", i);
-                    jw_ctx_for_door(ajw, &door_info[i]);
+                    ajw->setup_for_door(&door_info[i]);
                     if (i == 0) // slightly slant towards the nose cone for door LF1
                         ajw->tgt_rot2 += 3.0f;
                 }
@@ -1336,7 +1334,7 @@ jw_state_machine()
                     ajw->start_ts = now + active_door * 5.0f;
                     ajw->last_step_ts = ajw->start_ts;
                     ajw->timeout = ajw->start_ts + JW_ANIM_TIMEOUT;
-                    alert_on(ajw);
+                    ajw->alert_on();
                     ajw->jw->warnlight = 1;
                     active_door++;
                 }
@@ -1397,7 +1395,7 @@ jw_state_machine()
                     ajw->start_ts = now + active_door * 5.0f;
                     ajw->last_step_ts = ajw->start_ts;
                     ajw->timeout = ajw->start_ts + JW_ANIM_TIMEOUT;
-                    alert_on(ajw);
+                    ajw->alert_on();
                     ajw->jw->warnlight = 1;
                 }
 

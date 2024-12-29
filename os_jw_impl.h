@@ -62,6 +62,13 @@ class JwCtx {
     float timeout;      // so we don't get stuck
 
     FMOD_CHANNEL *alert_chn;
+
+    void setup_for_door(const door_info_t *door_info);
+
+    // sound stuff
+    void alert_on();
+    void alert_off();
+    void alert_setpos();
 };
 
 #define NEAR_JW_LIMIT 3 // max # of jetways we consider for docking

@@ -44,33 +44,31 @@ alert_complete(void *ref, FMOD_RESULT status)
 }
 
 void
-alert_on(JwCtx *ajw)
+JwCtx::alert_on()
 {
-    if (ajw->alert_chn)
+    if (alert_chn)
         return;
-    ajw->alert_chn = XPLMPlayPCMOnBus(alert.data, alert.size, FMOD_SOUND_FORMAT_PCM16,
+    alert_chn = XPLMPlayPCMOnBus(alert.data, alert.size, FMOD_SOUND_FORMAT_PCM16,
                                       alert.sample_rate, alert.num_channels, 1,
                                       xplm_AudioExteriorUnprocessed,
-                                      alert_complete, ajw);
+                                      alert_complete, this);
 
-    alert_setpos(ajw);
-    XPLMSetAudioFadeDistance(ajw->alert_chn, 20.0f, 150.0f );
-    XPLMSetAudioVolume(ajw->alert_chn, 1.3f);
+    alert_setpos();
+    XPLMSetAudioFadeDistance(alert_chn, 20.0f, 150.0f );
+    XPLMSetAudioVolume(alert_chn, 1.3f);
 }
 
 void
-alert_off(JwCtx *ajw)
+JwCtx::alert_off()
 {
-    if (ajw->alert_chn)
-        XPLMStopAudio(ajw->alert_chn);
-    ajw->alert_chn = NULL;
+    if (alert_chn)
+        XPLMStopAudio(alert_chn);
+    alert_chn = NULL;
 }
 
 void
-alert_setpos(JwCtx *ajw)
+JwCtx::alert_setpos()
 {
-    const SamJw *jw = ajw->jw;
-
     static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
     FMOD_VECTOR pos;
 
@@ -78,5 +76,5 @@ alert_setpos(JwCtx *ajw)
     pos.x = jw->x + (jw->extent + jw->cabinPos) * cosf(rot1 * D2R);
     pos.y = jw->y + jw->height;
     pos.z = jw->z + (jw->extent + jw->cabinPos) * sinf(rot1 * D2R);
-    XPLMSetAudioPosition(ajw->alert_chn, &pos, &vel);
+    XPLMSetAudioPosition(alert_chn, &pos, &vel);
 }
