@@ -39,12 +39,12 @@ alert_complete(void *ref, FMOD_RESULT status)
 {
     UNUSED(status);
 
-    jw_ctx_t *ajw = (jw_ctx_t *)ref;
+    JwCtx *ajw = (JwCtx *)ref;
     ajw->alert_chn = NULL;
 }
 
 void
-alert_on(jw_ctx_t *ajw)
+alert_on(JwCtx *ajw)
 {
     if (ajw->alert_chn)
         return;
@@ -59,7 +59,7 @@ alert_on(jw_ctx_t *ajw)
 }
 
 void
-alert_off(jw_ctx_t *ajw)
+alert_off(JwCtx *ajw)
 {
     if (ajw->alert_chn)
         XPLMStopAudio(ajw->alert_chn);
@@ -67,7 +67,7 @@ alert_off(jw_ctx_t *ajw)
 }
 
 void
-alert_setpos(jw_ctx_t *ajw)
+alert_setpos(JwCtx *ajw)
 {
     const sam_jw_t *jw = ajw->jw;
 

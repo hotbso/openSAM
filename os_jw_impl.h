@@ -37,7 +37,8 @@ typedef enum ajw_status_e {
     AJW_TO_PARK
 } ajw_status_t;
 
-typedef struct jw_ctx_ {
+class JwCtx {
+   public:
     sam_jw_t *jw;           // == NULL means empty
     ajw_status_t state;
 
@@ -61,15 +62,15 @@ typedef struct jw_ctx_ {
     float timeout;      // so we don't get stuck
 
     FMOD_CHANNEL *alert_chn;
-} jw_ctx_t;
+};
 
 #define NEAR_JW_LIMIT 3 // max # of jetways we consider for docking
 #define MAX_NEAREST 10  // max # jetways / door we consider as nearest
 
 extern int n_active_jw;
-extern jw_ctx_t active_jw[MAX_DOOR];
+extern JwCtx active_jw[MAX_DOOR];
 
-extern jw_ctx_t nearest_jw[MAX_NEAREST];
+extern JwCtx nearest_jw[MAX_NEAREST];
 extern int n_nearest;
 
 extern void jw_auto_mode_change(void);
@@ -84,6 +85,6 @@ extern void update_ui(int only_if_visible);
 // from os_sound.c
 extern sound_t alert;
 extern int sound_init(void);
-extern void alert_on(jw_ctx_t *ajw);
-extern void alert_off(jw_ctx_t *ajw);
-extern void alert_setpos(jw_ctx_t *ajw);
+extern void alert_on(JwCtx *ajw);
+extern void alert_off(JwCtx *ajw);
+extern void alert_setpos(JwCtx *ajw);

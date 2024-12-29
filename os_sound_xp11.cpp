@@ -94,7 +94,7 @@ sound_init()
     return 1;
 }
 void
-alert_on(jw_ctx_t *ajw)
+alert_on(JwCtx *ajw)
 {
     if (0 == snd_src)
         return;
@@ -104,7 +104,7 @@ alert_on(jw_ctx_t *ajw)
 }
 
 void
-alert_off(jw_ctx_t *ajw)
+alert_off(JwCtx *ajw)
 {
     UNUSED(ajw);
     if (0 == snd_src)
@@ -114,7 +114,7 @@ alert_off(jw_ctx_t *ajw)
 }
 
 void
-alert_setpos(jw_ctx_t *ajw)
+alert_setpos(JwCtx *ajw)
 {
     if (0 == snd_src)
         return;
