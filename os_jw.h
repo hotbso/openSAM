@@ -22,7 +22,8 @@
 
 static const float FAR_SKIP = 5000;     // (m) don't consider jetways farther away
 
-struct _sam_jw  {
+class SamJw  {
+  public:
     int is_zc_jw;   // is a zero config jw
     stand_t *stand; // back pointer to stand for zc jetways
 
@@ -58,7 +59,7 @@ struct _sam_jw  {
 
 // fortunately SAM3 is abandoned so this will never change 8-)
 #define MAX_SAM3_LIB_JW 27  // index is 0..27
-extern sam_jw_t sam3_lib_jw[];
+extern SamJw sam3_lib_jw[];
 
 extern int jw_init(void);
 extern float jw_state_machine();

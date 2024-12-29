@@ -69,7 +69,7 @@ alert_off(JwCtx *ajw)
 void
 alert_setpos(JwCtx *ajw)
 {
-    const sam_jw_t *jw = ajw->jw;
+    const SamJw *jw = ajw->jw;
 
     static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
     FMOD_VECTOR pos;

@@ -62,7 +62,7 @@ scenery_t *sceneries;
 int n_sceneries;
 static int max_sceneries;
 
-sam_jw_t sam3_lib_jw[MAX_SAM3_LIB_JW + 1];
+SamJw sam3_lib_jw[MAX_SAM3_LIB_JW + 1];
 
 sam_drf_t *sam_drfs;
 int n_sam_drfs;
@@ -106,9 +106,9 @@ lookup_attr(const XML_Char **attr, const char *name) {
 }
 
 static void
-get_jw_attrs(const XML_Char **attr, sam_jw_t *sam_jw)
+get_jw_attrs(const XML_Char **attr, SamJw *sam_jw)
 {
-    *sam_jw = (sam_jw_t){};
+    *sam_jw = (SamJw){};
 
     GET_INT_ATTR(sam_jw, id)
     GET_STR_ATTR(sam_jw, name)
@@ -192,7 +192,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
 
         if (sc->n_sam_jws == ctx->max_sam_jws) {
             ctx->max_sam_jws += 100;
-            sc->sam_jws = (sam_jw_t *)realloc(sc->sam_jws, ctx->max_sam_jws * sizeof(sam_jw_t));
+            sc->sam_jws = (SamJw *)realloc(sc->sam_jws, ctx->max_sam_jws * sizeof(SamJw));
             if (sc->sam_jws == NULL)
                 goto oom;
         }
@@ -203,7 +203,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
     }
 
     if (ctx->in_sets && (0 == strcmp(name, "set"))) {
-        sam_jw_t sam_jw;
+        SamJw sam_jw;
         get_jw_attrs(attr, &sam_jw);
         if (!BETWEEN(sam_jw.id, 1, MAX_SAM3_LIB_JW)) {
             log_msg("invalid library jw '%s', %d", sam_jw.name, sam_jw.id);
@@ -662,7 +662,7 @@ collect_sam_xml(const char *xp_dir)
 
         // shrink to actual
 
-        REALLOC_CHECK(sc->sam_jws, sc->n_sam_jws, sam_jw_t);
+        REALLOC_CHECK(sc->sam_jws, sc->n_sam_jws, SamJw);
         REALLOC_CHECK(sc->stands, sc->n_stands, stand_t);
         REALLOC_CHECK(sc->sam_anims, sc->n_sam_anims, sam_anim_t);
         REALLOC_CHECK(sc->sam_objs, sc->n_sam_objs, sam_obj_t);
@@ -672,7 +672,7 @@ collect_sam_xml(const char *xp_dir)
         sc->bb_lat_min = sc->bb_lon_min = 1000.0f;
         sc->bb_lat_max = sc->bb_lon_max = -1000.0f;
 
-        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+        for (SamJw *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
             jw->bb_lat_min = jw->latitude - far_skip_dlat;
             jw->bb_lat_max = jw->latitude + far_skip_dlat;
 

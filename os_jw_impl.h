@@ -39,7 +39,7 @@ typedef enum ajw_status_e {
 
 class JwCtx {
    public:
-    sam_jw_t *jw;           // == NULL means empty
+    SamJw *jw;           // == NULL means empty
     ajw_status_t state;
 
     // in door local coordinates

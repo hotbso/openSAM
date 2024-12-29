@@ -204,7 +204,7 @@ update_ui(int only_if_visible)
         for (int i = 0; i < n_door; i++)
             for (int j = 0; j < n_nearest; j++) {
                 JwCtx *njw = &nearest_jw[j];
-                sam_jw_t *jw = njw->jw;
+                SamJw *jw = njw->jw;
 
                 if (NULL == jw)             // should never happen
                     continue;

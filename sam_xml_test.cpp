@@ -76,7 +76,7 @@ main(int argc, char **argv) {
         }
 
         puts("\nJetways");
-        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+        for (SamJw *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
             printf("%s %5.6f %5.6f door: %d\n", jw->name, jw->latitude, jw->longitude, jw->door);
         }
         puts("\n");
@@ -84,7 +84,7 @@ main(int argc, char **argv) {
 
     puts("Library jetways");
     for (int i = 0; i <= MAX_SAM3_LIB_JW; i++) {
-        sam_jw_t *jw = &sam3_lib_jw[i];
+        SamJw *jw = &sam3_lib_jw[i];
         if (jw->id == 0)
             continue;
         log_msg("%d; %s height: %0.2f, cabinPos: %0.2f", jw->id, jw->name, jw->height, jw->cabinPos);

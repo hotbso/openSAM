@@ -43,16 +43,17 @@ static const float D2R = M_PI/180.0;
 static const float F2M = 0.3048;	    // 1 ft [m]
 static const float LAT_2_M = 111120;    // 1° lat in m
 
-typedef struct _sam_jw sam_jw_t;
 typedef struct _sam_dgs sam_dgs_t;
 typedef struct _stand stand_t;
 typedef struct _sam_obj sam_obj_t;
 typedef struct _sam_anim sam_anim_t;
 
+class SamJw;
+
 typedef struct _scenery {
     char name[52];
 
-    sam_jw_t *sam_jws;
+    SamJw *sam_jws;
     int n_sam_jws;
 
     stand_t *stands;

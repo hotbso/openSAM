@@ -83,7 +83,7 @@ JwCtx nearest_jw[MAX_NEAREST];
 int n_nearest;
 
 // zero config jw structures
-static sam_jw_t zc_jws[150];    // static for now
+static SamJw zc_jws[150];    // static for now
 static int zc_max_jws = 150;
 static int zc_n_jws;
 static unsigned int zc_ref_gen;  // change of ref_gen invalidates the whole list
@@ -96,7 +96,7 @@ XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr, toggle_ui_cmdr;
 
 // set wheels height
 static inline void
-jw_set_wheels(sam_jw_t *jw)
+jw_set_wheels(SamJw *jw)
 {
     jw->wheels = tanf(jw->rotate3 * D2R) * (jw->wheelPos + jw->extent);
 }
@@ -105,7 +105,7 @@ jw_set_wheels(sam_jw_t *jw)
 // fill in values for a library jetway
 //
 static void
-fill_library_values(sam_jw_t *jw)
+fill_library_values(SamJw *jw)
 {
     int id = jw->library_id;
     if (!BETWEEN(id, 1, MAX_SAM3_LIB_JW)) {
@@ -115,7 +115,7 @@ fill_library_values(sam_jw_t *jw)
 
     log_msg("filling in library data for '%s', id: %d", jw->name, id);
 
-    sam_jw_t *ljw = &sam3_lib_jw[id];
+    SamJw *ljw = &sam3_lib_jw[id];
 
     jw->height = ljw->height;
     jw->wheelPos = ljw->wheelPos;
@@ -145,7 +145,7 @@ fill_library_values(sam_jw_t *jw)
 // find the stand the jetway belongs to
 //
 static stand_t *
-find_stand_for_jw(sam_jw_t *jw)
+find_stand_for_jw(SamJw *jw)
 {
     float dist = 1.0E10;
     stand_t *min_stand = NULL;
@@ -184,7 +184,7 @@ find_stand_for_jw(sam_jw_t *jw)
 //
 // configure a zc library jetway
 //
-static sam_jw_t *
+static SamJw *
 configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
 {
     if (zc_n_jws == zc_max_jws)
@@ -196,8 +196,8 @@ configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
         || fabsf(obj_y - XPLMGetDataf(plane_y_dr)) > 1000.0f)
         return NULL;
 
-    sam_jw_t *jw = &zc_jws[zc_n_jws++];
-    *jw = (sam_jw_t){};
+    SamJw *jw = &zc_jws[zc_n_jws++];
+    *jw = (SamJw){};
     jw->obj_ref_gen = ref_gen;
     jw->x = obj_x;
     jw->z = obj_z;
@@ -284,7 +284,7 @@ jw_anim_acc(void *ref)
     dr_code_t drc = (dr_code_t)(ctx & 0xffffffff);
     int id = ctx >> 32;
 
-    sam_jw_t *jw = NULL;
+    SamJw *jw = NULL;
 
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
         // cheap check against bounding box
@@ -294,7 +294,7 @@ jw_anim_acc(void *ref)
             continue;
         }
 
-        for (sam_jw_t *jw_ = sc->sam_jws; jw_ < sc->sam_jws + sc->n_sam_jws; jw_++) {
+        for (SamJw *jw_ = sc->sam_jws; jw_ < sc->sam_jws + sc->n_sam_jws; jw_++) {
             // cheap check against bounding box
             if (lat < jw_->bb_lat_min || lat > jw_->bb_lat_max
                 || RA(lon - jw_->bb_lon_min) < 0 || RA(lon - jw_->bb_lon_max) > 0) {
@@ -358,7 +358,7 @@ jw_anim_acc(void *ref)
 
     // no match of custom jw
     // check against the zero config table
-    for (sam_jw_t *jw_ = zc_jws; jw_ < zc_jws + zc_n_jws; jw_++) {
+    for (SamJw *jw_ = zc_jws; jw_ < zc_jws + zc_n_jws; jw_++) {
         if (obj_x == jw_->x && obj_z == jw_->z && obj_y == jw_->y) {
             stat_jw_match++;
             jw = jw_;
@@ -470,7 +470,7 @@ static void
 reset_jetways()
 {
     for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
-        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+        for (SamJw *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
             jw->rotate1 = jw->initialRot1;
             jw->rotate2 = jw->initialRot2;
             jw->rotate3 = jw->initialRot3;
@@ -479,7 +479,7 @@ reset_jetways()
             jw->warnlight = 0;
        }
 
-    for (sam_jw_t *jw = zc_jws; jw < zc_jws + zc_n_jws; jw++) {
+    for (SamJw *jw = zc_jws; jw < zc_jws + zc_n_jws; jw++) {
         jw->rotate1 = jw->initialRot1;
         jw->rotate2 = jw->initialRot2;
         jw->rotate3 = jw->initialRot3;
@@ -512,7 +512,7 @@ static inline void
 jw_xy_to_sam_dr(const JwCtx *ajw, float cabin_x, float cabin_z,
                 float *rot1, float *extent, float *rot2, float *rot3)
 {
-    const sam_jw_t *jw = ajw->jw;
+    const SamJw *jw = ajw->jw;
 
     float dist = len2f(cabin_x - ajw->x, cabin_z - ajw->z);
 
@@ -537,7 +537,7 @@ jw_xy_to_sam_dr(const JwCtx *ajw, float cabin_x, float cabin_z,
 static void
 jw_ctx_for_door(JwCtx *ajw, const door_info_t *door_info)
 {
-    sam_jw_t *jw = ajw->jw;
+    SamJw *jw = ajw->jw;
 
     // rotate into plane local frame
     float dx = jw->x - plane_x;
@@ -602,7 +602,7 @@ njw_compar(const void *a_, const void *b_)
 
 // filter list of jetways jw[] for candidates and add them to nearest_jw[]
 static void
-filter_candidates(sam_jw_t *jw, int n_jw, const door_info_t *door_info, float *dist_threshold)
+filter_candidates(SamJw *jw, int n_jw, const door_info_t *door_info, float *dist_threshold)
 {
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
     // So we find the nearest jetways on the left and do some heuristics
@@ -704,7 +704,7 @@ find_nearest_jws()
 
     // fake names for zc jetways
     for (int i = 0; i < n_nearest; i++) {
-        sam_jw_t *jw = nearest_jw[i].jw;
+        SamJw *jw = nearest_jw[i].jw;
         if (jw->is_zc_jw) {
             stand_t *stand = jw->stand;
             if (stand) {
@@ -817,7 +817,7 @@ select_jws()
 static int
 rotate_wheel_base(JwCtx *ajw, float dt)
 {
-    sam_jw_t *jw = ajw->jw;
+    SamJw *jw = ajw->jw;
 
     float delta_rot = RA(ajw->wb_rot - jw->wheelrotatec);
 
@@ -859,7 +859,7 @@ rotate_wheel_base(JwCtx *ajw, float dt)
 static void
 rotate_1_extend(JwCtx *ajw, float cabin_x, float cabin_z)
 {
-    sam_jw_t *jw = ajw->jw;
+    SamJw *jw = ajw->jw;
 
     jw_xy_to_sam_dr(ajw, cabin_x, cabin_z, &jw->rotate1, &jw->extent, NULL, NULL);
     jw_set_wheels(jw);
@@ -870,7 +870,7 @@ rotate_1_extend(JwCtx *ajw, float cabin_x, float cabin_z)
 static int
 rotate_3(JwCtx *ajw, float tgt_rot3, float dt)
 {
-    sam_jw_t *jw = ajw->jw;
+    SamJw *jw = ajw->jw;
 
     if (fabsf(jw->rotate3 - tgt_rot3) > 0.1) {
         float d_rot3 = (dt * JW_HEIGHT_SPEED / (jw->cabinPos + jw->extent)) / D2R;  // strictly it's atan
@@ -893,7 +893,7 @@ rotate_3(JwCtx *ajw, float tgt_rot3, float dt)
 // return 1 when done
 static int
 rotate_2(JwCtx *ajw, float tgt_rot2, float dt) {
-    sam_jw_t *jw = ajw->jw;
+    SamJw *jw = ajw->jw;
 
     if (fabsf(jw->rotate2 - tgt_rot2) > 0.5) {
         float d_rot2 = dt * JW_TURN_SPEED;
@@ -912,7 +912,7 @@ rotate_2(JwCtx *ajw, float tgt_rot2, float dt) {
 static void
 animate_wheels(JwCtx *ajw, float ds)
 {
-    sam_jw_t *jw = ajw->jw;
+    SamJw *jw = ajw->jw;
 
     if (fabsf(RA(ajw->wb_rot - jw->wheelrotatec)) > 90.0f)
         ds = -ds;
@@ -929,7 +929,7 @@ animate_wheels(JwCtx *ajw, float ds)
 static int
 dock_drive(JwCtx *ajw)
 {
-    sam_jw_t *jw = ajw->jw;
+    SamJw *jw = ajw->jw;
 
     if (ajw->state == AJW_DOCKED)
         return 1;
@@ -1084,7 +1084,7 @@ dock_drive(JwCtx *ajw)
 static float
 undock_drive(JwCtx *ajw)
 {
-    sam_jw_t *jw = ajw->jw;
+    SamJw *jw = ajw->jw;
 
     if (ajw->state == AJW_PARKED)
         return 1;
@@ -1302,7 +1302,7 @@ jw_state_machine()
             if (n_active_jw) {
                 for (int i = 0; i < n_door; i++) {
                     JwCtx *ajw = &active_jw[i];
-                    sam_jw_t *jw = ajw->jw;
+                    SamJw *jw = ajw->jw;
 
                     if (NULL == jw)
                         continue;

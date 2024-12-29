@@ -119,7 +119,7 @@ alert_setpos(JwCtx *ajw)
     if (0 == snd_src)
         return;
 
-    const sam_jw_t *jw = ajw->jw;
+    const SamJw *jw = ajw->jw;
 
     // Pause sound while sim is paused
     if (XPLMGetDatai(paused_dr)) {
