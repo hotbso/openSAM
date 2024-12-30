@@ -59,8 +59,7 @@ class Scenery {
     
     char name[52];
 
-    SamJw *sam_jws;
-    int n_sam_jws;
+    std::vector<SamJw*> sam_jws;
 
     Stand *stands;
     int n_stands;

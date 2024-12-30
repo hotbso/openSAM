@@ -188,16 +188,9 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
 
     if (ctx->in_jetways && (0 == strcmp(name, "jetway"))) {
         Scenery* sc = ctx->sc;
-
-        if (sc->n_sam_jws == ctx->max_sam_jws) {
-            ctx->max_sam_jws += 100;
-            sc->sam_jws = (SamJw *)realloc(sc->sam_jws, ctx->max_sam_jws * sizeof(SamJw));
-            if (sc->sam_jws == NULL)
-                goto oom;
-        }
-
-        get_jw_attrs(attr, &sc->sam_jws[sc->n_sam_jws]);
-        sc->n_sam_jws++;
+        SamJw *jw = new SamJw();
+        get_jw_attrs(attr, jw);
+        sc->sam_jws.push_back(jw);
         return;
     }
 
@@ -612,7 +605,7 @@ collect_sam_xml(const char *xp_dir)
                 }
 
                 // don't save empty sceneries
-                if (sc->n_sam_jws > 0 || sc->n_stands > 0 || sc->n_sam_anims > 0) {
+                if (sc->sam_jws.size() > 0 || sc->n_stands > 0 || sc->n_sam_anims > 0) {
                     sceneries.push_back(sc);
                 } else {
                     delete(sc);
@@ -643,8 +636,7 @@ collect_sam_xml(const char *xp_dir)
     for (auto sc : sceneries) {
 
         // shrink to actual
-
-        REALLOC_CHECK(sc->sam_jws, sc->n_sam_jws, SamJw);
+        sc->sam_jws.shrink_to_fit();
         REALLOC_CHECK(sc->stands, sc->n_stands, Stand);
         REALLOC_CHECK(sc->sam_anims, sc->n_sam_anims, sam_anim_t);
         REALLOC_CHECK(sc->sam_objs, sc->n_sam_objs, sam_obj_t);
@@ -654,7 +646,7 @@ collect_sam_xml(const char *xp_dir)
         sc->bb_lat_min = sc->bb_lon_min = 1000.0f;
         sc->bb_lat_max = sc->bb_lon_max = -1000.0f;
 
-        for (SamJw *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+        for (auto jw : sc->sam_jws) {
             jw->bb_lat_min = jw->latitude - far_skip_dlat;
             jw->bb_lat_max = jw->latitude + far_skip_dlat;
 

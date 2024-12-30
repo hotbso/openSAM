@@ -82,9 +82,7 @@ JwCtx nearest_jw[MAX_NEAREST];
 int n_nearest;
 
 // zero config jw structures
-static SamJw zc_jws[150];    // static for now
-static int zc_max_jws = 150;
-static int zc_n_jws;
+static std::vector<SamJw *>zc_jws;
 static unsigned int zc_ref_gen;  // change of ref_gen invalidates the whole list
 
 static int dock_requested, undock_requested, toggle_requested;
@@ -178,17 +176,13 @@ find_stand_for_jw(SamJw *jw)
 static SamJw *
 configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
 {
-    if (zc_n_jws == zc_max_jws)
-        return NULL;
-
     // library jetways may be in view from very far away when stand information is not
     // yet available. We won't see details anyway.
     if (len2f(obj_x - XPLMGetDataf(plane_x_dr), obj_z - XPLMGetDataf(plane_z_dr)) > 0.5f * FAR_SKIP
         || fabsf(obj_y - XPLMGetDataf(plane_y_dr)) > 1000.0f)
         return NULL;
 
-    SamJw *jw = &zc_jws[zc_n_jws++];
-    *jw = (SamJw){};
+    SamJw *jw = new SamJw();
     jw->obj_ref_gen = ref_gen;
     jw->x = obj_x;
     jw->z = obj_z;
@@ -218,6 +212,9 @@ configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
     jw->rotate3 = jw->initialRot3;
     jw->extent = jw->initialExtent;
     jw->set_wheels();
+
+    zc_jws.push_back(jw);
+
     log_msg("added to zc table stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
             stand ? stand->id : "<NULL>", jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
     return jw;
@@ -241,7 +238,10 @@ check_ref_frame_shift()
     if (zc_ref_gen < ref_gen) {
         // from a different frame = stale data
         log_msg("zc_jws deleted");
-        zc_n_jws = 0;
+        for (auto jw : zc_jws)
+            delete(jw);
+
+        zc_jws.resize(0);
         zc_ref_gen = ref_gen;
     }
 }
@@ -285,7 +285,7 @@ jw_anim_acc(void *ref)
             continue;
         }
 
-        for (SamJw *jw_ = sc->sam_jws; jw_ < sc->sam_jws + sc->n_sam_jws; jw_++) {
+        for (auto jw_ : sc->sam_jws) {
             // cheap check against bounding box
             if (lat < jw_->bb_lat_min || lat > jw_->bb_lat_max
                 || RA(lon - jw_->bb_lon_min) < 0 || RA(lon - jw_->bb_lon_max) > 0) {
@@ -349,7 +349,7 @@ jw_anim_acc(void *ref)
 
     // no match of custom jw
     // check against the zero config table
-    for (SamJw *jw_ = zc_jws; jw_ < zc_jws + zc_n_jws; jw_++) {
+    for (auto jw_ : zc_jws) {
         if (obj_x == jw_->x && obj_z == jw_->z && obj_y == jw_->y) {
             stat_jw_match++;
             jw = jw_;
@@ -461,10 +461,10 @@ static void
 reset_jetways()
 {
     for (auto sc : sceneries)
-        for (SamJw *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++)
+        for (auto jw : sc->sam_jws)
             jw->reset();
 
-    for (SamJw *jw = zc_jws; jw < zc_jws + zc_n_jws; jw++)
+    for (auto jw : zc_jws)
         jw->reset();
 
     for (int i = 0; i < n_door; i++) {
@@ -575,12 +575,12 @@ njw_compar(const void *a_, const void *b_)
 
 // filter list of jetways jw[] for candidates and add them to nearest_jw[]
 static void
-filter_candidates(SamJw *jw, int n_jw, const door_info_t *door_info, float *dist_threshold)
+filter_candidates(std::vector<SamJw*> &jws, const door_info_t *door_info, float *dist_threshold)
 {
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
     // So we find the nearest jetways on the left and do some heuristics
 
-    for (;n_jw-- > 0; jw++) {
+    for (auto jw : jws) {
         if (jw->obj_ref_gen < ref_gen)  // not visible -> not dockable
             continue;
 
@@ -665,10 +665,10 @@ find_nearest_jws()
 
     // custom jws
     for (auto sc : sceneries)
-        filter_candidates(sc->sam_jws, sc->n_sam_jws, &avg_di, &dist_threshold);
+        filter_candidates(sc->sam_jws, &avg_di, &dist_threshold);
 
     // and zero config jetways
-    filter_candidates(zc_jws, zc_n_jws, &avg_di, &dist_threshold);
+    filter_candidates(zc_jws, &avg_di, &dist_threshold);
 
     if (n_nearest > 1) { // final sort + trim down to limit
         qsort(nearest_jw, n_nearest, sizeof(JwCtx), njw_compar);
