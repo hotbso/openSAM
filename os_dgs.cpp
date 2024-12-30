@@ -380,7 +380,7 @@ find_nearest_stand()
             continue;
         }
 
-        for (Stand *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+        for (auto stand : sc->stands) {
 
             // heading in local system
             float local_hdgt = RA(plane_hdgt - stand->hdgt);
@@ -596,7 +596,7 @@ dgs_state_machine()
             }
             break;
 
-        case TRACK: {     
+        case TRACK: {
                 if (!beacon_on) {       // don't get stuck in TRACK
                     new_state = DONE;
                     break;

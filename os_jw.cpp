@@ -149,7 +149,7 @@ find_stand_for_jw(SamJw *jw)
             continue;
         }
 
-        for (Stand *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+        for (auto stand : sc->stands) {
             xform_to_ref_frame(stand);
 
             float local_x, local_z;

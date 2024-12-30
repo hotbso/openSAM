@@ -58,7 +58,7 @@ main(int argc, char **argv) {
 
     for (auto sc : sceneries) {
         printf("%s: %d jetways, %d stands collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n",
-               sc->name, (int)sc->sam_jws.size(), sc->n_stands,
+               sc->name, (int)sc->sam_jws.size(), (int)sc->stands.size(),
                sc->bb_lat_min, sc->bb_lon_min, sc->bb_lat_max, sc->bb_lon_max);
 
         puts("\nObjects");
@@ -93,7 +93,7 @@ main(int argc, char **argv) {
     puts("Ramps");
     for (auto sc : sceneries) {
         printf("%s\n", sc->name);
-        for (Stand* stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+        for (auto stand : sc->stands) {
             log_msg("%-40s %5.6f, %5.6f %6.2f", stand->id,
                     stand->lat, stand->lon, stand->hdgt);
         }

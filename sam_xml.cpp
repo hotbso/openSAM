@@ -432,8 +432,6 @@ parse_apt_dat(FILE *f, Scenery* sc)
 {
     char line[2000];    // can be quite long
 
-    int max_stands = 0;
-
     while (fgets(line, sizeof(line) - 1, f)) {
         char *cptr = strchr(line, '\r');
         if (cptr)
@@ -445,16 +443,7 @@ parse_apt_dat(FILE *f, Scenery* sc)
 
         if (line == strstr(line, "1300 ")) {
             //log_msg("%s", line);
-            if (sc->n_stands == max_stands) {
-                max_stands += 100;
-                sc->stands = (Stand *)realloc(sc->stands, max_stands * sizeof(Stand));
-                if (sc->stands == NULL) {
-                    log_msg("Can't allocate memory");
-                    return 0;
-                }
-            }
-            Stand *stand = &sc->stands[sc->n_stands];
-            *stand = (Stand){};
+            Stand *stand = new Stand();
             int len;
             int n = sscanf(line + 5, "%f %f %f %*s %*s %n",
                            &stand->lat, &stand->lon, &stand->hdgt, &len);
@@ -465,7 +454,9 @@ parse_apt_dat(FILE *f, Scenery* sc)
                 stand->hdgt = RA(stand->hdgt);
                 stand->sin_hdgt = sinf(D2R * stand->hdgt);
                 stand->cos_hdgt = cosf(D2R * stand->hdgt);
-                sc->n_stands++;
+                sc->stands.push_back(stand);
+            } else {
+                delete(stand);
             }
         }
 
@@ -605,7 +596,7 @@ collect_sam_xml(const char *xp_dir)
                 }
 
                 // don't save empty sceneries
-                if (sc->sam_jws.size() > 0 || sc->n_stands > 0 || sc->n_sam_anims > 0) {
+                if (sc->sam_jws.size() > 0 || sc->stands.size() > 0 || sc->n_sam_anims > 0) {
                     sceneries.push_back(sc);
                 } else {
                     delete(sc);
@@ -637,7 +628,7 @@ collect_sam_xml(const char *xp_dir)
 
         // shrink to actual
         sc->sam_jws.shrink_to_fit();
-        REALLOC_CHECK(sc->stands, sc->n_stands, Stand);
+        sc->stands.shrink_to_fit();
         REALLOC_CHECK(sc->sam_anims, sc->n_sam_anims, sam_anim_t);
         REALLOC_CHECK(sc->sam_objs, sc->n_sam_objs, sam_obj_t);
 
@@ -661,7 +652,7 @@ collect_sam_xml(const char *xp_dir)
             sc->bb_lon_max = MAX(sc->bb_lon_max, jw->bb_lon_max);
         }
 
-        for (Stand *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+        for (auto stand : sc->stands) {
             float far_skip_dlon = far_skip_dlat / cosf(stand->lat * D2R);
 
             sc->bb_lat_min = MIN(sc->bb_lat_min, stand->lat - far_skip_dlat);
