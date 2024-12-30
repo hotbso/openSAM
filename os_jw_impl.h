@@ -48,13 +48,13 @@ class JwCtx {
     int soft_match;     // does not really fulfill matching criteria
 
     // target cabin position with corresponding dref values
-    float tgt_x, tgt_rot1, tgt_rot2, tgt_rot3, tgt_extent;
+    float door_x, door_rot1, door_rot2, door_rot3, door_extent;
     float ap_x;      // alignment point abeam door
     float parked_x, parked_z;
 
     double cabin_x, cabin_z;
 
-    int wait_wb_rot;    // waiting for wheel base rotation
+    bool wait_wb_rot;    // waiting for wheel base rotation
     float wb_rot;       // to this angle
 
     float start_ts;     // actually start operation if now > start_ts
@@ -65,9 +65,14 @@ class JwCtx {
 
     auto setup_for_door(const door_info_t *door_info) -> void;
 
+    // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be NULL
+    auto xz_to_sam_dr(float cabin_x, float cabin_z,
+                      float *rot1, float *extent, float *rot2, float *rot3) -> void;
+
     //
     // animation
     //
+  private:
     auto rotate_1_extend() -> void;
 
     // rotation 2/3 to angle, return true when done
@@ -78,10 +83,15 @@ class JwCtx {
 
     auto animate_wheels(float ds) -> void;
 
+  public:
+    // drive jetway, return true when done
+    auto dock_drive() -> bool;
+    auto undock_drive() -> bool;
+
     // sound stuff
-    void alert_on();
-    void alert_off();
-    void alert_setpos();
+    auto alert_on() -> void;
+    auto alert_off()-> void;
+    auto alert_setpos() -> void;
 };
 
 #define NEAR_JW_LIMIT 3 // max # of jetways we consider for docking
@@ -105,6 +115,3 @@ extern void update_ui(int only_if_visible);
 // from os_sound.c
 extern sound_t alert;
 extern int sound_init(void);
-extern void alert_on(JwCtx *ajw);
-extern void alert_off(JwCtx *ajw);
-extern void alert_setpos(JwCtx *ajw);

@@ -60,6 +60,15 @@ class SamJw  {
     auto set_wheels() -> void {
         wheels = tanf(rotate3 * D2R) * (wheelPos + extent);
     }
+
+    auto reset() -> void {
+        rotate1 = initialRot1;
+        rotate2 = initialRot2;
+        rotate3 = initialRot3;
+        extent = initialExtent;
+        set_wheels();
+        warnlight = 0;
+    }
 };
 
 

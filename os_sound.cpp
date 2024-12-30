@@ -20,7 +20,7 @@
 
 */
 
-#include <stddef.h>
+#include <cstddef>
 
 #include "openSAM.h"
 #include "os_jw.h"
@@ -43,8 +43,7 @@ alert_complete(void *ref, FMOD_RESULT status)
     ajw->alert_chn = NULL;
 }
 
-void
-JwCtx::alert_on()
+auto JwCtx::alert_on() -> void
 {
     if (alert_chn)
         return;
@@ -58,16 +57,14 @@ JwCtx::alert_on()
     XPLMSetAudioVolume(alert_chn, 1.3f);
 }
 
-void
-JwCtx::alert_off()
+auto JwCtx::alert_off() -> void
 {
     if (alert_chn)
         XPLMStopAudio(alert_chn);
     alert_chn = NULL;
 }
 
-void
-JwCtx::alert_setpos()
+auto JwCtx::alert_setpos() -> void
 {
     static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
     FMOD_VECTOR pos;
