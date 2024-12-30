@@ -54,6 +54,12 @@ class SamJw  {
     int door; // 0 = LF1 or default, 1 = LF2
 
     float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   // bounding box for FAR_SKIP
+
+
+    // set wheels height
+    auto set_wheels() -> void {
+        wheels = tanf(rotate3 * D2R) * (wheelPos + extent);
+    }
 };
 
 

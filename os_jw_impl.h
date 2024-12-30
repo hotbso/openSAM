@@ -63,7 +63,20 @@ class JwCtx {
 
     FMOD_CHANNEL *alert_chn;
 
-    void setup_for_door(const door_info_t *door_info);
+    auto setup_for_door(const door_info_t *door_info) -> void;
+
+    //
+    // animation
+    //
+    auto rotate_1_extend() -> void;
+
+    // rotation 2/3 to angle, return true when done
+    auto rotate_2(float rot2, float dt) -> bool;
+    auto rotate_3(float rot3, float dt) -> bool;
+
+    auto rotate_wheel_base(float dt) -> bool;
+
+    auto animate_wheels(float ds) -> void;
 
     // sound stuff
     void alert_on();
