@@ -20,13 +20,14 @@
 
 */
 
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <cstddef>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <iostream>
 
 #include <expat.h>
 
@@ -48,7 +49,7 @@ typedef struct _expat_ctx {
     bool in_objects;
     bool in_gui;
 
-    scenery_t *sc;
+    Scenery* sc;
 
     int max_sam_jws;
     int max_sam_objs;
@@ -58,9 +59,7 @@ typedef struct _expat_ctx {
     sam_drf_t *cur_dataref;
 } expat_ctx_t;
 
-scenery_t *sceneries;
-int n_sceneries;
-static int max_sceneries;
+std::vector<Scenery *> sceneries;
 
 SamJw sam3_lib_jw[MAX_SAM3_LIB_JW + 1];
 
@@ -158,7 +157,7 @@ lookup_drf(const char *name)
 }
 
 static int
-lookup_obj(const scenery_t *sc, const char *id)
+lookup_obj(const Scenery* sc, const char *id)
 {
     for (int i = 0; i < sc->n_sam_objs; i++)
         if (0 == strcmp(sc->sam_objs[i].id, id))
@@ -188,7 +187,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
     }
 
     if (ctx->in_jetways && (0 == strcmp(name, "jetway"))) {
-        scenery_t *sc = ctx->sc;
+        Scenery* sc = ctx->sc;
 
         if (sc->n_sam_jws == ctx->max_sam_jws) {
             ctx->max_sam_jws += 100;
@@ -291,7 +290,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
     }
 
     if (ctx->in_objects && (0 == strcmp(name, "instance"))) {
-        scenery_t *sc = ctx->sc;
+        Scenery* sc = ctx->sc;
 
         if (sc->n_sam_objs == ctx->max_sam_objs) {
             ctx->max_sam_objs += 100;
@@ -319,7 +318,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
     }
 
     if (ctx->in_gui && (0 == strcmp(name, "checkbox"))) {
-        scenery_t *sc = ctx->sc;
+        Scenery* sc = ctx->sc;
 
         if (sc->n_sam_anims == ctx->max_sam_anims) {
             ctx->max_sam_anims += 100;
@@ -391,10 +390,8 @@ end_element(void *user_data, const XML_Char *name) {
 }
 
 static int
-parse_sam_xml(int fd, scenery_t *sc)
+parse_sam_xml(int fd, Scenery* sc)
 {
-    *sc = (scenery_t){};
-
     int rc = 0;
     XML_Parser parser = XML_ParserCreate(NULL);
     if (NULL == parser)
@@ -438,7 +435,7 @@ parse_sam_xml(int fd, scenery_t *sc)
 
 // go through apt.dat and collect stand information from 1300 lines
 static int
-parse_apt_dat(FILE *f, scenery_t *sc)
+parse_apt_dat(FILE *f, Scenery* sc)
 {
     char line[2000];    // can be quite long
 
@@ -457,14 +454,14 @@ parse_apt_dat(FILE *f, scenery_t *sc)
             //log_msg("%s", line);
             if (sc->n_stands == max_stands) {
                 max_stands += 100;
-                sc->stands = (stand_t *)realloc(sc->stands, max_stands * sizeof(stand_t));
+                sc->stands = (Stand *)realloc(sc->stands, max_stands * sizeof(Stand));
                 if (sc->stands == NULL) {
                     log_msg("Can't allocate memory");
                     return 0;
                 }
             }
-            stand_t *stand = &sc->stands[sc->n_stands];
-            *stand = (stand_t){};
+            Stand *stand = &sc->stands[sc->n_stands];
+            *stand = (Stand){};
             int len;
             int n = sscanf(line + 5, "%f %f %f %*s %*s %n",
                            &stand->lat, &stand->lon, &stand->hdgt, &len);
@@ -546,14 +543,6 @@ collect_sam_xml(const char *xp_dir)
         return 0;
     }
 
-    max_sceneries = 100;
-    sceneries = (scenery_t *)realloc(sceneries, max_sceneries * sizeof(scenery_t));
-    if (sceneries == NULL) {
-        log_msg("Can't allocate memory");
-        fclose(scp);
-        return 0;
-    }
-
     // sam's default datarefs must be defined first, so we need 2 passes
     // openSAM_Library only
     while (fgets(line, sizeof(line) - 100, scp)) {
@@ -569,13 +558,14 @@ collect_sam_xml(const char *xp_dir)
         if (fd > 0) {
             log_msg("Processing '%s'", fn);
 
-            scenery_t *sc = &sceneries[n_sceneries];
+            Scenery* sc = new Scenery();
             int rc = parse_sam_xml(fd, sc);
             close(fd);
             if (!rc) {
                 fclose(scp);
                 return 0;
             }
+            sceneries.push_back(sc);
             break;
         }
     }
@@ -601,18 +591,7 @@ collect_sam_xml(const char *xp_dir)
         int fd = open(fn, O_RDONLY|O_BINARY);
         if (fd > 0) {
             log_msg("Processing '%s'", fn);
-
-            if (n_sceneries == max_sceneries) {
-                max_sceneries += 100;
-                sceneries = (scenery_t *)realloc(sceneries, max_sceneries * sizeof(scenery_t));
-                if (sceneries == NULL) {
-                    log_msg("Can't allocate memory");
-                    fclose(scp); close(fd);
-                    return 0;
-                }
-            }
-
-            scenery_t *sc = &sceneries[n_sceneries];
+            Scenery* sc = new Scenery();
 
             int rc = parse_sam_xml(fd, sc);
             close(fd);
@@ -633,8 +612,11 @@ collect_sam_xml(const char *xp_dir)
                 }
 
                 // don't save empty sceneries
-                if (sc->n_sam_jws > 0 || sc->n_stands > 0 || sc->n_sam_anims > 0)
-                    n_sceneries++;
+                if (sc->n_sam_jws > 0 || sc->n_stands > 0 || sc->n_sam_anims > 0) {
+                    sceneries.push_back(sc);
+                } else {
+                    delete(sc);
+                }
             }
         }
 
@@ -643,7 +625,7 @@ collect_sam_xml(const char *xp_dir)
         fd = open(fn, O_RDONLY|O_BINARY);
         if (fd > 0) {
             log_msg("Processing '%s'", fn);
-            scenery_t dummy;
+            Scenery dummy;
             int rc = parse_sam_xml(fd, &dummy);
             close(fd);
             if (!rc)
@@ -653,17 +635,17 @@ collect_sam_xml(const char *xp_dir)
 
     fclose(scp);
 
-    REALLOC_CHECK(sceneries, n_sceneries, scenery_t);
+    sceneries.shrink_to_fit();
     REALLOC_CHECK(sam_drfs, n_sam_drfs, sam_drf_t);
 
     static const float far_skip_dlat = FAR_SKIP / LAT_2_M;
 
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+    for (auto sc : sceneries) {
 
         // shrink to actual
 
         REALLOC_CHECK(sc->sam_jws, sc->n_sam_jws, SamJw);
-        REALLOC_CHECK(sc->stands, sc->n_stands, stand_t);
+        REALLOC_CHECK(sc->stands, sc->n_stands, Stand);
         REALLOC_CHECK(sc->sam_anims, sc->n_sam_anims, sam_anim_t);
         REALLOC_CHECK(sc->sam_objs, sc->n_sam_objs, sam_obj_t);
 
@@ -687,7 +669,7 @@ collect_sam_xml(const char *xp_dir)
             sc->bb_lon_max = MAX(sc->bb_lon_max, jw->bb_lon_max);
         }
 
-        for (stand_t *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+        for (Stand *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
             float far_skip_dlon = far_skip_dlat / cosf(stand->lat * D2R);
 
             sc->bb_lat_min = MIN(sc->bb_lat_min, stand->lat - far_skip_dlat);

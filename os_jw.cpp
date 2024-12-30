@@ -135,23 +135,23 @@ fill_library_values(SamJw *jw)
 //
 // find the stand the jetway belongs to
 //
-static stand_t *
+static Stand *
 find_stand_for_jw(SamJw *jw)
 {
     float dist = 1.0E10;
-    stand_t *min_stand = NULL;
+    Stand *min_stand = NULL;
 
     float plane_lat = XPLMGetDataf(plane_lat_dr);
     float plane_lon = XPLMGetDataf(plane_lon_dr);
 
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+    for (auto sc : sceneries) {
         // cheap check against bounding box
         if (plane_lat < sc->bb_lat_min || plane_lat > sc->bb_lat_max
             || RA(plane_lon - sc->bb_lon_min) < 0 || RA(plane_lon - sc->bb_lon_max) > 0) {
             continue;
         }
 
-        for (stand_t *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+        for (Stand *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
             xform_to_ref_frame(stand);
 
             float local_x, local_z;
@@ -199,7 +199,7 @@ configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
     jw->library_id = id;
     fill_library_values(jw);
 
-    stand_t *stand = jw->stand = find_stand_for_jw(jw);
+    Stand *stand = jw->stand = find_stand_for_jw(jw);
     if (stand) {
         // delta = cabin points perpendicular to stand
         float delta = RA((stand->hdgt + 90.0f) - jw->psi);
@@ -277,7 +277,7 @@ jw_anim_acc(void *ref)
 
     SamJw *jw = NULL;
 
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+    for (auto sc : sceneries) {
         // cheap check against bounding box
         if (lat < sc->bb_lat_min || lat > sc->bb_lat_max
             || RA(lon - sc->bb_lon_min) < 0 || RA(lon - sc->bb_lon_max) > 0) {
@@ -460,7 +460,7 @@ jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n)
 static void
 reset_jetways()
 {
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
+    for (auto sc : sceneries)
         for (SamJw *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++)
             jw->reset();
 
@@ -664,7 +664,7 @@ find_nearest_jws()
     float dist_threshold = 1.0E10f;
 
     // custom jws
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++)
+    for (auto sc : sceneries)
         filter_candidates(sc->sam_jws, sc->n_sam_jws, &avg_di, &dist_threshold);
 
     // and zero config jetways
@@ -679,7 +679,7 @@ find_nearest_jws()
     for (int i = 0; i < n_nearest; i++) {
         SamJw *jw = nearest_jw[i].jw;
         if (jw->is_zc_jw) {
-            stand_t *stand = jw->stand;
+            Stand *stand = jw->stand;
             if (stand) {
                 // stand->id can be eveything from "A11" to "A11 - Terminal 1 (cat C)"
                 char buf[sizeof(stand->id)];

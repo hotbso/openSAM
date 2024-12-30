@@ -20,9 +20,9 @@
 
 */
 
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdarg>
+#include <cstring>
 
 #ifdef LOCAL_DEBUGSTRING
 void

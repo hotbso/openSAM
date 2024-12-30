@@ -20,12 +20,9 @@
 
 */
 
-#include <stddef.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <sys/types.h>
+#include <cstddef>
+#include <cstdio>
+#include <cstring>
 
 #include "openSAM.h"
 #include "os_anim.h"
@@ -33,9 +30,9 @@
 static const float SAM_2_OBJ_MAX = 2.5;     // m, max delta between coords in sam.xml and object
 static const float SAM_2_OBJ_HDG_MAX = 5;   // °, likewise for heading
 
-static scenery_t *cur_sc;           // the current scenery determined by dref access
-static float cur_sc_ts = -100.0f;   // timestamp of selection of cur_sc
-static scenery_t *menu_sc;          // the scenery the menu is built of
+static Scenery* cur_sc;           // the current scenery determined by dref access
+static float cur_sc_ts = -100.0f; // timestamp of selection of cur_sc
+static Scenery* menu_sc;          // the scenery the menu is built of
 
 //
 // Accessor for the "sam/..." custom animation datarefs
@@ -66,7 +63,7 @@ anim_acc(void *ref)
 
     int drf_idx = (uint64_t)ref;
 
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+    for (auto sc : sceneries) {
         for (int i = 0; i < sc->n_sam_anims; i++) {
             sam_anim_t *anim = &sc->sam_anims[i];
             if (drf_idx != anim->drf_idx)
@@ -196,7 +193,7 @@ anim_menu_cb(void *menu_ref, void *item_ref)
 }
 
 static void
-build_menu(scenery_t *sc)
+build_menu(Scenery* sc)
 {
     log_msg("build menu for scenery %s", sc->name);
     XPLMClearAllMenuItems(anim_menu);

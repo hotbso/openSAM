@@ -21,10 +21,8 @@
 
 */
 
-#include <stddef.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/types.h>
+#include <cstddef>
+#include <cstring>
 
 #include "openSAM.h"
 #include "os_dgs.h"
@@ -70,7 +68,7 @@ static float azimuth, distance;
 
 float plane_nw_z, plane_mw_z, plane_cg_z;   // z value of plane's 0 to fw, mw and cg
 
-static stand_t *nearest_stand;
+static Stand *nearest_stand;
 static float nearest_stand_ts;    // timestamp of last find_nearest_stand()
 // track the max local z (= closest to stand) of dgs objs for nearest_stand
 static float max_dgs_z_l, max_dgs_z_l_ts;
@@ -191,7 +189,7 @@ static float last_dgs_z;
 
 // xform lat,lon into the active global frame
 void
-xform_to_ref_frame(stand_t *stand)
+xform_to_ref_frame(Stand *stand)
 {
     if (stand->ref_gen < ref_gen) {
         XPLMWorldToLocal(stand->lat, stand->lon, XPLMGetDataf(plane_elevation_dr),
@@ -205,7 +203,7 @@ xform_to_ref_frame(stand_t *stand)
 
 // xform global coordinates into the stand frame
 void
-global_2_stand(const stand_t * stand, float x, float z, float *x_l, float *z_l)
+global_2_stand(const Stand * stand, float x, float z, float *x_l, float *z_l)
 {
     float dx = x - stand->stand_x;
     float dz = z - stand->stand_z;
@@ -365,7 +363,7 @@ static void
 find_nearest_stand()
 {
     double dist = 1.0E10;
-    stand_t *min_stand = NULL;
+    Stand *min_stand = NULL;
 
     float plane_lat = XPLMGetDataf(plane_lat_dr);
     float plane_lon = XPLMGetDataf(plane_lon_dr);
@@ -375,14 +373,14 @@ find_nearest_stand()
 
     float plane_hdgt = XPLMGetDataf(plane_true_psi_dr);
 
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+    for (auto sc : sceneries) {
         // cheap check against bounding box
         if (plane_lat < sc->bb_lat_min || plane_lat > sc->bb_lat_max
             || RA(plane_lon - sc->bb_lon_min) < 0 || RA(plane_lon - sc->bb_lon_max) > 0) {
             continue;
         }
 
-        for (stand_t *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+        for (Stand *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
 
             // heading in local system
             float local_hdgt = RA(plane_hdgt - stand->hdgt);

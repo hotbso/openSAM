@@ -20,10 +20,10 @@
 
 */
 
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <cstddef>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 #include <iostream>
 
 #include "openSAM.h"
@@ -41,7 +41,7 @@ main(int argc, char **argv) {
         exit(2);
     }
 
-    printf("\n%d sceneries collected\n", n_sceneries);
+    printf("\n%d sceneries collected\n", (int)sceneries.size());
 
     printf("%d datarefs collected\n", n_sam_drfs);
 
@@ -56,7 +56,7 @@ main(int argc, char **argv) {
         puts("");
     }
 
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+    for (auto sc : sceneries) {
         printf("%s: %d jetways, %d stands collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n",
                sc->name, sc->n_sam_jws, sc->n_stands,
                sc->bb_lat_min, sc->bb_lon_min, sc->bb_lat_max, sc->bb_lon_max);
@@ -91,9 +91,9 @@ main(int argc, char **argv) {
     }
 
     puts("Ramps");
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+    for (auto sc : sceneries) {
         printf("%s\n", sc->name);
-        for (stand_t *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+        for (Stand* stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
             log_msg("%-40s %5.6f, %5.6f %6.2f", stand->id,
                     stand->lat, stand->lon, stand->hdgt);
         }

@@ -496,7 +496,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     if (!collect_sam_xml(xp_dir))
         log_msg("Error collecting sam.xml files!");
 
-    log_msg("%d sceneries with sam jetways found", n_sceneries);
+    log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
 
     // if commands or dataref accessors are already registered it's to late to
     // fail XPluginStart as the dll is unloaded and X-Plane crashes

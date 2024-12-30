@@ -20,7 +20,8 @@
 
 */
 
-#include <math.h>
+#include <cmath>
+#include <vector>
 
 #define XPLM200
 #define XPLM210
@@ -43,20 +44,25 @@ static const float D2R = M_PI/180.0;
 static const float F2M = 0.3048;	    // 1 ft [m]
 static const float LAT_2_M = 111120;    // 1° lat in m
 
-typedef struct _sam_dgs sam_dgs_t;
-typedef struct _stand stand_t;
+class Stand;
 typedef struct _sam_obj sam_obj_t;
 typedef struct _sam_anim sam_anim_t;
 
 class SamJw;
 
-typedef struct _scenery {
+class Scenery {
+  public:
+    Scenery() = default;
+    // Not copyable or movable
+    Scenery(const Scenery&) = delete;
+    Scenery& operator=(const Scenery&) = delete;
+    
     char name[52];
 
     SamJw *sam_jws;
     int n_sam_jws;
 
-    stand_t *stands;
+    Stand *stands;
     int n_stands;
 
     sam_obj_t *sam_objs;
@@ -66,10 +72,9 @@ typedef struct _scenery {
     int n_sam_anims;
 
     float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for FAR_SKIP */
-} scenery_t;
+};
 
-extern scenery_t *sceneries;
-extern int n_sceneries;
+extern std::vector<Scenery *> sceneries;
 
 typedef struct door_info_ {
     float x, y, z;
