@@ -43,12 +43,11 @@ main(int argc, char **argv) {
 
     printf("\n%d sceneries collected\n", (int)sceneries.size());
 
-    printf("%d datarefs collected\n", n_sam_drfs);
+    printf("%d datarefs collected\n", (int)sam_drfs.size());
 
-    for (int i = 0; i < n_sam_drfs; i++) {
-        sam_drf_t *drf = &sam_drfs[i];
-        printf("%2d: %s, auto_play: %d, randomize_phase: %d, augment_wind_speed: %d\n",
-               i, drf->name, drf->autoplay, drf->randomize_phase, drf->augment_wind_speed);
+    for (auto drf : sam_drfs) {
+        printf("%s, auto_play: %d, randomize_phase: %d, augment_wind_speed: %d\n",
+               drf->name, drf->autoplay, drf->randomize_phase, drf->augment_wind_speed);
 
         for (int j = 0; j < drf->n_tv; j++)
             printf("   t: %6.2f, v: %6.2f\n", drf->t[j], drf->v[j]);
@@ -62,18 +61,14 @@ main(int argc, char **argv) {
                sc->bb_lat_min, sc->bb_lon_min, sc->bb_lat_max, sc->bb_lon_max);
 
         puts("\nObjects");
-        for (int i = 0; i < sc->n_sam_objs; i++) {
-            sam_obj_t *obj = &sc->sam_objs[i];
-            printf("%2d: %s %5.6f %5.6f %5.6f %5.6f\n", i, obj->id, obj->latitude, obj->longitude,
+        for (auto obj : sc->sam_objs)
+            printf("%s %5.6f %5.6f %5.6f %5.6f\n", obj->id, obj->latitude, obj->longitude,
                    obj->elevation, obj->heading);
-        }
 
         puts("\nAnimations");
-        for (int i = 0; i < sc->n_sam_anims; i++) {
-            sam_anim_t *anim = &sc->sam_anims[i];
+        for (auto anim : sc->sam_anims)
             printf("'%s' '%s', obj: '%s', drf: '%s'\n", anim->label, anim->title,
-                   sc->sam_objs[anim->obj_idx].id, sam_drfs[anim->drf_idx].name);
-        }
+                   sc->sam_objs[anim->obj_idx]->id, sam_drfs[anim->drf_idx]->name);
 
         puts("\nJetways");
         for (auto jw : sc->sam_jws) {

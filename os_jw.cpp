@@ -241,7 +241,7 @@ check_ref_frame_shift()
         for (auto jw : zc_jws)
             delete(jw);
 
-        zc_jws.resize(0);
+        zc_jws.resize(0);           // keep the allocation
         zc_ref_gen = ref_gen;
     }
 }
@@ -1457,6 +1457,8 @@ jw_init()
 
     if (!sound_init())
         return 0;
+
+    zc_jws.reserve(150);
 
     dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
     XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, &dock_requested);

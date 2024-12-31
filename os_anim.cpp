@@ -64,12 +64,11 @@ anim_acc(void *ref)
     int drf_idx = (uint64_t)ref;
 
     for (auto sc : sceneries) {
-        for (int i = 0; i < sc->n_sam_anims; i++) {
-            sam_anim_t *anim = &sc->sam_anims[i];
+        for (auto anim : sc->sam_anims) {
             if (drf_idx != anim->drf_idx)
                 continue;
 
-            sam_obj_t *obj = &sc->sam_objs[anim->obj_idx];
+            SamObj *obj = sc->sam_objs[anim->obj_idx];
 
             if (fabsf(RA(obj->heading - obj_psi)) > SAM_2_OBJ_HDG_MAX)
                 continue;
@@ -89,7 +88,7 @@ anim_acc(void *ref)
                 continue;
             }
 
-            sam_drf_t *drf = &sam_drfs[drf_idx];
+            SamDrf *drf = sam_drfs[drf_idx];
             //log_msg("acc %s called, %s %s", drf->name, anim->label, anim->title);
 
             if (now > cur_sc_ts + 20.0f) {  // avoid high freq flicker
@@ -137,7 +136,7 @@ auto_drf_acc(void *ref)
 {
     stat_auto_drf_called++;
 
-    const sam_drf_t *drf = (const sam_drf_t *)ref;
+    const SamDrf *drf = (const SamDrf *)ref;
 
     float t = XPLMGetDataf(total_running_time_sec_dr);
 
@@ -166,7 +165,7 @@ anim_menu_cb(void *menu_ref, void *item_ref)
         return;
 
     unsigned int idx = (uint64_t)item_ref;
-    sam_anim_t *anim = &menu_sc->sam_anims[idx];
+    SamAnim *anim = menu_sc->sam_anims[idx];
 
     log_msg("anim_menu_cb: label: %s, menu_item: %d", anim->label, anim->menu_item);
     now = XPLMGetDataf(total_running_time_sec_dr);
@@ -184,7 +183,7 @@ anim_menu_cb(void *menu_ref, void *item_ref)
     }
 
     if (reverse) {
-       sam_drf_t *drf = &sam_drfs[anim->drf_idx];
+       SamDrf *drf = sam_drfs[anim->drf_idx];
        float t_rel = now - anim->start_ts;
        float dt = drf->t[drf->n_tv - 1] - t_rel;
        anim->start_ts = now - dt;
@@ -198,8 +197,8 @@ build_menu(Scenery* sc)
     log_msg("build menu for scenery %s", sc->name);
     XPLMClearAllMenuItems(anim_menu);
 
-    for (int i = 0; i < sc->n_sam_anims; i++) {
-        sam_anim_t *anim = &sc->sam_anims[i];
+    for (unsigned i = 0; i < sc->sam_anims.size(); i++) {
+        SamAnim *anim = sc->sam_anims[i];
         XPLMMenuCheck chk = (anim->state == ANIM_OFF || anim->state == ANIM_ON_2_OFF) ?
                                 xplm_Menu_Unchecked : xplm_Menu_Checked;
 
@@ -238,8 +237,8 @@ anim_state_machine(void)
 int
 anim_init()
 {
-    for (int i = 0; i < n_sam_drfs; i++) {
-        const sam_drf_t *drf = &sam_drfs[i];
+    for (unsigned i = 0; i < sam_drfs.size(); i++) {
+        const SamDrf *drf = sam_drfs[i];
         if (drf->autoplay)
             XPLMRegisterDataAccessor(drf->name, xplmType_Float, 0, NULL,
                                      NULL, auto_drf_acc, NULL, NULL, NULL, NULL, NULL, NULL,

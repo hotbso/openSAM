@@ -50,21 +50,14 @@ typedef struct _expat_ctx {
     bool in_gui;
 
     Scenery* sc;
-
-    int max_sam_jws;
-    int max_sam_objs;
-    int max_sam_anims;
-    int max_sam_drfs;
-
-    sam_drf_t *cur_dataref;
+    SamDrf *cur_dataref;
 } expat_ctx_t;
 
 std::vector<Scenery *> sceneries;
 
 SamJw sam3_lib_jw[MAX_SAM3_LIB_JW + 1];
 
-sam_drf_t *sam_drfs;
-int n_sam_drfs;
+std::vector<SamDrf*> sam_drfs;
 
 static const int BUFSIZE = 4096;
 
@@ -149,8 +142,8 @@ get_jw_attrs(const XML_Char **attr, SamJw *sam_jw)
 static int
 lookup_drf(const char *name)
 {
-    for (int i = 0; i < n_sam_drfs; i++)
-        if (0 == strcmp(sam_drfs[i].name, name))
+    for (unsigned int i = 0; i < sam_drfs.size(); i++)
+        if (0 == strcmp(sam_drfs[i]->name, name))
             return i;
 
     return -1;
@@ -159,8 +152,8 @@ lookup_drf(const char *name)
 static int
 lookup_obj(const Scenery* sc, const char *id)
 {
-    for (int i = 0; i < sc->n_sam_objs; i++)
-        if (0 == strcmp(sc->sam_objs[i].id, id))
+    for (unsigned int i = 0; i < sc->sam_objs.size(); i++)
+        if (0 == strcmp(sc->sam_objs[i]->id, id))
             return i;
 
     return -1;
@@ -214,41 +207,34 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
 
     if (ctx->in_datarefs && (0 == strcmp(name, "dataref"))) {
         ctx->in_dataref = true;
-        ctx->cur_dataref = NULL;
         //for (int i = 0; attr[i]; i += 2)
         //    log_msg("dataref %s, %s", attr[i], attr[i+1]);
 
-        if (n_sam_drfs == ctx->max_sam_drfs) {
-            ctx->max_sam_drfs += 100;
-            sam_drfs = (sam_drf_t *)realloc(sam_drfs, ctx->max_sam_drfs * sizeof(sam_drf_t));
-            if (sam_drfs == NULL)
-                goto oom;
-        }
+        auto drf = new SamDrf();
+        ctx->cur_dataref = drf;
 
-        ctx->cur_dataref = &sam_drfs[n_sam_drfs];
-        *(ctx->cur_dataref) = (sam_drf_t){};
-
-        GET_STR_ATTR(ctx->cur_dataref, name);
-        if (ctx->cur_dataref->name[0] == '\0') {
+        GET_STR_ATTR(drf, name);
+        if (drf->name[0] == '\0') {
             log_msg("name attribute not found for dataref");
             ctx->cur_dataref = NULL;
+            return;
         }
 
-        if (lookup_drf(ctx->cur_dataref->name) >= 0) {
-            log_msg("duplicate definition for dataref '%s', ingnored", ctx->cur_dataref->name);
+        if (lookup_drf(drf->name) >= 0) {
+            log_msg("duplicate definition for dataref '%s', ingnored", drf->name);
             ctx->cur_dataref = NULL;
+            return;
         }
 
-        if (ctx->cur_dataref) {
-            GET_BOOL_ATTR(ctx->cur_dataref, autoplay);
-            GET_BOOL_ATTR(ctx->cur_dataref, randomize_phase);
-            GET_BOOL_ATTR(ctx->cur_dataref, augment_wind_speed);
-        }
+        GET_BOOL_ATTR(drf, autoplay);
+        GET_BOOL_ATTR(drf, randomize_phase);
+        GET_BOOL_ATTR(drf, augment_wind_speed);
+        sam_drfs.push_back(drf);
         return;
     }
 
     if (ctx->in_dataref && ctx->cur_dataref && (0 == strcmp(name, "animation"))) {
-        sam_drf_t *d = ctx->cur_dataref;
+        SamDrf *d = ctx->cur_dataref;
         if (d->n_tv == DRF_MAX_ANIM) {
             log_msg("animation table overflow for %s", d->name);
             return;
@@ -285,22 +271,13 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
     if (ctx->in_objects && (0 == strcmp(name, "instance"))) {
         Scenery* sc = ctx->sc;
 
-        if (sc->n_sam_objs == ctx->max_sam_objs) {
-            ctx->max_sam_objs += 100;
-            sc->sam_objs = (sam_obj_t *)realloc(sc->sam_objs, ctx->max_sam_objs * sizeof(sam_obj_t));
-            if (sc->sam_objs == NULL)
-                goto oom;
-        }
-
-        sam_obj_t *obj = &sc->sam_objs[sc->n_sam_objs];
-
-        *obj = (sam_obj_t){};
+        SamObj *obj = new SamObj();
         GET_STR_ATTR(obj, id);
         GET_FLOAT_ATTR(obj, latitude);
         GET_FLOAT_ATTR(obj, longitude);
         GET_FLOAT_ATTR(obj, elevation);
         GET_FLOAT_ATTR(obj, heading);
-        sc->n_sam_objs++;
+        sc->sam_objs.push_back(obj);
         return;
     }
 
@@ -313,16 +290,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
     if (ctx->in_gui && (0 == strcmp(name, "checkbox"))) {
         Scenery* sc = ctx->sc;
 
-        if (sc->n_sam_anims == ctx->max_sam_anims) {
-            ctx->max_sam_anims += 100;
-            sc->sam_anims = (sam_anim_t *)realloc(sc->sam_anims, ctx->max_sam_anims * sizeof(sam_anim_t));
-            if (sc->sam_anims == NULL)
-                goto oom;
-        }
-
-        sam_anim_t *anim = &sc->sam_anims[sc->n_sam_anims];
-
-        *anim = (sam_anim_t){};
+        SamAnim *anim = new SamAnim();
         GET_STR_ATTR(anim, label);
         GET_STR_ATTR(anim, title);
 
@@ -337,18 +305,14 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
             anim->drf_idx = lookup_drf(name);
 
         if (anim->obj_idx >= 0 && anim->drf_idx >= 0)
-            sc->n_sam_anims++;
-        else
+            sc->sam_anims.push_back(anim);
+        else {
+            delete(anim);
             log_msg("dataref of object not found for checkbox entry");
-
+        }
         return;
     }
 
-    return;
-
-  oom:
-    log_msg("Can't allocate memory");
-    XML_StopParser(ctx->parser, XML_FALSE);
     return;
 }
 
@@ -367,12 +331,8 @@ end_element(void *user_data, const XML_Char *name) {
 
     else if (0 == strcmp(name, "dataref")) {
         ctx->in_dataref = false;
-        if (ctx->cur_dataref) {
-            if (ctx->cur_dataref->n_tv >= 2)    // sanity check
-                n_sam_drfs++;
-            else
-                log_msg("too few animation entries for %s", ctx->cur_dataref->name);
-        }
+        if (ctx->cur_dataref && ctx->cur_dataref->n_tv < 2)    // sanity check
+            log_msg("too few animation entries for %s", ctx->cur_dataref->name);
     }
 
     else if (0 == strcmp(name, "objects"))
@@ -596,7 +556,7 @@ collect_sam_xml(const char *xp_dir)
                 }
 
                 // don't save empty sceneries
-                if (sc->sam_jws.size() > 0 || sc->stands.size() > 0 || sc->n_sam_anims > 0) {
+                if (sc->sam_jws.size() > 0 || sc->stands.size() > 0 || sc->sam_anims.size() > 0) {
                     sceneries.push_back(sc);
                 } else {
                     delete(sc);
@@ -620,7 +580,7 @@ collect_sam_xml(const char *xp_dir)
     fclose(scp);
 
     sceneries.shrink_to_fit();
-    REALLOC_CHECK(sam_drfs, n_sam_drfs, sam_drf_t);
+    sam_drfs.shrink_to_fit();
 
     static const float far_skip_dlat = FAR_SKIP / LAT_2_M;
 
@@ -629,8 +589,8 @@ collect_sam_xml(const char *xp_dir)
         // shrink to actual
         sc->sam_jws.shrink_to_fit();
         sc->stands.shrink_to_fit();
-        REALLOC_CHECK(sc->sam_anims, sc->n_sam_anims, sam_anim_t);
-        REALLOC_CHECK(sc->sam_objs, sc->n_sam_objs, sam_obj_t);
+        sc->sam_anims.shrink_to_fit();
+        sc->sam_objs.shrink_to_fit();
 
         // compute the bounding boxes
 

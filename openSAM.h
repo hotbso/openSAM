@@ -45,30 +45,29 @@ static const float F2M = 0.3048;	    // 1 ft [m]
 static const float LAT_2_M = 111120;    // 1° lat in m
 
 class Stand;
-typedef struct _sam_obj sam_obj_t;
-typedef struct _sam_anim sam_anim_t;
-
+class SamObj;
+class SamAnim;
 class SamJw;
 
 class Scenery {
   public:
-    Scenery() = default;
     // Not copyable or movable
     Scenery(const Scenery&) = delete;
     Scenery& operator=(const Scenery&) = delete;
-    
+
     char name[52];
 
     std::vector<SamJw*> sam_jws;
     std::vector<Stand*> stands;
-
-    sam_obj_t *sam_objs;
-    int n_sam_objs;
-
-    sam_anim_t *sam_anims;
-    int n_sam_anims;
+    std::vector<SamObj*> sam_objs;
+    std::vector<SamAnim*> sam_anims;
 
     float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for FAR_SKIP */
+
+    Scenery() {
+        sam_jws.reserve(100); stands.reserve(100);
+        sam_objs.reserve(50);  sam_anims.reserve(50);
+    }
 };
 
 extern std::vector<Scenery *> sceneries;
