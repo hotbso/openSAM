@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <iostream>
+#include <fstream>
 
 #include <expat.h>
 
@@ -425,132 +426,123 @@ parse_apt_dat(FILE *f, Scenery* sc)
     return 1;
 }
 
-// make a complete filename for ../sam.xml from a line of scenery_packs.ini
-static int
-mk_sam_fn(const char *xp_dir, char *line, char *fn, int fn_size)
+// SceneryPacks contructor
+SceneryPacks::SceneryPacks(const std::string& xp_dir)
 {
-    char *cptr = strchr(line, '\r');
-    if (cptr)
-        *cptr = '\0';
+    std::string scpi_name(xp_dir + "/Custom Scenery/scenery_packs.ini");
 
-    cptr = strchr(line, '\n');
-    if (cptr)
-        *cptr = '\0';
-
-    cptr = strstr(line, "SCENERY_PACK ");
-    if (NULL == cptr)
-        return 0;
-    char *scenery_path = cptr + 13;
-    int is_absolute = (scenery_path[0] == '/' || strchr(scenery_path, ':'));
-
-    fn[0] = '\0';
-
-    if (is_absolute) {
-        strncpy(fn, scenery_path, fn_size - 100);
-    } else {
-        strncpy(fn, xp_dir, fn_size - 100);
-        strcat(fn, "/");
-        strncat(fn, scenery_path, fn_size - 100);
+    std::ifstream scpi(scpi_name);
+    if (scpi.fail()) {
+        log_msg("Can't open '%s'", scpi_name.c_str());
+        return;
     }
 
-    strcat(fn, "sam.xml");
+    sc_paths.reserve(500);
+    std::string line;
 
-    // posixify
-    for (cptr = fn; *cptr; cptr++)
-        if (*cptr == '\\')
-            *cptr = '/';
+    while (std::getline(scpi, line)) {
+        int i = line.find('\r');
+        if (i > 0)
+            line.resize(i);
 
-    return 1;
-}
-
-#define REALLOC_CHECK(ptr, n, type) \
-if (ptr) { \
-    ptr = (type *)realloc(ptr, (n) * sizeof(type)); \
-    if ((n) > 0 && NULL == ptr) { \
-        log_msg("out of memory " #ptr); \
-        return 0; \
-    } \
-}
-
-// collect sam.xml from all sceneries
-int
-collect_sam_xml(const char *xp_dir)
-{
-    char line[1000];
-    line[sizeof(line) - 1] = '\0';
-    strncpy(line, xp_dir, sizeof(line) - 200);
-    strcat(line, "/Custom Scenery/scenery_packs.ini");
-
-    FILE *scp = fopen(line, "r");
-    if (NULL == scp) {
-        log_msg("Can't open '%s'", line);
-        return 0;
-    }
-
-    // sam's default datarefs must be defined first, so we need 2 passes
-    // openSAM_Library only
-    while (fgets(line, sizeof(line) - 100, scp)) {
-        char fn[2000];
-        if (!mk_sam_fn(xp_dir, line, fn, sizeof(fn)))
-            continue;
-
-        if (NULL == strstr(fn, "/openSAM_Library/"))
-            continue;
-
-        //log_msg("Trying '%s'", fn);
-        int fd = open(fn, O_RDONLY|O_BINARY);
-        if (fd > 0) {
-            log_msg("Processing '%s'", fn);
-
-            Scenery* sc = new Scenery();
-            int rc = parse_sam_xml(fd, sc);
-            close(fd);
-            if (!rc) {
-                fclose(scp);
-                return 0;
-            }
-            sceneries.push_back(sc);
-            break;
-        }
-    }
-
-    // second pass, everything but openSAM_Library
-    rewind(scp);
-    while (fgets(line, sizeof(line) - 100, scp)) {
-        char fn[2000];
-        if (!mk_sam_fn(xp_dir, line, fn, sizeof(fn)))
-            continue;
-
-        if (strstr(fn, "/openSAM_Library/"))
+        if (line.find("SCENERY_PACK ") != 0 || line.find("*GLOBAL_AIRPORTS*") != std::string::npos)
             continue;
 
         // autoortho pretends every file exists but
         // reads give errors
-        if (strstr(fn, "/z_ao_"))
+        if (line.find("/z_ao_") != std::string::npos)
             continue;
 
-        char *path_end = strrchr(fn, '/');
+        line.erase(0, 13);
+        std::string sc_path;
+        bool is_absolute = (line[0] == '/' || line.find(':') != std::string::npos);
+        if (is_absolute)
+            sc_path = line;
+        else
+            sc_path = xp_dir + "/" + line;
 
-        //log_msg("Trying '%s'", fn);
-        int fd = open(fn, O_RDONLY|O_BINARY);
+        // posixify
+        for (unsigned i = 0; i < sc_path.size(); i++)
+            if (sc_path[i] == '\\')
+                sc_path[i] = '/';
+
+        if (sc_path.find("/openSAM_Library/") != std::string::npos) {
+            openSAM_Library_path = sc_path;
+            continue;
+        }
+
+        if (sc_path.find("/SAM_Library/") != std::string::npos) {
+            SAM_Library_path = sc_path;
+            continue;
+        }
+
+        sc_paths.push_back(sc_path);
+    }
+
+    scpi.close();
+    sc_paths.shrink_to_fit();
+    if (openSAM_Library_path.size() == 0) {
+        log_msg("openSAM_Library is not installed!");
+        valid = false;
+        return;
+    }
+
+    valid = true;
+}
+
+// collect sam.xml from all sceneries
+int
+collect_sam_xml(const SceneryPacks &scp)
+{
+    // drefs from openSAM_Library must come first
+    std::string fn(scp.openSAM_Library_path + "sam.xml");
+    int fd = open(fn.c_str(), O_RDONLY|O_BINARY);
+    if (fd > 0) {
+        log_msg("Processing '%s'", fn.c_str());
+
+        Scenery* sc = new Scenery();
+        int rc = parse_sam_xml(fd, sc);
+        close(fd);
+        if (!rc) {
+            return 0;
+        }
+        sceneries.push_back(sc);
+    }
+
+    if (scp.SAM_Library_path.size() > 0) {
+        std::string fn = scp.SAM_Library_path + "libraryjetways.xml";
+        //log_msg("Trying '%s'", fn.c_str());
+        fd = open(fn.c_str(), O_RDONLY|O_BINARY);
         if (fd > 0) {
-            log_msg("Processing '%s'", fn);
+            log_msg("Processing '%s'", fn.c_str());
+            Scenery dummy;
+            int rc = parse_sam_xml(fd, &dummy);
+            close(fd);
+            if (!rc)
+                return 0;
+        }
+    }
+
+    for (auto sc_path : scp.sc_paths) {
+        std::string fn(sc_path + "sam.xml");
+        //log_msg("Trying '%s'", fn.c_str());
+        int fd = open(fn.c_str(), O_RDONLY|O_BINARY);
+        if (fd > 0) {
+            log_msg("Processing '%s'", fn.c_str());
             Scenery* sc = new Scenery();
 
             int rc = parse_sam_xml(fd, sc);
             close(fd);
             if (rc) {
                 // read stands from apt.dat
-                strcpy(path_end, "/Earth nav data/apt.dat");
-
-                //log_msg("Trying '%s'", fn);
-                FILE *f = fopen(fn, "r");
+                std::string fn(sc_path + "Earth nav data/apt.dat");
+                //log_msg("Trying '%s'", fn.c_str());
+                FILE *f = fopen(fn.c_str(), "r");
                 if (f) {
-                    log_msg("Processing '%s'", fn);
+                    log_msg("Processing '%s'", fn.c_str());
                     rc = parse_apt_dat(f, sc);
                     fclose(f);
                     if (!rc) {
-                        fclose(scp);
                         return 0;
                     }
                 }
@@ -564,20 +556,7 @@ collect_sam_xml(const char *xp_dir)
             }
         }
 
-        strcpy(path_end, "/libraryjetways.xml");
-        //log_msg("Trying '%s'", fn);
-        fd = open(fn, O_RDONLY|O_BINARY);
-        if (fd > 0) {
-            log_msg("Processing '%s'", fn);
-            Scenery dummy;
-            int rc = parse_sam_xml(fd, &dummy);
-            close(fd);
-            if (!rc)
-                return 0;
-        }
     }
-
-    fclose(scp);
 
     sceneries.shrink_to_fit();
     sam_drfs.shrink_to_fit();

@@ -76,7 +76,7 @@
  */
 
 static int init_done, init_fail;
-static char xp_dir[512];
+static std::string xp_dir;
 static char pref_path[512];
 static const char *psep;
 static XPLMMenuID seasons_menu;
@@ -435,7 +435,9 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
     XPLMEnableFeature("XPLM_USE_NATIVE_WIDGET_WINDOWS", 1);
 
-	XPLMGetSystemPath(xp_dir);
+    char buffer[2048];
+	XPLMGetSystemPath(buffer);
+    xp_dir = std::string(buffer);
     psep = XPLMGetDirectorySeparator();
 
     // set pref path
@@ -493,7 +495,10 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     load_pref();
 
-    if (!collect_sam_xml(xp_dir))
+    SceneryPacks scp(xp_dir);
+    if (! scp.valid) {
+        log_msg("Error collecting scenery_packs.ini!");
+    } else if (!collect_sam_xml(scp))
         log_msg("Error collecting sam.xml files!");
 
     log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
@@ -770,7 +775,7 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         log_msg("A321 detected, checking door config");
 
         char path[512];
-        strcpy(path, xp_dir);
+        strcpy(path, xp_dir.c_str());
         int len = strlen(path);
         int n = XPLMGetDatab(acf_livery_path, path + len, 0, sizeof(path) - len - 50);
         path[len + n] = '\0';

@@ -21,6 +21,7 @@
 */
 
 #include <cmath>
+#include <string>
 #include <vector>
 
 #define XPLM200
@@ -80,6 +81,17 @@ class Scenery {
 
 extern std::vector<Scenery *> sceneries;
 
+class SceneryPacks {
+  public:
+    bool valid;
+    std::string openSAM_Library_path;
+    std::string SAM_Library_path;
+
+    std::vector<std::string> sc_paths;
+
+    SceneryPacks(const std::string& xp_dir);
+};
+
 typedef struct door_info_ {
     float x, y, z;
 } door_info_t;
@@ -133,7 +145,7 @@ extern XPLMProbeRef probe_ref;
 
 // functions
 extern void log_msg(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
-extern int collect_sam_xml(const char *xp_dir);
+extern int collect_sam_xml(const SceneryPacks &scp);
 extern int check_beacon(void);
 extern int check_teleportation(void);
 

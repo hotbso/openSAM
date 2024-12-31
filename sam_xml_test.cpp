@@ -36,7 +36,13 @@ main(int argc, char **argv) {
 
     std::cout << "sam_xml_test starting\n";
 
-    if (!collect_sam_xml("E:/X-Plane-12")) {
+    SceneryPacks scp("E:/X-Plane-12");
+    if (! scp.valid) {
+        log_msg("%s", "Can't create SceneryPacks");
+        return 1;
+    }
+
+    if (!collect_sam_xml(scp)) {
         log_msg("Error reading sam.xml files");
         exit(2);
     }
@@ -95,5 +101,5 @@ main(int argc, char **argv) {
         puts("\n");
     }
 
-	return (1);
+	return (0);
 }
