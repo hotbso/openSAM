@@ -389,27 +389,25 @@ parse_sam_xml(int fd, Scenery* sc)
 
 // go through apt.dat and collect stand information from 1300 lines
 static int
-parse_apt_dat(FILE *f, Scenery* sc)
+parse_apt_dat(std::ifstream& apt, Scenery* sc)
 {
-    char line[2000];    // can be quite long
+    std::string line;
+    line.reserve(2000);          // can be quite long
 
-    while (fgets(line, sizeof(line) - 1, f)) {
-        char *cptr = strchr(line, '\r');
-        if (cptr)
-            *cptr = '\0';
+    while (std::getline(apt, line)) {
+        int i = line.find('\r');
+        if (i > 0)
+            line.resize(i);
 
-        cptr = strchr(line, '\n');
-        if (cptr)
-            *cptr = '\0';
-
-        if (line == strstr(line, "1300 ")) {
+        if (line.find("1300 ") == 0) {
             //log_msg("%s", line);
+            line.erase(0, 5);
             Stand *stand = new Stand();
             int len;
-            int n = sscanf(line + 5, "%f %f %f %*s %*s %n",
+            int n = sscanf(line.c_str(), "%f %f %f %*s %*s %n",
                            &stand->lat, &stand->lon, &stand->hdgt, &len);
             if (3 == n) {
-                strncpy(stand->id, line + 5 + len, sizeof(stand->id) - 1);
+                strncpy(stand->id, line.c_str() + len, sizeof(stand->id) - 1);
                 //log_msg("%d %d, %f %f %f '%s'", n, len, stand->lat, stand->lon, stand->hdgt, stand->id);
 
                 stand->hdgt = RA(stand->hdgt);
@@ -536,12 +534,11 @@ collect_sam_xml(const SceneryPacks &scp)
             if (rc) {
                 // read stands from apt.dat
                 std::string fn(sc_path + "Earth nav data/apt.dat");
-                //log_msg("Trying '%s'", fn.c_str());
-                FILE *f = fopen(fn.c_str(), "r");
-                if (f) {
+                std::ifstream apt(fn);
+                if (apt.is_open()) {
                     log_msg("Processing '%s'", fn.c_str());
-                    rc = parse_apt_dat(f, sc);
-                    fclose(f);
+                    rc = parse_apt_dat(apt, sc);
+                    apt.close();
                     if (!rc) {
                         return 0;
                     }

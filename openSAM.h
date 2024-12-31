@@ -76,7 +76,6 @@ class Scenery {
         return (lat >= bb_lat_min && lat <= bb_lat_max
             && RA(lon - bb_lon_min) >= 0 && RA(lon - bb_lon_max) <= 0);
     }
-
 };
 
 extern std::vector<Scenery *> sceneries;
