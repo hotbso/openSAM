@@ -1441,10 +1441,7 @@ int
 jw_init()
 {
     // load alert sound
-    char fn[sizeof(base_dir) + 100];
-    strcpy(fn, base_dir);
-    strcat(fn, "sound/alert.wav");
-    read_wav(fn, &alert);
+    read_wav(base_dir + "sound/alert.wav", &alert);
     if (alert.data)
         log_msg("alert sound loaded, channels: %d, bit_rate: %d, size: %d",
                 alert.num_channels, alert.sample_rate, alert.size);

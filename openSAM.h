@@ -50,6 +50,8 @@ class Stand;
 class SamObj;
 class SamAnim;
 class SamJw;
+class SceneryPacks;
+
 static float RA(float angle);
 
 class Scenery {
@@ -80,6 +82,9 @@ class Scenery {
 
 extern std::vector<Scenery *> sceneries;
 
+// a poor man's factory
+extern int collect_sam_xml(const SceneryPacks &scp);
+
 class SceneryPacks {
   public:
     bool valid;
@@ -102,7 +107,7 @@ extern door_info_t door_info[MAX_DOOR];
 extern float plane_nw_z, plane_mw_z, plane_cg_z;   // z value of plane's 0 to fw, mw and cg
 extern char acf_icao[];
 
-extern char base_dir[512];          // base directory of openSAM
+extern std::string base_dir;        // base directory of openSAM
 extern int use_engine_running;      // instead of beacon, e.g. MD11
 extern int dont_connect_jetway;     // e.g. for ZIBO with own ground service
 extern int is_helicopter;
@@ -144,7 +149,6 @@ extern XPLMProbeRef probe_ref;
 
 // functions
 extern void log_msg(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
-extern int collect_sam_xml(const SceneryPacks &scp);
 extern int check_beacon(void);
 extern int check_teleportation(void);
 

@@ -57,13 +57,13 @@ typedef struct WAV_HEADER
 // file than the ones supplied here.
 //
 void
-read_wav(const char *fname, sound_t *sound)
+read_wav(const std::string& fname, sound_t *sound)
 {
     memset(sound, 0, sizeof(sound_t));
 
-	FILE *f = fopen(fname, "rb");
+	FILE *f = fopen(fname.c_str(), "rb");
     if (NULL == f) {
-        log_msg("can't open wav %s", fname);
+        log_msg("can't open wav %s", fname.c_str());
         return;
     }
 
@@ -117,6 +117,6 @@ read_wav(const char *fname, sound_t *sound)
     }
 
     fclose (f);
-	log_msg("can't find data chunk in %s", fname);
+	log_msg("can't find data chunk in %s", fname.c_str());
     return;
 }

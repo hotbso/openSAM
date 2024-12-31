@@ -106,7 +106,7 @@ extern int n_nearest;
 extern void jw_auto_mode_change(void);
 
 // from os_read_wav.c
-extern void read_wav(const char *fname, sound_t *sound);
+extern void read_wav(const std::string& fname, sound_t *sound);
 
 // from os_ui.c
 extern int ui_unlocked; // the ui is unlocked for jw_selection

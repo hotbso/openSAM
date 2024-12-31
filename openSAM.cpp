@@ -112,8 +112,8 @@ int auto_select_jws;
 float parked_x, parked_z;
 int parked_ngen;
 
-float now;          // current timestamp
-char base_dir[512]; // base directory of openSAM
+float now;            // current timestamp
+std::string base_dir; // base directory of openSAM
 
 int beacon_state, beacon_last_pos;   // beacon state, last switch_pos, ts of last switch actions
 float beacon_off_ts, beacon_on_ts;
@@ -388,17 +388,14 @@ menu_cb(void *menu_ref, void *item_ref)
 }
 
 static int
-find_icao_in_file(const char *acf_icao, const char *dir, const char *fn,
-                  char *line, int len)
+find_icao_in_file(const char *acf_icao, const std::string& fn, char *line, int len)
 {
-    char fn_full[512];
-    snprintf(fn_full, sizeof(fn_full) - 1, "%s%s", dir, fn);
 
     int res = 0;
-    FILE *f = fopen(fn_full, "r");
+    FILE *f = fopen(fn.c_str(), "r");
     line[len-1] = '\0';
     if (f) {
-        log_msg("check whether acf '%s' is in  file %s", acf_icao, fn_full);
+        log_msg("check whether acf '%s' is in  file %s", acf_icao, fn.c_str());
         while (fgets(line, len-1, f)) {
             char *cptr = strchr(line, '\r');
             if (cptr)
@@ -408,7 +405,7 @@ find_icao_in_file(const char *acf_icao, const char *dir, const char *fn,
                 *cptr = '\0';
 
             if (line == strstr(line, acf_icao)) {
-                log_msg("found acf %s in %s", acf_icao, fn);
+                log_msg("found acf %s in %s", acf_icao, fn.c_str());
                 res = 1;
                 break;
             }
@@ -447,14 +444,14 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     strcat(pref_path, "openSAM.prf");
 
     // get my base dir
-    XPLMGetPluginInfo(XPLMGetMyID(), NULL, base_dir, NULL, NULL);
-    char *cptr = strrchr(base_dir, '/');
-    if (cptr)
-        *cptr = '\0';
+    XPLMGetPluginInfo(XPLMGetMyID(), NULL, buffer, NULL, NULL);
+    base_dir = std::string(buffer);
+    size_t i;
+    if ((i = base_dir.rfind('/')) != std::string::npos)
+        base_dir.resize(i);
 
-    cptr = strrchr(base_dir, '/');
-    if (cptr)
-        *(cptr + 1) = '\0';         // keep /
+    if ((i = base_dir.rfind('/')) != std::string::npos)
+        base_dir.resize(i + 1); // keep trailing /
 
     date_day_dr = XPLMFindDataRef("sim/time/local_date_days");
 
@@ -665,12 +662,12 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
 
         // check whether acf is listed in exception files
         char line[200];
-        if (find_icao_in_file(acf_icao, base_dir, "acf_use_engine_running.txt", line, sizeof(line))) {
+        if (find_icao_in_file(acf_icao, base_dir + "acf_use_engine_running.txt", line, sizeof(line))) {
             use_engine_running = 1;
             log_msg("found");
         }
 
-        if (find_icao_in_file(acf_icao, base_dir, "acf_dont_connect_jetway.txt", line, sizeof(line))) {
+        if (find_icao_in_file(acf_icao, base_dir + "acf_dont_connect_jetway.txt", line, sizeof(line))) {
             dont_connect_jetway = 1;
             log_msg("found");
         }
@@ -689,7 +686,7 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         // check for a second door, seems to be not available by dataref
         // data in the acf file is often bogus, so check our own config file first
         line[sizeof(line) - 1] = '\0';
-        if (find_icao_in_file(acf_icao, base_dir, "acf_door_position.txt", line, sizeof(line))) {
+        if (find_icao_in_file(acf_icao, base_dir + "acf_door_position.txt", line, sizeof(line))) {
             int d;
             float x, y, z;
             if (4 == sscanf(line + 4, "%d %f %f %f", &d, &x, &y, &z)) {

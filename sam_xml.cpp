@@ -344,9 +344,14 @@ end_element(void *user_data, const XML_Char *name) {
 }
 
 static int
-parse_sam_xml(int fd, Scenery* sc)
+parse_sam_xml(const std::string& fn, Scenery* sc)
 {
     int rc = 0;
+    int fd = open(fn.c_str(), O_RDONLY|O_BINARY);
+    if (fd < 0)
+        return 0;
+
+    log_msg("Processing '%s'", fn.c_str());
     XML_Parser parser = XML_ParserCreate(NULL);
     if (NULL == parser)
         goto out;
@@ -381,6 +386,7 @@ parse_sam_xml(int fd, Scenery* sc)
     rc = 1;
 
   out:
+    close(fd);
     if (parser)
         XML_ParserFree(parser);
     parser = NULL;
@@ -388,9 +394,15 @@ parse_sam_xml(int fd, Scenery* sc)
 }
 
 // go through apt.dat and collect stand information from 1300 lines
-static int
-parse_apt_dat(std::ifstream& apt, Scenery* sc)
+static bool
+parse_apt_dat(const std::string& fn, Scenery* sc)
 {
+    std::ifstream apt(fn);
+    if (apt.fail())
+        return false;
+
+    log_msg("Processing '%s'", fn.c_str());
+
     std::string line;
     line.reserve(2000);          // can be quite long
 
@@ -421,7 +433,8 @@ parse_apt_dat(std::ifstream& apt, Scenery* sc)
 
     }
 
-    return 1;
+    apt.close();
+    return true;
 }
 
 // SceneryPacks contructor
@@ -493,74 +506,33 @@ int
 collect_sam_xml(const SceneryPacks &scp)
 {
     // drefs from openSAM_Library must come first
-    std::string fn(scp.openSAM_Library_path + "sam.xml");
-    int fd = open(fn.c_str(), O_RDONLY|O_BINARY);
-    if (fd > 0) {
-        log_msg("Processing '%s'", fn.c_str());
-
-        Scenery* sc = new Scenery();
-        int rc = parse_sam_xml(fd, sc);
-        close(fd);
-        if (!rc) {
-            return 0;
-        }
-        sceneries.push_back(sc);
-    }
+    Scenery dummy;
+    if (!parse_sam_xml(scp.openSAM_Library_path + "sam.xml", &dummy))
+        return 0;
 
     if (scp.SAM_Library_path.size() > 0) {
-        std::string fn = scp.SAM_Library_path + "libraryjetways.xml";
-        //log_msg("Trying '%s'", fn.c_str());
-        fd = open(fn.c_str(), O_RDONLY|O_BINARY);
-        if (fd > 0) {
-            log_msg("Processing '%s'", fn.c_str());
-            Scenery dummy;
-            int rc = parse_sam_xml(fd, &dummy);
-            close(fd);
-            if (!rc)
-                return 0;
-        }
+        Scenery dummy;
+        if (!parse_sam_xml(scp.SAM_Library_path + "libraryjetways.xml", &dummy))
+            return 0;
     }
 
     for (auto sc_path : scp.sc_paths) {
-        std::string fn(sc_path + "sam.xml");
-        //log_msg("Trying '%s'", fn.c_str());
-        int fd = open(fn.c_str(), O_RDONLY|O_BINARY);
-        if (fd > 0) {
-            log_msg("Processing '%s'", fn.c_str());
-            Scenery* sc = new Scenery();
-
-            int rc = parse_sam_xml(fd, sc);
-            close(fd);
-            if (rc) {
-                // read stands from apt.dat
-                std::string fn(sc_path + "Earth nav data/apt.dat");
-                std::ifstream apt(fn);
-                if (apt.is_open()) {
-                    log_msg("Processing '%s'", fn.c_str());
-                    rc = parse_apt_dat(apt, sc);
-                    apt.close();
-                    if (!rc) {
-                        return 0;
-                    }
-                }
-
-                // don't save empty sceneries
-                if (sc->sam_jws.size() > 0 || sc->stands.size() > 0 || sc->sam_anims.size() > 0) {
-                    sceneries.push_back(sc);
-                } else {
-                    delete(sc);
-                }
-            }
+        Scenery* sc = new Scenery();
+        if (!parse_sam_xml(sc_path + "sam.xml", sc)) {
+            delete(sc);
+            continue;
         }
 
-    }
+        // read stands from apt.dat
+        parse_apt_dat(sc_path + "Earth nav data/apt.dat", sc);
 
-    sceneries.shrink_to_fit();
-    sam_drfs.shrink_to_fit();
+        // don't save empty sceneries
+        if (sc->sam_jws.size() == 0 && sc->stands.size() == 0 && sc->sam_anims.size() == 0) {
+            delete(sc);
+            continue;
+        }
 
-    static const float far_skip_dlat = FAR_SKIP / LAT_2_M;
-
-    for (auto sc : sceneries) {
+        static const float far_skip_dlat = FAR_SKIP / LAT_2_M;
 
         // shrink to actual
         sc->sam_jws.shrink_to_fit();
@@ -599,7 +571,12 @@ collect_sam_xml(const SceneryPacks &scp)
         }
 
         // don't consider objects as these may be far away (e.g. Aerosoft LSZH)
+
+        sceneries.push_back(sc);
     }
+
+    sceneries.shrink_to_fit();
+    sam_drfs.shrink_to_fit();
 
     return 1;
 }
