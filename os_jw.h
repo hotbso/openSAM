@@ -69,6 +69,9 @@ class SamJw  {
         set_wheels();
         warnlight = 0;
     }
+
+    auto fill_library_values(int id) -> void;
+    auto find_stand() -> Stand*;
 };
 
 

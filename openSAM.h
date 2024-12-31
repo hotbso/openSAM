@@ -44,10 +44,12 @@ static const float D2R = M_PI/180.0;
 static const float F2M = 0.3048;	    // 1 ft [m]
 static const float LAT_2_M = 111120;    // 1° lat in m
 
+// forwards
 class Stand;
 class SamObj;
 class SamAnim;
 class SamJw;
+static float RA(float angle);
 
 class Scenery {
   public:
@@ -68,6 +70,12 @@ class Scenery {
         sam_jws.reserve(100); stands.reserve(100);
         sam_objs.reserve(50);  sam_anims.reserve(50);
     }
+
+    auto in_bbox(float lat, float lon) -> bool {
+        return (lat >= bb_lat_min && lat <= bb_lat_max
+            && RA(lon - bb_lon_min) >= 0 && RA(lon - bb_lon_max) <= 0);
+    }
+
 };
 
 extern std::vector<Scenery *> sceneries;

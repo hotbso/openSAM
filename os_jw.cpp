@@ -93,48 +93,50 @@ XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr, toggle_ui_cmdr;
 //
 // fill in values for a library jetway
 //
-static void
-fill_library_values(SamJw *jw)
+auto SamJw::fill_library_values(int id) -> void
 {
-    int id = jw->library_id;
+    if (library_id)
+        return;
+
     if (!BETWEEN(id, 1, MAX_SAM3_LIB_JW)) {
-        log_msg("sanity check failed for jw: '%s', id: %d", jw->name, id);
+        log_msg("sanity check failed for jw: '%s', id: %d", name, id);
         return;
     }
 
-    log_msg("filling in library data for '%s', id: %d", jw->name, id);
+    library_id = id;
 
-    SamJw *ljw = &sam3_lib_jw[id];
+    log_msg("filling in library data for '%s', id: %d", name, id);
 
-    jw->height = ljw->height;
-    jw->wheelPos = ljw->wheelPos;
-    jw->cabinPos = ljw->cabinPos;
-    jw->cabinLength = ljw->cabinLength;
+    const SamJw *ljw = &sam3_lib_jw[id];
 
-    jw->wheelDiameter = ljw->wheelDiameter;
-    jw->wheelDistance = ljw->wheelDistance;
+    height = ljw->height;
+    wheelPos = ljw->wheelPos;
+    cabinPos = ljw->cabinPos;
+    cabinLength = ljw->cabinLength;
 
-    jw->minRot1 = ljw->minRot1;
-    jw->maxRot1 = ljw->maxRot1;
+    wheelDiameter = ljw->wheelDiameter;
+    wheelDistance = ljw->wheelDistance;
 
-    jw->minRot2 = ljw->minRot2;
-    jw->maxRot2 = ljw->maxRot2;
+    minRot1 = ljw->minRot1;
+    maxRot1 = ljw->maxRot1;
 
-    jw->minRot3 = ljw->minRot3;
-    jw->maxRot3 = ljw->maxRot3;
+    minRot2 = ljw->minRot2;
+    maxRot2 = ljw->maxRot2;
 
-    jw->minExtent = ljw->minExtent;
-    jw->maxExtent = ljw->maxExtent;
+    minRot3 = ljw->minRot3;
+    maxRot3 = ljw->maxRot3;
 
-    jw->minWheels = ljw->minWheels;
-    jw->maxWheels = ljw->maxWheels;
+    minExtent = ljw->minExtent;
+    maxExtent = ljw->maxExtent;
+
+    minWheels = ljw->minWheels;
+    maxWheels = ljw->maxWheels;
 }
 
 //
 // find the stand the jetway belongs to
 //
-static Stand *
-find_stand_for_jw(SamJw *jw)
+auto SamJw::find_stand() -> Stand*
 {
     float dist = 1.0E10;
     Stand *min_stand = NULL;
@@ -144,16 +146,14 @@ find_stand_for_jw(SamJw *jw)
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
-        if (plane_lat < sc->bb_lat_min || plane_lat > sc->bb_lat_max
-            || RA(plane_lon - sc->bb_lon_min) < 0 || RA(plane_lon - sc->bb_lon_max) > 0) {
+        if (! sc->in_bbox(plane_lat, plane_lon))
             continue;
-        }
 
-        for (auto stand : sc->stands) {
-            xform_to_ref_frame(stand);
+        for (auto s : sc->stands) {
+            xform_to_ref_frame(s);
 
             float local_x, local_z;
-            global_2_stand(stand, jw->x, jw->z, &local_x, &local_z);
+            global_2_stand(s, x, z, &local_x, &local_z);
             if (local_x > 2.0f)     // on the right
                 continue;
 
@@ -162,12 +162,13 @@ find_stand_for_jw(SamJw *jw)
             if (d < dist) {
                 //log_msg("new min: %s, z: %2.1f, x: %2.1f",stand->id, local_z, local_x);
                 dist = d;
-                min_stand = stand;
+                min_stand = s;
             }
         }
     }
 
-    return min_stand;
+    stand = min_stand;
+    return stand;
 }
 
 //
@@ -190,10 +191,9 @@ configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
     jw->psi = obj_psi;
     jw->is_zc_jw = 1;
     strcpy(jw->name, "zc_");
-    jw->library_id = id;
-    fill_library_values(jw);
+    jw->fill_library_values(id);
 
-    Stand *stand = jw->stand = find_stand_for_jw(jw);
+    Stand *stand = jw->find_stand();
     if (stand) {
         // delta = cabin points perpendicular to stand
         float delta = RA((stand->hdgt + 90.0f) - jw->psi);
@@ -279,8 +279,7 @@ jw_anim_acc(void *ref)
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
-        if (lat < sc->bb_lat_min || lat > sc->bb_lat_max
-            || RA(lon - sc->bb_lon_min) < 0 || RA(lon - sc->bb_lon_max) > 0) {
+        if (! sc->in_bbox(lat, lon)) {
             stat_sc_far_skip++;
             continue;
         }
@@ -369,9 +368,8 @@ jw_anim_acc(void *ref)
     switch (drc) {
         case DR_ROTATE1:
             // a one shot event on first access
-            if (id > 0 && 0 == jw->library_id) {
-                jw->library_id = id;
-                fill_library_values(jw);
+            if (id > 0) {
+                jw->fill_library_values(id);
             }
             return jw->rotate1;
             break;
