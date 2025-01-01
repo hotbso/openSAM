@@ -407,8 +407,8 @@ parse_apt_dat(const std::string& fn, Scenery* sc)
     line.reserve(2000);          // can be quite long
 
     while (std::getline(apt, line)) {
-        int i = line.find('\r');
-        if (i > 0)
+        size_t i = line.find('\r');
+        if (i != std::string::npos)
             line.resize(i);
 
         if (line.find("1300 ") == 0) {
@@ -452,8 +452,8 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir)
     std::string line;
 
     while (std::getline(scpi, line)) {
-        int i = line.find('\r');
-        if (i > 0)
+        size_t i;
+        if ((i = line.find('\r')) != std::string::npos)
             line.resize(i);
 
         if (line.find("SCENERY_PACK ") != 0 || line.find("*GLOBAL_AIRPORTS*") != std::string::npos)
