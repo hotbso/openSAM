@@ -66,9 +66,9 @@ class JwCtrl {
 
     auto setup_for_door(const door_info_t *door_info) -> void;
 
-    // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be NULL
+    // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 are optional
     auto xz_to_sam_dr(float cabin_x, float cabin_z,
-                      float *rot1, float *extent, float *rot2, float *rot3) -> void;
+                      float& rot1, float& extent, float *rot2, float *rot3) -> void;
 
     //
     // animation
