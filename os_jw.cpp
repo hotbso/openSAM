@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <ctime>
+#include <cstring>
 #include <algorithm>
 
 #include "openSAM.h"

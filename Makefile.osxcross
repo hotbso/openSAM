@@ -12,15 +12,15 @@ OBJDIR=./OBJ_osx
 TARGET_XP12=$(OBJDIR)/openSAM.xpl
 TARGET_XP11=$(OBJDIR)/openSAM.xpl_xp11
 HEADERS=$(wildcard *.h)
-SOURCES=openSAM.c os_dgs.c os_jw.c os_ui.c os_anim.c sam_xml.c log_msg.c read_wav.c
-OBJECTS_XP12_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o_arm)) $(OBJDIR)/os_sound.o_arm
+SOURCES=openSAM.cpp os_dgs.cpp os_jw.cpp os_ui.cpp os_anim.cpp sam_xml.cpp log_msg.cpp read_wav.cpp
+OBJECTS_XP12_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o_arm)) $(OBJDIR)/os_sound.o_arm
 OBJECTS_XP12_x86=$(OBJECTS_XP12_arm:.o_arm=.o_x86)
 
-OBJECTS_XP11_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.c=.o_arm)) $(OBJDIR)/os_sound_xp11.o_arm
+OBJECTS_XP11_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o_arm)) $(OBJDIR)/os_sound_xp11.o_arm
 OBJECTS_XP11_x86=$(OBJECTS_XP11_arm:.o_arm=.o_x86)
 
-CCx=o64-clang -mmacosx-version-min=12.0
-CCa=oa64-clang -mmacosx-version-min=12.0
+CCx=o64-clang++ -mmacosx-version-min=12.0
+CCa=oa64-clang++ -mmacosx-version-min=12.0
 
 DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -DNDEBUG
 
@@ -42,10 +42,10 @@ LIBS+=
 all: $(TARGET_XP12) $(TARGET_XP11)
     $(shell [ -d $(OBJDIR) ] || mkdir $(OBJDIR))
 
-$(OBJDIR)/%.o_arm: %.c version.mak
+$(OBJDIR)/%.o_arm: %.cpp version.mak
 	$(CCa) $(CFLAGS) -o $@ -c $<
 
-$(OBJDIR)/%.o_x86: %.c  version.mak
+$(OBJDIR)/%.o_x86: %.cpp  version.mak
 	$(CCx) $(CFLAGS) -o $@ -c $<
 
 $(TARGET_XP12)_arm: $(OBJECTS_XP12_arm)
