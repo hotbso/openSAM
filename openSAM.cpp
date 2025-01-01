@@ -313,7 +313,7 @@ flight_loop_cb(float inElapsedSinceLastCall,
         anim_next_ts = now + anim_loop_delay;
     }
 
-    return MIN(anim_loop_delay, MIN(jw_loop_delay, dgs_loop_delay));
+    return std::min(anim_loop_delay, std::min(jw_loop_delay, dgs_loop_delay));
 }
 
 // set season according to date

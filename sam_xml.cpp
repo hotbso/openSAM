@@ -553,21 +553,21 @@ collect_sam_xml(const SceneryPacks &scp)
             jw->bb_lon_min = RA(jw->longitude - far_skip_dlon);
             jw->bb_lon_max = RA(jw->longitude + far_skip_dlon);
 
-            sc->bb_lat_min = MIN(sc->bb_lat_min, jw->bb_lat_min);
-            sc->bb_lat_max = MAX(sc->bb_lat_max, jw->bb_lat_max);
+            sc->bb_lat_min = std::min(sc->bb_lat_min, jw->bb_lat_min);
+            sc->bb_lat_max = std::max(sc->bb_lat_max, jw->bb_lat_max);
 
-            sc->bb_lon_min = MIN(sc->bb_lon_min, jw->bb_lon_min);
-            sc->bb_lon_max = MAX(sc->bb_lon_max, jw->bb_lon_max);
+            sc->bb_lon_min = std::min(sc->bb_lon_min, jw->bb_lon_min);
+            sc->bb_lon_max = std::max(sc->bb_lon_max, jw->bb_lon_max);
         }
 
         for (auto stand : sc->stands) {
             float far_skip_dlon = far_skip_dlat / cosf(stand->lat * D2R);
 
-            sc->bb_lat_min = MIN(sc->bb_lat_min, stand->lat - far_skip_dlat);
-            sc->bb_lat_max = MAX(sc->bb_lat_max, stand->lat + far_skip_dlat);
+            sc->bb_lat_min = std::min(sc->bb_lat_min, stand->lat - far_skip_dlat);
+            sc->bb_lat_max = std::max(sc->bb_lat_max, stand->lat + far_skip_dlat);
 
-            sc->bb_lon_min = MIN(sc->bb_lon_min, stand->lon - far_skip_dlon);
-            sc->bb_lon_max = MAX(sc->bb_lon_max, stand->lon + far_skip_dlon);
+            sc->bb_lon_min = std::min(sc->bb_lon_min, stand->lon - far_skip_dlon);
+            sc->bb_lon_max = std::max(sc->bb_lon_max, stand->lon + far_skip_dlon);
         }
 
         // don't consider objects as these may be far away (e.g. Aerosoft LSZH)

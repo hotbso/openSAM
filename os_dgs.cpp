@@ -346,7 +346,7 @@ read_sam1_icao_acc(XPLMDataRef ref, int *values, int ofs, int n)
     if (n <= 0 || ofs < 0 || ofs >= 4)
         return 0;
 
-    n = MIN(n, 4 - ofs);
+    n = std::min(n, 4 - ofs);
 
     for (int i = 0; i < n; i++) {
         char c = acf_icao[ofs + i];
@@ -753,7 +753,7 @@ dgs_state_machine()
 
         // translate into compatible SAM1 values
         sam1_lateral = -x_dr;
-        sam1_longitudinal = MIN(z_dr, 30.0f);
+        sam1_longitudinal = std::min(z_dr, 30.0f);
 
         switch (state) {
             case ENGAGED:

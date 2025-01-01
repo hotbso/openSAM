@@ -444,7 +444,7 @@ jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n)
     if (n <= 0 || ofs < 0 || ofs >= MAX_DOOR)
         return 0;
 
-    n = MIN(n, MAX_DOOR - ofs);
+    n = std::min(n, MAX_DOOR - ofs);
 
     for (int i = 0; i < n; i++) {
         JwCtrl *ajw = &active_jw[ofs + i];
@@ -667,7 +667,7 @@ find_nearest_jws()
     if (n_nearest > 1) { // final sort + trim down to limit
         n_nearest = std::min(n_nearest, MAX_NEAREST);  // required to keep the compiler happy
         std::sort(nearest_jw, nearest_jw + n_nearest);
-        n_nearest = MIN(n_nearest, NEAR_JW_LIMIT);  // required to keep the compiler happy
+        n_nearest = std::min(n_nearest, NEAR_JW_LIMIT);  // required to keep the compiler happy
     }
 
     // fake names for zc jetways
@@ -833,9 +833,9 @@ auto JwCtrl::rotate_3(float rot3, float dt) -> bool
     if (fabsf(jw->rotate3 - rot3) > 0.1) {
         float d_rot3 = (dt * JW_HEIGHT_SPEED / (jw->cabinPos + jw->extent)) / D2R;  // strictly it's atan
         if (jw->rotate3 >= rot3)
-            jw->rotate3 = MAX(jw->rotate3 - d_rot3, rot3);
+            jw->rotate3 = std::max(jw->rotate3 - d_rot3, rot3);
         else
-            jw->rotate3 = MIN(jw->rotate3 + d_rot3, rot3);
+            jw->rotate3 = std::min(jw->rotate3 + d_rot3, rot3);
     }
 
     jw->set_wheels();
@@ -853,9 +853,9 @@ auto JwCtrl::rotate_2(float rot2, float dt) -> bool
     if (fabsf(jw->rotate2 - rot2) > 0.5) {
         float d_rot2 = dt * JW_TURN_SPEED;
         if (jw->rotate2 >= rot2)
-            jw->rotate2 = MAX(jw->rotate2 - d_rot2, rot2);
+            jw->rotate2 = std::max(jw->rotate2 - d_rot2, rot2);
         else
-            jw->rotate2 = MIN(jw->rotate2 + d_rot2, rot2);
+            jw->rotate2 = std::min(jw->rotate2 + d_rot2, rot2);
         return fabsf(jw->rotate2 - rot2) <= 0.5;
     }
 
@@ -917,7 +917,7 @@ auto JwCtrl::dock_drive() -> bool
 
         float tgt_x = ap_x;
 
-        float eps = MAX(2.0f * dt * JW_DRIVE_SPEED, 0.1f);
+        float eps = std::max(2.0f * dt * JW_DRIVE_SPEED, 0.1f);
         //log_msg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x), fabs(cabin_z));
         if (fabs(tgt_x - cabin_x) < eps && fabs(cabin_z) < eps)  {
             state = AJW_AT_AP;
@@ -986,16 +986,16 @@ auto JwCtrl::dock_drive() -> bool
             wait_wb_rot = false;
         }
 
-        float tgt_x = door_x;
+        double tgt_x = door_x;
 
-        cabin_x = MIN(cabin_x, tgt_x); // dont drive beyond the target point
+        cabin_x = std::min(cabin_x, tgt_x); // dont drive beyond the target point
 
         //log_msg("to door: rot1_d: %.2f, cabin_x: %0.3f, cabin_z: %0.3f", rot1_d, cabin_x, cabin_z);
 
         // ramp down speed when approaching the plane
         float drive_speed = JW_DRIVE_SPEED;
         if (cabin_x >= (tgt_x - 0.8f))
-            drive_speed = JW_DRIVE_SPEED * (0.1f + 0.9f * MAX(0.0f, (tgt_x - cabin_x) / 0.8f));
+            drive_speed = JW_DRIVE_SPEED * (0.1f + 0.9f * std::max(0.0f, float((tgt_x - cabin_x)) / 0.8f));
 
         float ds = dt * drive_speed;
 
@@ -1012,7 +1012,7 @@ auto JwCtrl::dock_drive() -> bool
         rotate_1_extend();
         animate_wheels(ds);
 
-        float eps = MAX(2.0f * dt * JW_DRIVE_SPEED, 0.05f);
+        float eps = std::max(2.0f * dt * JW_DRIVE_SPEED, 0.05f);
         //log_msg("eps: %0.3f, d_x: %0.3f", eps, fabs(tgt_x - cabin_x));
         if (fabs(tgt_x - cabin_x) < eps) {
             state = AJW_DOCKED;
@@ -1069,7 +1069,7 @@ auto JwCtrl::undock_drive() -> bool
 
         float tgt_x = ap_x;
 
-        float eps = MAX(2.0f * dt * JW_DRIVE_SPEED, 0.1f);
+        float eps = std::max(2.0f * dt * JW_DRIVE_SPEED, 0.1f);
         //log_msg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x), fabs(cabin_z));
         if (fabs(tgt_x - cabin_x) < eps && fabs(cabin_z) < eps)  {
             state = AJW_AT_AP;
@@ -1146,7 +1146,7 @@ auto JwCtrl::undock_drive() -> bool
         rotate_1_extend();
         animate_wheels(ds);
 
-        float eps = MAX(2.0f * dt * JW_DRIVE_SPEED, 0.1f);
+        float eps = std::max(2.0f * dt * JW_DRIVE_SPEED, 0.1f);
         //log_msg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x), fabs(tgt_z - cabin_z));
         if (fabs(tgt_x - cabin_x) < eps && fabs(tgt_z -cabin_z) < eps)  {
             state = AJW_PARKED;

@@ -82,7 +82,7 @@ class Scenery {
 
 extern std::vector<Scenery *> sceneries;
 
-// a poor man's factory
+// a poor man's factory for creating sceneries
 extern int collect_sam_xml(const SceneryPacks &scp);
 
 class SceneryPacks {
@@ -153,17 +153,6 @@ extern int check_beacon(void);
 extern int check_teleportation(void);
 
 extern void toggle_ui(void);
-
-/* helpers */
-#define MAX(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
-
-#define MIN(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })
 
 #define BETWEEN(x ,a ,b) ((a) <= (x) && (x) <= (b))
 
