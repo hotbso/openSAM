@@ -20,7 +20,8 @@
 
 */
 
-struct _stand {
+class Stand {
+   public:
     float lat, lon, hdgt;   // from apt.dat
 
     unsigned int ref_gen;   // only valid if this matches the generation of the ref frame
@@ -35,6 +36,6 @@ extern float dgs_state_machine(void);
 extern void dgs_set_active(void);
 extern void dgs_set_inactive(void);
 
-extern void xform_to_ref_frame(stand_t *stand);
-extern void global_2_stand(const stand_t * stand, float x, float z, float *x_l, float *z_l);
+extern void xform_to_ref_frame(Stand* stand);
+extern void global_2_stand(const Stand* stand, float x, float z, float *x_l, float *z_l);
 

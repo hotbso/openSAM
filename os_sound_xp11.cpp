@@ -41,7 +41,7 @@ sound_t alert;
 
 static ALuint snd_src;
 static ALuint snd_buffer;
-static const ALfloat zero[3];
+static const ALfloat zero[3] = {};
 static int paused;
 
 static XPLMDataRef audio_dr, paused_dr, view_external_dr;
@@ -94,19 +94,18 @@ sound_init()
     return 1;
 }
 void
-alert_on(jw_ctx_t *ajw)
+JwCtrl::alert_on()
 {
     if (0 == snd_src)
         return;
 
-    alert_setpos(ajw);
+    alert_setpos();
     alSourcePlay(snd_src);
 }
 
 void
-alert_off(jw_ctx_t *ajw)
+JwCtrl::alert_off()
 {
-    UNUSED(ajw);
     if (0 == snd_src)
         return;
 
@@ -114,12 +113,10 @@ alert_off(jw_ctx_t *ajw)
 }
 
 void
-alert_setpos(jw_ctx_t *ajw)
+JwCtrl::alert_setpos()
 {
     if (0 == snd_src)
         return;
-
-    const sam_jw_t *jw = ajw->jw;
 
     // Pause sound while sim is paused
     if (XPLMGetDatai(paused_dr)) {

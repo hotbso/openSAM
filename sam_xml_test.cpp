@@ -20,10 +20,11 @@
 
 */
 
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <cstddef>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
 
 #include "openSAM.h"
 #include "os_dgs.h"
@@ -33,19 +34,26 @@
 int
 main(int argc, char **argv) {
 
-    if (!collect_sam_xml("E:/X-Plane-12")) {
+    std::cout << "sam_xml_test starting\n";
+
+    SceneryPacks scp("E:/X-Plane-12");
+    if (! scp.valid) {
+        log_msg("%s", "Can't create SceneryPacks");
+        return 1;
+    }
+
+    if (!collect_sam_xml(scp)) {
         log_msg("Error reading sam.xml files");
         exit(2);
     }
 
-    printf("\n%d sceneries collected\n", n_sceneries);
+    printf("\n%d sceneries collected\n", (int)sceneries.size());
 
-    printf("%d datarefs collected\n", n_sam_drfs);
+    printf("%d datarefs collected\n", (int)sam_drfs.size());
 
-    for (int i = 0; i < n_sam_drfs; i++) {
-        sam_drf_t *drf = &sam_drfs[i];
-        printf("%2d: %s, auto_play: %d, randomize_phase: %d, augment_wind_speed: %d\n",
-               i, drf->name, drf->autoplay, drf->randomize_phase, drf->augment_wind_speed);
+    for (auto drf : sam_drfs) {
+        printf("%s, auto_play: %d, randomize_phase: %d, augment_wind_speed: %d\n",
+               drf->name, drf->autoplay, drf->randomize_phase, drf->augment_wind_speed);
 
         for (int j = 0; j < drf->n_tv; j++)
             printf("   t: %6.2f, v: %6.2f\n", drf->t[j], drf->v[j]);
@@ -53,27 +61,23 @@ main(int argc, char **argv) {
         puts("");
     }
 
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+    for (auto sc : sceneries) {
         printf("%s: %d jetways, %d stands collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n",
-               sc->name, sc->n_sam_jws, sc->n_stands,
+               sc->name, (int)sc->sam_jws.size(), (int)sc->stands.size(),
                sc->bb_lat_min, sc->bb_lon_min, sc->bb_lat_max, sc->bb_lon_max);
 
         puts("\nObjects");
-        for (int i = 0; i < sc->n_sam_objs; i++) {
-            sam_obj_t *obj = &sc->sam_objs[i];
-            printf("%2d: %s %5.6f %5.6f %5.6f %5.6f\n", i, obj->id, obj->latitude, obj->longitude,
+        for (auto obj : sc->sam_objs)
+            printf("%s %5.6f %5.6f %5.6f %5.6f\n", obj->id, obj->latitude, obj->longitude,
                    obj->elevation, obj->heading);
-        }
 
         puts("\nAnimations");
-        for (int i = 0; i < sc->n_sam_anims; i++) {
-            sam_anim_t *anim = &sc->sam_anims[i];
+        for (auto anim : sc->sam_anims)
             printf("'%s' '%s', obj: '%s', drf: '%s'\n", anim->label, anim->title,
-                   sc->sam_objs[anim->obj_idx].id, sam_drfs[anim->drf_idx].name);
-        }
+                   sc->sam_objs[anim->obj_idx]->id, sam_drfs[anim->drf_idx]->name);
 
         puts("\nJetways");
-        for (sam_jw_t *jw = sc->sam_jws; jw < sc->sam_jws + sc->n_sam_jws; jw++) {
+        for (auto jw : sc->sam_jws) {
             printf("%s %5.6f %5.6f door: %d\n", jw->name, jw->latitude, jw->longitude, jw->door);
         }
         puts("\n");
@@ -81,21 +85,21 @@ main(int argc, char **argv) {
 
     puts("Library jetways");
     for (int i = 0; i <= MAX_SAM3_LIB_JW; i++) {
-        sam_jw_t *jw = &sam3_lib_jw[i];
+        SamJw *jw = &sam3_lib_jw[i];
         if (jw->id == 0)
             continue;
         log_msg("%d; %s height: %0.2f, cabinPos: %0.2f", jw->id, jw->name, jw->height, jw->cabinPos);
     }
 
     puts("Ramps");
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+    for (auto sc : sceneries) {
         printf("%s\n", sc->name);
-        for (stand_t *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+        for (auto stand : sc->stands) {
             log_msg("%-40s %5.6f, %5.6f %6.2f", stand->id,
                     stand->lat, stand->lon, stand->hdgt);
         }
         puts("\n");
     }
 
-	return (1);
+	return (0);
 }

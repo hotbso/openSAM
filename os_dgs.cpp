@@ -21,10 +21,8 @@
 
 */
 
-#include <stddef.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/types.h>
+#include <cstddef>
+#include <cstring>
 
 #include "openSAM.h"
 #include "os_dgs.h"
@@ -70,7 +68,7 @@ static float azimuth, distance;
 
 float plane_nw_z, plane_mw_z, plane_cg_z;   // z value of plane's 0 to fw, mw and cg
 
-static stand_t *nearest_stand;
+static Stand *nearest_stand;
 static float nearest_stand_ts;    // timestamp of last find_nearest_stand()
 // track the max local z (= closest to stand) of dgs objs for nearest_stand
 static float max_dgs_z_l, max_dgs_z_l_ts;
@@ -191,7 +189,7 @@ static float last_dgs_z;
 
 // xform lat,lon into the active global frame
 void
-xform_to_ref_frame(stand_t *stand)
+xform_to_ref_frame(Stand *stand)
 {
     if (stand->ref_gen < ref_gen) {
         XPLMWorldToLocal(stand->lat, stand->lon, XPLMGetDataf(plane_elevation_dr),
@@ -205,7 +203,7 @@ xform_to_ref_frame(stand_t *stand)
 
 // xform global coordinates into the stand frame
 void
-global_2_stand(const stand_t * stand, float x, float z, float *x_l, float *z_l)
+global_2_stand(const Stand * stand, float x, float z, float *x_l, float *z_l)
 {
     float dx = x - stand->stand_x;
     float dz = z - stand->stand_z;
@@ -348,7 +346,7 @@ read_sam1_icao_acc(XPLMDataRef ref, int *values, int ofs, int n)
     if (n <= 0 || ofs < 0 || ofs >= 4)
         return 0;
 
-    n = MIN(n, 4 - ofs);
+    n = std::min(n, 4 - ofs);
 
     for (int i = 0; i < n; i++) {
         char c = acf_icao[ofs + i];
@@ -365,7 +363,7 @@ static void
 find_nearest_stand()
 {
     double dist = 1.0E10;
-    stand_t *min_stand = NULL;
+    Stand *min_stand = NULL;
 
     float plane_lat = XPLMGetDataf(plane_lat_dr);
     float plane_lon = XPLMGetDataf(plane_lon_dr);
@@ -375,14 +373,14 @@ find_nearest_stand()
 
     float plane_hdgt = XPLMGetDataf(plane_true_psi_dr);
 
-    for (scenery_t *sc = sceneries; sc < sceneries + n_sceneries; sc++) {
+    for (auto sc : sceneries) {
         // cheap check against bounding box
         if (plane_lat < sc->bb_lat_min || plane_lat > sc->bb_lat_max
             || RA(plane_lon - sc->bb_lon_min) < 0 || RA(plane_lon - sc->bb_lon_max) > 0) {
             continue;
         }
 
-        for (stand_t *stand = sc->stands; stand < sc->stands + sc->n_stands; stand++) {
+        for (auto stand : sc->stands) {
 
             // heading in local system
             float local_hdgt = RA(plane_hdgt - stand->hdgt);
@@ -598,80 +596,82 @@ dgs_state_machine()
             }
             break;
 
-        case TRACK:
-            if (!beacon_on) {       // don't get stuck in TRACK
-                new_state = DONE;
-                break;
-            }
+        case TRACK: {
+                if (!beacon_on) {       // don't get stuck in TRACK
+                    new_state = DONE;
+                    break;
+                }
 
-            if (locgood) {
-                new_state = GOOD;
-                break;
-            }
+                if (locgood) {
+                    new_state = GOOD;
+                    break;
+                }
 
-            if (nw_z < -GOOD_Z) {
-                new_state = BAD;
-                break;
-            }
+                if (nw_z < -GOOD_Z) {
+                    new_state = BAD;
+                    break;
+                }
 
-            if ((distance > CAP_Z) || (fabsf(azimuth_nw) > CAP_A)) {
-                new_state = ENGAGED;    // moving away from current gate
-                break;
-            }
+                if ((distance > CAP_Z) || (fabsf(azimuth_nw) > CAP_A)) {
+                    new_state = ENGAGED;    // moving away from current gate
+                    break;
+                }
 
-            status = 1;	// plane id
-            if (distance > AZI_Z || fabsf(azimuth_nw) > AZI_A) {
-                track=1;	// lead-in only
-                break;
-            }
+                status = 1;	// plane id
+                if (distance > AZI_Z || fabsf(azimuth_nw) > AZI_A) {
+                    track=1;	// lead-in only
+                    break;
+                }
 
-            // compute distance and guidance commands
-            azimuth = clampf(azimuth, -AZI_A, AZI_A);
-            float req_hdgt = -3.5f * azimuth;        // to track back to centerline
-            float d_hdgt = req_hdgt - local_hdgt;   // degrees to turn
+                // compute distance and guidance commands
+                azimuth = clampf(azimuth, -AZI_A, AZI_A);
+                float req_hdgt = -3.5f * azimuth;        // to track back to centerline
+                float d_hdgt = req_hdgt - local_hdgt;   // degrees to turn
 
-            if (now > update_stand_log_ts + 2.0f)
-                log_msg("is_marshaller: %d, azimuth: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), ref: (%0.1f, %0.1f), "
-                       "x: %0.1f, local_hdgt: %0.1f, d_hdgt: %0.1f",
-                       is_marshaller, azimuth, mw_x, mw_z, nw_x, nw_z,
-                       x_dr, z_dr,
-                       local_x, local_hdgt, d_hdgt);
+                if (now > update_stand_log_ts + 2.0f)
+                    log_msg("is_marshaller: %d, azimuth: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), ref: (%0.1f, %0.1f), "
+                           "x: %0.1f, local_hdgt: %0.1f, d_hdgt: %0.1f",
+                           is_marshaller, azimuth, mw_x, mw_z, nw_x, nw_z,
+                           x_dr, z_dr,
+                           local_x, local_hdgt, d_hdgt);
 
-            if (d_hdgt < -1.5)
-                lr = 2;
-            else if (d_hdgt > 1.5)
-                lr = 1;
+                if (d_hdgt < -1.5)
+                    lr = 2;
+                else if (d_hdgt > 1.5)
+                    lr = 1;
 
-            // xform azimuth to values required by OBJ
-            azimuth = clampf(azimuth, -AZI_DISP_A, AZI_DISP_A) * 4.0 / AZI_DISP_A;
-            azimuth=((float)((int)(azimuth * 2))) / 2;  // round to 0.5 increments
+                // xform azimuth to values required by OBJ
+                azimuth = clampf(azimuth, -AZI_DISP_A, AZI_DISP_A) * 4.0 / AZI_DISP_A;
+                azimuth=((float)((int)(azimuth * 2))) / 2;  // round to 0.5 increments
 
-            if (distance <= REM_Z/2) {
-                track = 3;
-                loop_delay = 0.03;
-            } else // azimuth only
-                track = 2;
+                if (distance <= REM_Z/2) {
+                    track = 3;
+                    loop_delay = 0.03;
+                } else // azimuth only
+                    track = 2;
 
-            if (! phase180) { // no wild oscillation
-                lr = lr_prev;
+                if (! phase180) { // no wild oscillation
+                    lr = lr_prev;
 
-                // sync transition with Marshaller's arm movement
-                if (is_marshaller && track == 3 && track_prev == 2) {
-                    track = track_prev;
-                    distance = distance_prev;
+                    // sync transition with Marshaller's arm movement
+                    if (is_marshaller && track == 3 && track_prev == 2) {
+                        track = track_prev;
+                        distance = distance_prev;
+                    }
                 }
             }
             break;
 
-        case GOOD:
-            // @stop position*/
-            status = 2; lr = 3;
+        case GOOD: {
+                // @stop position*/
+                status = 2; lr = 3;
 
-            int parkbrake_set = (XPLMGetDataf(parkbrake_dr) > 0.5f);
-            if (!locgood)
-                new_state = TRACK;
-            else if (parkbrake_set || !beacon_on)
-                new_state = PARKED;
+                int parkbrake_set = (XPLMGetDataf(parkbrake_dr) > 0.5f);
+                if (!locgood)
+                    new_state = TRACK;
+                else if (parkbrake_set || !beacon_on)
+                    new_state = PARKED;
+            }
             break;
 
         case BAD:
@@ -753,7 +753,7 @@ dgs_state_machine()
 
         // translate into compatible SAM1 values
         sam1_lateral = -x_dr;
-        sam1_longitudinal = MIN(z_dr, 30.0f);
+        sam1_longitudinal = std::min(z_dr, 30.0f);
 
         switch (state) {
             case ENGAGED:
@@ -786,7 +786,8 @@ dgs_state_machine()
         }
 
         if (is_marshaller && BETWEEN(state, ENGAGED, PARKED)) {
-            XPLMDrawInfo_t drawinfo = {.structSize = sizeof(XPLMDrawInfo_t)};
+            XPLMDrawInfo_t drawinfo = {};
+            drawinfo.structSize = sizeof(XPLMDrawInfo_t);
             drawinfo.heading = marshaller_psi;
             drawinfo.pitch = drawinfo.roll = 0.0;
 

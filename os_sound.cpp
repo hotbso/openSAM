@@ -20,7 +20,7 @@
 
 */
 
-#include <stddef.h>
+#include <cstddef>
 
 #include "openSAM.h"
 #include "os_jw.h"
@@ -39,38 +39,33 @@ alert_complete(void *ref, FMOD_RESULT status)
 {
     UNUSED(status);
 
-    jw_ctx_t *ajw = ref;
+    JwCtrl *ajw = (JwCtrl *)ref;
     ajw->alert_chn = NULL;
 }
 
-void
-alert_on(jw_ctx_t *ajw)
+auto JwCtrl::alert_on() -> void
 {
-    if (ajw->alert_chn)
+    if (alert_chn)
         return;
-    ajw->alert_chn = XPLMPlayPCMOnBus(alert.data, alert.size, FMOD_SOUND_FORMAT_PCM16,
+    alert_chn = XPLMPlayPCMOnBus(alert.data, alert.size, FMOD_SOUND_FORMAT_PCM16,
                                       alert.sample_rate, alert.num_channels, 1,
                                       xplm_AudioExteriorUnprocessed,
-                                      alert_complete, ajw);
+                                      alert_complete, this);
 
-    alert_setpos(ajw);
-    XPLMSetAudioFadeDistance(ajw->alert_chn, 20.0f, 150.0f );
-    XPLMSetAudioVolume(ajw->alert_chn, 1.3f);
+    alert_setpos();
+    XPLMSetAudioFadeDistance(alert_chn, 20.0f, 150.0f );
+    XPLMSetAudioVolume(alert_chn, 1.3f);
 }
 
-void
-alert_off(jw_ctx_t *ajw)
+auto JwCtrl::alert_off() -> void
 {
-    if (ajw->alert_chn)
-        XPLMStopAudio(ajw->alert_chn);
-    ajw->alert_chn = NULL;
+    if (alert_chn)
+        XPLMStopAudio(alert_chn);
+    alert_chn = NULL;
 }
 
-void
-alert_setpos(jw_ctx_t *ajw)
+auto JwCtrl::alert_setpos() -> void
 {
-    const sam_jw_t *jw = ajw->jw;
-
     static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
     FMOD_VECTOR pos;
 
@@ -78,5 +73,5 @@ alert_setpos(jw_ctx_t *ajw)
     pos.x = jw->x + (jw->extent + jw->cabinPos) * cosf(rot1 * D2R);
     pos.y = jw->y + jw->height;
     pos.z = jw->z + (jw->extent + jw->cabinPos) * sinf(rot1 * D2R);
-    XPLMSetAudioPosition(ajw->alert_chn, &pos, &vel);
+    XPLMSetAudioPosition(alert_chn, &pos, &vel);
 }

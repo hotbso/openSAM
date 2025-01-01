@@ -20,7 +20,9 @@
 
 */
 
-#include <math.h>
+#include <cmath>
+#include <string>
+#include <vector>
 
 #define XPLM200
 #define XPLM210
@@ -43,32 +45,56 @@ static const float D2R = M_PI/180.0;
 static const float F2M = 0.3048;	    // 1 ft [m]
 static const float LAT_2_M = 111120;    // 1° lat in m
 
-typedef struct _sam_jw sam_jw_t;
-typedef struct _sam_dgs sam_dgs_t;
-typedef struct _stand stand_t;
-typedef struct _sam_obj sam_obj_t;
-typedef struct _sam_anim sam_anim_t;
+// forwards
+class Stand;
+class SamObj;
+class SamAnim;
+class SamJw;
+class SceneryPacks;
 
-typedef struct _scenery {
+static float RA(float angle);
+
+class Scenery {
+  public:
+    // Not copyable or movable
+    Scenery(const Scenery&) = delete;
+    Scenery& operator=(const Scenery&) = delete;
+
     char name[52];
 
-    sam_jw_t *sam_jws;
-    int n_sam_jws;
-
-    stand_t *stands;
-    int n_stands;
-
-    sam_obj_t *sam_objs;
-    int n_sam_objs;
-
-    sam_anim_t *sam_anims;
-    int n_sam_anims;
+    std::vector<SamJw*> sam_jws;
+    std::vector<Stand*> stands;
+    std::vector<SamObj*> sam_objs;
+    std::vector<SamAnim*> sam_anims;
 
     float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for FAR_SKIP */
-} scenery_t;
 
-extern scenery_t *sceneries;
-extern int n_sceneries;
+    Scenery() {
+        sam_jws.reserve(100); stands.reserve(100);
+        sam_objs.reserve(50);  sam_anims.reserve(50);
+    }
+
+    auto in_bbox(float lat, float lon) -> bool {
+        return (lat >= bb_lat_min && lat <= bb_lat_max
+            && RA(lon - bb_lon_min) >= 0 && RA(lon - bb_lon_max) <= 0);
+    }
+};
+
+extern std::vector<Scenery *> sceneries;
+
+// a poor man's factory for creating sceneries
+extern int collect_sam_xml(const SceneryPacks &scp);
+
+class SceneryPacks {
+  public:
+    bool valid;
+    std::string openSAM_Library_path;
+    std::string SAM_Library_path;
+
+    std::vector<std::string> sc_paths;
+
+    SceneryPacks(const std::string& xp_dir);
+};
 
 typedef struct door_info_ {
     float x, y, z;
@@ -81,7 +107,7 @@ extern door_info_t door_info[MAX_DOOR];
 extern float plane_nw_z, plane_mw_z, plane_cg_z;   // z value of plane's 0 to fw, mw and cg
 extern char acf_icao[];
 
-extern char base_dir[512];          // base directory of openSAM
+extern std::string base_dir;        // base directory of openSAM
 extern int use_engine_running;      // instead of beacon, e.g. MD11
 extern int dont_connect_jetway;     // e.g. for ZIBO with own ground service
 extern int is_helicopter;
@@ -123,22 +149,10 @@ extern XPLMProbeRef probe_ref;
 
 // functions
 extern void log_msg(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
-extern int collect_sam_xml(const char *xp_dir);
 extern int check_beacon(void);
 extern int check_teleportation(void);
 
 extern void toggle_ui(void);
-
-/* helpers */
-#define MAX(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
-
-#define MIN(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })
 
 #define BETWEEN(x ,a ,b) ((a) <= (x) && (x) <= (b))
 

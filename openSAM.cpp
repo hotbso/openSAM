@@ -20,12 +20,11 @@
 
 */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <fstream>
 
 #include "openSAM.h"
 #include "os_dgs.h"
@@ -76,9 +75,8 @@
  */
 
 static int init_done, init_fail;
-static char xp_dir[512];
-static char pref_path[512];
-static const char *psep;
+static std::string xp_dir;
+static std::string pref_path;
 static XPLMMenuID seasons_menu;
 static int auto_item, season_item[4];
 static int auto_season;
@@ -112,8 +110,8 @@ int auto_select_jws;
 float parked_x, parked_z;
 int parked_ngen;
 
-float now;          // current timestamp
-char base_dir[512]; // base directory of openSAM
+float now;            // current timestamp
+std::string base_dir; // base directory of openSAM
 
 int beacon_state, beacon_last_pos;   // beacon state, last switch_pos, ts of last switch actions
 float beacon_off_ts, beacon_on_ts;
@@ -132,14 +130,14 @@ unsigned long long stat_sc_far_skip, stat_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,
     stat_anim_acc_called, stat_auto_drf_called;
 
-XPLMProbeInfo_t probeinfo = {.structSize = sizeof(XPLMProbeInfo_t)};
+XPLMProbeInfo_t probeinfo;
 XPLMProbeRef probe_ref;
 XPLMMenuID anim_menu;
 
 static void
 save_pref()
 {
-    FILE *f = fopen(pref_path, "w");
+    FILE *f = fopen(pref_path.c_str(), "w");
     if (NULL == f)
         return;
 
@@ -160,7 +158,7 @@ load_pref()
     season = 1;
     auto_select_jws = 1;
 
-    FILE *f  = fopen(pref_path, "r");
+    FILE *f  = fopen(pref_path.c_str(), "r");
     if (NULL == f)
         return;
 
@@ -315,7 +313,7 @@ flight_loop_cb(float inElapsedSinceLastCall,
         anim_next_ts = now + anim_loop_delay;
     }
 
-    return MIN(anim_loop_delay, MIN(jw_loop_delay, dgs_loop_delay));
+    return std::min(anim_loop_delay, std::min(jw_loop_delay, dgs_loop_delay));
 }
 
 // set season according to date
@@ -387,34 +385,27 @@ menu_cb(void *menu_ref, void *item_ref)
     save_pref();
 }
 
-static int
-find_icao_in_file(const char *acf_icao, const char *dir, const char *fn,
-                  char *line, int len)
+static bool
+find_icao_in_file(const char *acf_icao, const std::string& fn, std::string& line)
 {
-    char fn_full[512];
-    snprintf(fn_full, sizeof(fn_full) - 1, "%s%s", dir, fn);
+    bool res = false;
+    std::ifstream f(fn);
+    if (f.is_open()) {
+        log_msg("check whether acf '%s' is in  file %s", acf_icao, fn.c_str());
 
-    int res = 0;
-    FILE *f = fopen(fn_full, "r");
-    line[len-1] = '\0';
-    if (f) {
-        log_msg("check whether acf '%s' is in  file %s", acf_icao, fn_full);
-        while (fgets(line, len-1, f)) {
-            char *cptr = strchr(line, '\r');
-            if (cptr)
-                *cptr = '\0';
-            cptr = strchr(line, '\n');
-            if (cptr)
-                *cptr = '\0';
+        while (std::getline(f, line)) {
+            size_t i = line.find('\r');
+            if (i != std::string::npos)
+                line.resize(i);
 
-            if (line == strstr(line, acf_icao)) {
-                log_msg("found acf %s in %s", acf_icao, fn);
-                res = 1;
+            if (line.find(acf_icao) == 0) {
+                log_msg("found acf %s in %s", acf_icao, fn.c_str());
+                res = true;
                 break;
             }
         }
 
-        fclose(f);
+        f.close();
     }
 
     return res;
@@ -426,6 +417,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 {
     log_msg("Startup " VERSION);
 
+    probeinfo.structSize = sizeof(XPLMProbeInfo_t);
     strcpy(out_name, "openSAM " VERSION);
     strcpy(out_sig, "openSAM.hotbso");
     strcpy(out_desc, "A plugin that emulates SAM");
@@ -434,24 +426,17 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
     XPLMEnableFeature("XPLM_USE_NATIVE_WIDGET_WINDOWS", 1);
 
-	XPLMGetSystemPath(xp_dir);
-    psep = XPLMGetDirectorySeparator();
+    char buffer[2048];
+	XPLMGetSystemPath(buffer);
+    xp_dir = std::string(buffer);
 
     // set pref path
-    XPLMGetPrefsPath(pref_path);
-    XPLMExtractFileAndPath(pref_path);
-    strcat(pref_path, psep);
-    strcat(pref_path, "openSAM.prf");
+    XPLMGetPrefsPath(buffer);
+    XPLMExtractFileAndPath(buffer);
+    pref_path = std::string(buffer) + "/openSAM.prf";
 
     // get my base dir
-    XPLMGetPluginInfo(XPLMGetMyID(), NULL, base_dir, NULL, NULL);
-    char *cptr = strrchr(base_dir, '/');
-    if (cptr)
-        *cptr = '\0';
-
-    cptr = strrchr(base_dir, '/');
-    if (cptr)
-        *(cptr + 1) = '\0';         // keep /
+    base_dir = xp_dir + "Resources/plugins/openSAM/";
 
     date_day_dr = XPLMFindDataRef("sim/time/local_date_days");
 
@@ -492,10 +477,13 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     load_pref();
 
-    if (!collect_sam_xml(xp_dir))
+    SceneryPacks scp(xp_dir);
+    if (! scp.valid) {
+        log_msg("Error collecting scenery_packs.ini!");
+    } else if (!collect_sam_xml(scp))
         log_msg("Error collecting sam.xml files!");
 
-    log_msg("%d sceneries with sam jetways found", n_sceneries);
+    log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
 
     // if commands or dataref accessors are already registered it's to late to
     // fail XPluginStart as the dll is unloaded and X-Plane crashes
@@ -658,13 +646,13 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
             return;
 
         // check whether acf is listed in exception files
-        char line[200];
-        if (find_icao_in_file(acf_icao, base_dir, "acf_use_engine_running.txt", line, sizeof(line))) {
+        std::string line; line.reserve(200);
+        if (find_icao_in_file(acf_icao, base_dir + "acf_use_engine_running.txt", line)) {
             use_engine_running = 1;
             log_msg("found");
         }
 
-        if (find_icao_in_file(acf_icao, base_dir, "acf_dont_connect_jetway.txt", line, sizeof(line))) {
+        if (find_icao_in_file(acf_icao, base_dir + "acf_dont_connect_jetway.txt", line)) {
             dont_connect_jetway = 1;
             log_msg("found");
         }
@@ -682,11 +670,10 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
 
         // check for a second door, seems to be not available by dataref
         // data in the acf file is often bogus, so check our own config file first
-        line[sizeof(line) - 1] = '\0';
-        if (find_icao_in_file(acf_icao, base_dir, "acf_door_position.txt", line, sizeof(line))) {
+        if (find_icao_in_file(acf_icao, base_dir + "acf_door_position.txt", line)) {
             int d;
             float x, y, z;
-            if (4 == sscanf(line + 4, "%d %f %f %f", &d, &x, &y, &z)) {
+            if (4 == sscanf(line.c_str() + 4, "%d %f %f %f", &d, &x, &y, &z)) {
                 if (d == 2) {   // only door 2 for now
                     d--;
                     door_info[d].x = x;
@@ -769,7 +756,7 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         log_msg("A321 detected, checking door config");
 
         char path[512];
-        strcpy(path, xp_dir);
+        strcpy(path, xp_dir.c_str());
         int len = strlen(path);
         int n = XPLMGetDatab(acf_livery_path, path + len, 0, sizeof(path) - len - 50);
         path[len + n] = '\0';

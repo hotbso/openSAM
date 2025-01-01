@@ -22,9 +22,10 @@
 
 static const float FAR_SKIP = 5000;     // (m) don't consider jetways farther away
 
-struct _sam_jw  {
+class SamJw  {
+  public:
     int is_zc_jw;   // is a zero config jw
-    stand_t *stand; // back pointer to stand for zc jetways
+    Stand* stand;   // back pointer to stand for zc jetways
 
     // local x,z computed from the xml's lat/lon
     float xml_x, xml_y, xml_z;
@@ -53,12 +54,30 @@ struct _sam_jw  {
     int door; // 0 = LF1 or default, 1 = LF2
 
     float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   // bounding box for FAR_SKIP
+
+
+    // set wheels height
+    auto set_wheels() -> void {
+        wheels = tanf(rotate3 * D2R) * (wheelPos + extent);
+    }
+
+    auto reset() -> void {
+        rotate1 = initialRot1;
+        rotate2 = initialRot2;
+        rotate3 = initialRot3;
+        extent = initialExtent;
+        set_wheels();
+        warnlight = 0;
+    }
+
+    auto fill_library_values(int id) -> void;
+    auto find_stand() -> Stand*;
 };
 
 
 // fortunately SAM3 is abandoned so this will never change 8-)
 #define MAX_SAM3_LIB_JW 27  // index is 0..27
-extern sam_jw_t sam3_lib_jw[];
+extern SamJw sam3_lib_jw[];
 
 extern int jw_init(void);
 extern float jw_state_machine();

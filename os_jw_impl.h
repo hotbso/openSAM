@@ -37,8 +37,10 @@ typedef enum ajw_status_e {
     AJW_TO_PARK
 } ajw_status_t;
 
-typedef struct jw_ctx_ {
-    sam_jw_t *jw;           // == NULL means empty
+// jetway controller
+class JwCtrl {
+   public:
+    SamJw *jw;           // == NULL means empty
     ajw_status_t state;
 
     // in door local coordinates
@@ -47,13 +49,13 @@ typedef struct jw_ctx_ {
     int soft_match;     // does not really fulfill matching criteria
 
     // target cabin position with corresponding dref values
-    float tgt_x, tgt_rot1, tgt_rot2, tgt_rot3, tgt_extent;
+    float door_x, door_rot1, door_rot2, door_rot3, door_extent;
     float ap_x;      // alignment point abeam door
     float parked_x, parked_z;
 
     double cabin_x, cabin_z;
 
-    int wait_wb_rot;    // waiting for wheel base rotation
+    bool wait_wb_rot;    // waiting for wheel base rotation
     float wb_rot;       // to this angle
 
     float start_ts;     // actually start operation if now > start_ts
@@ -61,21 +63,53 @@ typedef struct jw_ctx_ {
     float timeout;      // so we don't get stuck
 
     FMOD_CHANNEL *alert_chn;
-} jw_ctx_t;
+
+    auto setup_for_door(const door_info_t *door_info) -> void;
+
+    // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 are optional
+    auto xz_to_sam_dr(float cabin_x, float cabin_z,
+                      float& rot1, float& extent, float *rot2, float *rot3) -> void;
+
+    //
+    // animation
+    //
+  private:
+    auto rotate_1_extend() -> void;
+
+    // rotation 2/3 to angle, return true when done
+    auto rotate_2(float rot2, float dt) -> bool;
+    auto rotate_3(float rot3, float dt) -> bool;
+
+    auto rotate_wheel_base(float dt) -> bool;
+
+    auto animate_wheels(float ds) -> void;
+
+  public:
+    // drive jetway, return true when done
+    auto dock_drive() -> bool;
+    auto undock_drive() -> bool;
+
+    // sound stuff
+    auto alert_on() -> void;
+    auto alert_off()-> void;
+    auto alert_setpos() -> void;
+
+    friend bool operator<(const JwCtrl&, const JwCtrl&);
+};
 
 #define NEAR_JW_LIMIT 3 // max # of jetways we consider for docking
 #define MAX_NEAREST 10  // max # jetways / door we consider as nearest
 
 extern int n_active_jw;
-extern jw_ctx_t active_jw[MAX_DOOR];
+extern JwCtrl active_jw[MAX_DOOR];
 
-extern jw_ctx_t nearest_jw[MAX_NEAREST];
+extern JwCtrl nearest_jw[MAX_NEAREST];
 extern int n_nearest;
 
 extern void jw_auto_mode_change(void);
 
 // from os_read_wav.c
-extern void read_wav(const char *fname, sound_t *sound);
+extern void read_wav(const std::string& fname, sound_t *sound);
 
 // from os_ui.c
 extern int ui_unlocked; // the ui is unlocked for jw_selection
@@ -84,6 +118,3 @@ extern void update_ui(int only_if_visible);
 // from os_sound.c
 extern sound_t alert;
 extern int sound_init(void);
-extern void alert_on(jw_ctx_t *ajw);
-extern void alert_off(jw_ctx_t *ajw);
-extern void alert_setpos(jw_ctx_t *ajw);

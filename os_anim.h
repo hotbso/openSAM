@@ -20,10 +20,12 @@
 
 */
 
-#include <stdbool.h>
+#include <cstddef>
+#include <vector>
 
 #define DRF_MAX_ANIM 10
-typedef struct _sam_drf {
+class SamDrf {
+  public:
     char name[60];
 
     int n_tv;
@@ -32,9 +34,10 @@ typedef struct _sam_drf {
     float s[DRF_MAX_ANIM];  // s[i] = slope for (i-1, i)
 
     bool autoplay, randomize_phase, augment_wind_speed;
-} sam_drf_t;
+};
 
-struct _sam_obj {
+class SamObj {
+  public:
     char id[30];
     float latitude, longitude, elevation, heading;
 
@@ -50,7 +53,8 @@ typedef enum _ANIM_STATE  {
     ANIM_ON
 } anim_state_t;
 
-struct _sam_anim {
+class SamAnim {
+  public:
     char label[40];
     char title[40];
 
@@ -63,8 +67,7 @@ struct _sam_anim {
     int menu_item;
 };
 
-extern sam_drf_t *sam_drfs;
-extern int n_sam_drfs;
+extern std::vector<SamDrf*> sam_drfs;
 
 extern int anim_init(void);
 extern float anim_state_machine(void);
