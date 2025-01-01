@@ -76,9 +76,9 @@ static const char *dr_name_jw[] = {
 };
 
 int n_active_jw;
-JwCtx active_jw[MAX_DOOR];
+JwCtrl active_jw[MAX_DOOR];
 
-JwCtx nearest_jw[MAX_NEAREST];
+JwCtrl nearest_jw[MAX_NEAREST];
 int n_nearest;
 
 // zero config jw structures
@@ -448,7 +448,7 @@ jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n)
     n = MIN(n, MAX_DOOR - ofs);
 
     for (int i = 0; i < n; i++) {
-        JwCtx *ajw = &active_jw[ofs + i];
+        JwCtrl *ajw = &active_jw[ofs + i];
         values[i] = (ajw->jw && ajw->state == AJW_DOCKED) ? 1 : 0;
     }
 
@@ -466,7 +466,7 @@ reset_jetways()
         jw->reset();
 
     for (int i = 0; i < n_door; i++) {
-        JwCtx *ajw = &active_jw[i];
+        JwCtrl *ajw = &active_jw[i];
         if (ajw->jw)
             ajw->alert_off();
     }
@@ -485,7 +485,7 @@ jw_auto_mode_change()
 }
 
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be NULL
-auto JwCtx::xz_to_sam_dr(float cabin_x, float cabin_z,
+auto JwCtrl::xz_to_sam_dr(float cabin_x, float cabin_z,
                 float *rot1, float *extent, float *rot2, float *rot3) -> void
 {
     float dist = len2f(cabin_x - x, cabin_z - z);
@@ -508,7 +508,7 @@ auto JwCtx::xz_to_sam_dr(float cabin_x, float cabin_z,
 //
 // fill in geometry data related to specific door
 //
-auto JwCtx::setup_for_door(const door_info_t *door_info) -> void
+auto JwCtrl::setup_for_door(const door_info_t *door_info) -> void
 {
     // rotate into plane local frame
     float dx = jw->x - plane_x;
@@ -544,8 +544,8 @@ auto JwCtx::setup_for_door(const door_info_t *door_info) -> void
 static int
 njw_compar(const void *a_, const void *b_)
 {
-    const JwCtx *a = (const JwCtx *)a_;
-    const JwCtx *b = (const JwCtx *)b_;
+    const JwCtrl *a = (const JwCtrl *)a_;
+    const JwCtrl *b = (const JwCtrl *)b_;
 
     // height goes first
     if (a->jw->height < b->jw->height - 1.0f)
@@ -585,8 +585,8 @@ filter_candidates(std::vector<SamJw*> &jws, const door_info_t *door_info, float 
         log_msg("%s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
                 jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
 
-        JwCtx tentative_njw = {};
-        JwCtx *njw = &tentative_njw;
+        JwCtrl tentative_njw = {};
+        JwCtrl *njw = &tentative_njw;
         njw->jw = jw;
         njw->setup_for_door(door_info);
 
@@ -624,7 +624,7 @@ filter_candidates(std::vector<SamJw*> &jws, const door_info_t *door_info, float 
 
         // if full, sort by dist and trim down to NEAR_JW_LIMIT
         if (n_nearest == MAX_NEAREST) {
-            qsort(nearest_jw, MAX_NEAREST, sizeof(JwCtx), njw_compar);
+            qsort(nearest_jw, MAX_NEAREST, sizeof(JwCtrl), njw_compar);
             n_nearest = NEAR_JW_LIMIT;
             *dist_threshold = nearest_jw[NEAR_JW_LIMIT - 1].z;
         }
@@ -669,7 +669,7 @@ find_nearest_jws()
     filter_candidates(zc_jws, &avg_di, &dist_threshold);
 
     if (n_nearest > 1) { // final sort + trim down to limit
-        qsort(nearest_jw, n_nearest, sizeof(JwCtx), njw_compar);
+        qsort(nearest_jw, n_nearest, sizeof(JwCtrl), njw_compar);
         n_nearest = MIN(n_nearest, NEAR_JW_LIMIT);
     }
 
@@ -716,8 +716,8 @@ int jw_collision_check(int i, int j)
     //          A                B          C
     // if the solutions for s, t are in [0,1] there is collision
 
-    const JwCtx *njw1 = &nearest_jw[i];
-    const JwCtx *njw2 = &nearest_jw[j];
+    const JwCtrl *njw1 = &nearest_jw[i];
+    const JwCtrl *njw2 = &nearest_jw[j];
 
     // x, z in the door frame
     float A1 = njw1->door_x - njw1->x;
@@ -785,7 +785,7 @@ select_jws()
         log_msg("Oh no, no active jetways left in select_jws()!");
 }
 
-auto JwCtx::rotate_wheel_base(float dt) -> bool
+auto JwCtrl::rotate_wheel_base(float dt) -> bool
 {
     float delta_rot = RA(wb_rot - jw->wheelrotatec);
 
@@ -824,14 +824,14 @@ auto JwCtx::rotate_wheel_base(float dt) -> bool
 }
 
 // rotation1 + extend
-auto JwCtx::rotate_1_extend() -> void
+auto JwCtrl::rotate_1_extend() -> void
 {
     xz_to_sam_dr(cabin_x, cabin_z, &jw->rotate1, &jw->extent, nullptr, nullptr);
     jw->set_wheels();
 }
 
 // rotation 3
-auto JwCtx::rotate_3(float rot3, float dt) -> bool
+auto JwCtrl::rotate_3(float rot3, float dt) -> bool
 {
     if (fabsf(jw->rotate3 - rot3) > 0.1) {
         float d_rot3 = (dt * JW_HEIGHT_SPEED / (jw->cabinPos + jw->extent)) / D2R;  // strictly it's atan
@@ -851,7 +851,7 @@ auto JwCtx::rotate_3(float rot3, float dt) -> bool
 }
 
 // rotation 2
-auto JwCtx::rotate_2(float rot2, float dt) -> bool
+auto JwCtrl::rotate_2(float rot2, float dt) -> bool
 {
     if (fabsf(jw->rotate2 - rot2) > 0.5) {
         float d_rot2 = dt * JW_TURN_SPEED;
@@ -867,7 +867,7 @@ auto JwCtx::rotate_2(float rot2, float dt) -> bool
 }
 
 // animate wheels for straight driving
-auto JwCtx::animate_wheels(float ds) -> void
+auto JwCtrl::animate_wheels(float ds) -> void
 {
     if (fabsf(RA(wb_rot - jw->wheelrotatec)) > 90.0f)
         ds = -ds;
@@ -881,7 +881,7 @@ auto JwCtx::animate_wheels(float ds) -> void
 
 // drive jetway to the door
 // return 1 when done
-auto JwCtx::dock_drive() -> bool
+auto JwCtrl::dock_drive() -> bool
 {
     if (state == AJW_DOCKED)
         return true;
@@ -1032,7 +1032,7 @@ auto JwCtx::dock_drive() -> bool
 
 
 // drive jetway to parked position
-auto JwCtx::undock_drive() -> bool
+auto JwCtrl::undock_drive() -> bool
 {
     if (state == AJW_PARKED)
         return 1;
@@ -1249,7 +1249,7 @@ jw_state_machine()
             // or wait for GUI selection
             if (n_active_jw) {
                 for (int i = 0; i < n_door; i++) {
-                    JwCtx *ajw = &active_jw[i];
+                    JwCtrl *ajw = &active_jw[i];
                     SamJw *jw = ajw->jw;
 
                     if (NULL == jw)
@@ -1275,7 +1275,7 @@ jw_state_machine()
                 log_msg("docking requested");
                 int active_door = 0;
                 for (int i = 0; i < n_door; i++) {
-                    JwCtx *ajw = &active_jw[i];
+                    JwCtrl *ajw = &active_jw[i];
                     if (NULL == ajw->jw)
                         continue;
 
@@ -1303,7 +1303,7 @@ jw_state_machine()
         case DOCKING:
             n_done = 0;
             for (int i = 0; i < n_door; i++) {
-                JwCtx *ajw = &active_jw[i];
+                JwCtrl *ajw = &active_jw[i];
                 if (NULL == ajw->jw)
                     continue;
 
@@ -1336,7 +1336,7 @@ jw_state_machine()
                 log_msg("undocking requested");
                 int active_door = n_door;
                 for (int i = 0; i < n_door; i++) {
-                    JwCtx *ajw = &active_jw[i];
+                    JwCtrl *ajw = &active_jw[i];
                     if (NULL == ajw->jw)
                         continue;
 
@@ -1361,7 +1361,7 @@ jw_state_machine()
         case UNDOCKING:
             n_done = 0;
             for (int i = 0; i < n_door; i++) {
-                JwCtx *ajw = &active_jw[i];
+                JwCtrl *ajw = &active_jw[i];
                 if (NULL == ajw->jw)
                     continue;
                 if (ajw->undock_drive())

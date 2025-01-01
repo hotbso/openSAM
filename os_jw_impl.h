@@ -37,7 +37,8 @@ typedef enum ajw_status_e {
     AJW_TO_PARK
 } ajw_status_t;
 
-class JwCtx {
+// jetway controller
+class JwCtrl {
    public:
     SamJw *jw;           // == NULL means empty
     ajw_status_t state;
@@ -98,9 +99,9 @@ class JwCtx {
 #define MAX_NEAREST 10  // max # jetways / door we consider as nearest
 
 extern int n_active_jw;
-extern JwCtx active_jw[MAX_DOOR];
+extern JwCtrl active_jw[MAX_DOOR];
 
-extern JwCtx nearest_jw[MAX_NEAREST];
+extern JwCtrl nearest_jw[MAX_NEAREST];
 extern int n_nearest;
 
 extern void jw_auto_mode_change(void);

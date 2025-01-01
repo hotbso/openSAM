@@ -94,7 +94,7 @@ sound_init()
     return 1;
 }
 void
-JwCtx::alert_on()
+JwCtrl::alert_on()
 {
     if (0 == snd_src)
         return;
@@ -104,7 +104,7 @@ JwCtx::alert_on()
 }
 
 void
-JwCtx::alert_off()
+JwCtrl::alert_off()
 {
     if (0 == snd_src)
         return;
@@ -113,7 +113,7 @@ JwCtx::alert_off()
 }
 
 void
-JwCtx::alert_setpos()
+JwCtrl::alert_setpos()
 {
     if (0 == snd_src)
         return;

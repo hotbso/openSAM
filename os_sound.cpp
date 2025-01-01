@@ -39,11 +39,11 @@ alert_complete(void *ref, FMOD_RESULT status)
 {
     UNUSED(status);
 
-    JwCtx *ajw = (JwCtx *)ref;
+    JwCtrl *ajw = (JwCtrl *)ref;
     ajw->alert_chn = NULL;
 }
 
-auto JwCtx::alert_on() -> void
+auto JwCtrl::alert_on() -> void
 {
     if (alert_chn)
         return;
@@ -57,14 +57,14 @@ auto JwCtx::alert_on() -> void
     XPLMSetAudioVolume(alert_chn, 1.3f);
 }
 
-auto JwCtx::alert_off() -> void
+auto JwCtrl::alert_off() -> void
 {
     if (alert_chn)
         XPLMStopAudio(alert_chn);
     alert_chn = NULL;
 }
 
-auto JwCtx::alert_setpos() -> void
+auto JwCtrl::alert_setpos() -> void
 {
     static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
     FMOD_VECTOR pos;
