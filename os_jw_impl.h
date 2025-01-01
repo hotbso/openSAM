@@ -93,6 +93,8 @@ class JwCtrl {
     auto alert_on() -> void;
     auto alert_off()-> void;
     auto alert_setpos() -> void;
+
+    friend bool operator<(const JwCtrl&, const JwCtrl&);
 };
 
 #define NEAR_JW_LIMIT 3 // max # of jetways we consider for docking

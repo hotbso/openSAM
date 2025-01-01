@@ -22,9 +22,7 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include <cstdarg>
 #include <cstring>
-//#include <ctype.h>
 #include <cmath>
 #include <fstream>
 

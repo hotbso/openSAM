@@ -21,10 +21,9 @@
 */
 
 #include <cstdlib>
-#include <cstdio>
-#include <cstring>
 #include <cmath>
 #include <ctime>
+#include <algorithm>
 
 #include "openSAM.h"
 #include "os_jw.h"
@@ -541,34 +540,31 @@ auto JwCtrl::setup_for_door(const door_info_t *door_info) -> void
 }
 
 // a fuzzy comparator for jetway by door number
-static int
-njw_compar(const void *a_, const void *b_)
+bool
+operator<(const JwCtrl& a, const JwCtrl& b)
 {
-    const JwCtrl *a = (const JwCtrl *)a_;
-    const JwCtrl *b = (const JwCtrl *)b_;
-
     // height goes first
-    if (a->jw->height < b->jw->height - 1.0f)
-        return -1;
+    if (a.jw->height < b.jw->height - 1.0f)
+        return true;
 
-    if (a->jw->height > b->jw->height + 1.0f)
-        return 1;
+    if (a.jw->height > b.jw->height + 1.0f)
+        return false;
 
     // then z
-    if (a->z < b->z - 0.5f)
-        return -1;
+    if (a.z < b.z - 0.5f)
+        return true;
 
-    if (a->z > b->z + 0.5f)
-        return 1;
+    if (a.z > b.z + 0.5f)
+        return false;
 
     // then x, further left (= towards -x) is higher
-    if (a->x < b->x)
-        return 1;
+    if (a.x < b.x)
+        return false;
 
-    if (a->x > b->x)
-        return -1;
+    if (a.x > b.x)
+        return true;
 
-    return 0;
+    return true;
 }
 
 // filter list of jetways jw[] for candidates and add them to nearest_jw[]
@@ -624,7 +620,7 @@ filter_candidates(std::vector<SamJw*> &jws, const door_info_t *door_info, float 
 
         // if full, sort by dist and trim down to NEAR_JW_LIMIT
         if (n_nearest == MAX_NEAREST) {
-            qsort(nearest_jw, MAX_NEAREST, sizeof(JwCtrl), njw_compar);
+            std::sort(nearest_jw, nearest_jw + MAX_NEAREST);
             n_nearest = NEAR_JW_LIMIT;
             *dist_threshold = nearest_jw[NEAR_JW_LIMIT - 1].z;
         }
@@ -669,8 +665,9 @@ find_nearest_jws()
     filter_candidates(zc_jws, &avg_di, &dist_threshold);
 
     if (n_nearest > 1) { // final sort + trim down to limit
-        qsort(nearest_jw, n_nearest, sizeof(JwCtrl), njw_compar);
-        n_nearest = MIN(n_nearest, NEAR_JW_LIMIT);
+        n_nearest = std::min(n_nearest, MAX_NEAREST);  // required to keep the compiler happy
+        std::sort(nearest_jw, nearest_jw + n_nearest);
+        n_nearest = MIN(n_nearest, NEAR_JW_LIMIT);  // required to keep the compiler happy
     }
 
     // fake names for zc jetways
