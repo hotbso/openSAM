@@ -85,6 +85,7 @@ static int nh;     // on northern hemisphere
 static int season; // 0-3
 static const char *dr_name[] = {"sam/season/winter", "sam/season/spring",
             "sam/season/summer", "sam/season/autumn"};
+static int sam_library_installed;
 
 XPLMDataRef date_day_dr,
     plane_x_dr, plane_y_dr, plane_z_dr, plane_lat_dr, plane_lon_dr, plane_elevation_dr,
@@ -207,6 +208,14 @@ check_beacon(void)
    }
 
    return beacon_state;
+}
+
+// Accessor for the "opensam/SAM_Library_installed" dataref
+static int
+sam_lib_installed_acc(void *ref)
+{
+    UNUSED(ref);
+    return sam_library_installed;
 }
 
 // Accessor for the "sam/season/*" datarefs
@@ -478,12 +487,16 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     load_pref();
 
     SceneryPacks scp(xp_dir);
+
     if (! scp.valid) {
         log_msg("Error collecting scenery_packs.ini!");
     } else if (!collect_sam_xml(scp))
         log_msg("Error collecting sam.xml files!");
 
     log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
+
+    sam_library_installed = scp.SAM_Library_path.size() > 0;
+    log_msg("SAM_Library installed: %d", sam_library_installed);
 
     // if commands or dataref accessors are already registered it's to late to
     // fail XPluginStart as the dll is unloaded and X-Plane crashes
@@ -526,6 +539,9 @@ XPluginEnable(void)
 
     if (!init_done) {
         init_done = 1;
+        XPLMRegisterDataAccessor("opensam/SAM_Library_installed", xplmType_Int, 0, sam_lib_installed_acc,
+                                 NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, NULL, NULL, NULL, NULL);
 
         // create the seasons datarefs
         for (int i = 0; i < 4; i++)

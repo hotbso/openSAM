@@ -8,12 +8,9 @@ Installation
     "openSAM_Library" into "Custom Scenery"
     "openSAM"         into "Resources/plugins"
 
-If you must keep the SAM_Library (e.g. for Zero Dollar Payware freeware)
+Some sceneries (e.g. for Zero Dollar Payware, Taimodels) require the original SAM_Library
 - If not already done link or copy the SAM_library into "Custom Scenery"
 - Make sure openSAM_Library is above SAM_Library in scenery_packs.ini
-- Within openSAM_Library copy "library-with_SAM_Library.txt" to "library.txt"
-  I recommend to open a shell window in openSAM_Library and issue the
-  command "copy library-with_SAM_Library.txt library.txt" or "cp ..."
 
 =====
 Usage
