@@ -1,0 +1,16 @@
+win_x64/openSAM.xpl|2133885292
+lua/openSAM.lua|3972325496
+lua/contributed/openSAM.lua_XPJavelin.zip|1537277746
+lua/README.txt|1363476419
+mac_x64/openSAM.xpl|2283301023
+acf_use_engine_running.txt|2769338736
+acf_door_position.txt|2603465387
+lin_x64/openSAM.xpl|4155162090
+acf_dont_connect_jetway.txt|203083751
+LICENSE|635060664
+Credits_and_Licensing.txt|4140342131
+sound/alert.wav|3829986843
+00_README.txt|878565057
+objects/Marshaller_LIT.dds|3408783894
+objects/Marshaller.obj|3555796647
+objects/Marshaller.dds|2555621621
