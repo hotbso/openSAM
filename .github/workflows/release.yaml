@@ -11,7 +11,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # use oldest possible ubuntu version in order to avoid compatibility errors with libc
+        os: [ubuntu-20.04, macos-latest]
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
@@ -39,7 +40,7 @@ jobs:
             echo "VERSION=$TAG" > version.mak
           fi
 
-          if [ $OS == "ubuntu-latest" ]; then
+          if [ $OS == "ubuntu-20.04" ]; then
             sudo apt-get -y install libopenal1 libopenal-dev
             make -f Makefile.lin64
           else
