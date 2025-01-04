@@ -214,6 +214,9 @@ jobs:
                 # Remove "release/" prefix from $file
                 modified_file="${file#${OPENSAM_FOLDER}/}"
                 echo "$modified_file|$checksum_decimal" >> ${OPENSAM_FOLDER}/skunkcrafts_updater_whitelist.txt
+                # Get file size in bytes
+                filesize=$(stat -c%s "$file")
+                echo "$modified_file|$filesize" >> ${OPENSAM_FOLDER}/skunkcrafts_updater_sizeslist.txt
               done
 
               find ${OPENSAM_LIBRARY_FOLDER}/ -type f ! \( -name '*skunkcrafts_updater*' -o -path '*skunkcrafts_updater*' \) -print0 | while IFS= read -r -d '' file; do
@@ -223,6 +226,9 @@ jobs:
                 # Remove "release/" prefix from $file
                 modified_file="${file#${OPENSAM_LIBRARY_FOLDER}/}"
                 echo "$modified_file|$checksum_decimal" >> ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_whitelist.txt
+                # Get file size in bytes
+                filesize=$(stat -c%s "$file")
+                echo "$modified_file|$filesize" >> ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_sizeslist.txt
               done
 
               touch ${OPENSAM_FOLDER}/skunkcrafts_updater_blacklist.txt
