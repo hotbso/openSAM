@@ -122,10 +122,12 @@ int dont_connect_jetway;             // e.g. for ZIBO with own ground service
 int is_helicopter;
 static float plane_cg_y;
 
-int n_door;
-door_info_t door_info[MAX_DOOR];
+std::map<std::string, DoorInfo> door_info_map;
 
-char acf_icao[5];
+int n_door;
+DoorInfo door_info[MAX_DOOR];
+
+std::string acf_icao;
 
 unsigned long long stat_sc_far_skip, stat_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,
@@ -395,12 +397,52 @@ menu_cb(void *menu_ref, void *item_ref)
 }
 
 static bool
-find_icao_in_file(const char *acf_icao, const std::string& fn, std::string& line)
+load_door_info(const std::string& fn)
+{
+    bool res = false;
+    std::string line;
+
+    std::ifstream f(fn);
+    if (f.is_open()) {
+        log_msg("Building door_info_map from %s",  fn.c_str());
+
+        while (std::getline(f, line)) {
+            size_t i = line.find('\r');
+            if (i != std::string::npos)
+                line.resize(i);
+
+            char icao[5];
+            int d;
+            float x, y, z;
+            if (5 == sscanf(line.c_str(), "%4s %d %f %f %f", icao, &d, &x, &y, &z)) {
+                if (icao[0] == '#')
+                    continue;
+
+                if (d < 1 || d > MAX_DOOR) {
+                    log_msg("invalid entry: '%s'", line.c_str());
+                    continue;
+                }
+
+                char c = d + '0';
+                DoorInfo d{x, y, z};
+                door_info_map[std::string(icao) + c] = d;
+            }
+        }
+
+        f.close();
+        res = true;
+    }
+
+    return res;
+}
+
+static bool
+find_icao_in_file(const std::string& acf_icao, const std::string& fn, std::string& line)
 {
     bool res = false;
     std::ifstream f(fn);
     if (f.is_open()) {
-        log_msg("check whether acf '%s' is in  file %s", acf_icao, fn.c_str());
+        log_msg("check whether acf '%s' is in  file %s", acf_icao.c_str(), fn.c_str());
 
         while (std::getline(f, line)) {
             size_t i = line.find('\r');
@@ -408,7 +450,7 @@ find_icao_in_file(const char *acf_icao, const std::string& fn, std::string& line
                 line.resize(i);
 
             if (line.find(acf_icao) == 0) {
-                log_msg("found acf %s in %s", acf_icao, fn.c_str());
+                log_msg("found acf %s in %s", acf_icao.c_str(), fn.c_str());
                 res = true;
                 break;
             }
@@ -446,6 +488,11 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     // get my base dir
     base_dir = xp_dir + "Resources/plugins/openSAM/";
+
+    if (!load_door_info(base_dir + "acf_door_position.txt")) {
+        log_msg("Error loading acf_door_position.txt, bye!");
+        return 0;
+    }
 
     date_day_dr = XPLMFindDataRef("sim/time/local_date_days");
 
@@ -633,9 +680,8 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
 
     // my plane loaded
     if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
-        memset(acf_icao, 0, 4);
-        XPLMGetDatab(acf_icao_dr, acf_icao, 0, 4);
-        acf_icao[4] = '\0';
+        acf_icao.resize(4);
+        XPLMGetDatab(acf_icao_dr, acf_icao.data(), 0, 4);
 
         for (int i=0; i < 4; i++)
             acf_icao[i] = (isupper((uint8_t)acf_icao[i]) || isdigit((uint8_t)acf_icao[i])) ? acf_icao[i] : ' ';
@@ -656,7 +702,7 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         dont_connect_jetway = 0;
 
         log_msg("plane loaded: %s, is_helicopter: %d",
-                acf_icao, is_helicopter);
+                acf_icao.c_str(), is_helicopter);
 
         if (is_helicopter)
             return;
@@ -681,26 +727,21 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
 
         log_msg("plane loaded: %s, plane_cg_y: %1.2f, plane_cg_z: %1.2f, "
                 "door 1: x: %1.2f, y: %1.2f, z: %1.2f",
-                acf_icao, plane_cg_y, plane_cg_z,
+                acf_icao.c_str(), plane_cg_y, plane_cg_z,
                 door_info[0].x, door_info[0].y, door_info[0].z);
 
         // check for a second door, seems to be not available by dataref
         // data in the acf file is often bogus, so check our own config file first
-        if (find_icao_in_file(acf_icao, base_dir + "acf_door_position.txt", line)) {
-            int d;
-            float x, y, z;
-            if (4 == sscanf(line.c_str() + 4, "%d %f %f %f", &d, &x, &y, &z)) {
-                if (d == 2) {   // only door 2 for now
-                    d--;
-                    door_info[d].x = x;
-                    door_info[d].y = y;
-                    door_info[d].z = z;
-                    n_door = 2;
-                    log_msg("found door 2 in config file: x: %0.2f, y: %0.2f, z: %0.2f",
-                            door_info[1].x, door_info[1].y, door_info[1].z);
-                }
-            }
+        try {
+            door_info[1] = door_info_map.at(acf_icao + '2');
+            n_door++;
+            log_msg("found door 2 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
+                    door_info[1].x, door_info[1].y, door_info[1].z);
         }
+        catch(const std::out_of_range& ex) {
+            log_msg("door 2 is not defined in door_info_map");
+        }
+
 
         // if nothing found in the config file try the acf
         if (n_door == 1) {
@@ -756,8 +797,8 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
         }
 
         // SAM dgs don't like letters in pos 1-3
-        if (0 == strcmp(acf_icao, "A20N"))
-            strcpy(acf_icao, "A320");
+        if (acf_icao == "A20N")
+            acf_icao ="A320";
 
         return;
     }
@@ -766,7 +807,7 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
     if (in_msg == XPLM_MSG_LIVERY_LOADED && in_param == 0) {
 
         // check ToLiss A321 door config
-        if (0 != strcmp(acf_icao, "A321"))
+        if (acf_icao != "A321")
             return;
 
         log_msg("A321 detected, checking door config");

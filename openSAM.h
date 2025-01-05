@@ -23,6 +23,7 @@
 #include <cmath>
 #include <string>
 #include <vector>
+#include <map>
 
 #define XPLM200
 #define XPLM210
@@ -96,16 +97,18 @@ class SceneryPacks {
     SceneryPacks(const std::string& xp_dir);
 };
 
-typedef struct door_info_ {
+struct DoorInfo {
     float x, y, z;
-} door_info_t;
+};
+
+// key is icao + <door num in ascii>
+extern std::map<std::string, DoorInfo> door_info_map;
 
 #define MAX_DOOR 3
-
 extern int n_door;
-extern door_info_t door_info[MAX_DOOR];
+extern DoorInfo door_info[MAX_DOOR];
 extern float plane_nw_z, plane_mw_z, plane_cg_z;   // z value of plane's 0 to fw, mw and cg
-extern char acf_icao[];
+extern std::string acf_icao;
 
 extern std::string base_dir;        // base directory of openSAM
 extern int use_engine_running;      // instead of beacon, e.g. MD11

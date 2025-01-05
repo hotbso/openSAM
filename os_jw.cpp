@@ -510,7 +510,7 @@ JwCtrl::xz_to_sam_dr(float cabin_x, float cabin_z,
 // fill in geometry data related to specific door
 //
 auto
-JwCtrl::setup_for_door(const door_info_t *door_info) -> void
+JwCtrl::setup_for_door(const DoorInfo& door_info) -> void
 {
     // rotate into plane local frame
     float dx = jw->x - plane_x;
@@ -520,8 +520,8 @@ JwCtrl::setup_for_door(const door_info_t *door_info) -> void
     psi = RA(jw->psi - plane_psi);
 
     // xlate into door local frame
-    x -= door_info->x;
-    z -= door_info->z;
+    x -= door_info.x;
+    z -= door_info.z;
 
     float rot1_d = RA((jw->initialRot1 + psi) - 90.0f);    // door frame
     cabin_x = x + (jw->extent + jw->cabinPos) * cosf(rot1_d * D2R);
@@ -529,7 +529,7 @@ JwCtrl::setup_for_door(const door_info_t *door_info) -> void
 
     door_x = -jw->cabinLength;
     // tgt z = 0.0
-    y = (jw->y + jw->height) - (plane_y + door_info->y);
+    y = (jw->y + jw->height) - (plane_y + door_info.y);
 
     xz_to_sam_dr(door_x, 0.0f, door_rot1, door_extent, &door_rot2, &door_rot3);
 
@@ -572,7 +572,7 @@ operator<(const JwCtrl& a, const JwCtrl& b)
 
 // filter list of jetways jw[] for candidates and add them to nearest_jw[]
 static void
-filter_candidates(std::vector<SamJw*> &jws, const door_info_t *door_info, float *dist_threshold)
+filter_candidates(std::vector<SamJw*> &jws, const DoorInfo& door_info, float& dist_threshold)
 {
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
     // So we find the nearest jetways on the left and do some heuristics
@@ -597,7 +597,7 @@ filter_candidates(std::vector<SamJw*> &jws, const door_info_t *door_info, float 
             continue;
         }
 
-        if (njw->z > *dist_threshold)
+        if (njw->z > dist_threshold)
             continue;
 
         if (!(BETWEEN(njw->door_rot1, jw->minRot1, jw->maxRot1) && BETWEEN(njw->door_rot2, jw->minRot2, jw->maxRot2)
@@ -625,7 +625,7 @@ filter_candidates(std::vector<SamJw*> &jws, const door_info_t *door_info, float 
         if (n_nearest == MAX_NEAREST) {
             std::sort(nearest_jw, nearest_jw + MAX_NEAREST);
             n_nearest = NEAR_JW_LIMIT;
-            *dist_threshold = nearest_jw[NEAR_JW_LIMIT - 1].z;
+            dist_threshold = nearest_jw[NEAR_JW_LIMIT - 1].z;
         }
     }
 }
@@ -645,7 +645,7 @@ find_nearest_jws()
     check_ref_frame_shift();
 
     // compute the 'average' door location
-    door_info_t avg_di;
+    DoorInfo avg_di;
     avg_di.x = 0.0f;
     avg_di.z = 0.0f;
     for (int i = 0; i < n_door; i++) {
@@ -662,10 +662,10 @@ find_nearest_jws()
 
     // custom jws
     for (auto sc : sceneries)
-        filter_candidates(sc->sam_jws, &avg_di, &dist_threshold);
+        filter_candidates(sc->sam_jws, avg_di, dist_threshold);
 
     // and zero config jetways
-    filter_candidates(zc_jws, &avg_di, &dist_threshold);
+    filter_candidates(zc_jws, avg_di, dist_threshold);
 
     if (n_nearest > 1) { // final sort + trim down to limit
         n_nearest = std::min(n_nearest, MAX_NEAREST);  // required to keep the compiler happy
@@ -1263,7 +1263,7 @@ jw_state_machine()
                         continue;
 
                     log_msg("setting up active jw for door: %d", i);
-                    ajw->setup_for_door(&door_info[i]);
+                    ajw->setup_for_door(door_info[i]);
                     if (i == 0) // slightly slant towards the nose cone for door LF1
                         ajw->door_rot2 += 3.0f;
                 }
