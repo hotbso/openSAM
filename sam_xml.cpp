@@ -343,10 +343,10 @@ end_element(void *user_data, const XML_Char *name) {
         ctx->in_gui = false;
 }
 
-static int
+static bool
 parse_sam_xml(const std::string& fn, Scenery* sc)
 {
-    int rc = 0;
+    bool rc = false;
     int fd = open(fn.c_str(), O_RDONLY|O_BINARY);
     if (fd < 0)
         return 0;
@@ -383,13 +383,12 @@ parse_sam_xml(const std::string& fn, Scenery* sc)
             break;
     }
 
-    rc = 1;
+    rc = true;
 
   out:
     close(fd);
     if (parser)
         XML_ParserFree(parser);
-    parser = NULL;
     return rc;
 }
 
@@ -513,7 +512,7 @@ collect_sam_xml(const SceneryPacks &scp)
     if (scp.SAM_Library_path.size() > 0) {
         Scenery dummy;
         if (!parse_sam_xml(scp.SAM_Library_path + "libraryjetways.xml", &dummy))
-            return 0;
+            log_msg("Warning: SAM_Library is installed but 'SAM_Library/libraryjetways.xml' could not be processed");
     }
 
     for (auto sc_path : scp.sc_paths) {
