@@ -533,17 +533,15 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     load_pref();
 
-    SceneryPacks scp(xp_dir);
-
-    if (! scp.valid) {
-        log_msg("Error collecting scenery_packs.ini!");
-    } else if (!collect_sam_xml(scp))
-        log_msg("Error collecting sam.xml files!");
-
-    log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
-
-    sam_library_installed = scp.SAM_Library_path.size() > 0;
-    log_msg("SAM_Library installed: %d", sam_library_installed);
+    // collect all *.xml files
+    try {
+        SceneryPacks scp(xp_dir);
+        collect_sam_xml(scp);
+        log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
+    } catch (const OsEx& ex) {
+        log_msg(ex.what());
+        return 0;   // bye
+    }
 
     // if commands or dataref accessors are already registered it's to late to
     // fail XPluginStart as the dll is unloaded and X-Plane crashes

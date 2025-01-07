@@ -55,6 +55,16 @@ class SceneryPacks;
 
 static float RA(float angle);
 
+class OsEx : std::exception {
+    std::string _reason;
+
+  public:
+    OsEx(std::string reason) : _reason(reason) {}
+    const char* what() const noexcept {
+        return  _reason.c_str();
+    }
+};
+
 class Scenery {
   public:
     // Not copyable or movable
@@ -84,11 +94,10 @@ class Scenery {
 extern std::vector<Scenery *> sceneries;
 
 // a poor man's factory for creating sceneries
-extern int collect_sam_xml(const SceneryPacks &scp);
+extern void collect_sam_xml(const SceneryPacks &scp);
 
 class SceneryPacks {
   public:
-    bool valid;
     std::string openSAM_Library_path;
     std::string SAM_Library_path;
 
