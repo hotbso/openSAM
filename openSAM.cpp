@@ -399,8 +399,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
         collect_sam_xml(scp);
         log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
     } catch (const OsEx& ex) {
-        log_msg(ex.what());
-        log_msg("fatal error, bye!");
+        log_msg("fatal error: '%s', bye!", ex.what());
         return 0;   // bye
     }
 
