@@ -30,52 +30,61 @@
 #include "os_dgs.h"
 #include "os_jw.h"
 #include "os_anim.h"
+#include "plane.h"
 
-#include "XPLMPlanes.h"
+#include "XPLMPlugin.h"
+#include "XPLMProcessing.h"
 
-/*
- * On the various coordinate systems and angles:
- *
- * Objects are drawn in a +x east , -z true north, +y up system.
- * Headings (hdgt) are measured from -z (=true north) right turning
- *
- * Imagine looking from below to the sky you have the more traditional 'math' view
- * +x right, +z up, angles left turning from the +x axis to the +z axis.
- *
- * So if alpha is a 'math' angle we have
- *
- * hdgt = 90° + alpha.
- *
- * If we have a coordinate system that is rotated by an angle of psi we have
- *
- * hdgt\rot = hdgt - psi
- *
- * When it comes to object rotations or longitudes we use relative angles in (-180, +180]
- * This is done by RA().
- *
- * So first of all we rotate and shift everything into the 'door' frame i.e.
- * acf nose pointing up to -z, door at (0,0), jetways to the left somewhere at -x and some z.
- *
- * These values are kept in the "active_jw".
- *
- * Then we do our math in the door frame and transform everything back to the jetway frame
- * to get the rotation angles.
- *
- * The datarefs for jetway animation are:
- *  rotation1       tunnel relative to the placed object
- *  rotation2       cabin relative to the tunnel
- *  rotation3       tunnel relative to horizontal (= x-z plane)
- *  wheelrotatec    wheel base relative to tunnel around the y-axis
- *  wheelrotater    right wheel
- *  wheelrotatel    left wheel
- *  wheel           delta height in m of tunnel over wheelbase relative to horizontal
- *
- * Likewise for DGS we xform everything into the stand frame and go from there.
- *
- */
+//
+// C++ style:
+// This is largely moved over code from C to C++.
+// Whenever something is refactored or added it should be formatted according to
+// Google's style: https://google.github.io/styleguide/cppguide.html
+//
+//------------------------------------------------------------------------------------
+//
+// On the various coordinate systems and angles:
+//
+// Objects are drawn in a +x east , -z true north, +y up system.
+// Headings (hdgt) are measured from -z (=true north) right turning
+//
+// Imagine looking from below to the sky you have the more traditional 'math' view
+// +x right, +z up, angles left turning from the +x axis to the +z axis.
+//
+// So if alpha is a 'math' angle we have
+//
+// hdgt = 90° + alpha.
+//
+// If we have a coordinate system that is rotated by an angle of psi we have
+//
+// hdgt\rot = hdgt - psi
+//
+// When it comes to object rotations or longitudes we use relative angles in (-180, +180]
+// This is done by RA().
+//
+// So first of all we rotate and shift everything into the 'door' frame i.e.
+// acf nose pointing up to -z, door at (0,0), jetways to the left somewhere at -x and some z.
+//
+// These values are kept in the "active_jw".
+//
+// Then we do our math in the door frame and transform everything back to the jetway frame
+// to get the rotation angles.
+//
+// The datarefs for jetway animation are:
+//  rotation1       tunnel relative to the placed object
+//  rotation2       cabin relative to the tunnel
+//  rotation3       tunnel relative to horizontal (= x-z plane)
+//  wheelrotatec    wheel base relative to tunnel around the y-axis
+//  wheelrotater    right wheel
+//  wheelrotatel    left wheel
+//  wheel           delta height in m of tunnel over wheelbase relative to horizontal
+//
+// Likewise for DGS we xform everything into the stand frame and go from there.
+//
+///
 
 static int init_done, init_fail;
-static std::string xp_dir;
+std::string xp_dir;
 static std::string pref_path;
 static XPLMMenuID seasons_menu;
 static int auto_item, season_item[4];
@@ -88,18 +97,11 @@ static const char *dr_name[] = {"sam/season/winter", "sam/season/spring",
 static int sam_library_installed;
 
 XPLMDataRef date_day_dr,
-    plane_x_dr, plane_y_dr, plane_z_dr, plane_lat_dr, plane_lon_dr, plane_elevation_dr,
-    plane_true_psi_dr, plane_y_agl_dr, lat_ref_dr, lon_ref_dr, is_helicopter_dr,
-
-    draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
-    beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr,
-    acf_door_x_dr, acf_door_y_dr, acf_door_z_dr, acf_livery_path,
+    lat_ref_dr, lon_ref_dr,
+    draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr,
     gear_fnrml_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
-
-int on_ground = 1;
-static float on_ground_ts;
 
 float lat_ref = -1000, lon_ref = -1000;
 /* generation # of reference frame
@@ -114,20 +116,7 @@ int parked_ngen;
 float now;            // current timestamp
 std::string base_dir; // base directory of openSAM
 
-int beacon_state, beacon_last_pos;   // beacon state, last switch_pos, ts of last switch actions
-float beacon_off_ts, beacon_on_ts;
-
-int use_engine_running;              // instead of beacon, e.g. MD11
-int dont_connect_jetway;             // e.g. for ZIBO with own ground service
-int is_helicopter;
-static float plane_cg_y;
-
 std::map<std::string, DoorInfo> door_info_map;
-
-int n_door;
-DoorInfo door_info[MAX_DOOR];
-
-std::string acf_icao;
 
 unsigned long long stat_sc_far_skip, stat_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,
@@ -177,40 +166,6 @@ load_pref()
     }
 }
 
-int
-check_beacon(void)
-{
-    if (use_engine_running) {
-        int er[8];
-        int n = XPLMGetDatavi(eng_running_dr, er, 0, 8);
-        for (int i = 0; i < n; i++)
-            if (er[i])
-                return 1;
-
-        return 0;
-    }
-
-    /* when checking the beacon guard against power transitions when switching
-       to the APU generator (e.g. for the ToLiss fleet).
-       Report only state transitions when the new state persisted for 3 seconds */
-
-    int beacon = XPLMGetDatai(beacon_dr);
-    if (beacon) {
-        if (! beacon_last_pos) {
-            beacon_on_ts = now;
-            beacon_last_pos = 1;
-        } else if (now > beacon_on_ts + 3.0)
-            beacon_state = 1;
-    } else {
-        if (beacon_last_pos) {
-            beacon_off_ts = now;
-            beacon_last_pos = 0;
-        } else if (now > beacon_off_ts + 3.0)
-            beacon_state = 0;
-   }
-
-   return beacon_state;
-}
 
 // Accessor for the "opensam/SAM_Library_installed" dataref
 static int
@@ -257,26 +212,6 @@ cmd_toggle_ui_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
     return 0;
 }
 
-int
-check_teleportation()
-{
-	if (! on_ground)
-		return 0;
-
-    float x = XPLMGetDataf(plane_x_dr);
-    float z = XPLMGetDataf(plane_z_dr);
-    int ngen = ref_gen;
-
-    if (parked_ngen != ngen || fabsf(parked_x - x) > 1.0f || fabsf(parked_z - z) > 1.0f) {
-        log_msg("parked_ngen: %d, ngen: %d, parked_x: %0.3f, x: %0.3f, parked_z: %0.3f, z: %0.3f",
-                parked_ngen, ngen, parked_x, x, parked_z, z);
-        return 1;
-    }
-
-    return 0;
-}
-
-
 static float
 flight_loop_cb(float inElapsedSinceLastCall,
                float inElapsedTimeSinceLastFlightLoop, int inCounter,
@@ -290,13 +225,13 @@ flight_loop_cb(float inElapsedSinceLastCall,
     static float jw_next_ts, dgs_next_ts, anim_next_ts;
 
     now = XPLMGetDataf(total_running_time_sec_dr);
-    int og = (XPLMGetDataf(gear_fnrml_dr) != 0.0);
 
-    if (og != on_ground && now > on_ground_ts + 10.0f) {
-        on_ground = og;
-        on_ground_ts = now;
-        log_msg("transition to on_ground: %d", on_ground);
+    bool on_ground_prev = my_plane->on_ground();
+    my_plane->update();
+    bool on_ground = my_plane->on_ground();
 
+    // check for transition
+    if (on_ground != on_ground_prev) {
         if (on_ground)
             dgs_set_active();
         else
@@ -307,9 +242,9 @@ flight_loop_cb(float inElapsedSinceLastCall,
     float dgs_loop_delay = dgs_next_ts - now;
     float anim_loop_delay = anim_next_ts - now;
 
-    if (! is_helicopter) {
+    if (! my_plane->is_helicopter_) {
         if (jw_loop_delay <= 0.0f) {
-            jw_loop_delay = jw_state_machine();
+            jw_loop_delay = jw_state_machine(planes[0]);
             jw_next_ts = now + jw_loop_delay;
         }
 
@@ -396,70 +331,38 @@ menu_cb(void *menu_ref, void *item_ref)
     save_pref();
 }
 
-static bool
+static void
 load_door_info(const std::string& fn)
 {
-    bool res = false;
+    std::ifstream f(fn);
+    if (!f.is_open())
+        throw OsEx("Error loading " + fn);
+
+    log_msg("Building door_info_map from %s",  fn.c_str());
+
     std::string line;
+    while (std::getline(f, line)) {
+        size_t i = line.find('\r');
+        if (i != std::string::npos)
+            line.resize(i);
 
-    std::ifstream f(fn);
-    if (f.is_open()) {
-        log_msg("Building door_info_map from %s",  fn.c_str());
+        char icao[5];
+        int d;
+        float x, y, z;
+        if (5 == sscanf(line.c_str(), "%4s %d %f %f %f", icao, &d, &x, &y, &z)) {
+            if (icao[0] == '#')
+                continue;
 
-        while (std::getline(f, line)) {
-            size_t i = line.find('\r');
-            if (i != std::string::npos)
-                line.resize(i);
-
-            char icao[5];
-            int d;
-            float x, y, z;
-            if (5 == sscanf(line.c_str(), "%4s %d %f %f %f", icao, &d, &x, &y, &z)) {
-                if (icao[0] == '#')
-                    continue;
-
-                if (d < 1 || d > MAX_DOOR) {
-                    log_msg("invalid entry: '%s'", line.c_str());
-                    continue;
-                }
-
-                char c = d + '0';
-                DoorInfo d{x, y, z};
-                door_info_map[std::string(icao) + c] = d;
+            if (d < 1 || d > kMaxDoor) {
+                log_msg("invalid entry: '%s'", line.c_str());
+                continue;
             }
+
+            char c = d + '0';
+            DoorInfo d{x, y, z};
+            door_info_map[std::string(icao) + c] = d;
         }
-
-        f.close();
-        res = true;
     }
-
-    return res;
-}
-
-static bool
-find_icao_in_file(const std::string& acf_icao, const std::string& fn, std::string& line)
-{
-    bool res = false;
-    std::ifstream f(fn);
-    if (f.is_open()) {
-        log_msg("check whether acf '%s' is in  file %s", acf_icao.c_str(), fn.c_str());
-
-        while (std::getline(f, line)) {
-            size_t i = line.find('\r');
-            if (i != std::string::npos)
-                line.resize(i);
-
-            if (line.find(acf_icao) == 0) {
-                log_msg("found acf %s in %s", acf_icao.c_str(), fn.c_str());
-                res = true;
-                break;
-            }
-        }
-
-        f.close();
-    }
-
-    return res;
 }
 
 // =========================== plugin entry points ===============================================
@@ -486,12 +389,19 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMExtractFileAndPath(buffer);
     pref_path = std::string(buffer) + "/openSAM.prf";
 
-    // get my base dir
+    // set plugin's base dir
     base_dir = xp_dir + "Resources/plugins/openSAM/";
 
-    if (!load_door_info(base_dir + "acf_door_position.txt")) {
-        log_msg("Error loading acf_door_position.txt, bye!");
-        return 0;
+    // collect all config and *.xml files
+    try {
+        load_door_info(base_dir + "acf_door_position.txt");
+        SceneryPacks scp(xp_dir);
+        collect_sam_xml(scp);
+        log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
+    } catch (const OsEx& ex) {
+        log_msg(ex.what());
+        log_msg("fatal error, bye!");
+        return 0;   // bye
     }
 
     date_day_dr = XPLMFindDataRef("sim/time/local_date_days");
@@ -499,49 +409,17 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     lat_ref_dr = XPLMFindDataRef("sim/flightmodel/position/lat_ref");
     lon_ref_dr = XPLMFindDataRef("sim/flightmodel/position/lon_ref");
 
-    plane_x_dr = XPLMFindDataRef("sim/flightmodel/position/local_x");
-    plane_y_dr = XPLMFindDataRef("sim/flightmodel/position/local_y");
-    plane_z_dr = XPLMFindDataRef("sim/flightmodel/position/local_z");
-    plane_lat_dr = XPLMFindDataRef("sim/flightmodel/position/latitude");
-    plane_lon_dr = XPLMFindDataRef("sim/flightmodel/position/longitude");
-    plane_elevation_dr= XPLMFindDataRef("sim/flightmodel/position/elevation");
-    plane_true_psi_dr = XPLMFindDataRef("sim/flightmodel2/position/true_psi");
-    plane_y_agl_dr = XPLMFindDataRef("sim/flightmodel2/position/y_agl");
-    is_helicopter_dr  = XPLMFindDataRef("sim/aircraft2/metadata/is_helicopter");
-
     draw_object_x_dr = XPLMFindDataRef("sim/graphics/animation/draw_object_x");
     draw_object_y_dr = XPLMFindDataRef("sim/graphics/animation/draw_object_y");
     draw_object_z_dr = XPLMFindDataRef("sim/graphics/animation/draw_object_z");
     draw_object_psi_dr = XPLMFindDataRef("sim/graphics/animation/draw_object_psi");
-
-    parkbrake_dr = XPLMFindDataRef("sim/flightmodel/controls/parkbrake");
-    beacon_dr = XPLMFindDataRef("sim/cockpit2/switches/beacon_on");
-    eng_running_dr = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running");
-    gear_fnrml_dr = XPLMFindDataRef("sim/flightmodel/forces/fnrml_gear");
-
-    acf_icao_dr = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
-    acf_cg_y_dr = XPLMFindDataRef("sim/aircraft/weight/acf_cgY_original");
-    acf_cg_z_dr = XPLMFindDataRef("sim/aircraft/weight/acf_cgZ_original");
-    acf_gear_z_dr = XPLMFindDataRef("sim/aircraft/parts/acf_gear_znodef");
-    acf_door_x_dr = XPLMFindDataRef("sim/aircraft/view/acf_door_x");
-    acf_door_y_dr = XPLMFindDataRef("sim/aircraft/view/acf_door_y");
-    acf_door_z_dr = XPLMFindDataRef("sim/aircraft/view/acf_door_z");
-    acf_livery_path = XPLMFindDataRef("sim/aircraft/view/acf_livery_path");
 
     total_running_time_sec_dr = XPLMFindDataRef("sim/time/total_running_time_sec");
     vr_enabled_dr = XPLMFindDataRef("sim/graphics/VR/enabled");
 
     load_pref();
 
-    // collect all *.xml files
-    try {
-        SceneryPacks scp(xp_dir);
-        collect_sam_xml(scp);
-        log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
-    } catch (const OsEx& ex) {
-        log_msg(ex.what());
-        return 0;   // bye
-    }
+    plane_init();
 
     // if commands or dataref accessors are already registered it's to late to
     // fail XPluginStart as the dll is unloaded and X-Plane crashes
@@ -671,168 +549,19 @@ XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
     if ((in_msg == XPLM_MSG_AIRPORT_LOADED) ||
         (airport_loaded && (in_msg == XPLM_MSG_SCENERY_LOADED))) {
         airport_loaded = 1;
-        nh = (XPLMGetDatad(plane_lat_dr) >= 0.0);
+        nh = (my_plane->lat() >= 0.0);
         set_season_auto();
         return;
     }
 
     // my plane loaded
     if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
-        acf_icao.resize(4);
-        XPLMGetDatab(acf_icao_dr, acf_icao.data(), 0, 4);
-
-        for (int i=0; i < 4; i++)
-            acf_icao[i] = (isupper((uint8_t)acf_icao[i]) || isdigit((uint8_t)acf_icao[i])) ? acf_icao[i] : ' ';
-
-        plane_cg_y = F2M * XPLMGetDataf(acf_cg_y_dr);
-        plane_cg_z = F2M * XPLMGetDataf(acf_cg_z_dr);
-
-        float gear_z[2];
-        if (2 == XPLMGetDatavf(acf_gear_z_dr, gear_z, 0, 2)) {      // nose + main wheel
-            plane_nw_z = -gear_z[0];
-            plane_mw_z = -gear_z[1];
-        } else
-            plane_nw_z = plane_mw_z = plane_cg_z;         // fall back to CG
-
-        is_helicopter = XPLMGetDatai(is_helicopter_dr);
-
-        use_engine_running = 0;
-        dont_connect_jetway = 0;
-
-        log_msg("plane loaded: %s, is_helicopter: %d",
-                acf_icao.c_str(), is_helicopter);
-
-        if (is_helicopter)
-            return;
-
-        // check whether acf is listed in exception files
-        std::string line; line.reserve(200);
-        if (find_icao_in_file(acf_icao, base_dir + "acf_use_engine_running.txt", line)) {
-            use_engine_running = 1;
-            log_msg("found");
-        }
-
-        if (find_icao_in_file(acf_icao, base_dir + "acf_dont_connect_jetway.txt", line)) {
-            dont_connect_jetway = 1;
-            log_msg("found");
-        }
-
-        door_info[0].x = XPLMGetDataf(acf_door_x_dr);
-        door_info[0].y = XPLMGetDataf(acf_door_y_dr);
-        door_info[0].z = XPLMGetDataf(acf_door_z_dr);
-
-        n_door = 1;
-
-        log_msg("plane loaded: %s, plane_cg_y: %1.2f, plane_cg_z: %1.2f, "
-                "door 1: x: %1.2f, y: %1.2f, z: %1.2f",
-                acf_icao.c_str(), plane_cg_y, plane_cg_z,
-                door_info[0].x, door_info[0].y, door_info[0].z);
-
-        // check for a second door, seems to be not available by dataref
-        // data in the acf file is often bogus, so check our own config file first
-        try {
-            door_info[1] = door_info_map.at(acf_icao + '2');
-            n_door++;
-            log_msg("found door 2 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
-                    door_info[1].x, door_info[1].y, door_info[1].z);
-        }
-        catch(const std::out_of_range& ex) {
-            log_msg("door 2 is not defined in door_info_map");
-        }
-
-
-        // if nothing found in the config file try the acf
-        if (n_door == 1) {
-            char acf_path[512];
-            char acf_file[256];
-
-            XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, acf_file, acf_path);
-            log_msg("acf path: '%s'", acf_path);
-
-            FILE *acf = fopen(acf_path, "r");
-            if (acf) {
-                char line[200];
-                int got = 0;
-                int has_door2 = 0;
-                // we go the simple brute force way
-                while (fgets(line, sizeof(line), acf)) {
-                    if (line == strstr(line, "P acf/_has_board_2 ")) {
-                        if (1 != sscanf(line + 19, "%d", &has_door2))
-                        break;
-                    }
-
-                    if (line == strstr(line, "P acf/_board_2/0 ")) {
-                        if (1 == sscanf(line + 17, "%f", &door_info[1].x)) {
-                            door_info[1].x *= F2M;
-                            got++;
-                        }
-                    }
-                    if (line == strstr(line, "P acf/_board_2/1 ")) {
-                        float y;
-                        if (1 == sscanf(line + 17, "%f", &y)) {
-                            door_info[1].y = y * F2M - plane_cg_y;
-                            got++;
-                        }
-                    }
-                    if (line == strstr(line, "P acf/_board_2/2 ")) {
-                        float z;
-                        if (1 == sscanf(line + 17, "%f", &z)) {
-                            door_info[1].z = z * F2M - plane_cg_z;
-                            got++;
-                        }
-                    }
-
-                    if (has_door2 && got == 3) {
-                        n_door = 2;
-                        log_msg("found door 2 in acf file: x: %0.2f, y: %0.2f, z: %0.2f",
-                                door_info[1].x, door_info[1].y, door_info[1].z);
-                        break;
-                    }
-                }
-
-                fclose(acf);
-            }
-        }
-
-        // SAM dgs don't like letters in pos 1-3
-        if (acf_icao == "A20N")
-            acf_icao ="A320";
-
+        my_plane->plane_loaded();
         return;
     }
-
     // livery loaded
     if (in_msg == XPLM_MSG_LIVERY_LOADED && in_param == 0) {
-
-        // check ToLiss A321 door config
-        if (acf_icao != "A321")
-            return;
-
-        log_msg("A321 detected, checking door config");
-
-        char path[512];
-        strcpy(path, xp_dir.c_str());
-        int len = strlen(path);
-        int n = XPLMGetDatab(acf_livery_path, path + len, 0, sizeof(path) - len - 50);
-        path[len + n] = '\0';
-        strcat(path, "livery.tlscfg");
-        log_msg("tlscfg path: '%s'", path);
-
-        FILE *f = fopen(path, "r");
-        if (f) {
-            char line[150];
-            line[sizeof(line) - 1] = '\0';
-            while (fgets(line, sizeof(line) - 1, f)) {
-                if (NULL != strstr(line, "exit_Configuration")) {
-                    if (NULL == strstr(line, "CLASSIC")) {
-                        log_msg("door != CLASSIC, setting n_door to 1");
-                        n_door = 1;
-                    }
-                    break;
-                }
-            }
-
-            fclose(f);
-        }
+        my_plane->livery_loaded();
+        return;
     }
 }

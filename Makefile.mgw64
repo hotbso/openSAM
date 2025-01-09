@@ -11,7 +11,8 @@ TARGET_XP12=$(OBJDIR)/openSAM.xpl
 TARGET_XP11=$(OBJDIR)/openSAM.xpl_xp11
 
 HEADERS=$(wildcard *.h)
-SOURCES=openSAM.cpp os_dgs.cpp os_jw.cpp os_ui.cpp os_anim.cpp sam_xml.cpp log_msg.cpp read_wav.cpp
+SOURCES=openSAM.cpp os_dgs.cpp os_jw.cpp os_ui.cpp os_anim.cpp sam_xml.cpp log_msg.cpp read_wav.cpp \
+    plane.cpp
 OBJECTS:=$(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o))
 OBJECTS_XP12=$(OBJECTS) $(OBJDIR)/os_sound.o
 OBJECTS_XP11=$(OBJECTS) $(OBJDIR)/os_sound_xp11.o

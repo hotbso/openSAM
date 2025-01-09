@@ -101,7 +101,7 @@ class JwCtrl {
 #define MAX_NEAREST 10  // max # jetways / door we consider as nearest
 
 extern int n_active_jw;
-extern JwCtrl active_jw[MAX_DOOR];
+extern JwCtrl active_jw[kMaxDoor];
 
 extern JwCtrl nearest_jw[MAX_NEAREST];
 extern int n_nearest;

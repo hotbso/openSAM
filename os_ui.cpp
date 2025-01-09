@@ -20,9 +20,10 @@
 
 */
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include "openSAM.h"
+#include "plane.h"
 #include "os_jw.h"
 #include "os_jw_impl.h"
 
@@ -39,7 +40,7 @@ typedef struct _widget_ctx
 
 static widget_ctx_t ui_widget_ctx;
 
-static XPWidgetID ui_widget, jw_btn[MAX_DOOR][NEAR_JW_LIMIT],
+static XPWidgetID ui_widget, jw_btn[kMaxDoor][NEAR_JW_LIMIT],
     auto_btn, dock_btn, undock_btn;
 
 int ui_unlocked; // the ui is unlocked for jw_selection
@@ -106,6 +107,8 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
         close_ui();
         return 1;
     }
+
+    int n_door = my_plane->n_door_;
 
     if (msg == xpMsg_PushButtonPressed && widget_id == dock_btn) {
         log_msg("Dock pressed");
@@ -195,13 +198,13 @@ update_ui(int only_if_visible)
     XPSetWidgetProperty(auto_btn, xpProperty_ButtonState, auto_select_jws);
 
     // hide everything
-    for (int i = 0; i < MAX_DOOR; i++)
+    for (int i = 0; i < kMaxDoor; i++)
         for (int j = 0; j < NEAR_JW_LIMIT; j++)
             XPHideWidget(jw_btn[i][j]);
 
     // if manual selection set label and unhide
     if (ui_unlocked && !auto_select_jws) {
-        for (int i = 0; i < n_door; i++)
+        for (int i = 0; i < my_plane->n_door_; i++)
             for (int j = 0; j < n_nearest; j++) {
                 JwCtrl *njw = &nearest_jw[j];
                 SamJw *jw = njw->jw;
@@ -233,7 +236,7 @@ create_ui()
 
     int left = xl + 50;
     int top = yr - 100;
-    int width = 2 * margin + MAX_DOOR * col_spacing;
+    int width = 2 * margin + kMaxDoor * col_spacing;
     int height = 240;
     int left1;
 
@@ -263,7 +266,7 @@ create_ui()
     XPAddWidgetCallback(auto_btn, ui_widget_cb);
 
     top -= 30;
-    for (int i = 0; i < MAX_DOOR; i++) {
+    for (int i = 0; i < kMaxDoor; i++) {
         char label[50];
         sprintf(label, "Door %d", i + 1);
         XPCreateWidget(left1, top, left1 + 50, top - 20,
@@ -274,7 +277,7 @@ create_ui()
     top -= 20;
     for (int j = 0; j < NEAR_JW_LIMIT; j++) {
         left1 = left + margin;
-        for (int i = 0; i < MAX_DOOR; i++) {
+        for (int i = 0; i < kMaxDoor; i++) {
              XPWidgetID btn = jw_btn[i][j] =
                 XPCreateWidget(left1, top, left1 + 50, top - 20, 1, "Jw", 0, ui_widget, xpWidgetClass_Button);
 
@@ -313,7 +316,7 @@ toggle_ui(void) {
         return;
     }
 
-    if (! is_helicopter) {
+    if (! my_plane->is_helicopter_) {
         update_ui(0);
         show_widget(&ui_widget_ctx);
     }

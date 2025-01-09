@@ -492,7 +492,7 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir)
     scpi.close();
     sc_paths.shrink_to_fit();
     if (openSAM_Library_path.size() == 0)
-        throw OsEx("ERROR: openSAM_Library is not installed, bye!");
+        throw OsEx("openSAM_Library is not installed!");
 }
 
 // collect sam.xml from all sceneries
@@ -503,7 +503,7 @@ collect_sam_xml(const SceneryPacks &scp)
     Scenery dummy;
     if (scp.openSAM_Library_path.size() == 0 ||
         !parse_sam_xml(scp.openSAM_Library_path + "sam.xml", &dummy))
-        throw OsEx("ERROR: openSAM_Library is not installed or inaccessible, bye!");
+        throw OsEx("openSAM_Library is not installed or inaccessible!");
 
     if (scp.SAM_Library_path.size() > 0) {
         Scenery dummy;

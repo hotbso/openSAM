@@ -31,6 +31,7 @@
 #include "os_jw_impl.h"
 
 #include "os_dgs.h"
+#include "plane.h"
 
 static const float SAM_2_OBJ_MAX = 2.5;     // m, max delta between coords in sam.xml and object
 static const float SAM_2_OBJ_HDG_MAX = 5;   // °, likewise for heading
@@ -76,7 +77,7 @@ static const char *dr_name_jw[] = {
 };
 
 int n_active_jw;
-JwCtrl active_jw[MAX_DOOR];
+JwCtrl active_jw[kMaxDoor];
 
 JwCtrl nearest_jw[MAX_NEAREST];
 int n_nearest;
@@ -141,8 +142,8 @@ auto SamJw::find_stand() -> Stand*
     float dist = 1.0E10;
     Stand *min_stand = nullptr;
 
-    float plane_lat = XPLMGetDataf(plane_lat_dr);
-    float plane_lon = XPLMGetDataf(plane_lon_dr);
+    float plane_lat = my_plane->lat();
+    float plane_lon = my_plane->lon();
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
@@ -179,8 +180,8 @@ configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
 {
     // library jetways may be in view from very far away when stand information is not
     // yet available. We won't see details anyway.
-    if (len2f(obj_x - XPLMGetDataf(plane_x_dr), obj_z - XPLMGetDataf(plane_z_dr)) > 0.5f * FAR_SKIP
-        || fabsf(obj_y - XPLMGetDataf(plane_y_dr)) > 1000.0f)
+    if (len2f(obj_x - my_plane->x(), obj_z - my_plane->z()) > 0.5f * FAR_SKIP
+        || fabsf(obj_y - my_plane->y()) > 1000.0f)
         return nullptr;
 
     SamJw *jw = new SamJw();
@@ -261,8 +262,8 @@ jw_anim_acc(void *ref)
 {
     stat_acc_called++;
 
-    float lat = XPLMGetDataf(plane_lat_dr);
-    float lon = XPLMGetDataf(plane_lon_dr);
+    float lat = my_plane->lat();
+    float lon = my_plane->lon();
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
@@ -440,12 +441,12 @@ jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n)
     UNUSED(ref);
 
     if (values == nullptr)
-        return MAX_DOOR;
+        return kMaxDoor;
 
-    if (n <= 0 || ofs < 0 || ofs >= MAX_DOOR)
+    if (n <= 0 || ofs < 0 || ofs >= kMaxDoor)
         return 0;
 
-    n = std::min(n, MAX_DOOR - ofs);
+    n = std::min(n, kMaxDoor - ofs);
 
     for (int i = 0; i < n; i++) {
         JwCtrl *ajw = &active_jw[ofs + i];
@@ -465,7 +466,7 @@ reset_jetways()
     for (auto jw : zc_jws)
         jw->reset();
 
-    for (int i = 0; i < n_door; i++) {
+    for (int i = 0; i < my_plane->n_door_; i++) {
         JwCtrl *ajw = &active_jw[i];
         if (ajw->jw)
             ajw->alert_off();
@@ -632,8 +633,9 @@ filter_candidates(std::vector<SamJw*> &jws, const DoorInfo& door_info, float& di
 
 // find nearest jetways, order by z (= door number, hopefully)
 static int
-find_nearest_jws()
+find_nearest_jws(Plane* plane)
 {
+    int n_door = plane->n_door_;
     if (n_door == 0) {
         log_msg("acf has no doors!");
         return 0;
@@ -649,13 +651,13 @@ find_nearest_jws()
     avg_di.x = 0.0f;
     avg_di.z = 0.0f;
     for (int i = 0; i < n_door; i++) {
-        avg_di.x += door_info[i].x;
-        avg_di.z += door_info[i].z;
+        avg_di.x += plane->door_info_[i].x;
+        avg_di.z += plane->door_info_[i].z;
     }
 
     avg_di.x /= n_door;
     avg_di.z /= n_door;
-    avg_di.y = door_info[0].y;
+    avg_di.y = plane->door_info_[0].y;
 
     n_nearest = 0;
     float dist_threshold = 1.0E10f;
@@ -747,9 +749,9 @@ int jw_collision_check(int i, int j)
 
 // auto select active jetways
 static void
-select_jws()
+select_jws(Plane* plane)
 {
-    if (n_door == 0)
+    if (plane->n_door_ == 0)
         return;
 
     int have_hard_match = 0;
@@ -773,7 +775,7 @@ select_jws()
         active_jw[i_door] = nearest_jw[i_jw];
         log_msg("active jetway for door %d: %s", i_door, active_jw[i_door].jw->name);
         i_door++;
-        if (i_door >= n_door)
+        if (i_door >= plane->n_door_)
             break;
 
       skip:
@@ -785,7 +787,7 @@ select_jws()
         log_msg("Oh no, no active jetways left in select_jws()!");
 }
 
-auto 
+auto
 JwCtrl::rotate_wheel_base(float dt) -> bool
 {
     float delta_rot = RA(wb_rot - jw->wheelrotatec);
@@ -1173,24 +1175,25 @@ JwCtrl::undock_drive() -> bool
 
 // the state machine called from the flight loop
 float
-jw_state_machine()
+jw_state_machine(Plane *plane)
 {
     if (state == DISABLED)
         return 2.0;
 
     state_t new_state = state;
 
-    int beacon_on = check_beacon();
+    bool beacon_on = plane->beacon_on();
+    bool on_ground = plane->on_ground();
 
-    if (state > IDLE && check_teleportation()) {
+    if (state > IDLE && my_plane->check_teleportation()) {
         log_msg("teleportation detected!");
         state = new_state = IDLE;
         reset_jetways();
     }
 
     int n_done;
-    char airport_id[50];
-    float lat, lon;
+
+    int n_door = plane->n_door_;
 
     switch (state) {
         case IDLE:
@@ -1202,17 +1205,16 @@ jw_state_machine()
             }
 
             if (on_ground && !beacon_on) {
-                plane_x = XPLMGetDataf(plane_x_dr);
-                plane_y = XPLMGetDataf(plane_y_dr);
-                plane_z = XPLMGetDataf(plane_z_dr);
-                plane_psi = XPLMGetDataf(plane_true_psi_dr);
+                plane_x = plane->x();
+                plane_y = plane->y();
+                plane_z = plane->z();
+                plane_psi = plane->hdgt();
 
                 sin_psi = sinf(D2R * plane_psi);
                 cos_psi = cosf(D2R * plane_psi);
 
-                parked_x = plane_x;
-                parked_z = plane_z;
-                parked_ngen = ref_gen;
+                // memorize position teleportation detection
+                plane->memorize_parked_pos();
 
                 // reset stale command invocations
                 dock_requested = undock_requested = toggle_requested = 0;
@@ -1222,17 +1224,7 @@ jw_state_machine()
             break;
 
         case PARKED: {
-                // find airport I'm on now to ease debugging
-                lat = XPLMGetDataf(plane_lat_dr);
-                lon = XPLMGetDataf(plane_lon_dr);
-                XPLMNavRef ref = XPLMFindNavAid(NULL, NULL, &lat, &lon, NULL, xplm_Nav_Airport);
-                if (XPLM_NAV_NOT_FOUND != ref) {
-                    XPLMGetNavAidInfo(ref, NULL, NULL, NULL, NULL, NULL, NULL, airport_id,
-                            NULL, NULL);
-                    log_msg("parked on airport: %s, lat,lon: %0.5f,%0.5f", airport_id, lat, lon);
-                }
-
-                if (find_nearest_jws())
+                if (find_nearest_jws(plane))
                     new_state = SELECT_JWS;
                 else
                     new_state = CANT_DOCK;
@@ -1247,7 +1239,7 @@ jw_state_machine()
             }
 
             if (auto_select_jws) {
-                select_jws();
+                select_jws(planes[0]);
             } else if (prev_state != state) {
                 ui_unlocked = 1;    // allow jw selection in the ui
                 update_ui(1);
@@ -1263,7 +1255,7 @@ jw_state_machine()
                         continue;
 
                     log_msg("setting up active jw for door: %d", i);
-                    ajw->setup_for_door(door_info[i]);
+                    ajw->setup_for_door(plane->door_info_[i]);
                     if (i == 0) // slightly slant towards the nose cone for door LF1
                         ajw->door_rot2 += 3.0f;
                 }
@@ -1281,7 +1273,7 @@ jw_state_machine()
             if (1 == dock_requested || toggle_requested) {
                 log_msg("docking requested");
                 int active_door = 0;
-                for (int i = 0; i < n_door; i++) {
+                for (int i = 0; i < plane->n_door_; i++) {
                     JwCtrl *ajw = &active_jw[i];
                     if (nullptr == ajw->jw)
                         continue;

@@ -80,5 +80,5 @@ class SamJw  {
 extern SamJw sam3_lib_jw[];
 
 extern int jw_init(void);
-extern float jw_state_machine();
+extern float jw_state_machine(class Plane *plane);
 extern void update_ui(int only_if_visible);

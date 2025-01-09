@@ -31,14 +31,10 @@
 #define XPLM301
 #define XPLM400
 
-#include "XPLMPlugin.h"
 #include "XPLMDataAccess.h"
-#include "XPLMUtilities.h"
-#include "XPLMProcessing.h"
 #include "XPLMMenus.h"
 #include "XPLMGraphics.h"
 #include "XPLMScenery.h"
-#include "XPLMNavigation.h"
 
 #define UNUSED(x) (void)x
 
@@ -106,6 +102,7 @@ class SceneryPacks {
     SceneryPacks(const std::string& xp_dir);
 };
 
+static const int kMaxDoor{3};
 struct DoorInfo {
     float x, y, z;
 };
@@ -113,30 +110,15 @@ struct DoorInfo {
 // key is icao + <door num in ascii>
 extern std::map<std::string, DoorInfo> door_info_map;
 
-#define MAX_DOOR 3
-extern int n_door;
-extern DoorInfo door_info[MAX_DOOR];
-extern float plane_nw_z, plane_mw_z, plane_cg_z;   // z value of plane's 0 to fw, mw and cg
-extern std::string acf_icao;
-
+extern std::string xp_dir;
 extern std::string base_dir;        // base directory of openSAM
-extern int use_engine_running;      // instead of beacon, e.g. MD11
-extern int dont_connect_jetway;     // e.g. for ZIBO with own ground service
-extern int is_helicopter;
 
-extern int beacon_state, beacon_last_pos;   // beacon state, last switch_pos, ts of last switch actions
-extern float beacon_off_ts, beacon_on_ts;
 extern float parked_x, parked_z;
-extern  int parked_ngen;
+extern int parked_ngen;
 
 extern XPLMDataRef date_day_dr,
-    plane_x_dr, plane_y_dr, plane_z_dr, plane_lat_dr, plane_lon_dr, plane_elevation_dr,
-    plane_true_psi_dr, plane_y_agl_dr, lat_ref_dr, lon_ref_dr,
-
-    draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, parkbrake_dr,
-    beacon_dr, eng_running_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr,
-    acf_door_x_dr, acf_door_y_dr, acf_door_z_dr, acf_livery_path,
-    gear_fnrml_dr,
+    lat_ref_dr, lon_ref_dr,
+    draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
 
@@ -145,7 +127,6 @@ extern unsigned long long stat_sc_far_skip, stat_far_skip, stat_near_skip,
     stat_anim_acc_called, stat_auto_drf_called;
 
 extern float now;           // current timestamp
-extern int on_ground;
 extern float lat_ref, lon_ref;
 // generation # of reference frame
 // init with 1 so jetways never seen by the accessor won't be considered in find_dockable_jws()
@@ -161,8 +142,6 @@ extern XPLMProbeRef probe_ref;
 
 // functions
 extern void log_msg(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
-extern int check_beacon(void);
-extern int check_teleportation(void);
 
 extern void toggle_ui(void);
 
