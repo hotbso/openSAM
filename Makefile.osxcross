@@ -2,6 +2,7 @@ PLUGDIR_XP12=openSAM-pkg/openSAM
 PLUGDIR_XP11=openSAM-pkg_XP11/openSAM
 
 include version.mak
+include Makefile.common
 
 #https://stackoverflow.com/questions/61311317/change-path-in-makefile
 export PATH:=/osxcross/target/bin:$(PATH)
@@ -12,11 +13,10 @@ OBJDIR=./OBJ_osx
 TARGET_XP12=$(OBJDIR)/openSAM.xpl
 TARGET_XP11=$(OBJDIR)/openSAM.xpl_xp11
 HEADERS=$(wildcard *.h)
-SOURCES=openSAM.cpp os_dgs.cpp os_jw.cpp os_ui.cpp os_anim.cpp sam_xml.cpp log_msg.cpp read_wav.cpp
-OBJECTS_XP12_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o_arm)) $(OBJDIR)/os_sound.o_arm
+OBJECTS_XP12_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o_arm)) $(OBJDIR)/jwctrl_sound.o_arm
 OBJECTS_XP12_x86=$(OBJECTS_XP12_arm:.o_arm=.o_x86)
 
-OBJECTS_XP11_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o_arm)) $(OBJDIR)/os_sound_xp11.o_arm
+OBJECTS_XP11_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o_arm)) $(OBJDIR)/jwctrl_sound_xp11.o_arm
 OBJECTS_XP11_x86=$(OBJECTS_XP11_arm:.o_arm=.o_x86)
 
 CCx=o64-clang++ -mmacosx-version-min=12.0
@@ -24,7 +24,7 @@ CCa=oa64-clang++ -mmacosx-version-min=12.0
 
 DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -DNDEBUG
 
-CFLAGS+=-O2 -Wall -Wno-deprecated-declarations \
+CFLAGS+=$(CXXSTD) $(OPT) -Wall -Wno-deprecated-declarations \
     -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets -DVERSION=\"$(VERSION)\" $(DEFS)
 
 LNFLAGS+=-dynamiclib -shared -rdynamic -fvisibility=hidden -Wl,-exported_symbols_list -Wl,linkscript.mac

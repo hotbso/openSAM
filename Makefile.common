@@ -1,0 +1,8 @@
+# all sources without jwctrl_sound*.cpp which gets special treatment
+SOURCES=openSAM.cpp os_dgs.cpp os_jw.cpp os_ui.cpp os_anim.cpp sam_xml.cpp log_msg.cpp read_wav.cpp \
+    plane.cpp
+
+# the c++ standard to use
+CXXSTD=-std=c++20
+OPT=-O3
+

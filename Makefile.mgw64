@@ -6,19 +6,18 @@ OPENAL=../libOpenAL32
 OBJDIR=./OBJ_win
 
 include version.mak
+include Makefile.common
 
 TARGET_XP12=$(OBJDIR)/openSAM.xpl
 TARGET_XP11=$(OBJDIR)/openSAM.xpl_xp11
 
 HEADERS=$(wildcard *.h)
-SOURCES=openSAM.cpp os_dgs.cpp os_jw.cpp os_ui.cpp os_anim.cpp sam_xml.cpp log_msg.cpp read_wav.cpp \
-    plane.cpp
 OBJECTS:=$(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o))
-OBJECTS_XP12=$(OBJECTS) $(OBJDIR)/os_sound.o
-OBJECTS_XP11=$(OBJECTS) $(OBJDIR)/os_sound_xp11.o
+OBJECTS_XP12=$(OBJECTS) $(OBJDIR)/jwctrl_sound.o
+OBJECTS_XP11=$(OBJECTS) $(OBJDIR)/jwctrl_sound_xp11.o
 
 # all sources to the dep files
-SOURCES_DEP=$(SOURCES) os_sound.cpp os_sound_xp11.cpp
+SOURCES_DEP=$(SOURCES) jwctrl_sound.cpp jwctrl_sound_xp11.cpp
 DEPFILES=$(SOURCES_DEP:%.cpp=$(DEPDIR)/%.d)
 
 DEPDIR := $(OBJDIR)/.deps
@@ -27,11 +26,12 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 CXX=g++
 LD=g++
 
-CFLAGS+=-DVERSION=\"$(VERSION)\"   -g0 -O2 -Wextra -Wall -fdiagnostics-color -Wno-format-overflow -Wno-format-truncation \
+CFLAGS+=$(CXXSTD) -DVERSION=\"$(VERSION)\"   -g0 $(OPT) -Wextra -Wall  \
+	-fdiagnostics-color -Wno-format-overflow -Wno-format-truncation \
     -DWINDOWS -DWIN32   -DIBM=1 \
 	-I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets -I$(OPENAL)
 
-COMPILE.cpp = $(CXX) $(DEPFLAGS) $(CFLAGS)  -c
+COMPILE.cpp = $(CXX) $(CFLAGS) $(DEPFLAGS) -c
 
 LDFLAGS=-shared -static-libgcc -static -lpthread
 LIBS=-L$(SDK)/Libraries/Win -lXPLM_64 -lXPWidgets_64 -l:libexpat.a
