@@ -24,8 +24,8 @@
 #include <cstdio>
 #include "openSAM.h"
 #include "plane.h"
-#include "os_jw.h"
-#include "os_jw_impl.h"
+#include "samjw.h"
+#include "jwctrl.h"
 
 #include "XPLMDisplay.h"
 #include "XPWidgets.h"
@@ -40,7 +40,7 @@ typedef struct _widget_ctx
 
 static widget_ctx_t ui_widget_ctx;
 
-static XPWidgetID ui_widget, jw_btn[kMaxDoor][NEAR_JW_LIMIT],
+static XPWidgetID ui_widget, jw_btn[kMaxDoor][kNearJwLimit],
     auto_btn, dock_btn, undock_btn;
 
 int ui_unlocked; // the ui is unlocked for jw_selection
@@ -113,17 +113,16 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
     if (msg == xpMsg_PushButtonPressed && widget_id == dock_btn) {
         log_msg("Dock pressed");
         if (! auto_select_jws && ui_unlocked) {
-            n_active_jw = 0;
+            my_plane->active_jws_.resize(0);
 
             for (int i = 0; i < n_door; i++) {
-                active_jw[i].jw = NULL;     // default to empty
                 // check for a selected button
-                for (int j = 0; j < n_nearest; j++) {
+                for (int j = 0; j < my_plane->n_nearest_jws_; j++) {
                     int state = (uint64_t)XPGetWidgetProperty(jw_btn[i][j], xpProperty_ButtonState, NULL);
                     if (state) {
-                        log_msg("active jw for door %d is %s", i, nearest_jw[j].jw->name);
-                        active_jw[i] = nearest_jw[j];
-                        n_active_jw++;
+                        log_msg("active jw for door %d is %s", i, my_plane->nearest_jws_[j].jw_->name);
+                        my_plane->nearest_jws_[j].door_ = i;
+                        my_plane->active_jws_.push_back(my_plane->nearest_jws_[j]);
                     }
                 }
             }
@@ -145,7 +144,7 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
         auto_select_jws = (int)(uint64_t)param2;
         log_msg("auto_select_jws now: %d", auto_select_jws);
 
-        jw_auto_mode_change();  // start over with new setting
+        my_plane->auto_mode_change();  // start over with new setting
         return 1;
     }
 
@@ -154,7 +153,7 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
         // find index of button
         int idoor = -1, ijw = -1;
         for (int i = 0; i < n_door; i++)
-            for (int j = 0; j < n_nearest; j++)
+            for (int j = 0; j < my_plane->n_nearest_jws_; j++)
                 if (jw_btn[i][j] == widget_id) {
                     idoor = i;
                     ijw = j;
@@ -168,10 +167,10 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
 
         int new_state = (int)(uint64_t)param2;
         log_msg("button door: %d, jw: %d pressed, name: %s, new_state: %d", idoor, ijw,
-                nearest_jw[ijw].jw->name, new_state);
+                my_plane->nearest_jws_[ijw].jw_->name, new_state);
 
         // unselect all other buttons for the selected door
-        for (int j = 0; j < n_nearest; j++)
+        for (int j = 0; j < my_plane->n_nearest_jws_; j++)
             if (j != ijw)
                 XPSetWidgetProperty(jw_btn[idoor][j], xpProperty_ButtonState, 0);
 
@@ -199,15 +198,15 @@ update_ui(int only_if_visible)
 
     // hide everything
     for (int i = 0; i < kMaxDoor; i++)
-        for (int j = 0; j < NEAR_JW_LIMIT; j++)
+        for (int j = 0; j < kNearJwLimit; j++)
             XPHideWidget(jw_btn[i][j]);
 
     // if manual selection set label and unhide
     if (ui_unlocked && !auto_select_jws) {
         for (int i = 0; i < my_plane->n_door_; i++)
-            for (int j = 0; j < n_nearest; j++) {
-                JwCtrl *njw = &nearest_jw[j];
-                SamJw *jw = njw->jw;
+            for (int j = 0; j < my_plane->n_nearest_jws_; j++) {
+                JwCtrl *njw = &my_plane->nearest_jws_[j];
+                SamJw *jw = njw->jw_;
 
                 if (NULL == jw)             // should never happen
                     continue;
@@ -275,7 +274,7 @@ create_ui()
     }
 
     top -= 20;
-    for (int j = 0; j < NEAR_JW_LIMIT; j++) {
+    for (int j = 0; j < kNearJwLimit; j++) {
         left1 = left + margin;
         for (int i = 0; i < kMaxDoor; i++) {
              XPWidgetID btn = jw_btn[i][j] =

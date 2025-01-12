@@ -187,12 +187,12 @@ static float last_dgs_z;
 
 // xform lat,lon into the active global frame
 void
-xform_to_ref_frame(Stand *stand)
+Stand::xform_to_ref_frame()
 {
-    if (stand->ref_gen < ref_gen) {
-        XPLMWorldToLocal(stand->lat, stand->lon, my_plane->elevation(),
-                         &stand->stand_x, &stand->stand_y, &stand->stand_z);
-        stand->ref_gen = ref_gen;
+    if (ref_gen_ < ::ref_gen) {
+        XPLMWorldToLocal(lat, lon, my_plane->elevation(),
+                         &stand_x, &stand_y, &stand_z);
+        ref_gen_ = ::ref_gen;
         dgs_assoc = 0;    // association is lost
         max_dgs_z_l = last_dgs_x = -1.0E10;
         max_dgs_z_l_ts = 1.0E10;
@@ -201,13 +201,13 @@ xform_to_ref_frame(Stand *stand)
 
 // xform global coordinates into the stand frame
 void
-global_2_stand(const Stand * stand, float x, float z, float *x_l, float *z_l)
+Stand::global_2_stand(float x, float z, float& x_l, float& z_l)
 {
-    float dx = x - stand->stand_x;
-    float dz = z - stand->stand_z;
+    float dx = x - stand_x;
+    float dz = z - stand_z;
 
-    *x_l =  dx * stand->cos_hdgt + dz * stand->sin_hdgt;
-    *z_l = -dx * stand->sin_hdgt + dz * stand->cos_hdgt;
+    x_l =  dx * cos_hdgt + dz * sin_hdgt;
+    z_l = -dx * sin_hdgt + dz * cos_hdgt;
 }
 
 //
@@ -228,7 +228,7 @@ is_dgs_active(float obj_x, float obj_z, float obj_psi)
     }
 
     float dgs_x_l, dgs_z_l;
-    global_2_stand(nearest_stand, obj_x, obj_z, &dgs_x_l, &dgs_z_l);
+    nearest_stand->global_2_stand(obj_x, obj_z, dgs_x_l, dgs_z_l);
     //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
     if (dgs_assoc && dgs_z_l < max_dgs_z_l)
@@ -366,10 +366,10 @@ find_nearest_stand()
     float plane_lat = my_plane->lat();
     float plane_lon = my_plane->lon();
 
-    float plane_x = my_plane->x();
-    float plane_z = my_plane->z();
+    float plane_x = my_plane->x_;
+    float plane_z = my_plane->z_;
 
-    float plane_hdgt = my_plane->hdgt();
+    float plane_hdgt = my_plane->psi_;
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
@@ -386,10 +386,10 @@ find_nearest_stand()
             if (fabs(local_hdgt) > 90.0)
                 continue;   // not looking to stand
 
-            xform_to_ref_frame(stand);
+            stand->xform_to_ref_frame();
 
             float local_x, local_z;
-            global_2_stand(stand, plane_x, plane_z, &local_x, &local_z);
+            stand->global_2_stand(plane_x, plane_z, local_x, local_z);
 
             // nose wheel
             float nw_z = local_z - my_plane->nose_gear_z_;
@@ -540,11 +540,10 @@ dgs_state_machine()
     // xform plane pos into stand local coordinate system
 
     float local_x, local_z;
-    global_2_stand(nearest_stand, my_plane->x(), my_plane->z(),
-                  &local_x, &local_z);
+    nearest_stand->global_2_stand(my_plane->x_, my_plane->z_, local_x, local_z);
 
     // relative reading to stand +/- 180
-    float local_hdgt = RA(my_plane->hdgt() - nearest_stand->hdgt);
+    float local_hdgt = RA(my_plane->psi_ - nearest_stand->hdgt);
 
     // nose wheel
     float nw_z = local_z - my_plane->nose_gear_z_;

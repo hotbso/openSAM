@@ -19,10 +19,12 @@
     USA
 
 */
+#ifndef _SAMJW_H_
+#define _SAMJW_H_
 
 static const float FAR_SKIP = 5000;     // (m) don't consider jetways farther away
 
-class SamJw  {
+struct SamJw  {
   public:
     int is_zc_jw;   // is a zero config jw
     Stand* stand;   // back pointer to stand for zc jetways
@@ -57,11 +59,11 @@ class SamJw  {
 
 
     // set wheels height
-    auto set_wheels() -> void {
+    void set_wheels() {
         wheels = tanf(rotate3 * D2R) * (wheelPos + extent);
     }
 
-    auto reset() -> void {
+    void reset() {
         rotate1 = initialRot1;
         rotate2 = initialRot2;
         rotate3 = initialRot3;
@@ -70,15 +72,18 @@ class SamJw  {
         warnlight = 0;
     }
 
-    auto fill_library_values(int id) -> void;
-    auto find_stand() -> Stand*;
+    void fill_library_values(int id);
+    Stand* find_stand();
+
+    static void reset_all();
 };
 
+extern std::vector<SamJw *>zc_jws;
 
 // fortunately SAM3 is abandoned so this will never change 8-)
 #define MAX_SAM3_LIB_JW 27  // index is 0..27
 extern SamJw sam3_lib_jw[];
 
-extern int jw_init(void);
-extern float jw_state_machine(class Plane *plane);
-extern void update_ui(int only_if_visible);
+extern void jw_init(void);
+void check_ref_frame_shift();
+#endif

@@ -28,23 +28,23 @@
 
 #include "openSAM.h"
 #include "os_dgs.h"
-#include "os_jw.h"
+#include "samjw.h"
 #include "os_anim.h"
+
+std::string xp_dir{"E:/X-Plane-12"};
 
 int
 main(int argc, char **argv) {
 
     std::cout << "sam_xml_test starting\n";
 
-    SceneryPacks scp("E:/X-Plane-12");
-    if (! scp.valid) {
-        log_msg("%s", "Can't create SceneryPacks");
-        return 1;
-    }
-
-    if (!collect_sam_xml(scp)) {
-        log_msg("Error reading sam.xml files");
-        exit(2);
+    try {
+        SceneryPacks scp(xp_dir);
+        collect_sam_xml(scp);
+        log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
+    } catch (const OsEx& ex) {
+        log_msg("fatal error: '%s', bye!", ex.what());
+        return 0;   // bye
     }
 
     printf("\n%d sceneries collected\n", (int)sceneries.size());

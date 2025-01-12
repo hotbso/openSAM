@@ -20,15 +20,20 @@
 
 */
 
-class Stand {
-   public:
+struct Stand {
     float lat, lon, hdgt;   // from apt.dat
 
-    unsigned int ref_gen;   // only valid if this matches the generation of the ref frame
+    unsigned int ref_gen_;  // only valid if this matches the generation of the ref frame
     double stand_x, stand_y, stand_z;
     float cos_hdgt, sin_hdgt;
 
     char id[40];
+
+    // xform lat,lon to reference frame
+    void xform_to_ref_frame();
+
+    // xform x,z to stand-local coordinate system
+    void global_2_stand(float x, float z, float& x_l, float& z_l);
 };
 
 extern int dgs_init(void);
@@ -36,6 +41,4 @@ extern float dgs_state_machine(void);
 extern void dgs_set_active(void);
 extern void dgs_set_inactive(void);
 
-extern void xform_to_ref_frame(Stand* stand);
-extern void global_2_stand(const Stand* stand, float x, float z, float *x_l, float *z_l);
 

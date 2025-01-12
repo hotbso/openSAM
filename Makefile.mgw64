@@ -66,6 +66,6 @@ clean:
 	rm -f ./$(OBJDIR)/* sam_xml_test.exe
 
 sam_xml_test.exe: sam_xml_test.cpp sam_xml.cpp log_msg.cpp $(HEADERS)
-	$(CXX) -Wall -fdiagnostics-color -Wno-format-overflow -I$(SDK)/CHeaders/XPLM -DIBM=1 \
+	$(CXX) $(CXXSTD) -Wall -fdiagnostics-color -Wno-format-overflow -I$(SDK)/CHeaders/XPLM -DIBM=1 \
     -DWINDOWS -DWIN32 -DLOCAL_DEBUGSTRING -o sam_xml_test.exe \
         sam_xml_test.cpp sam_xml.cpp log_msg.cpp -l:libexpat.a

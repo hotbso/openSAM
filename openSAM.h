@@ -44,11 +44,11 @@ static const float F2M = 0.3048;	    // 1 ft [m]
 static const float LAT_2_M = 111120;    // 1° lat in m
 
 // forwards
-class Stand;
-class SamObj;
+struct Stand;
+struct SamObj;
+struct SamJw;
+struct SceneryPacks;
 class SamAnim;
-class SamJw;
-class SceneryPacks;
 
 static float RA(float angle);
 
@@ -62,8 +62,7 @@ class OsEx : std::exception {
     }
 };
 
-class Scenery {
-  public:
+struct Scenery {
     // Not copyable or movable
     Scenery(const Scenery&) = delete;
     Scenery& operator=(const Scenery&) = delete;
@@ -93,8 +92,7 @@ extern std::vector<Scenery *> sceneries;
 // a poor man's factory for creating sceneries
 extern void collect_sam_xml(const SceneryPacks &scp);
 
-class SceneryPacks {
-  public:
+struct SceneryPacks {
     std::string openSAM_Library_path;
     std::string SAM_Library_path;
 
@@ -114,11 +112,7 @@ extern std::map<std::string, DoorInfo> door_info_map;
 extern std::string xp_dir;
 extern std::string base_dir;        // base directory of openSAM
 
-extern float parked_x, parked_z;
-extern int parked_ngen;
-
-extern XPLMDataRef date_day_dr,
-    lat_ref_dr, lon_ref_dr,
+extern XPLMDataRef lat_ref_dr, lon_ref_dr,
     draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
@@ -128,6 +122,8 @@ extern unsigned long long stat_sc_far_skip, stat_far_skip, stat_near_skip,
     stat_anim_acc_called, stat_auto_drf_called;
 
 extern float now;           // current timestamp
+
+// detect shifts of the reference frame
 extern float lat_ref, lon_ref;
 // generation # of reference frame
 // init with 1 so jetways never seen by the accessor won't be considered in find_dockable_jws()
@@ -135,7 +131,7 @@ extern unsigned int ref_gen;
 
 extern XPLMMenuID anim_menu;
 extern XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr;
-extern int auto_select_jws;
+extern int auto_select_jws, dock_requested, undock_requested, toggle_requested;
 
 // terrain probe
 extern XPLMProbeInfo_t probeinfo;

@@ -24,8 +24,7 @@
 #include <vector>
 
 #define DRF_MAX_ANIM 10
-class SamDrf {
-  public:
+struct SamDrf {
     char name[60];
 
     int n_tv;
@@ -36,8 +35,7 @@ class SamDrf {
     bool autoplay, randomize_phase, augment_wind_speed;
 };
 
-class SamObj {
-  public:
+struct SamObj {
     char id[30];
     float latitude, longitude, elevation, heading;
 

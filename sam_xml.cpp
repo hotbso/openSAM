@@ -37,7 +37,7 @@
 #endif
 
 #include "openSAM.h"
-#include "os_jw.h"
+#include "samjw.h"
 #include "os_dgs.h"
 #include "os_anim.h"
 

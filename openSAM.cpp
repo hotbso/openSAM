@@ -28,7 +28,8 @@
 
 #include "openSAM.h"
 #include "os_dgs.h"
-#include "os_jw.h"
+#include "samjw.h"
+#include "jwctrl.h"
 #include "os_anim.h"
 #include "plane.h"
 
@@ -83,7 +84,7 @@
 //
 ///
 
-static int init_done, init_fail;
+static int init_fail;
 std::string xp_dir;
 static std::string pref_path;
 static XPLMMenuID seasons_menu;
@@ -96,22 +97,20 @@ static const char *dr_name[] = {"sam/season/winter", "sam/season/spring",
             "sam/season/summer", "sam/season/autumn"};
 static int sam_library_installed;
 
-XPLMDataRef date_day_dr,
-    lat_ref_dr, lon_ref_dr,
+static XPLMDataRef date_day_dr;
+
+XPLMDataRef lat_ref_dr, lon_ref_dr,
     draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr,
     gear_fnrml_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
 
-float lat_ref = -1000, lon_ref = -1000;
-/* generation # of reference frame
- * init with 1 so jetways never seen by the accessor won't be considered in find_dockable_jws() */
-unsigned int ref_gen = 1;
 
-int auto_select_jws;
+float lat_ref{-1000}, lon_ref{-1000};
+unsigned int ref_gen{1};
 
-float parked_x, parked_z;
-int parked_ngen;
+XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr, toggle_ui_cmdr;
+int auto_select_jws, dock_requested, undock_requested, toggle_requested;
 
 float now;            // current timestamp
 std::string base_dir; // base directory of openSAM
@@ -244,7 +243,7 @@ flight_loop_cb(float inElapsedSinceLastCall,
 
     if (! my_plane->is_helicopter_) {
         if (jw_loop_delay <= 0.0f) {
-            jw_loop_delay = jw_state_machine(planes[0]);
+            jw_loop_delay = my_plane->jw_state_machine();
             jw_next_ts = now + jw_loop_delay;
         }
 
@@ -331,6 +330,38 @@ menu_cb(void *menu_ref, void *item_ref)
     save_pref();
 }
 
+// dock/undock command
+static int
+cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
+{
+    UNUSED(cmdr);
+    if (xplm_CommandBegin != phase)
+        return 0;
+
+    log_msg("cmd_dock_jw_cb called");
+
+    *(int *)ref = 2;
+     return 0;
+}
+
+// intercept XP12's standard cmd
+static int
+cmd_xp12_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
+{
+    UNUSED(cmdr);
+    UNUSED(ref);
+
+    if (xplm_CommandBegin != phase)
+        return 1;
+
+    log_msg("cmd_xp12_dock_jw_cb called");
+
+    if (Plane::CAN_DOCK == my_plane->state_ || Plane::DOCKED == my_plane->state_)
+        toggle_requested = 2;
+
+    return 1;       // pass on to XP12, likely there is no XP12 jw here 8-)
+}
+
 static void
 load_door_info(const std::string& fn)
 {
@@ -396,8 +427,11 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     try {
         load_door_info(base_dir + "acf_door_position.txt");
         SceneryPacks scp(xp_dir);
+        sam_library_installed = scp.SAM_Library_path.size() > 0;
         collect_sam_xml(scp);
         log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
+        JwCtrl::sound_init();
+        MyPlane::init();
     } catch (const OsEx& ex) {
         log_msg("fatal error: '%s', bye!", ex.what());
         return 0;   // bye
@@ -418,14 +452,100 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     load_pref();
 
-    plane_init();
+    probe_ref = XPLMCreateProbe(xplm_ProbeY);
+    if (NULL == probe_ref) {
+        log_msg("Can't create terrain probe");
+        return 0;
+    }
 
-    // if commands or dataref accessors are already registered it's to late to
-    // fail XPluginStart as the dll is unloaded and X-Plane crashes
+    // If commands or dataref accessors are already registered it's to late to
+    // fail XPluginStart as the dll is unloaded and X-Plane crashes.
+    // So from here on we are doomed to succeed.
 
-    // so more initialization in XPluginEnable
+    XPLMRegisterDataAccessor("opensam/SAM_Library_installed", xplmType_Int, 0, sam_lib_installed_acc,
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL);
 
+    // create the seasons datarefs
+    for (int i = 0; i < 4; i++)
+        XPLMRegisterDataAccessor(dr_name[i], xplmType_Int, 0, read_season_acc,
+                                 NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, NULL, NULL, (void *)(long long)i, NULL);
+
+    jw_init();
+    JwCtrl::init();
+    dgs_init();
+    anim_init();
+
+    // own commands
+    XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Manually activate searching for DGS");
+    XPLMRegisterCommandHandler(activate_cmdr, cmd_activate_cb, 0, NULL);
+
+    XPLMCommandRef toggle_ui_cmdr = XPLMCreateCommand("openSAM/toggle_ui", "Toggle UI");
+    XPLMRegisterCommandHandler(toggle_ui_cmdr, cmd_toggle_ui_cb, 0, NULL);
+
+    dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
+    XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, &dock_requested);
+
+    undock_cmdr = XPLMCreateCommand("openSAM/undock_jwy", "Undock jetway");
+    XPLMRegisterCommandHandler(undock_cmdr, cmd_dock_jw_cb, 0, &undock_requested);
+
+    toggle_cmdr = XPLMCreateCommand("openSAM/toggle_jwy", "Toggle jetway");
+    XPLMRegisterCommandHandler(toggle_cmdr, cmd_dock_jw_cb, 0, &toggle_requested);
+
+    // augment XP12's standard cmd
+    XPLMCommandRef xp12_toggle_cmdr = XPLMFindCommand("sim/ground_ops/jetway");
+    if (xp12_toggle_cmdr)
+        XPLMRegisterCommandHandler(xp12_toggle_cmdr, cmd_xp12_dock_jw_cb, 1, NULL);
+
+    // build menues
+    XPLMMenuID menu = XPLMFindPluginsMenu();
+    XPLMMenuID os_menu = XPLMCreateMenu("openSAM", menu,
+                                        XPLMAppendMenuItem(menu, "openSAM", NULL, 0),
+                                        NULL, NULL);
+    // openSAM
+    XPLMAppendMenuItemWithCommand(os_menu, "Dock Jetway", dock_cmdr);
+    XPLMAppendMenuItemWithCommand(os_menu, "Undock Jetway", undock_cmdr);
+    XPLMAppendMenuItemWithCommand(os_menu, "Toggle UI", toggle_ui_cmdr);
+    XPLMAppendMenuSeparator(os_menu);
+
+    // openSAM -> Remote control
+    int rc_menu_item = XPLMAppendMenuItem(os_menu, "Remote Control", NULL, 0);
+    anim_menu = XPLMCreateMenu("Remote Control", os_menu, rc_menu_item, anim_menu_cb, NULL);
+
+    XPLMAppendMenuSeparator(os_menu);
+
+    XPLMAppendMenuItemWithCommand(os_menu, "Manually activate searching for DGS", activate_cmdr);
+
+    XPLMAppendMenuSeparator(os_menu);
+
+    // openSAM -> Seasons
+    int seasons_menu_item = XPLMAppendMenuItem(os_menu, "Seasons", NULL, 0);
+    seasons_menu = XPLMCreateMenu("Seasons", os_menu, seasons_menu_item, menu_cb, NULL);
+
+    auto_item = XPLMAppendMenuItem(seasons_menu, "Automatic", (void *)4, 0);
+
+    XPLMAppendMenuSeparator(seasons_menu);
+
+    season_item[0] = XPLMAppendMenuItem(seasons_menu, "Winter", (void *)0, 0);
+    season_item[1] = XPLMAppendMenuItem(seasons_menu, "Spring", (void *)1, 0);
+    season_item[2] = XPLMAppendMenuItem(seasons_menu, "Summer", (void *)2, 0);
+    season_item[3] = XPLMAppendMenuItem(seasons_menu, "Autumn", (void *)3, 0);
+    // ---------------------
+
+    set_menu();
+
+    // ... and off we go
+    XPLMRegisterFlightLoopCallback(flight_loop_cb, 2.0, NULL);
     return 1;
+
+#if 0
+    // keep in case we need it later
+  fail:
+    log_msg("init failure, can't enable openSAM");
+    init_fail = 1;
+    return 1;
+#endif
 }
 
 
@@ -457,85 +577,9 @@ PLUGIN_API int
 XPluginEnable(void)
 {
     if (init_fail)  // once and for all
-        goto fail;
-
-    if (!init_done) {
-        init_done = 1;
-        XPLMRegisterDataAccessor("opensam/SAM_Library_installed", xplmType_Int, 0, sam_lib_installed_acc,
-                                 NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                 NULL, NULL, NULL, NULL, NULL);
-
-        // create the seasons datarefs
-        for (int i = 0; i < 4; i++)
-            XPLMRegisterDataAccessor(dr_name[i], xplmType_Int, 0, read_season_acc,
-                                     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                     NULL, NULL, NULL, (void *)(long long)i, NULL);
-
-        // own commands
-        XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Manually activate searching for DGS");
-        XPLMRegisterCommandHandler(activate_cmdr, cmd_activate_cb, 0, NULL);
-
-        XPLMCommandRef toggle_ui_cmdr = XPLMCreateCommand("openSAM/toggle_ui", "Toggle UI");
-        XPLMRegisterCommandHandler(toggle_ui_cmdr, cmd_toggle_ui_cb, 0, NULL);
-
-        if (!jw_init() || !dgs_init() || !anim_init()) {
-            log_msg("initialization of a sub-module failed!");
-            goto fail;
-        }
-
-        // build menues
-        XPLMMenuID menu = XPLMFindPluginsMenu();
-        XPLMMenuID os_menu = XPLMCreateMenu("openSAM", menu,
-                                            XPLMAppendMenuItem(menu, "openSAM", NULL, 0),
-                                            NULL, NULL);
-        // openSAM
-        XPLMAppendMenuItemWithCommand(os_menu, "Dock Jetway", dock_cmdr);
-        XPLMAppendMenuItemWithCommand(os_menu, "Undock Jetway", undock_cmdr);
-        XPLMAppendMenuItemWithCommand(os_menu, "Toggle UI", toggle_ui_cmdr);
-        XPLMAppendMenuSeparator(os_menu);
-
-        // openSAM -> Remote control
-        int rc_menu_item = XPLMAppendMenuItem(os_menu, "Remote Control", NULL, 0);
-        anim_menu = XPLMCreateMenu("Remote Control", os_menu, rc_menu_item, anim_menu_cb, NULL);
-
-        XPLMAppendMenuSeparator(os_menu);
-
-        XPLMAppendMenuItemWithCommand(os_menu, "Manually activate searching for DGS", activate_cmdr);
-
-        XPLMAppendMenuSeparator(os_menu);
-
-        // openSAM -> Seasons
-        int seasons_menu_item = XPLMAppendMenuItem(os_menu, "Seasons", NULL, 0);
-        seasons_menu = XPLMCreateMenu("Seasons", os_menu, seasons_menu_item, menu_cb, NULL);
-
-        auto_item = XPLMAppendMenuItem(seasons_menu, "Automatic", (void *)4, 0);
-
-        XPLMAppendMenuSeparator(seasons_menu);
-
-        season_item[0] = XPLMAppendMenuItem(seasons_menu, "Winter", (void *)0, 0);
-        season_item[1] = XPLMAppendMenuItem(seasons_menu, "Spring", (void *)1, 0);
-        season_item[2] = XPLMAppendMenuItem(seasons_menu, "Summer", (void *)2, 0);
-        season_item[3] = XPLMAppendMenuItem(seasons_menu, "Autumn", (void *)3, 0);
-        // ---------------------
-
-        set_menu();
-
-        // ... and off we go
-        XPLMRegisterFlightLoopCallback(flight_loop_cb, 2.0, NULL);
-    }
-
-    probe_ref = XPLMCreateProbe(xplm_ProbeY);
-    if (NULL == probe_ref) {
-        log_msg("Can't create terrain probe");
-        goto fail;
-    }
+        return 0;
 
     return 1;
-
-  fail:
-    log_msg("init failure, can't enable openSAM");
-    init_fail = 1;
-    return 0;
 }
 
 PLUGIN_API void

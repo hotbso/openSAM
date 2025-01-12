@@ -24,8 +24,8 @@
 #include <stddef.h>
 
 #include "openSAM.h"
-#include "os_jw.h"
-#include "os_jw_impl.h"
+#include "samjw.h"
+#include "jwctrl.h"
 
 #if APL
 #  include <OpenAL/al.h>
@@ -36,8 +36,6 @@
 #endif
 
 #include <XPLMCamera.h>
-
-sound_t alert;
 
 static ALuint snd_src;
 static ALuint snd_buffer;
@@ -56,18 +54,17 @@ static const float GAIN_INTERNAL = 0.5f;	/* Quieter in internal views */
         return 0; } \
     } }
 
-int
-sound_init()
+bool
+JwCtrl::sound_dev_init()
 {
     if (NULL == alcGetCurrentContext()) {
         log_msg("cannot open XP11's openAL context");
-        return 0;
+        return false;
     }
 
     audio_dr = XPLMFindDataRef("sim/operation/sound/sound_on");
     paused_dr = XPLMFindDataRef("sim/time/paused");
     view_external_dr = XPLMFindDataRef("sim/graphics/view/view_is_external");
-
 
     alGenSources(1, &snd_src);
     CHECKERR("can't create sound source");
@@ -75,8 +72,8 @@ sound_init()
     alGenBuffers(1, &snd_buffer);
     CHECKERR("can't generate sound buffer");
 
-    alBufferData(snd_buffer, alert.num_channels == 2 ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16,
-                 alert.data, alert.size, alert.sample_rate);
+    alBufferData(snd_buffer, alert_.num_channels == 2 ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16,
+                 alert_.data, alert_.size, alert_.sample_rate);
     CHECKERR("alBufferData");
 
     alSourcei(snd_src, AL_BUFFER, snd_buffer);
@@ -88,10 +85,10 @@ sound_init()
     alSourcefv(snd_src, AL_VELOCITY, zero);
     if (alGetError()) {
         log_msg("sound init error");
-        return 0;
+        return false;
     }
 
-    return 1;
+    return true;
 }
 void
 JwCtrl::alert_on()
@@ -138,10 +135,10 @@ JwCtrl::alert_setpos()
     float cos_h = cosf(camera.heading);
     float sin_h = sinf(camera.heading);
 
-    float rot1 = RA((jw->rotate1 + jw->psi) - 90.0f);
-    float dx = jw->x + (jw->extent + jw->cabinPos) * cosf(rot1 * D2R) - camera.x;
-    float dy = jw->y + jw->height - camera.y;
-    float dz = jw->z + (jw->extent + jw->cabinPos) * sinf(rot1 * D2R) - camera.z;
+    float rot1 = RA((jw_->rotate1 + jw_->psi) - 90.0f);
+    float dx = jw_->x + (jw_->extent + jw_->cabinPos) * cosf(rot1 * D2R) - camera.x;
+    float dy = jw_->y + jw_->height - camera.y;
+    float dz = jw_->z + (jw_->extent + jw_->cabinPos) * sinf(rot1 * D2R) - camera.z;
 
     ALfloat snd_rel[3];
     snd_rel[0] =  cos_h * dx + sin_h * dz;

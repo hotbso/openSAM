@@ -22,6 +22,11 @@
 #ifndef _PLANE_H_
 #define _PLANE_H_
 
+#include "jwctrl.h"
+
+static const int kNearJwLimit{3};   // max # of jetways we consider for docking
+static const int kMaxNearest{10};   // max # jetways / door we consider as nearest
+
 //
 // Generic class that provides all plane related values for jetway animation.
 //
@@ -30,31 +35,36 @@ class Plane {
   friend class MpPlane;
 
   public:
+    enum State { DISABLED=0, IDLE, PARKED, SELECT_JWS, CAN_DOCK,
+                 DOCKING, DOCKED, UNDOCKING, CANT_DOCK };
+
     // readonly use!
+    float x_, y_, z_, psi_;
     int n_door_;
     DoorInfo door_info_[kMaxDoor];
 
-    Plane(): n_door_(0) {}
+    std::vector<JwCtrl> active_jws_;
+    int n_nearest_jws_;
+    std::array<JwCtrl, kMaxNearest> nearest_jws_;
+
+    Plane(): n_door_(0), state_(IDLE), prev_state_(DISABLED) {}
 
     // update internal state
     virtual void update() = 0;
     virtual void memorize_parked_pos() {} // for teleportation detection
 
     // general state
-    virtual bool is_mp() = 0;           // is multiplayer
+    virtual bool is_myplane() = 0;
     virtual std::string& icao() = 0;
-
-    // position an heading
-    virtual float x() = 0;
-    virtual float y() = 0;
-    virtual float z() = 0;
-    virtual float hdgt() = 0;
 
     // detailed state
     virtual bool on_ground() = 0;
     virtual bool beacon_on() = 0;
     virtual bool parkbrake_set() = 0;
     virtual bool engines_on() = 0;
+
+    State state_, prev_state_;
+    float jw_state_machine();
 };
 
 //
@@ -83,9 +93,11 @@ class MyPlane : public Plane {
     float on_ground_ts_;
 
     float parked_x_, parked_z_;
-    int parked_ngen_;
+    unsigned parked_ngen_;
 
   public:
+    static void init();         // call once
+
     // readonly use!
     bool dont_connect_jetway_;                       // after beacon off, e.g. Zibo
     bool is_helicopter_;
@@ -102,26 +114,27 @@ class MyPlane : public Plane {
     void memorize_parked_pos(); // for teleportation detection
     bool check_teleportation();
 
-    bool is_mp() { return false; }
+    bool is_myplane() { return true; }
     std::string& icao() { return icao_; }
 
     float lat() { return XPLMGetDataf(plane_lat_dr_); }
     float lon() { return XPLMGetDataf(plane_lon_dr_); }
     float elevation() { return XPLMGetDataf(plane_elevation_dr_); }
 
-    float x() { return XPLMGetDataf(plane_x_dr_); }
-    float y() { return XPLMGetDataf(plane_y_dr_); }
-    float z() { return XPLMGetDataf(plane_z_dr_); }
-    float hdgt() { return XPLMGetDataf(plane_true_psi_dr_); }
     float y_agl() { return XPLMGetDataf(plane_y_agl_dr_); }
 
     bool on_ground() { return on_ground_; }
     bool beacon_on() { return beacon_on_; }
     bool parkbrake_set() { return (XPLMGetDataf(parkbrake_dr_) > 0.5f); }
     bool engines_on();
+
+    void auto_mode_change(); // hook for the ui
 };
 
 extern std::vector<Plane*> planes;
 extern MyPlane* my_plane;
-extern bool plane_init();
+
+// from os_ui.c
+extern int ui_unlocked; // the ui is unlocked for jw_selection
+extern void update_ui(int only_if_visible);
 #endif

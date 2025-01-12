@@ -32,10 +32,217 @@
 #include "XPLMNavigation.h"
 
 #include "plane.h"
+#include "samjw.h"
 
 MyPlane* my_plane;
 std::vector<Plane*> planes;
 
+static const float kAnimInterval = -1;   // s for debugging or -1 for frame loop
+
+static const char * const state_str[] = {
+    "DISABLED", "IDLE", "PARKED", "SELECT_JWS", "CAN_DOCK",
+    "DOCKING", "DOCKED", "UNDOCKING", "CANT_DOCK" };
+
+// the state machine called from the flight loop
+float
+Plane::jw_state_machine()
+{
+    if (state_ == DISABLED)
+        return 2.0;
+
+    State new_state{state_};
+
+    bool beacon_on = this->beacon_on();
+    bool on_ground = this->on_ground();
+
+    if (state_ > IDLE && my_plane->check_teleportation()) {
+        log_msg("teleportation detected!");
+        state_ = new_state = IDLE;
+
+        for (auto & ajw : active_jws_)
+            ajw.reset();
+
+        SamJw::reset_all();
+    }
+
+    unsigned n_done;
+
+    switch (state_) {
+        case IDLE:
+            if (prev_state_ != IDLE) {
+                active_jws_.resize(0);
+                n_nearest_jws_ = 0;
+                nearest_jws_ = {};
+            }
+
+            if (on_ground && !beacon_on) {
+                if (is_myplane()) {
+                    // memorize position teleportation detection
+                    memorize_parked_pos();
+
+                    // reset stale command invocations
+                    dock_requested = undock_requested = toggle_requested = 0;
+                }
+
+                new_state = PARKED;
+            }
+            break;
+
+        case PARKED: {
+                if (JwCtrl::find_nearest_jws(this))
+                    new_state = SELECT_JWS;
+                else
+                    new_state = CANT_DOCK;
+            }
+            break;
+
+        case SELECT_JWS:
+            if (beacon_on) {
+                log_msg("SELECT_JWS and beacon goes on");
+                new_state = IDLE;
+                break;
+            }
+
+            // mp planes always have auto_select_jws
+            if (!is_myplane() || ::auto_select_jws) {
+                JwCtrl::select_jws(my_plane);
+            } else if (prev_state_ != state_) {
+                ui_unlocked = 1;    // allow jw selection in the ui
+                update_ui(1);
+            }
+
+            // or wait for GUI selection
+            if (active_jws_.size()) {
+                for (auto & ajw : active_jws_) {
+                    log_msg("setting up active jw for door: %d", ajw.door_);
+                    ajw.setup_for_door(this, door_info_[ajw.door_]);
+
+                    if (ajw.door_ == 0) // slightly slant towards the nose cone for door LF1
+                        ajw.door_rot2_ += 3.0f;
+                }
+
+                new_state = CAN_DOCK;
+            }
+            break;
+
+        case CAN_DOCK:
+            if (beacon_on) {
+                log_msg("CAN_DOCK and beacon goes on");
+                new_state = IDLE;
+            }
+
+            // mp planes always dock directly
+            if (!is_myplane() || 1 == ::dock_requested || ::toggle_requested) {
+                log_msg("docking requested");
+                float start_ts = now;
+                for (auto & ajw : active_jws_) {
+                    // staggered start for docking low to high
+                    ajw.setup_dock_undock(start_ts);
+                    start_ts += 5.0f;
+                }
+
+                new_state = DOCKING;
+            }
+            break;
+
+        case CANT_DOCK:
+            if (!on_ground || beacon_on) {
+                new_state = IDLE;
+                break;
+            }
+            break;
+
+        case DOCKING:
+            n_done = 0;
+            for (auto & ajw : active_jws_) {
+                if (ajw.dock_drive())
+                    n_done++;
+            }
+
+            if (n_done == active_jws_.size()) {
+                XPLMCommandRef cmdr = XPLMFindCommand("openSAM/post_dock");
+                if (cmdr)
+                    XPLMCommandOnce(cmdr);
+                new_state = DOCKED;
+            }
+            else
+                return kAnimInterval;
+            break;
+
+        case DOCKED:
+            if (!on_ground) {
+                new_state = IDLE;
+                break;
+            }
+
+            if (beacon_on) {
+                log_msg("DOCKED and beacon goes on");
+                undock_requested = 1;
+            }
+
+            if (!is_myplane() || 1 == ::undock_requested || ::toggle_requested) {
+                log_msg("undocking requested");
+
+                float start_ts = now + active_jws_.size() * 5.0f;
+                for (auto & ajw : active_jws_) {
+                    // staggered start for undocking high to low
+                    start_ts -= 5.0f;
+                    ajw.setup_dock_undock(start_ts);
+                }
+
+                XPLMCommandRef cmdr = XPLMFindCommand("openSAM/pre_undock");
+                if (cmdr)
+                    XPLMCommandOnce(cmdr);
+
+                new_state = UNDOCKING;
+            }
+            break;
+
+        case UNDOCKING:
+            n_done = 0;
+            for (auto & ajw : active_jws_) {
+                if (ajw.undock_drive())
+                    n_done++;
+            }
+
+            if (n_done == active_jws_.size())
+               new_state = IDLE;
+            else
+                return kAnimInterval;
+            break;
+
+        default:
+            log_msg("Bad state %d", state_);
+            new_state = DISABLED;
+            break;
+    }
+
+    // we use an extra cycle for dock/undock for better integration with the UI
+    if (is_myplane()) {
+        ::dock_requested--;
+        ::undock_requested--;
+        ::toggle_requested = 0;
+    }
+
+    prev_state_ = state_;
+
+    if (new_state != state_) {
+        log_msg("jw state transition %s -> %s, beacon: %d", state_str[state_], state_str[new_state], beacon_on);
+        state_ = new_state;
+
+        // from anywhere to idle nullifies all selections
+        if (state_ == IDLE) {
+            active_jws_.resize(0);
+            n_nearest_jws_ = 0;
+        }
+
+        ui_unlocked = 0;
+        update_ui(1);
+        return -1;  // see you on next frame
+    }
+
+    return 0.5;
+}
 
 static bool find_icao_in_file(const std::string& acf_icao, const std::string& fn);
 
@@ -65,6 +272,7 @@ MyPlane::MyPlane() : icao_("0000")
     acf_door_z_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_z");
     acf_livery_path_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_livery_path");
 
+    active_jws_.reserve(kMaxDoor);
     reset_beacon();
 }
 
@@ -230,6 +438,11 @@ void MyPlane::livery_loaded()
 void
 MyPlane::update()
 {
+    x_ = XPLMGetDataf(plane_x_dr_);
+    y_ = XPLMGetDataf(plane_y_dr_);
+    z_ = XPLMGetDataf(plane_z_dr_);
+    psi_=XPLMGetDataf(plane_true_psi_dr_);
+
     // on ground detection
     int og = (XPLMGetDataf(gear_fnrml_dr_) != 0.0);
     if (og != on_ground_ && now > on_ground_ts_ + 10.0f) {
@@ -266,8 +479,8 @@ MyPlane::update()
 void
 MyPlane::memorize_parked_pos()
 {
-    parked_x_ = x();
-    parked_z_ = z();
+    parked_x_ = x_;
+    parked_z_ = z_;
     parked_ngen_ = ::ref_gen;
 
     // find airport I'm on now to ease debugging
@@ -289,13 +502,9 @@ MyPlane::check_teleportation()
 	if (! on_ground())
 		return false;
 
-    float x = this->x();
-    float z = this->z();
-    int ngen = ::ref_gen;
-
-    if (parked_ngen_ != ngen || fabsf(parked_x_ - x) > 1.0f || fabsf(parked_z_ - z) > 1.0f) {
+    if (parked_ngen_ != ::ref_gen || fabsf(parked_x_ - x_) > 1.0f || fabsf(parked_z_ - z_) > 1.0f) {
         log_msg("parked_ngen: %d, ngen: %d, parked_x: %0.3f, x: %0.3f, parked_z: %0.3f, z: %0.3f",
-                parked_ngen_, ngen, parked_x_, x, parked_z_, z);
+                parked_ngen_, ::ref_gen, parked_x_, x_, parked_z_, z_);
         return true;
     }
 
@@ -323,12 +532,27 @@ MyPlane::engines_on()
     return false;
 }
 
-bool
-plane_init()
+// hook for the ui
+void
+MyPlane::auto_mode_change()
 {
+    if (state_ == SELECT_JWS || state_ == CAN_DOCK)
+        state_ = IDLE;
+    else {
+        for (auto & ajw : active_jws_)
+            ajw.reset();    // an animation might be ongoing
+    }
+}
+
+// static
+void
+MyPlane::init()
+{
+    if (my_plane != nullptr)
+        throw OsEx("MyPlane is already initialized");
+
     my_plane = new MyPlane();
     planes.push_back(my_plane);
-    return true;
 }
 
 static bool

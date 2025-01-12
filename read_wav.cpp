@@ -25,8 +25,7 @@
 #include <string.h>
 
 #include "openSAM.h"
-#include "os_jw.h"
-#include "os_jw_impl.h"
+#include "jwctrl.h"
 
 typedef struct WAV_FORMAT {
 	short		format;
@@ -57,9 +56,9 @@ typedef struct WAV_HEADER
 // file than the ones supplied here.
 //
 void
-read_wav(const std::string& fname, sound_t *sound)
+read_wav(const std::string& fname, Sound& sound)
 {
-    memset(sound, 0, sizeof(sound_t));
+    sound = {};
 
 	FILE *f = fopen(fname.c_str(), "rb");
     if (NULL == f) {
@@ -107,10 +106,10 @@ read_wav(const std::string& fname, sound_t *sound)
 
             fclose(f);
 
-            sound->data = data;
-            sound->size = chunk.size;
-            sound->sample_rate = header.fmt.sample_rate;
-            sound->num_channels = header.fmt.num_channels;
+            sound.data = data;
+            sound.size = chunk.size;
+            sound.sample_rate = header.fmt.sample_rate;
+            sound.num_channels = header.fmt.num_channels;
             return;
         } else
             fseek(f, chunk.size, SEEK_CUR); // skip over chunk

@@ -23,15 +23,14 @@
 #include <cstddef>
 
 #include "openSAM.h"
-#include "os_jw.h"
-#include "os_jw_impl.h"
+#include "samjw.h"
+#include "jwctrl.h"
 
-sound_t alert;
 
-int
-sound_init()
+bool
+JwCtrl::sound_dev_init()
 {
-    return 1;
+    return true;
 };
 
 static void
@@ -40,38 +39,41 @@ alert_complete(void *ref, FMOD_RESULT status)
     UNUSED(status);
 
     JwCtrl *ajw = (JwCtrl *)ref;
-    ajw->alert_chn = NULL;
+    ajw->alert_chn_ = NULL;
 }
 
-auto JwCtrl::alert_on() -> void
+void
+JwCtrl::alert_on()
 {
-    if (alert_chn)
+    if (alert_chn_)
         return;
-    alert_chn = XPLMPlayPCMOnBus(alert.data, alert.size, FMOD_SOUND_FORMAT_PCM16,
-                                      alert.sample_rate, alert.num_channels, 1,
+    alert_chn_ = XPLMPlayPCMOnBus(alert_.data, alert_.size, FMOD_SOUND_FORMAT_PCM16,
+                                      alert_.sample_rate, alert_.num_channels, 1,
                                       xplm_AudioExteriorUnprocessed,
                                       alert_complete, this);
 
     alert_setpos();
-    XPLMSetAudioFadeDistance(alert_chn, 20.0f, 150.0f );
-    XPLMSetAudioVolume(alert_chn, 1.3f);
+    XPLMSetAudioFadeDistance(alert_chn_, 20.0f, 150.0f );
+    XPLMSetAudioVolume(alert_chn_, 1.3f);
 }
 
-auto JwCtrl::alert_off() -> void
+void
+JwCtrl::alert_off()
 {
-    if (alert_chn)
-        XPLMStopAudio(alert_chn);
-    alert_chn = NULL;
+    if (alert_chn_)
+        XPLMStopAudio(alert_chn_);
+    alert_chn_ = NULL;
 }
 
-auto JwCtrl::alert_setpos() -> void
+void
+JwCtrl::alert_setpos()
 {
     static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
     FMOD_VECTOR pos;
 
-    float rot1 = RA((jw->rotate1 + jw->psi) - 90.0f);
-    pos.x = jw->x + (jw->extent + jw->cabinPos) * cosf(rot1 * D2R);
-    pos.y = jw->y + jw->height;
-    pos.z = jw->z + (jw->extent + jw->cabinPos) * sinf(rot1 * D2R);
-    XPLMSetAudioPosition(alert_chn, &pos, &vel);
+    float rot1 = RA((jw_->rotate1 + jw_->psi) - 90.0f);
+    pos.x = jw_->x + (jw_->extent + jw_->cabinPos) * cosf(rot1 * D2R);
+    pos.y = jw_->y + jw_->height;
+    pos.z = jw_->z + (jw_->extent + jw_->cabinPos) * sinf(rot1 * D2R);
+    XPLMSetAudioPosition(alert_chn_, &pos, &vel);
 }
