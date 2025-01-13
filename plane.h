@@ -25,7 +25,6 @@
 #include "jwctrl.h"
 
 static const int kNearJwLimit{3};   // max # of jetways we consider for docking
-static const int kMaxNearest{10};   // max # jetways / door we consider as nearest
 
 //
 // Generic class that provides all plane related values for jetway animation.
@@ -50,14 +49,16 @@ class Plane {
     static const char * const state_str_[];
 
     // readonly use!
-    int n_door_;
+    unsigned n_door_;
     DoorInfo door_info_[kMaxDoor];
 
     std::vector<JwCtrl> active_jws_;
-    int n_nearest_jws_;
-    std::array<JwCtrl, kMaxNearest> nearest_jws_;
+    std::vector<JwCtrl> nearest_jws_;
 
-    Plane(): state_machine_next_ts_(0), id_(0), n_door_(0), state_(DISABLED), prev_state_(DISABLED) {}
+    Plane(): state_machine_next_ts_(0), id_(0), n_door_(0), state_(DISABLED), prev_state_(DISABLED) {
+        nearest_jws_.reserve(10);
+        active_jws_.resize(kMaxDoor);
+    }
 
     // update internal state
     virtual void update() = 0;
@@ -80,6 +81,10 @@ class Plane {
     bool engines_on() const { return engines_on_; }
 
     State state_, prev_state_;
+
+    // auto select jetways
+    void select_jws();
+
     float jw_state_machine();
 };
 

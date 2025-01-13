@@ -43,6 +43,46 @@ const char * const Plane::state_str_[] = {
     "DISABLED", "IDLE", "PARKED", "SELECT_JWS", "CAN_DOCK",
     "DOCKING", "DOCKED", "UNDOCKING", "CANT_DOCK" };
 
+// auto select active jetways
+void
+Plane::select_jws()
+{
+    if (n_door_ == 0)
+        return;
+
+    bool have_hard_match = false;
+    for (auto & njw : nearest_jws_)
+        if (!njw.soft_match_) {
+            have_hard_match = true;
+            break;
+        }
+
+    unsigned i_door = 0;
+    unsigned i_jw = 0;
+    while (i_jw < nearest_jws_.size()) {
+        if (have_hard_match && nearest_jws_[i_jw].soft_match_)
+            goto skip;
+
+        // skip over collisions
+        for (unsigned j = i_jw + 1; j < nearest_jws_.size(); j++)
+            if (nearest_jws_[i_jw].collision_check(nearest_jws_[j]))
+                goto skip;
+
+        nearest_jws_[i_jw].door_ = i_door;
+        active_jws_.push_back(nearest_jws_[i_jw]);
+        log_msg("active jetway for door %d: %s", i_door, active_jws_.back().jw_->name);
+        i_door++;
+        if (i_door >= n_door_)
+            break;
+
+      skip:
+        i_jw++;
+    }
+
+    if (active_jws_.size() == 0)
+        log_msg("Oh no, no active jetways left in select_jws()!");
+}
+
 // the state machine called from the flight loop
 float
 Plane::jw_state_machine()
@@ -64,6 +104,8 @@ Plane::jw_state_machine()
         for (auto & ajw : active_jws_)
             ajw.reset();
 
+        nearest_jws_.resize(0);
+        active_jws_.resize(0);
         SamJw::reset_all();
     }
 
@@ -73,8 +115,7 @@ Plane::jw_state_machine()
         case IDLE:
             if (prev_state_ != IDLE) {
                 active_jws_.resize(0);
-                n_nearest_jws_ = 0;
-                nearest_jws_ = {};
+                nearest_jws_.resize(0);
             }
 
             if (on_ground_ && !beacon_on_) {
@@ -91,7 +132,7 @@ Plane::jw_state_machine()
             break;
 
         case PARKED: {
-                if (JwCtrl::find_nearest_jws(this))
+                if (JwCtrl::find_nearest_jws(this, nearest_jws_))
                     new_state = SELECT_JWS;
                 else
                     new_state = CANT_DOCK;
@@ -107,7 +148,7 @@ Plane::jw_state_machine()
 
             // mp planes always have auto_select_jws
             if (!is_myplane() || ::auto_select_jws) {
-                JwCtrl::select_jws(this);
+                select_jws();
             } else if (prev_state_ != state_) {
                 ui_unlocked = 1;    // allow jw selection in the ui
                 update_ui(1);
@@ -239,7 +280,7 @@ Plane::jw_state_machine()
         // from anywhere to idle nullifies all selections
         if (state_ == IDLE) {
             active_jws_.resize(0);
-            n_nearest_jws_ = 0;
+            nearest_jws_.resize(0);
         }
 
         if (is_myplane()) {
@@ -282,7 +323,6 @@ MyPlane::MyPlane()
     acf_door_z_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_z");
     acf_livery_path_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_livery_path");
 
-    active_jws_.reserve(kMaxDoor);
     icao_ = "0000";
     reset_beacon();
     state_ = IDLE;
@@ -548,11 +588,12 @@ MyPlane::reset_beacon()
 void
 MyPlane::auto_mode_change()
 {
-    if (state_ == SELECT_JWS || state_ == CAN_DOCK)
-        state_ = IDLE;
-    else {
+    if (state_ == DOCKING || state_ == UNDOCKING) {
         for (auto & ajw : active_jws_)
             ajw.reset();    // an animation might be ongoing
+        state_ = IDLE;
+    } else if (state_ == SELECT_JWS || state_ == CAN_DOCK) {
+        state_ = PARKED;
     }
 }
 

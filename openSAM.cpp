@@ -27,11 +27,11 @@
 #include <fstream>
 
 #include "openSAM.h"
+#include "plane.h"
 #include "os_dgs.h"
 #include "samjw.h"
 #include "jwctrl.h"
 #include "os_anim.h"
-#include "plane.h"
 
 #include "XPLMPlugin.h"
 #include "XPLMProcessing.h"

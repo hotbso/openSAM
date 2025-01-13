@@ -193,7 +193,8 @@ operator<(const JwCtrl& a, const JwCtrl& b)
 
 // filter list of jetways jws[]for candidates and add them to nearest_jws[]
 static void
-filter_candidates(Plane *plane, std::vector<SamJw*> &jws, const DoorInfo& door_info, float& dist_threshold)
+filter_candidates(Plane* plane, std::vector<JwCtrl>& nearest_jws,
+                  std::vector<SamJw*> &jws, const DoorInfo& door_info)
 {
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
     // So we find the nearest jetways on the left and do some heuristics
@@ -219,9 +220,6 @@ filter_candidates(Plane *plane, std::vector<SamJw*> &jws, const DoorInfo& door_i
             continue;
         }
 
-        if (njw.z_ > dist_threshold)
-            continue;
-
         if (!(BETWEEN(njw.door_rot1_, jw_->minRot1, jw_->maxRot1) && BETWEEN(njw.door_rot2_, jw_->minRot2, jw_->maxRot2)
             && BETWEEN(njw.door_extent_, jw_->minExtent, jw_->maxExtent))) {
             log_msg("jw_: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
@@ -240,22 +238,15 @@ filter_candidates(Plane *plane, std::vector<SamJw*> &jws, const DoorInfo& door_i
                 "rot1: %0.1f, extent: %.1f",
                 jw_->name, jw_->library_id, jw_->door,
                 njw.x_, njw.z_, njw.y_, njw.psi_, njw.door_rot1_, njw.door_extent_);
-        plane->nearest_jws_[plane->n_nearest_jws_] = njw;
-        plane->n_nearest_jws_++;
 
-        // if full, sort by dist and trim down to kNearJwLimit
-        if (plane->n_nearest_jws_ == kMaxNearest) {
-            std::sort(plane->nearest_jws_.begin(), plane->nearest_jws_.end());
-            plane->n_nearest_jws_ = kNearJwLimit;
-            dist_threshold = plane->nearest_jws_[kNearJwLimit - 1].z_;
-        }
+        nearest_jws.push_back(njw);
     }
 }
 
 // find nearest jetways, order by z (= door number, hopefully)
 // static member, called by Plane
 int
-JwCtrl::find_nearest_jws(Plane* plane)
+JwCtrl::find_nearest_jws(Plane* plane, std::vector<JwCtrl>& nearest_jws)
 {
     int n_door = plane->n_door_;
     if (n_door == 0) {
@@ -281,25 +272,22 @@ JwCtrl::find_nearest_jws(Plane* plane)
     avg_di.z /= n_door;
     avg_di.y = plane->door_info_[0].y;
 
-    plane->n_nearest_jws_ = 0;
-    float dist_threshold = 1.0E10f;
+    nearest_jws.resize(0);
 
     // custom jws
     for (auto sc : sceneries)
-        filter_candidates(plane, sc->sam_jws, avg_di, dist_threshold);
+        filter_candidates(plane, nearest_jws, sc->sam_jws, avg_di);
 
     // and zero config jetways
-    filter_candidates(plane, zc_jws, avg_di, dist_threshold);
+    filter_candidates(plane, nearest_jws, zc_jws, avg_di);
 
-    if (plane->n_nearest_jws_ > 1) { // final sort + trim down to limit
-        plane->n_nearest_jws_ = std::min(plane->n_nearest_jws_, kMaxNearest);  // required to keep the compiler happy
-        std::sort(plane->nearest_jws_.begin(), &plane->nearest_jws_[plane->n_nearest_jws_]);
-        plane->n_nearest_jws_ = std::min(plane->n_nearest_jws_, kNearJwLimit);
-    }
+    // sort for door assignment
+    std::sort(nearest_jws.begin(), nearest_jws.end());
 
     // fake names for zc jetways
-    for (int i = 0; i < plane->n_nearest_jws_; i++) {
-        SamJw *jw_ = plane->nearest_jws_[i].jw_;
+    int i{0};
+    for (auto & njw : nearest_jws) {
+        SamJw *jw_ = njw.jw_;
         if (jw_->is_zc_jw) {
             Stand *stand = jw_->stand;
             if (stand) {
@@ -316,10 +304,12 @@ JwCtrl::find_nearest_jws(Plane* plane)
                 snprintf(jw_->name, sizeof(jw_->name) -1, "%s_%c", buf, i + 'A');
             } else
                 snprintf(jw_->name, sizeof(jw_->name) -1, "zc_%c", i + 'A');
+
+            i++;
         }
     }
 
-    return plane->n_nearest_jws_;
+    return nearest_jws.size();
 }
 
 // det of 2 column vectors x,y
@@ -329,9 +319,9 @@ det(float x1, float x2, float y1, float y2)
     return x1 * y2 - x2 * y1;
 }
 
-// check whether extended nearest jw_ i would crash into parked jw_ j
-static
-int jw_collision_check(Plane *plane, int i, int j)
+// check whether extended nearest njw would crash into parked njw2
+bool
+JwCtrl::collision_check(const JwCtrl &njw2)
 {
     // S = start, E = extended, P = parked; all (x, z) vectors
     // we solve
@@ -340,74 +330,32 @@ int jw_collision_check(Plane *plane, int i, int j)
     //          A                B          C
     // if the solutions for s, t are in [0,1] there is collision
 
-    const JwCtrl &njw1 = plane->nearest_jws_[i];
-    const JwCtrl &njw2 = plane->nearest_jws_[j];
-
     // x, z in the door frame
-    float A1 = njw1.door_x_ - njw1.x_;
-    float A2 =              - njw1.z_;   // door_z is 0 in the door frame
+    float A1 = door_x_ - x_;
+    float A2 =         - z_;   // door_z is 0 in the door frame
 
     float B1 = -(njw2.parked_x_ - njw2.x_);
     float B2 = -(njw2.parked_z_ - njw2.z_);
 
-    float C1 = njw2.x_ - njw1.x_;
-    float C2 = njw2.z_ - njw1.z_;
+    float C1 = njw2.x_ - x_;
+    float C2 = njw2.z_ - z_;
 
     float d = det(A1, A2, B1, B2);
     if (fabsf(d) < 0.2f)
-        return 0;
+        return false;
 
     float s = det(C1, C2, B1, B2) / d;
     float t = det(A1, A2, C1, C2) / d;
-    log_msg("check between jw_ %d and %d, s = %0.2f, t = %0.2f", i, j, s, t);
+    log_msg("collision check between jw_ %s and %s, s = %0.2f, t = %0.2f", jw_->name, njw2.jw_->name, s, t);
 
     if (BETWEEN(t, 0.0f, 1.0f) && BETWEEN(s, 0.0f, 1.0f)) {
-        log_msg("collision between jw_ %d and %d, s = %0.2f, t = %0.2f", i, j, s, t);
-        return 1;
+        log_msg("collision detected");
+        return true;
     }
 
-    return 0;
+    return false;
 }
 
-// static member auto select active jetways
-void
-JwCtrl::select_jws(Plane* plane)
-{
-    if (plane->n_door_ == 0)
-        return;
-
-    int have_hard_match = 0;
-    for (int i = 0; i < plane->n_nearest_jws_; i++)
-        if (!plane->nearest_jws_[i].soft_match_) {
-            have_hard_match = 1;
-            break;
-        }
-
-    int i_door = 0;
-    int i_jw = 0;
-    while (i_jw < plane->n_nearest_jws_) {
-        if (have_hard_match && plane->nearest_jws_[i_jw].soft_match_)
-            goto skip;
-
-        // skip over collisions
-        for (int j = i_jw + 1; j < plane->n_nearest_jws_; j++)
-            if (jw_collision_check(plane, i_jw, j))
-                goto skip;
-
-        plane->nearest_jws_[i_jw].door_ = i_door;
-        plane->active_jws_.push_back(plane->nearest_jws_[i_jw]);
-        log_msg("active jetway for door %d: %s", i_door, plane->active_jws_.back().jw_->name);
-        i_door++;
-        if (i_door >= plane->n_door_)
-            break;
-
-      skip:
-        i_jw++;
-    }
-
-    if (plane->active_jws_.size() == 0)
-        log_msg("Oh no, no active jetways left in select_jws()!");
-}
 
 // all the animation methods
 bool

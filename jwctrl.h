@@ -49,7 +49,7 @@ class JwCtrl {
         PARKED,
         TO_AP, AT_AP, TO_DOOR, DOCKED,  // sequence for docking
 
-        // TO_AP,                                   // sequence for undocking
+        // TO_AP,                       // sequence for undocking
         TO_PARK };
 
     int door_;          // active JwCtrl associated with door #
@@ -104,10 +104,10 @@ class JwCtrl {
 
   public:
     // find nearest jetways, order by z (= door number, hopefully)
-    static int find_nearest_jws(Plane* plane);
+    static int find_nearest_jws(Plane* plane, std::vector<JwCtrl>& nearest_jws);
 
-    // auto select jetways
-    static void select_jws(Plane* plane);
+    // check whether extended nearest njw would crash into parked njw2
+    bool collision_check(const JwCtrl &njw2);
 
     // setup for operation
     void setup_dock_undock(float start_time);

@@ -108,16 +108,16 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
         return 1;
     }
 
-    int n_door = my_plane->n_door_;
+    unsigned n_door = my_plane->n_door_;
 
     if (msg == xpMsg_PushButtonPressed && widget_id == dock_btn) {
         log_msg("Dock pressed");
         if (! auto_select_jws && ui_unlocked) {
             my_plane->active_jws_.resize(0);
 
-            for (int i = 0; i < n_door; i++) {
+            for (unsigned i = 0; i < n_door; i++) {
                 // check for a selected button
-                for (int j = 0; j < my_plane->n_nearest_jws_; j++) {
+                for (unsigned j = 0; j < my_plane->nearest_jws_.size(); j++) {
                     int state = (uint64_t)XPGetWidgetProperty(jw_btn[i][j], xpProperty_ButtonState, NULL);
                     if (state) {
                         log_msg("active jw for door %d is %s", i, my_plane->nearest_jws_[j].jw_->name);
@@ -152,8 +152,8 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
     if (msg == xpMsg_ButtonStateChanged) {
         // find index of button
         int idoor = -1, ijw = -1;
-        for (int i = 0; i < n_door; i++)
-            for (int j = 0; j < my_plane->n_nearest_jws_; j++)
+        for (unsigned i = 0; i < n_door; i++)
+            for (unsigned j = 0; j < my_plane->nearest_jws_.size(); j++)
                 if (jw_btn[i][j] == widget_id) {
                     idoor = i;
                     ijw = j;
@@ -170,13 +170,13 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
                 my_plane->nearest_jws_[ijw].jw_->name, new_state);
 
         // unselect all other buttons for the selected door
-        for (int j = 0; j < my_plane->n_nearest_jws_; j++)
-            if (j != ijw)
+        for (unsigned j = 0; j < my_plane->nearest_jws_.size(); j++)
+            if ((int)j != ijw)
                 XPSetWidgetProperty(jw_btn[idoor][j], xpProperty_ButtonState, 0);
 
         // unselect selected jw for other doors
-        for (int i = 0; i < n_door; i++)
-            if (i != idoor)
+        for (unsigned i = 0; i < n_door; i++)
+            if ((int)i != idoor)
                 XPSetWidgetProperty(jw_btn[i][ijw], xpProperty_ButtonState, 0);
 
         return 1;
@@ -197,14 +197,14 @@ update_ui(int only_if_visible)
     XPSetWidgetProperty(auto_btn, xpProperty_ButtonState, auto_select_jws);
 
     // hide everything
-    for (int i = 0; i < kMaxDoor; i++)
-        for (int j = 0; j < kNearJwLimit; j++)
+    for (unsigned i = 0; i < kMaxDoor; i++)
+        for (unsigned j = 0; j < kNearJwLimit; j++)
             XPHideWidget(jw_btn[i][j]);
 
     // if manual selection set label and unhide
     if (ui_unlocked && !auto_select_jws) {
-        for (int i = 0; i < my_plane->n_door_; i++)
-            for (int j = 0; j < my_plane->n_nearest_jws_; j++) {
+        for (unsigned i = 0; i < my_plane->n_door_; i++)
+            for (unsigned j = 0; j < my_plane->nearest_jws_.size(); j++) {
                 JwCtrl *njw = &my_plane->nearest_jws_[j];
                 SamJw *jw = njw->jw_;
 
