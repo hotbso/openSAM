@@ -366,10 +366,10 @@ find_nearest_stand()
     float plane_lat = my_plane->lat();
     float plane_lon = my_plane->lon();
 
-    float plane_x = my_plane->x_;
-    float plane_z = my_plane->z_;
+    float plane_x = my_plane->x();
+    float plane_z = my_plane->z();
 
-    float plane_hdgt = my_plane->psi_;
+    float plane_hdgt = my_plane->psi();
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
@@ -540,10 +540,10 @@ dgs_state_machine()
     // xform plane pos into stand local coordinate system
 
     float local_x, local_z;
-    nearest_stand->global_2_stand(my_plane->x_, my_plane->z_, local_x, local_z);
+    nearest_stand->global_2_stand(my_plane->x(), my_plane->z(), local_x, local_z);
 
     // relative reading to stand +/- 180
-    float local_hdgt = RA(my_plane->psi_ - nearest_stand->hdgt);
+    float local_hdgt = RA(my_plane->psi() - nearest_stand->hdgt);
 
     // nose wheel
     float nw_z = local_z - my_plane->nose_gear_z_;

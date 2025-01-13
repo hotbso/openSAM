@@ -151,8 +151,8 @@ configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
 {
     // library jetways may be in view from very far away when stand information is not
     // yet available. We won't see details anyway.
-    if (len2f(obj_x - my_plane->x_, obj_z - my_plane->z_) > 0.5f * FAR_SKIP
-        || fabsf(obj_y - my_plane->y_) > 1000.0f)
+    if (len2f(obj_x - my_plane->x(), obj_z - my_plane->z()) > 0.5f * FAR_SKIP
+        || fabsf(obj_y - my_plane->y()) > 1000.0f)
         return nullptr;
 
     SamJw *jw = new SamJw();

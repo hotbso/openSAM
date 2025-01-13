@@ -129,9 +129,9 @@ void
 JwCtrl::setup_for_door(Plane *plane, const DoorInfo& door_info)
 {
     // rotate into plane local frame
-    float dx = jw_->x - plane->x_;
-    float dz = jw_->z - plane->z_;
-    float plane_psi = plane->psi_;
+    float dx = jw_->x - plane->x();
+    float dz = jw_->z - plane->z();
+    float plane_psi = plane->psi();
 
     float sin_psi = sinf(D2R * plane_psi);
     float cos_psi = cosf(D2R * plane_psi);
@@ -150,7 +150,7 @@ JwCtrl::setup_for_door(Plane *plane, const DoorInfo& door_info)
 
     door_x_ = -jw_->cabinLength;
     // tgt z = 0.0
-    y_ = (jw_->y + jw_->height) - (plane->y_ + door_info.y);
+    y_ = (jw_->y + jw_->height) - (plane->y() + door_info.y);
 
     xz_to_sam_dr(door_x_, 0.0f, door_rot1_, door_extent_, &door_rot2_, &door_rot3_);
 

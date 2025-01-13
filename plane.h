@@ -31,15 +31,25 @@ static const int kMaxNearest{10};   // max # jetways / door we consider as neare
 // Generic class that provides all plane related values for jetway animation.
 //
 class Plane {
-  friend class MyPlane;
-  friend class MpPlane;
+    friend class MyPlane;
+    friend class MpPlaneXPMP2;
+
+    float state_machine_next_ts_;    // ts for the next run of the state machine
+
+  protected:
+    bool beacon_on_, engines_on_, on_ground_, parkbrake_set_;
+    std::string icao_;
+    float x_, y_, z_, psi_;
 
   public:
+    int id_;    // id for logging
+
     enum State { DISABLED=0, IDLE, PARKED, SELECT_JWS, CAN_DOCK,
                  DOCKING, DOCKED, UNDOCKING, CANT_DOCK };
 
+    static const char * const state_str_[];
+
     // readonly use!
-    float x_, y_, z_, psi_;
     int n_door_;
     DoorInfo door_info_[kMaxDoor];
 
@@ -47,21 +57,27 @@ class Plane {
     int n_nearest_jws_;
     std::array<JwCtrl, kMaxNearest> nearest_jws_;
 
-    Plane(): n_door_(0), state_(IDLE), prev_state_(DISABLED) {}
+    Plane(): state_machine_next_ts_(0), id_(0), n_door_(0), state_(DISABLED), prev_state_(DISABLED) {}
 
     // update internal state
     virtual void update() = 0;
     virtual void memorize_parked_pos() {} // for teleportation detection
 
+    // position
+    float x() const { return x_; }
+    float y() const { return y_; }
+    float z() const { return z_; }
+    float psi() const { return psi_; }
+
     // general state
     virtual bool is_myplane() = 0;
-    virtual std::string& icao() = 0;
+    std::string& icao() { return icao_; }
 
     // detailed state
-    virtual bool on_ground() = 0;
-    virtual bool beacon_on() = 0;
-    virtual bool parkbrake_set() = 0;
-    virtual bool engines_on() = 0;
+    bool on_ground() const{ return on_ground_; }
+    bool beacon_on() const { return beacon_on_; }
+    bool parkbrake_set() const{ return parkbrake_set_; }
+    bool engines_on() const { return engines_on_; }
 
     State state_, prev_state_;
     float jw_state_machine();
@@ -70,7 +86,7 @@ class Plane {
 //
 // Derived class that represents the XP-pilot's plane.
 // Clearly there is exactly one instance of this class.
-// It is accessible through "MyPlane* my_plane" or as generic plane as "planes[0]".
+// It is accessible through "MyPlane* my_plane" .
 //
 class MyPlane : public Plane {
     XPLMDataRef plane_x_dr_, plane_y_dr_, plane_z_dr_,
@@ -81,15 +97,11 @@ class MyPlane : public Plane {
            acf_icao_dr_, acf_cg_y_dr_, acf_cg_z_dr_, acf_gear_z_dr_,
            acf_door_x_dr_, acf_door_y_dr_, acf_door_z_dr_, acf_livery_path_dr_;
 
-    std::string icao_;
-
     bool use_engines_on_;   // instead of beacon, e.g. Zibo
 
-    bool beacon_on_;
     int beacon_on_pending_;
     float beacon_off_ts_, beacon_on_ts_;
 
-    int on_ground_;
     float on_ground_ts_;
 
     float parked_x_, parked_z_;
@@ -108,14 +120,13 @@ class MyPlane : public Plane {
     void plane_loaded();        // called from XPLM_MSG_PLANE_LOADED handler
     void livery_loaded();       // called from  XPLM_MSG_LIVERY_LOADED handler
 
-    void update();              // called by flight loop, check beacon, on_ground, ....
+    void update() override ;    // called by flight loop, check beacon, on_ground, ....
     void reset_beacon();
 
-    void memorize_parked_pos(); // for teleportation detection
+    void memorize_parked_pos() override ; // for teleportation detection
     bool check_teleportation();
 
-    bool is_myplane() { return true; }
-    std::string& icao() { return icao_; }
+    bool is_myplane() override { return true; }
 
     float lat() { return XPLMGetDataf(plane_lat_dr_); }
     float lon() { return XPLMGetDataf(plane_lon_dr_); }
@@ -123,15 +134,10 @@ class MyPlane : public Plane {
 
     float y_agl() { return XPLMGetDataf(plane_y_agl_dr_); }
 
-    bool on_ground() { return on_ground_; }
-    bool beacon_on() { return beacon_on_; }
-    bool parkbrake_set() { return (XPLMGetDataf(parkbrake_dr_) > 0.5f); }
-    bool engines_on();
-
     void auto_mode_change(); // hook for the ui
 };
 
-extern std::vector<Plane*> planes;
+extern std::vector<Plane*> mp_planes;
 extern MyPlane* my_plane;
 
 // from os_ui.c
