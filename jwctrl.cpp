@@ -43,62 +43,6 @@ static constexpr float kAlignDist = 1.0;     // m abeam door
 
 Sound JwCtrl::alert_;
 
-// opensam/jetway/status dataref
-//  0 = no jetway
-//  1 = can dock
-//  2 = docked
-// -1 = can't dock or in transit
-//
-// ref == 0: opensam/jetway/number
-// ref == 1: opensam/jetway/status
-static int
-jw_status_acc(void *ref)
-{
-    // opensam/jetway/number
-    if (ref == 0)
-        return my_plane->active_jws_.size();
-
-    // opensam/jetway/status
-    if (0 == my_plane->active_jws_.size())
-        return 0;
-
-    if (Plane::CAN_DOCK == my_plane->state_)
-        return 1;
-
-    if (Plane::DOCKED == my_plane->state_)
-        return 2;
-
-    return -1;
-}
-
-// opensam/jetway/door/status array by door
-//  0 = not docked
-//  1 = docked
-//
-static int
-jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n)
-{
-    UNUSED(ref);
-
-    if (values == nullptr)
-        return kMaxDoor;
-
-    if (n <= 0 || ofs < 0 || ofs >= kMaxDoor)
-        return 0;
-
-    n = std::min(n, kMaxDoor - ofs);
-
-    for (int i = 0; i < n; i++) {
-        values[i] = 0;
-    }
-
-    for (auto & ajw : my_plane->active_jws_)
-        if (ajw.state_ == JwCtrl::DOCKED)
-            values[ajw.door_] = 1;
-
-    return n;
-}
-
 
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be nullptr
 void
@@ -773,16 +717,5 @@ JwCtrl::sound_init()
 void
 JwCtrl::init()
 {
-    XPLMRegisterDataAccessor("opensam/jetway/number", xplmType_Int, 0, jw_status_acc,
-                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                             NULL, NULL, NULL, NULL, NULL);
-
-    XPLMRegisterDataAccessor("opensam/jetway/status", xplmType_Int, 0, jw_status_acc,
-                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                             NULL, NULL, NULL, (void *)1, NULL);
-
-    XPLMRegisterDataAccessor("opensam/jetway/door/status", xplmType_IntArray, 0, NULL, NULL,
-                             NULL, NULL, NULL, NULL, jw_door_status_acc, NULL,
-                             NULL, NULL, NULL, NULL, NULL, NULL);
 }
 

@@ -22,6 +22,8 @@
 #ifndef _PLANE_H_
 #define _PLANE_H_
 
+#include "XPWidgets.h"
+
 #include "jwctrl.h"
 
 static const int kNearJwLimit{3};   // max # of jetways we consider for docking
@@ -40,6 +42,9 @@ class Plane {
     std::string icao_;
     float x_, y_, z_, psi_;
 
+    std::vector<JwCtrl> active_jws_;
+    std::vector<JwCtrl> nearest_jws_;
+
   public:
     int id_;    // id for logging
 
@@ -51,9 +56,6 @@ class Plane {
     // readonly use!
     unsigned n_door_;
     DoorInfo door_info_[kMaxDoor];
-
-    std::vector<JwCtrl> active_jws_;
-    std::vector<JwCtrl> nearest_jws_;
 
     Plane(): state_machine_next_ts_(0), id_(0), n_door_(0), state_(DISABLED), prev_state_(DISABLED) {
         nearest_jws_.reserve(10);
@@ -139,7 +141,15 @@ class MyPlane : public Plane {
 
     float y_agl() { return XPLMGetDataf(plane_y_agl_dr_); }
 
-    void auto_mode_change(); // hook for the ui
+    // UI support
+    void auto_mode_change();
+    void update_ui(bool only_if_visible);
+    static int ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_t param2);
+
+    // dataref accessors
+    static int jw_status_acc(void *ref);
+    static int jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n);
+
 };
 
 extern std::vector<Plane*> mp_planes;
@@ -147,5 +157,4 @@ extern MyPlane* my_plane;
 
 // from os_ui.c
 extern int ui_unlocked; // the ui is unlocked for jw_selection
-extern void update_ui(int only_if_visible);
 #endif

@@ -28,7 +28,6 @@
 #include "jwctrl.h"
 
 #include "XPLMDisplay.h"
-#include "XPWidgets.h"
 #include "XPStandardWidgets.h"
 
 typedef struct _widget_ctx
@@ -98,8 +97,9 @@ close_ui()
     XPHideWidget(ui_widget_ctx.widget);
 }
 
-static int
-ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_t param2)
+// static
+int
+MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_t param2)
 {
     UNUSED(param1);
 
@@ -186,7 +186,7 @@ ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_
 }
 
 void
-update_ui(int only_if_visible)
+MyPlane::update_ui(bool only_if_visible)
 {
     if (ui_widget == NULL || (only_if_visible && !XPIsWidgetVisible(ui_widget))) {
         log_msg("update_ui: widget is not visible");
@@ -203,16 +203,11 @@ update_ui(int only_if_visible)
 
     // if manual selection set label and unhide
     if (ui_unlocked && !auto_select_jws) {
-        for (unsigned i = 0; i < my_plane->n_door_; i++)
-            for (unsigned j = 0; j < my_plane->nearest_jws_.size(); j++) {
-                JwCtrl *njw = &my_plane->nearest_jws_[j];
-                SamJw *jw = njw->jw_;
-
-                if (NULL == jw)             // should never happen
-                    continue;
-
+        for (unsigned i = 0; i < n_door_; i++)
+            for (unsigned j = 0; j < nearest_jws_.size(); j++) {
+                JwCtrl& njw = nearest_jws_[j];
                 XPWidgetID btn = jw_btn[i][j];
-                XPSetWidgetDescriptor(btn, jw->name);
+                XPSetWidgetDescriptor(btn, njw.jw_->name);
                 XPSetWidgetProperty(btn, xpProperty_ButtonState, 0);
                 XPShowWidget(btn);
             }
@@ -249,7 +244,7 @@ create_ui()
     ui_widget_ctx.widget = ui_widget;
 
     XPSetWidgetProperty(ui_widget, xpProperty_MainWindowHasCloseBoxes, 1);
-    XPAddWidgetCallback(ui_widget, ui_widget_cb);
+    XPAddWidgetCallback(ui_widget, MyPlane::ui_widget_cb);
 
 
     top -= 20;
@@ -262,7 +257,7 @@ create_ui()
 
     auto_btn = XPCreateWidget(left1, top, left1 + 100, top - 20, 1, "Automatic Mode", 0, ui_widget, xpWidgetClass_Button);
     XPSetWidgetProperty(auto_btn, xpProperty_ButtonBehavior, xpButtonBehaviorCheckBox);
-    XPAddWidgetCallback(auto_btn, ui_widget_cb);
+    XPAddWidgetCallback(auto_btn, MyPlane::ui_widget_cb);
 
     top -= 30;
     for (int i = 0; i < kMaxDoor; i++) {
@@ -281,7 +276,7 @@ create_ui()
                 XPCreateWidget(left1, top, left1 + 50, top - 20, 1, "Jw", 0, ui_widget, xpWidgetClass_Button);
 
             XPSetWidgetProperty(btn, xpProperty_ButtonBehavior, xpButtonBehaviorCheckBox);
-            XPAddWidgetCallback(btn, ui_widget_cb);
+            XPAddWidgetCallback(btn, MyPlane::ui_widget_cb);
 
             left1 += col_spacing;
         }
@@ -293,13 +288,13 @@ create_ui()
     dock_btn = XPCreateWidget(left1, top, left1 + 50, top - 20, 1, "Dock", 0, ui_widget, xpWidgetClass_Button);
     XPSetWidgetProperty(dock_btn, xpProperty_ButtonType, xpPushButton);
     XPSetWidgetProperty(dock_btn, xpProperty_ButtonBehavior, xpButtonBehaviorPushButton);
-    XPAddWidgetCallback(dock_btn, ui_widget_cb);
+    XPAddWidgetCallback(dock_btn, MyPlane::ui_widget_cb);
 
     left1 = left + 2 * margin + 50;
     undock_btn = XPCreateWidget(left1, top, left1 + 50, top - 20, 1, "Undock", 0, ui_widget, xpWidgetClass_Button);
     XPSetWidgetProperty(undock_btn, xpProperty_ButtonType, xpPushButton);
     XPSetWidgetProperty(undock_btn, xpProperty_ButtonBehavior, xpButtonBehaviorPushButton);
-    XPAddWidgetCallback(undock_btn, ui_widget_cb);
+    XPAddWidgetCallback(undock_btn, MyPlane::ui_widget_cb);
 
 }
 
@@ -316,7 +311,7 @@ toggle_ui(void) {
     }
 
     if (! my_plane->is_helicopter_) {
-        update_ui(0);
+        my_plane->update_ui(0);
         show_widget(&ui_widget_ctx);
     }
 }

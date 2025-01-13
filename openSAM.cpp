@@ -431,7 +431,6 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
         collect_sam_xml(scp);
         log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
         JwCtrl::sound_init();
-        MyPlane::init();
     } catch (const OsEx& ex) {
         log_msg("fatal error: '%s', bye!", ex.what());
         return 0;   // bye
@@ -472,6 +471,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
                                  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, (void *)(long long)i, NULL);
 
+    MyPlane::init();
     jw_init();
     JwCtrl::init();
     dgs_init();
