@@ -46,7 +46,7 @@ class Plane {
     State state_{DISABLED}, prev_state_{DISABLED};
 
   protected:
-    bool beacon_on_, engines_on_, on_ground_, parkbrake_set_;
+    bool beacon_on_{false}, engines_on_{false}, on_ground_{false}, parkbrake_set_{false};
     std::string icao_;
     float x_, y_, z_, psi_;
 
@@ -62,7 +62,7 @@ class Plane {
 
     Plane() {
         nearest_jws_.reserve(10);
-        active_jws_.resize(kMaxDoor);
+        active_jws_.reserve(kMaxDoor);
     }
 
     // update internal state
