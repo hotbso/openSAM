@@ -32,10 +32,18 @@ static const int kNearJwLimit{3};   // max # of jetways we consider for docking
 // Generic class that provides all plane related values for jetway animation.
 //
 class Plane {
+  public:
+    enum State { DISABLED=0, IDLE, PARKED, SELECT_JWS, CAN_DOCK,
+                 DOCKING, DOCKED, UNDOCKING, CANT_DOCK };
+
+    static const char * const state_str_[];
+
+  private:
     friend class MyPlane;
     friend class MpPlaneXPMP2;
 
-    float state_machine_next_ts_;    // ts for the next run of the state machine
+    float state_machine_next_ts_{0};    // ts for the next run of the state machine
+    State state_{DISABLED}, prev_state_{DISABLED};
 
   protected:
     bool beacon_on_, engines_on_, on_ground_, parkbrake_set_;
@@ -46,20 +54,13 @@ class Plane {
     std::vector<JwCtrl> nearest_jws_;
 
   public:
-    int id_;    // id for logging
-
-    enum State { DISABLED=0, IDLE, PARKED, SELECT_JWS, CAN_DOCK,
-                 DOCKING, DOCKED, UNDOCKING, CANT_DOCK };
-
-    static const char * const state_str_[];
-
-    State state_, prev_state_;
+    int id_{0};    // id for logging
 
     // readonly use!
-    unsigned n_door_;
+    unsigned n_door_{0};
     DoorInfo door_info_[kMaxDoor];
 
-    Plane(): state_machine_next_ts_(0), id_(0), state_(DISABLED), prev_state_(DISABLED), n_door_(0) {
+    Plane() {
         nearest_jws_.reserve(10);
         active_jws_.resize(kMaxDoor);
     }
