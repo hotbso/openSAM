@@ -21,8 +21,6 @@
 */
 
 #include <cstdlib>
-//#include <cmath>
-//#include <ctime>
 #include <cstring>
 #include <cassert>
 #include <fstream>
@@ -67,10 +65,8 @@ MyPlane::jw_status_acc(void *ref)
 //  1 = docked
 //
 int
-MyPlane::jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n)
+MyPlane::jw_door_status_acc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs, int n)
 {
-    UNUSED(ref);
-
     if (values == nullptr)
         return kMaxDoor;
 
@@ -84,8 +80,11 @@ MyPlane::jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n)
     }
 
     for (auto & ajw : my_plane->active_jws_)
-        if (ajw.state_ == JwCtrl::DOCKED)
-            values[ajw.door_] = 1;
+        if (ajw.state_ == JwCtrl::DOCKED) {
+            int i = ajw.door_ - ofs;
+            if (0 <= i && i < n)
+                values[i] = 1;
+        }
 
     return n;
 }
@@ -316,6 +315,8 @@ MyPlane::plane_loaded()
     // SAM dgs don't like letters in pos 1-3
     if (icao_ == "A20N")
         icao_ ="A320";
+    else if (icao_ == "A21N")
+        icao_ ="A321";
 }
 
 void MyPlane::livery_loaded()
