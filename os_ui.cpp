@@ -42,8 +42,6 @@ static widget_ctx_t ui_widget_ctx;
 static XPWidgetID ui_widget, jw_btn[kMaxDoor][kNearJwLimit],
     auto_btn, dock_btn, undock_btn;
 
-int ui_unlocked; // the ui is unlocked for jw_selection
-
 static void
 show_widget(widget_ctx_t *ctx)
 {
@@ -112,7 +110,7 @@ MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1
 
     if (msg == xpMsg_PushButtonPressed && widget_id == dock_btn) {
         log_msg("Dock pressed");
-        if (! auto_select_jws && ui_unlocked) {
+        if (! my_plane->auto_mode() && my_plane->ui_unlocked_) {
             my_plane->active_jws_.resize(0);
 
             for (unsigned i = 0; i < n_door; i++) {
@@ -128,23 +126,25 @@ MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1
             }
         }
 
-        XPLMCommandOnce(dock_cmdr);
+        //XPLMCommandOnce(dock_cmdr);
+        my_plane->dock_requested_ = true;
         close_ui();
         return 1;
     }
 
     if (msg == xpMsg_PushButtonPressed && widget_id == undock_btn) {
         log_msg("Undock pressed");
-        XPLMCommandOnce(undock_cmdr);
+        //XPLMCommandOnce(undock_cmdr);
+        my_plane->undock_requested_ = true;
         close_ui();
         return 1;
     }
 
     if (msg == xpMsg_ButtonStateChanged && widget_id == auto_btn) {
-        auto_select_jws = (int)(uint64_t)param2;
-        log_msg("auto_select_jws now: %d", auto_select_jws);
+        bool auto_mode = (bool)(uint64_t)param2;
+        log_msg("auto_mode now: %d", auto_mode);
 
-        my_plane->auto_mode_change();  // start over with new setting
+        my_plane->auto_mode_set(auto_mode);  // start over with new setting
         return 1;
     }
 
@@ -194,7 +194,7 @@ MyPlane::update_ui(bool only_if_visible)
     }
 
     log_msg("update_ui started");
-    XPSetWidgetProperty(auto_btn, xpProperty_ButtonState, auto_select_jws);
+    XPSetWidgetProperty(auto_btn, xpProperty_ButtonState, auto_mode_);
 
     // hide everything
     for (unsigned i = 0; i < kMaxDoor; i++)
@@ -202,7 +202,7 @@ MyPlane::update_ui(bool only_if_visible)
             XPHideWidget(jw_btn[i][j]);
 
     // if manual selection set label and unhide
-    if (ui_unlocked && !auto_select_jws) {
+    if (ui_unlocked_ && !auto_mode_) {
         for (unsigned i = 0; i < n_door_; i++)
             for (unsigned j = 0; j < nearest_jws_.size(); j++) {
                 JwCtrl& njw = nearest_jws_[j];

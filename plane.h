@@ -53,11 +53,13 @@ class Plane {
 
     static const char * const state_str_[];
 
+    State state_, prev_state_;
+
     // readonly use!
     unsigned n_door_;
     DoorInfo door_info_[kMaxDoor];
 
-    Plane(): state_machine_next_ts_(0), id_(0), n_door_(0), state_(DISABLED), prev_state_(DISABLED) {
+    Plane(): state_machine_next_ts_(0), id_(0), state_(DISABLED), prev_state_(DISABLED), n_door_(0) {
         nearest_jws_.reserve(10);
         active_jws_.resize(kMaxDoor);
     }
@@ -79,15 +81,24 @@ class Plane {
     // detailed state
     bool on_ground() const{ return on_ground_; }
     bool beacon_on() const { return beacon_on_; }
-    bool parkbrake_set() const{ return parkbrake_set_; }
+    bool parkbrake_set() const { return parkbrake_set_; }
     bool engines_on() const { return engines_on_; }
 
-    State state_, prev_state_;
+    // cmd support
+    virtual bool auto_mode() const = 0;
+    virtual bool dock_requested() { return false; }
+    virtual bool undock_requested() { return false; }
+    virtual bool toggle_requested() { return false; }
 
     // auto select jetways
     void select_jws();
 
+    // hook into flight loop
     float jw_state_machine();
+
+    // UI support functions called from jw_state_machine()
+    virtual void update_ui([[maybe_unused]] bool only_if_visible) {}
+    virtual void lock_ui([[maybe_unused]] bool yes_no) {}
 };
 
 //
@@ -113,6 +124,9 @@ class MyPlane : public Plane {
 
     float parked_x_, parked_z_;
     unsigned parked_ngen_;
+
+    bool auto_mode_, dock_requested_, undock_requested_, toggle_requested_;
+    bool ui_unlocked_{false}; // the ui is unlocked for jw_selection
 
   public:
     static void init();         // call once
@@ -142,9 +156,21 @@ class MyPlane : public Plane {
     float y_agl() { return XPLMGetDataf(plane_y_agl_dr_); }
 
     // UI support
-    void auto_mode_change();
-    void update_ui(bool only_if_visible);
+    void update_ui(bool only_if_visible) override;
+    void lock_ui(bool yes_no) override { ui_unlocked_ = !yes_no; }
     static int ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_t param2);
+
+    // cmd support
+    void auto_mode_set(bool auto_mode);
+    bool auto_mode() const override { return auto_mode_; }
+
+    void request_dock();
+    void request_undock();
+    void request_toggle();
+
+    bool dock_requested() override;
+    bool undock_requested() override;
+    bool toggle_requested() override;
 
     // dataref accessors
     static int jw_status_acc(void *ref);
@@ -154,7 +180,4 @@ class MyPlane : public Plane {
 
 extern std::vector<Plane*> mp_planes;
 extern MyPlane* my_plane;
-
-// from os_ui.c
-extern int ui_unlocked; // the ui is unlocked for jw_selection
 #endif

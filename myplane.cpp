@@ -120,7 +120,77 @@ MyPlane::MyPlane()
 
     icao_ = "0000";
     reset_beacon();
+    ui_unlocked_ = false;
     state_ = IDLE;
+}
+
+void
+MyPlane::request_dock() {
+    if (state_ == CAN_DOCK)
+        dock_requested_ = true;
+}
+
+void
+MyPlane::request_undock()
+{
+    if (state_ == DOCKED)
+        undock_requested_ = true;
+}
+
+void
+MyPlane::request_toggle()
+{
+    if (state_ == CAN_DOCK || state_ == DOCKED)
+        toggle_requested_ = true;
+}
+
+bool
+MyPlane::dock_requested()
+{
+    bool res{dock_requested_};
+    dock_requested_ = false;
+    return res;
+}
+
+bool
+MyPlane::undock_requested()
+{
+    bool res{undock_requested_};
+    undock_requested_ = false;
+    return res;
+}
+
+bool
+MyPlane::toggle_requested()
+{
+    bool res{toggle_requested_};
+    toggle_requested_ = false;
+    return res;
+}
+
+void
+MyPlane::auto_mode_set(bool auto_mode)
+{
+    if (auto_mode_ == auto_mode)
+        return;
+
+    auto_mode_ = auto_mode;
+
+    if (state_ == DOCKING || state_ == UNDOCKING) {
+        for (auto & ajw : active_jws_)
+            ajw.reset();    // an animation might be ongoing
+        state_ = IDLE;
+        return;
+    }
+
+    if (auto_mode && state_ == SELECT_JWS)
+        return;
+
+    if (!auto_mode && state_ == CAN_DOCK) {
+        active_jws_.resize(0);
+        state_ = PARKED;
+        return;
+    }
 }
 
 void
@@ -370,26 +440,11 @@ MyPlane::check_teleportation()
     return false;
 }
 
-
 void
 MyPlane::reset_beacon()
 {
     beacon_on_pending_ = 0;
     beacon_off_ts_ = beacon_on_ts_ = -10.0f;
-}
-
-
-// hook for the ui
-void
-MyPlane::auto_mode_change()
-{
-    if (state_ == DOCKING || state_ == UNDOCKING) {
-        for (auto & ajw : active_jws_)
-            ajw.reset();    // an animation might be ongoing
-        state_ = IDLE;
-    } else if (state_ == SELECT_JWS || state_ == CAN_DOCK) {
-        state_ = PARKED;
-    }
 }
 
 // static

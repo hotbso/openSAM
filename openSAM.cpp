@@ -110,7 +110,7 @@ float lat_ref{-1000}, lon_ref{-1000};
 unsigned int ref_gen{1};
 
 XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr, toggle_ui_cmdr;
-int auto_select_jws, dock_requested, undock_requested, toggle_requested;
+static int pref_auto_mode;
 
 float now;            // current timestamp
 std::string base_dir; // base directory of openSAM
@@ -131,13 +131,14 @@ save_pref()
     FILE *f = fopen(pref_path.c_str(), "w");
     if (NULL == f)
         return;
+    pref_auto_mode = my_plane->auto_mode();
 
     // encode southern hemisphere with negative season
     int s = nh ? season : -season;
-    fprintf(f, "%d,%d,%d", auto_season, s, auto_select_jws);
+    fprintf(f, "%d,%d,%d", auto_season, s, pref_auto_mode);
     fclose(f);
 
-    log_msg("Saving pref auto_season: %d, season: %d, auto_select_jws: %d", auto_season, s, auto_select_jws);
+    log_msg("Saving pref auto_season: %d, season: %d, auto_select_jws: %d", auto_season, s, pref_auto_mode);
 }
 
 static void
@@ -147,15 +148,15 @@ load_pref()
     nh = 1;
     auto_season = 1;
     season = 1;
-    auto_select_jws = 1;
+    pref_auto_mode = 1;
 
     FILE *f  = fopen(pref_path.c_str(), "r");
     if (NULL == f)
         return;
 
-    fscanf(f, "%i,%i,%i", &auto_season, &season, &auto_select_jws);
+    fscanf(f, "%i,%i,%i", &auto_season, &season, &pref_auto_mode);
     log_msg("From pref: auto_season: %d, seasons: %d, auto_select_jws: %d",
-            auto_season,  season, auto_select_jws);
+            auto_season,  season, pref_auto_mode);
 
     fclose(f);
 
@@ -186,10 +187,9 @@ read_season_acc(void *ref)
 }
 
 static int
-cmd_activate_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
+cmd_activate_cb([[maybe_unused]] XPLMCommandRef cmdr,
+                XPLMCommandPhase phase, [[maybe_unused]] void *ref)
 {
-    UNUSED(cmdr);
-    UNUSED(ref);
     if (xplm_CommandBegin != phase)
         return 0;
 
@@ -199,10 +199,9 @@ cmd_activate_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
 }
 
 static int
-cmd_toggle_ui_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
+cmd_toggle_ui_cb([[maybe_unused]]XPLMCommandRef cmdr,
+                 XPLMCommandPhase phase, [[maybe_unused]] void *ref)
 {
-    UNUSED(cmdr);
-    UNUSED(ref);
     if (xplm_CommandBegin != phase)
         return 0;
 
@@ -212,15 +211,10 @@ cmd_toggle_ui_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
 }
 
 static float
-flight_loop_cb(float inElapsedSinceLastCall,
-               float inElapsedTimeSinceLastFlightLoop, int inCounter,
-               void *inRefcon)
+flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
+               [[maybe_unused]] float inElapsedTimeSinceLastFlightLoop, [[maybe_unused]] int inCounter,
+               [[maybe_unused]] void *inRefcon)
 {
-    UNUSED(inElapsedSinceLastCall);
-    UNUSED(inElapsedTimeSinceLastFlightLoop);
-    UNUSED(inCounter);
-    UNUSED(inRefcon);
-
     static float jw_next_ts, dgs_next_ts, anim_next_ts;
 
     now = XPLMGetDataf(total_running_time_sec_dr);
@@ -312,10 +306,8 @@ set_menu()
 }
 
 static void
-menu_cb(void *menu_ref, void *item_ref)
+menu_cb([[maybe_unused]] void *menu_ref, void *item_ref)
 {
-    UNUSED(menu_ref);
-
     int entry = (long long)item_ref;
 
     if (entry == 4) {
@@ -332,33 +324,34 @@ menu_cb(void *menu_ref, void *item_ref)
 
 // dock/undock command
 static int
-cmd_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
+cmd_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
 {
-    UNUSED(cmdr);
     if (xplm_CommandBegin != phase)
         return 0;
 
     log_msg("cmd_dock_jw_cb called");
 
-    *(int *)ref = 2;
-     return 0;
+    if (ref == NULL)
+        my_plane->request_dock();
+    else if (ref == (void *)1)
+        my_plane->request_undock();
+    else if (ref == (void *)2)
+        my_plane->request_toggle();
+
+    return 0;
 }
 
 // intercept XP12's standard cmd
 static int
-cmd_xp12_dock_jw_cb(XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
+cmd_xp12_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase,
+                    [[maybe_unused]] void *ref)
 {
-    UNUSED(cmdr);
-    UNUSED(ref);
-
     if (xplm_CommandBegin != phase)
         return 1;
 
     log_msg("cmd_xp12_dock_jw_cb called");
 
-    if (Plane::CAN_DOCK == my_plane->state_ || Plane::DOCKED == my_plane->state_)
-        toggle_requested = 2;
-
+    my_plane->request_toggle();
     return 1;       // pass on to XP12, likely there is no XP12 jw here 8-)
 }
 
@@ -472,6 +465,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
                                  NULL, NULL, NULL, (void *)(long long)i, NULL);
 
     MyPlane::init();
+    my_plane->auto_mode_set(pref_auto_mode);
     jw_init();
     JwCtrl::init();
     dgs_init();
@@ -485,13 +479,13 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMRegisterCommandHandler(toggle_ui_cmdr, cmd_toggle_ui_cb, 0, NULL);
 
     dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
-    XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, &dock_requested);
+    XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, (void *)0);
 
     undock_cmdr = XPLMCreateCommand("openSAM/undock_jwy", "Undock jetway");
-    XPLMRegisterCommandHandler(undock_cmdr, cmd_dock_jw_cb, 0, &undock_requested);
+    XPLMRegisterCommandHandler(undock_cmdr, cmd_dock_jw_cb, 0, (void *)1);
 
     toggle_cmdr = XPLMCreateCommand("openSAM/toggle_jwy", "Toggle jetway");
-    XPLMRegisterCommandHandler(toggle_cmdr, cmd_dock_jw_cb, 0, &toggle_requested);
+    XPLMRegisterCommandHandler(toggle_cmdr, cmd_dock_jw_cb, 0, (void *)2);
 
     // augment XP12's standard cmd
     XPLMCommandRef xp12_toggle_cmdr = XPLMFindCommand("sim/ground_ops/jetway");

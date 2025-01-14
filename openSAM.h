@@ -131,7 +131,6 @@ extern unsigned int ref_gen;
 
 extern XPLMMenuID anim_menu;
 extern XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr;
-extern int auto_select_jws, dock_requested, undock_requested, toggle_requested;
 
 // terrain probe
 extern XPLMProbeInfo_t probeinfo;

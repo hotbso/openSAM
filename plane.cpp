@@ -119,24 +119,23 @@ Plane::jw_state_machine()
             }
 
             if (on_ground_ && !beacon_on_) {
-                if (is_myplane()) {
-                    // memorize position teleportation detection
-                    memorize_parked_pos();
+                // memorize position teleportation detection
+                memorize_parked_pos();
 
-                    // reset stale command invocations
-                    dock_requested = undock_requested = toggle_requested = 0;
-                }
+                // reset stale command invocations
+                dock_requested();
+                undock_requested();
+                toggle_requested();
 
                 new_state = PARKED;
             }
             break;
 
-        case PARKED: {
-                if (JwCtrl::find_nearest_jws(this, nearest_jws_))
-                    new_state = SELECT_JWS;
-                else
-                    new_state = CANT_DOCK;
-            }
+        case PARKED:
+            if (JwCtrl::find_nearest_jws(this, nearest_jws_))
+                new_state = SELECT_JWS;
+            else
+                new_state = CANT_DOCK;
             break;
 
         case SELECT_JWS:
@@ -146,12 +145,11 @@ Plane::jw_state_machine()
                 break;
             }
 
-            // mp planes always have auto_select_jws
-            if (!is_myplane() || ::auto_select_jws) {
+            if (auto_mode()) {
                 select_jws();
             } else if (prev_state_ != state_) {
-                ui_unlocked = 1;    // allow jw selection in the ui
-                my_plane->update_ui(1);
+                lock_ui(false);     // allow jw selection in the ui (if the plne supports it)
+                update_ui(true);
             }
 
             // or wait for GUI selection
@@ -175,7 +173,7 @@ Plane::jw_state_machine()
             }
 
             // mp planes always dock directly
-            if (!is_myplane() || 1 == ::dock_requested || ::toggle_requested) {
+            if (dock_requested() || toggle_requested()) {
                 log_msg("docking requested");
                 float start_ts = now;
                 for (auto & ajw : active_jws_) {
@@ -223,8 +221,7 @@ Plane::jw_state_machine()
             if (beacon_on_)
                 log_msg("DOCKED and beacon goes on");
 
-            if (beacon_on_ ||
-                (is_myplane() && (1 == ::undock_requested || ::toggle_requested))) {
+            if (beacon_on_ || undock_requested() || toggle_requested()) {
                 log_msg("undocking requested");
 
                 float start_ts = now + active_jws_.size() * 5.0f;
@@ -263,13 +260,6 @@ Plane::jw_state_machine()
             break;
     }
 
-    // we use an extra cycle for dock/undock for better integration with the UI
-    if (is_myplane()) {
-        ::dock_requested--;
-        ::undock_requested--;
-        ::toggle_requested = 0;
-    }
-
     prev_state_ = state_;
 
     if (new_state != state_) {
@@ -283,10 +273,9 @@ Plane::jw_state_machine()
             nearest_jws_.resize(0);
         }
 
-        if (is_myplane()) {
-            ui_unlocked = 0;
-            my_plane->update_ui(1);
-        }
+        lock_ui(true);
+        update_ui(true);
+
         state_machine_next_ts_ = 0.0f;
         return -1;  // see you on next frame
     }
