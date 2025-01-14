@@ -24,7 +24,8 @@ function openSAM_post_dock()
     logMsg("openSAM_post_dock called")
 
     -- for ToLiss open door 1 + ext power on + chocks
-    if PLANE_ICAO == "A319" or PLANE_ICAO == "A20N" or PLANE_ICAO == "A321" or PLANE_ICAO == "A346" or PLANE_ICAO == "A339" then
+    if PLANE_ICAO == "A319" or PLANE_ICAO == "A20N" or PLANE_ICAO == "A321" or 
+       PLANE_ICAO == "A21N" or PLANE_ICAO == "A346" or PLANE_ICAO == "A339" then
         set_array("AirbusFBW/PaxDoorModeArray", 0, 2)
         set("AirbusFBW/EnableExternalPower", 1)
         set("AirbusFBW/Chocks", 1)
