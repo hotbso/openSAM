@@ -114,6 +114,9 @@ Plane::jw_state_machine()
     switch (state_) {
         case IDLE:
             if (prev_state_ != IDLE) {
+                 for (auto & ajw : active_jws_)
+                    ajw.reset();
+
                 active_jws_.resize(0);
                 nearest_jws_.resize(0);
             }
@@ -155,7 +158,7 @@ Plane::jw_state_machine()
             // or wait for GUI selection
             if (active_jws_.size()) {
                 for (auto & ajw : active_jws_) {
-                    log_msg("setting up active jw for door: %d", ajw.door_);
+                    log_msg("pid=%d, setting up active jw for door: %d", id_, ajw.door_);
                     ajw.setup_for_door(this, door_info_[ajw.door_]);
 
                     if (ajw.door_ == 0) // slightly slant towards the nose cone for door LF1
@@ -174,7 +177,7 @@ Plane::jw_state_machine()
 
             // mp planes always dock directly
             if (dock_requested() || toggle_requested()) {
-                log_msg("docking requested");
+                log_msg("pid=%d, docking requested", id_);
                 float start_ts = now;
                 for (auto & ajw : active_jws_) {
                     // staggered start for docking low to high
@@ -219,7 +222,7 @@ Plane::jw_state_machine()
             }
 
             if (beacon_on_)
-                log_msg("DOCKED and beacon goes on");
+                log_msg("pid=%d, DOCKED and beacon goes on", id_);
 
             if (beacon_on_ || undock_requested() || toggle_requested()) {
                 log_msg("undocking requested");
@@ -263,12 +266,14 @@ Plane::jw_state_machine()
     prev_state_ = state_;
 
     if (new_state != state_) {
-        log_msg("jw state transition, plane: %d, %s -> %s, beacon: %d", id_,
+        log_msg("pid=%d, jw state transition, %s -> %s, beacon: %d", id_,
                 state_str_[state_], state_str_[new_state], beacon_on_);
         state_ = new_state;
 
         // from anywhere to idle nullifies all selections
         if (state_ == IDLE) {
+            for (auto & ajw : active_jws_)
+                ajw.reset();
             active_jws_.resize(0);
             nearest_jws_.resize(0);
         }
