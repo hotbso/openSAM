@@ -108,26 +108,23 @@ class Plane {
 // It is accessible through "MyPlane* my_plane" .
 //
 class MyPlane : public Plane {
-    XPLMDataRef plane_x_dr_, plane_y_dr_, plane_z_dr_,
-           plane_lat_dr_, plane_lon_dr_, plane_elevation_dr_,
-           plane_true_psi_dr_, plane_y_agl_dr_,
-           beacon_dr_, eng_running_dr_, parkbrake_dr_, gear_fnrml_dr_,
-           is_helicopter_dr_,
-           acf_icao_dr_, acf_cg_y_dr_, acf_cg_z_dr_, acf_gear_z_dr_,
-           acf_door_x_dr_, acf_door_y_dr_, acf_door_z_dr_, acf_livery_path_dr_;
+    XPLMDataRef plane_lat_dr_, plane_lon_dr_, plane_y_agl_dr_;
 
     bool use_engines_on_;   // instead of beacon, e.g. Zibo
 
+    // helpers for debouncing
     int beacon_on_pending_;
     float beacon_off_ts_, beacon_on_ts_;
-
     float on_ground_ts_;
 
+    // for teleportation detection
     float parked_x_, parked_z_;
     unsigned parked_ngen_;
 
     bool auto_mode_, dock_requested_, undock_requested_, toggle_requested_;
     bool ui_unlocked_{false}; // the ui is unlocked for jw_selection
+
+    float elevation_;
 
   public:
     static void init();         // call once
@@ -150,11 +147,12 @@ class MyPlane : public Plane {
 
     bool is_myplane() override { return true; }
 
+    // these 3 are called with prior update() call -> direct read from drefs
     float lat() { return XPLMGetDataf(plane_lat_dr_); }
     float lon() { return XPLMGetDataf(plane_lon_dr_); }
-    float elevation() { return XPLMGetDataf(plane_elevation_dr_); }
-
     float y_agl() { return XPLMGetDataf(plane_y_agl_dr_); }
+
+    float elevation() const { return elevation_; }
 
     // UI support
     void update_ui(bool only_if_visible) override;

@@ -89,6 +89,13 @@ MyPlane::jw_door_status_acc([[maybe_unused]] XPLMDataRef ref, int *values, int o
     return n;
 }
 
+static XPLMDataRef plane_x_dr_, plane_y_dr_, plane_z_dr_,
+    plane_elevation_dr_, plane_true_psi_dr_,
+    beacon_dr_, eng_running_dr_, parkbrake_dr_, gear_fnrml_dr_,
+    is_helicopter_dr_,
+    acf_icao_dr_, acf_cg_y_dr_, acf_cg_z_dr_, acf_gear_z_dr_,
+    acf_door_x_dr_, acf_door_y_dr_, acf_door_z_dr_, acf_livery_path_dr_;
+
 static bool find_icao_in_file(const std::string& acf_icao, const std::string& fn);
 
 MyPlane::MyPlane()
@@ -404,6 +411,7 @@ MyPlane::update()
     }
 
     parkbrake_set_ = (XPLMGetDataf(parkbrake_dr_) > 0.5f);
+    elevation_ = XPLMGetDataf(plane_elevation_dr_);
 }
 
 void
