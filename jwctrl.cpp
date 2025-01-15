@@ -159,8 +159,8 @@ filter_candidates(Plane* plane, std::vector<JwCtrl>& nearest_jws,
         if (njw.x_ > 1.0f || BETWEEN(RA(njw.psi_ + jw_->initialRot1), -130.0f, 20.0f) ||   // on the right side or pointing away
             njw.x_ < -80.0f || fabsf(njw.z_) > 80.0f) {             // or far away
             if (fabsf(njw.x_) < 120.0f && fabsf(njw.z_) < 120.0f)   // don't pollute the log with jws VERY far away
-                log_msg("too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw_->initialRot1): %0.1f",
-                        jw_->name, njw.x_, njw.z_, njw.psi_ + jw_->initialRot1);
+                log_msg("pid=%d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw_->initialRot1): %0.1f",
+                        plane->id_, jw_->name, njw.x_, njw.z_, njw.psi_ + jw_->initialRot1);
             continue;
         }
 
@@ -178,9 +178,9 @@ filter_candidates(Plane* plane, std::vector<JwCtrl>& nearest_jws,
         }
 
         // ... survived, add to list
-        log_msg("--> candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
+        log_msg("--> pid=%d, candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
                 "rot1: %0.1f, extent: %.1f",
-                jw_->name, jw_->library_id, jw_->door,
+                plane->id_, jw_->name, jw_->library_id, jw_->door,
                 njw.x_, njw.z_, njw.y_, njw.psi_, njw.door_rot1_, njw.door_extent_);
 
         nearest_jws.push_back(njw);
