@@ -37,8 +37,6 @@
 #include "XPLMGraphics.h"
 #include "XPLMScenery.h"
 
-#define UNUSED(x) (void)x
-
 static const float D2R = std::numbers::pi/180.0;
 static const float F2M = 0.3048;	    // 1 ft [m]
 static const float LAT_2_M = 111120;    // 1° lat in m
@@ -108,6 +106,7 @@ struct DoorInfo {
 
 // key is icao + <door num in ascii>
 extern std::map<std::string, DoorInfo> door_info_map;
+extern std::map<std::string, DoorInfo> csl_door_info_map;
 
 extern std::string xp_dir;
 extern std::string base_dir;        // base directory of openSAM
@@ -130,7 +129,7 @@ extern float lat_ref, lon_ref;
 extern unsigned int ref_gen;
 
 extern XPLMMenuID anim_menu;
-extern XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr;
+extern XPLMCommandRef dock_cmdr;
 
 // terrain probe
 extern XPLMProbeInfo_t probeinfo;

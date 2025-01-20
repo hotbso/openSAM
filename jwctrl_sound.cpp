@@ -34,10 +34,8 @@ JwCtrl::sound_dev_init()
 };
 
 static void
-alert_complete(void *ref, FMOD_RESULT status)
+alert_complete(void *ref, [[maybe_unused]] FMOD_RESULT status)
 {
-    UNUSED(status);
-
     JwCtrl *ajw = (JwCtrl *)ref;
     ajw->alert_chn_ = NULL;
 }

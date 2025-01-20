@@ -334,10 +334,8 @@ read_sam1_acc(void *ref)
 // This function is called from draw loops, efficient coding required.
 //
 static int
-read_sam1_icao_acc(XPLMDataRef ref, int *values, int ofs, int n)
+read_sam1_icao_acc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs, int n)
 {
-    UNUSED(ref);
-
     if (values == NULL)
         return 4;
 

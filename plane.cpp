@@ -34,14 +34,24 @@
 #include "plane.h"
 #include "samjw.h"
 
+int Plane::id_base_;
 MyPlane* my_plane;
-std::vector<Plane*> mp_planes;
 
 static const float kAnimInterval = -1;   // s for debugging or -1 for frame loop
 
 const char * const Plane::state_str_[] = {
     "DISABLED", "IDLE", "PARKED", "SELECT_JWS", "CAN_DOCK",
     "DOCKING", "DOCKED", "UNDOCKING", "CANT_DOCK" };
+
+Plane::~Plane()
+{
+    if (IDLE <= state_) {
+        log_msg("pid=%d, Plane destructor", id_);
+        for (auto & ajw : active_jws_)
+            ajw.reset();
+        active_jws_.resize(0);
+    }
+}
 
 // auto select active jetways
 void

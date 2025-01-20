@@ -157,10 +157,8 @@ auto_drf_acc(void *ref)
 }
 
 void
-anim_menu_cb(void *menu_ref, void *item_ref)
+anim_menu_cb([[maybe_unused]] void *menu_ref, void *item_ref)
 {
-    UNUSED(menu_ref);
-
     if (NULL == menu_sc)    // just in case
         return;
 

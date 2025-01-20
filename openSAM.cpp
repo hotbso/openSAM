@@ -32,6 +32,8 @@
 #include "samjw.h"
 #include "jwctrl.h"
 #include "os_anim.h"
+#include "plane.h"
+#include "mpplane_xpilot.h"
 
 #include "XPLMPlugin.h"
 #include "XPLMProcessing.h"
@@ -87,8 +89,10 @@
 static int init_fail;
 std::string xp_dir;
 static std::string pref_path;
-static XPLMMenuID seasons_menu;
-static int auto_item, season_item[4];
+static XPLMMenuID os_menu, seasons_menu;
+static int toggle_mp_item, auto_item, season_item[4];
+XPLMCommandRef dock_cmdr;
+
 static int auto_season;
 static int airport_loaded;
 static int nh;     // on northern hemisphere
@@ -109,13 +113,15 @@ XPLMDataRef lat_ref_dr, lon_ref_dr,
 float lat_ref{-1000}, lon_ref{-1000};
 unsigned int ref_gen{1};
 
-XPLMCommandRef dock_cmdr, undock_cmdr, toggle_cmdr, toggle_ui_cmdr;
 static int pref_auto_mode;
 
 float now;            // current timestamp
 std::string base_dir; // base directory of openSAM
 
+static MpAdapter *mp_adapter;
+
 std::map<std::string, DoorInfo> door_info_map;
+std::map<std::string, DoorInfo> csl_door_info_map;
 
 unsigned long long stat_sc_far_skip, stat_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,
@@ -169,9 +175,8 @@ load_pref()
 
 // Accessor for the "opensam/SAM_Library_installed" dataref
 static int
-sam_lib_installed_acc(void *ref)
+sam_lib_installed_acc([[maybe_unused]]void *ref)
 {
-    UNUSED(ref);
     return sam_library_installed;
 }
 
@@ -199,7 +204,7 @@ cmd_activate_cb([[maybe_unused]] XPLMCommandRef cmdr,
 }
 
 static int
-cmd_toggle_ui_cb([[maybe_unused]]XPLMCommandRef cmdr,
+cmd_toggle_ui_cb([[maybe_unused]] XPLMCommandRef cmdr,
                  XPLMCommandPhase phase, [[maybe_unused]] void *ref)
 {
     if (xplm_CommandBegin != phase)
@@ -210,12 +215,33 @@ cmd_toggle_ui_cb([[maybe_unused]]XPLMCommandRef cmdr,
     return 0;
 }
 
+// multiplayer activation
+static int
+cmd_toggle_mp_cb([[maybe_unused]]XPLMCommandRef cmdr,
+                  XPLMCommandPhase phase, [[maybe_unused]] void *ref)
+{
+    if (xplm_CommandBegin != phase)
+        return 0;
+
+    log_msg("cmd toggle_mp");
+    if (mp_adapter) {
+        delete(mp_adapter);
+        mp_adapter = nullptr;
+    } else {
+        mp_adapter = MpAdapter_factory();
+    }
+
+    XPLMCheckMenuItem(os_menu, toggle_mp_item,
+                      mp_adapter ? xplm_Menu_Checked : xplm_Menu_Unchecked);
+    return 0;
+}
+
 static float
 flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
                [[maybe_unused]] float inElapsedTimeSinceLastFlightLoop, [[maybe_unused]] int inCounter,
                [[maybe_unused]] void *inRefcon)
 {
-    static float jw_next_ts, dgs_next_ts, anim_next_ts;
+    static float jw_next_ts, dgs_next_ts, anim_next_ts, mp_update_next_ts;
 
     now = XPLMGetDataf(total_running_time_sec_dr);
 
@@ -234,10 +260,19 @@ flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
     float jw_loop_delay = jw_next_ts - now;
     float dgs_loop_delay = dgs_next_ts - now;
     float anim_loop_delay = anim_next_ts - now;
+    float mp_update_delay = mp_update_next_ts - now;
+
+    if (mp_adapter && mp_update_delay <= 0.0f)
+        mp_update_next_ts = now + mp_adapter->update();
 
     if (! my_plane->is_helicopter_) {
         if (jw_loop_delay <= 0.0f) {
             jw_loop_delay = my_plane->jw_state_machine();
+            if (mp_adapter)
+                jw_loop_delay = std::min(jw_loop_delay,
+                                         mp_adapter->jw_state_machine());
+
+
             jw_next_ts = now + jw_loop_delay;
         }
 
@@ -251,7 +286,7 @@ flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
         anim_loop_delay = anim_state_machine();
         anim_next_ts = now + anim_loop_delay;
     }
-
+    //log_msg("jw_loop_delay: %0.2f", jw_loop_delay);
     return std::min(anim_loop_delay, std::min(jw_loop_delay, dgs_loop_delay));
 }
 
@@ -356,7 +391,7 @@ cmd_xp12_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase
 }
 
 static void
-load_door_info(const std::string& fn)
+load_door_info(const std::string& fn, std::map<std::string, DoorInfo>& di_map)
 {
     std::ifstream f(fn);
     if (!f.is_open())
@@ -384,7 +419,7 @@ load_door_info(const std::string& fn)
 
             char c = d + '0';
             DoorInfo d{x, y, z};
-            door_info_map[std::string(icao) + c] = d;
+            di_map[std::string(icao) + c] = d;
         }
     }
 }
@@ -418,7 +453,8 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     // collect all config and *.xml files
     try {
-        load_door_info(base_dir + "acf_door_position.txt");
+        load_door_info(base_dir + "acf_door_position.txt", door_info_map);
+        load_door_info(base_dir + "csl_door_position.txt", csl_door_info_map);
         SceneryPacks scp(xp_dir);
         sam_library_installed = scp.SAM_Library_path.size() > 0;
         collect_sam_xml(scp);
@@ -478,14 +514,17 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMCommandRef toggle_ui_cmdr = XPLMCreateCommand("openSAM/toggle_ui", "Toggle UI");
     XPLMRegisterCommandHandler(toggle_ui_cmdr, cmd_toggle_ui_cb, 0, NULL);
 
-    dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
+    XPLMCommandRef dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
     XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, (void *)0);
 
-    undock_cmdr = XPLMCreateCommand("openSAM/undock_jwy", "Undock jetway");
+    XPLMCommandRef undock_cmdr = XPLMCreateCommand("openSAM/undock_jwy", "Undock jetway");
     XPLMRegisterCommandHandler(undock_cmdr, cmd_dock_jw_cb, 0, (void *)1);
 
-    toggle_cmdr = XPLMCreateCommand("openSAM/toggle_jwy", "Toggle jetway");
+    XPLMCommandRef toggle_cmdr = XPLMCreateCommand("openSAM/toggle_jwy", "Toggle jetway");
     XPLMRegisterCommandHandler(toggle_cmdr, cmd_dock_jw_cb, 0, (void *)2);
+
+    XPLMCommandRef toggle_mp_cmdr = XPLMCreateCommand("openSAM/toggle_multiplayer", "Toggle Multiplayer Support");
+    XPLMRegisterCommandHandler(toggle_mp_cmdr, cmd_toggle_mp_cb, 0, NULL);
 
     // augment XP12's standard cmd
     XPLMCommandRef xp12_toggle_cmdr = XPLMFindCommand("sim/ground_ops/jetway");
@@ -494,9 +533,9 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     // build menues
     XPLMMenuID menu = XPLMFindPluginsMenu();
-    XPLMMenuID os_menu = XPLMCreateMenu("openSAM", menu,
-                                        XPLMAppendMenuItem(menu, "openSAM", NULL, 0),
-                                        NULL, NULL);
+    os_menu = XPLMCreateMenu("openSAM", menu,
+                              XPLMAppendMenuItem(menu, "openSAM", NULL, 0),
+                              NULL, NULL);
     // openSAM
     XPLMAppendMenuItemWithCommand(os_menu, "Dock Jetway", dock_cmdr);
     XPLMAppendMenuItemWithCommand(os_menu, "Undock Jetway", undock_cmdr);
@@ -510,6 +549,10 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMAppendMenuSeparator(os_menu);
 
     XPLMAppendMenuItemWithCommand(os_menu, "Manually activate searching for DGS", activate_cmdr);
+
+    XPLMAppendMenuSeparator(os_menu);
+
+    toggle_mp_item = XPLMAppendMenuItemWithCommand(os_menu, "Toggle Multiplayer Support", toggle_mp_cmdr);
 
     XPLMAppendMenuSeparator(os_menu);
 
@@ -577,10 +620,8 @@ XPluginEnable(void)
 }
 
 PLUGIN_API void
-XPluginReceiveMessage(XPLMPluginID in_from, long in_msg, void *in_param)
+XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, long in_msg, void *in_param)
 {
-    UNUSED(in_from);
-
     // Everything before XPLM_MSG_AIRPORT_LOADED has bogus datarefs.
     //   Anyway it's too late for the current scenery.
     if ((in_msg == XPLM_MSG_AIRPORT_LOADED) ||

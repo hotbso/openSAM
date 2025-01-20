@@ -97,10 +97,9 @@ close_ui()
 
 // static
 int
-MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_t param2)
+MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id,
+                      [[maybe_unused]]intptr_t param1, intptr_t param2)
 {
-    UNUSED(param1);
-
     if (msg == xpMessage_CloseButtonPushed) {
         close_ui();
         return 1;
@@ -126,7 +125,6 @@ MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1
             }
         }
 
-        //XPLMCommandOnce(dock_cmdr);
         my_plane->dock_requested_ = true;
         close_ui();
         return 1;
@@ -134,7 +132,6 @@ MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1
 
     if (msg == xpMsg_PushButtonPressed && widget_id == undock_btn) {
         log_msg("Undock pressed");
-        //XPLMCommandOnce(undock_cmdr);
         my_plane->undock_requested_ = true;
         close_ui();
         return 1;

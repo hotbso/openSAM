@@ -22,6 +22,8 @@
 #ifndef _PLANE_H_
 #define _PLANE_H_
 
+#include <unordered_map>
+
 #include "XPWidgets.h"
 
 #include "jwctrl.h"
@@ -38,46 +40,42 @@ class Plane {
 
     static const char * const state_str_[];
 
-  private:
-    friend class MyPlane;
-    friend class MpPlaneXPMP2;
-
+  protected:
     float state_machine_next_ts_{0};    // ts for the next run of the state machine
     State state_{DISABLED}, prev_state_{DISABLED};
-
-  protected:
     bool beacon_on_{false}, engines_on_{false}, on_ground_{false}, parkbrake_set_{false};
     std::string icao_;
     float x_, y_, z_, psi_;
 
     std::vector<JwCtrl> active_jws_;
     std::vector<JwCtrl> nearest_jws_;
+    static int id_base_;
 
   public:
-    int id_{0};    // id for logging
+    const int id_;    // id for logging
 
     // readonly use!
     unsigned n_door_{0};
     DoorInfo door_info_[kMaxDoor];
 
-    Plane() {
+    Plane() : id_(id_base_++) {
         nearest_jws_.reserve(10);
         active_jws_.reserve(kMaxDoor);
     }
 
-    // update internal state
-    virtual void update() = 0;
+    virtual ~Plane();
+
     virtual void memorize_parked_pos() {} // for teleportation detection
+
+    // general state
+    State state() { return state_; }
+    std::string& icao() { return icao_; }
 
     // position
     float x() const { return x_; }
     float y() const { return y_; }
     float z() const { return z_; }
     float psi() const { return psi_; }
-
-    // general state
-    virtual bool is_myplane() = 0;
-    std::string& icao() { return icao_; }
 
     // detailed state
     bool on_ground() const{ return on_ground_; }
@@ -135,17 +133,18 @@ class MyPlane : public Plane {
     float nose_gear_z_, main_gear_z_, plane_cg_z_;   // z value of plane's gears and cg
 
     MyPlane();
+    ~MyPlane() {}
 
     void plane_loaded();        // called from XPLM_MSG_PLANE_LOADED handler
     void livery_loaded();       // called from  XPLM_MSG_LIVERY_LOADED handler
 
-    void update() override ;    // called by flight loop, check beacon, on_ground, ....
     void reset_beacon();
+
+    // update internal state
+    void update();
 
     void memorize_parked_pos() override ; // for teleportation detection
     bool check_teleportation();
-
-    bool is_myplane() override { return true; }
 
     // these 3 are called with prior update() call -> direct read from drefs
     float lat() { return XPLMGetDataf(plane_lat_dr_); }
@@ -177,6 +176,22 @@ class MyPlane : public Plane {
 
 };
 
-extern std::vector<Plane*> mp_planes;
+// Wrapper around the different plugins providing multiplayer planes
+// xPilot, TGXP, liveTraffic, ...
+class MpAdapter {
+  protected:
+    std::unordered_map<std::string, Plane*> mp_planes;
+    MpAdapter();
+
+  public:
+    virtual ~MpAdapter();
+
+    virtual float update() = 0;     // update status of MP planes
+    float jw_state_machine();       // return delay to next call
+};
+
+// hopefully will detect which one is active and provide the appropriate service
+extern MpAdapter *MpAdapter_factory();
+
 extern MyPlane* my_plane;
 #endif
