@@ -40,13 +40,13 @@ jobs:
             echo "VERSION=$TAG" > version.mak
           fi
 
-          if [ $OS == "ubuntu-20.04" ]; then
-            sudo apt-get -y install libopenal1 libopenal-dev
-            make -f Makefile.lin64
-          else
+          if [ $OS == "macos-latest" ]; then
             port selfupdate
             port install expat +universal
             make -f Makefile.mac64
+          else
+            sudo apt-get -y install libopenal1 libopenal-dev
+            make -f Makefile.lin64
           fi
 
           tar cvf binary.tar openSAM-pkg*/openSAM/*_x64
