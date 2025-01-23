@@ -213,9 +213,11 @@ Plane::jw_state_machine()
             }
 
             if (n_done == active_jws_.size()) {
-                XPLMCommandRef cmdr = XPLMFindCommand("openSAM/post_dock");
-                if (cmdr)
-                    XPLMCommandOnce(cmdr);
+                if (call_post_dock_cmd()) {
+                    XPLMCommandRef cmdr = XPLMFindCommand("openSAM/post_dock");
+                    if (cmdr)
+                        XPLMCommandOnce(cmdr);
+                }
                 new_state = DOCKED;
             }
             else {
