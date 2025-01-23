@@ -34,10 +34,7 @@ MpAdapter::MpAdapter()
 
 MpAdapter::~MpAdapter()
 {
-    for (auto p : mp_planes)
-        delete(p.second);
-    mp_planes.clear();
-
+    mp_planes_.clear();
     active_adapter = nullptr;
 }
 
@@ -55,7 +52,7 @@ MpAdapter *MpAdapter_factory()
 float
 MpAdapter::jw_state_machine() {
     float jw_loop_delay = 10.0;
-    for (auto p : mp_planes)
+    for (auto & p : mp_planes_)
         jw_loop_delay = std::min(p.second->jw_state_machine(), jw_loop_delay);
     return jw_loop_delay;
 }

@@ -197,31 +197,30 @@ float MpAdapter_xPilot::update()
         std::string key = flight_id + '/' + icao;
         dref_planes[key] = i;
 
-        auto & mpr = mp_planes[key];
-        MpPlane_xPilot* mp_plane;
-        if (mpr == nullptr) {
-            mp_plane = new MpPlane_xPilot(i, flight_id, icao);
-            mpr = mp_plane;
-        } else
-            mp_plane = static_cast<MpPlane_xPilot*>(mpr);
-
-        mp_plane->update(x_val_[i], y_val_[i], z_val_[i], psi_val_[i], throttle_val_[i], lights_val_[i]);
+        try {
+            auto & pr = mp_planes_.at(key);
+            MpPlane_xPilot* mp_plane = static_cast<MpPlane_xPilot*>(pr.get());
+            mp_plane->update(x_val_[i], y_val_[i], z_val_[i], psi_val_[i], throttle_val_[i], lights_val_[i]);
+        } catch(const std::out_of_range& ex) {
+            MpPlane_xPilot* mp_plane = new MpPlane_xPilot(i, flight_id, icao);
+            mp_plane->update(x_val_[i], y_val_[i], z_val_[i], psi_val_[i], throttle_val_[i], lights_val_[i]);
+            mp_planes_.emplace(key, mp_plane);
+        }
     }
 
-    // loop over mp_planes and delete the ones that are no longer in drefs
-    for (auto & mp : mp_planes) {
+    // loop over mp_planes_ and delete the ones that are no longer in drefs
+    for (auto & mp : mp_planes_) {
         const std::string& key = mp.first;
-        Plane *plane = mp.second;
+        Plane& plane = *(mp.second);
 
         try {
             dref_planes.at(key);
         } catch(const std::out_of_range& ex) {
-            log_msg("pid=%d not longer exists, deleted", plane->id_);
-            delete(plane);
-            mp_planes.erase(key);
+            log_msg("pid=%d not longer exists, deleted", plane.id_);
+            mp_planes_.erase(key);
         }
     }
 
-    log_msg("------------------ MP active planes found: %d -----------------", (int)mp_planes.size());
+    log_msg("------------------ MP active planes found: %d -----------------", (int)mp_planes_.size());
     return 2.0f;
 }

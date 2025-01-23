@@ -23,6 +23,7 @@
 #define _PLANE_H_
 
 #include <unordered_map>
+#include <memory>
 
 #include "XPWidgets.h"
 
@@ -180,7 +181,7 @@ class MyPlane : public Plane {
 // xPilot, TGXP, liveTraffic, ...
 class MpAdapter {
   protected:
-    std::unordered_map<std::string, Plane*> mp_planes;
+    std::unordered_map<std::string, std::unique_ptr<Plane>> mp_planes_;
     MpAdapter();
 
   public:
