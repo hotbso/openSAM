@@ -194,5 +194,5 @@ class MpAdapter {
 // hopefully will detect which one is active and provide the appropriate service
 extern MpAdapter *MpAdapter_factory();
 
-extern MyPlane* my_plane;
+extern MyPlane my_plane;
 #endif

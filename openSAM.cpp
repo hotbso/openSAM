@@ -137,7 +137,7 @@ save_pref()
     FILE *f = fopen(pref_path.c_str(), "w");
     if (NULL == f)
         return;
-    pref_auto_mode = my_plane->auto_mode();
+    pref_auto_mode = my_plane.auto_mode();
 
     // encode southern hemisphere with negative season
     int s = nh ? season : -season;
@@ -245,9 +245,9 @@ flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
 
     now = XPLMGetDataf(total_running_time_sec_dr);
 
-    bool on_ground_prev = my_plane->on_ground();
-    my_plane->update();
-    bool on_ground = my_plane->on_ground();
+    bool on_ground_prev = my_plane.on_ground();
+    my_plane.update();
+    bool on_ground = my_plane.on_ground();
 
     // check for transition
     if (on_ground != on_ground_prev) {
@@ -265,9 +265,9 @@ flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
     if (mp_adapter && mp_update_delay <= 0.0f)
         mp_update_next_ts = now + mp_adapter->update();
 
-    if (! my_plane->is_helicopter_) {
+    if (! my_plane.is_helicopter_) {
         if (jw_loop_delay <= 0.0f) {
-            jw_loop_delay = my_plane->jw_state_machine();
+            jw_loop_delay = my_plane.jw_state_machine();
             if (mp_adapter)
                 jw_loop_delay = std::min(jw_loop_delay,
                                          mp_adapter->jw_state_machine());
@@ -367,11 +367,11 @@ cmd_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, voi
     log_msg("cmd_dock_jw_cb called");
 
     if (ref == NULL)
-        my_plane->request_dock();
+        my_plane.request_dock();
     else if (ref == (void *)1)
-        my_plane->request_undock();
+        my_plane.request_undock();
     else if (ref == (void *)2)
-        my_plane->request_toggle();
+        my_plane.request_toggle();
 
     return 0;
 }
@@ -386,7 +386,7 @@ cmd_xp12_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase
 
     log_msg("cmd_xp12_dock_jw_cb called");
 
-    my_plane->request_toggle();
+    my_plane.request_toggle();
     return 1;       // pass on to XP12, likely there is no XP12 jw here 8-)
 }
 
@@ -501,7 +501,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
                                  NULL, NULL, NULL, (void *)(long long)i, NULL);
 
     MyPlane::init();
-    my_plane->auto_mode_set(pref_auto_mode);
+    my_plane.auto_mode_set(pref_auto_mode);
     jw_init();
     JwCtrl::init();
     dgs_init();
@@ -627,19 +627,19 @@ XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, long in_msg, void *
     if ((in_msg == XPLM_MSG_AIRPORT_LOADED) ||
         (airport_loaded && (in_msg == XPLM_MSG_SCENERY_LOADED))) {
         airport_loaded = 1;
-        nh = (my_plane->lat() >= 0.0);
+        nh = (my_plane.lat() >= 0.0);
         set_season_auto();
         return;
     }
 
     // my plane loaded
     if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
-        my_plane->plane_loaded();
+        my_plane.plane_loaded();
         return;
     }
     // livery loaded
     if (in_msg == XPLM_MSG_LIVERY_LOADED && in_param == 0) {
-        my_plane->livery_loaded();
+        my_plane.livery_loaded();
         return;
     }
 }

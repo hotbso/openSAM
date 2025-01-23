@@ -32,6 +32,8 @@
 #include "plane.h"
 #include "samjw.h"
 
+MyPlane my_plane;
+
 // opensam/jetway/status dataref
 //  0 = no jetway
 //  1 = can dock
@@ -45,16 +47,16 @@ MyPlane::jw_status_acc(void *ref)
 {
     // opensam/jetway/number
     if (ref == 0)
-        return my_plane->active_jws_.size();
+        return my_plane.active_jws_.size();
 
     // opensam/jetway/status
-    if (0 == my_plane->active_jws_.size())
+    if (0 == my_plane.active_jws_.size())
         return 0;
 
-    if (Plane::CAN_DOCK == my_plane->state_)
+    if (Plane::CAN_DOCK == my_plane.state_)
         return 1;
 
-    if (Plane::DOCKED == my_plane->state_)
+    if (Plane::DOCKED == my_plane.state_)
         return 2;
 
     return -1;
@@ -79,7 +81,7 @@ MyPlane::jw_door_status_acc([[maybe_unused]] XPLMDataRef ref, int *values, int o
         values[i] = 0;
     }
 
-    for (auto & ajw : my_plane->active_jws_)
+    for (auto & ajw : my_plane.active_jws_)
         if (ajw.state_ == JwCtrl::DOCKED) {
             int i = ajw.door_ - ofs;
             if (0 <= i && i < n)
@@ -100,9 +102,10 @@ static bool find_icao_in_file(const std::string& acf_icao, const std::string& fn
 
 MyPlane::MyPlane()
 {
-    assert (my_plane == nullptr);
     log_msg("constructing MyPlane");
     plane_x_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_x");
+    assert(plane_x_dr_ != nullptr); // verify that XPLM is initialized
+
     plane_y_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_y");
     plane_z_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_z");
     plane_lat_dr_ = XPLMFindDataRef("sim/flightmodel/position/latitude");
@@ -460,8 +463,9 @@ MyPlane::reset_beacon()
 void
 MyPlane::init()
 {
-    assert(my_plane == nullptr);
-    my_plane = new MyPlane();
+    static bool init_done{false};
+    if (init_done)
+        return;
 
     XPLMRegisterDataAccessor("opensam/jetway/number", xplmType_Int, 0, jw_status_acc,
                              NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -474,6 +478,7 @@ MyPlane::init()
     XPLMRegisterDataAccessor("opensam/jetway/door/status", xplmType_IntArray, 0, NULL, NULL,
                              NULL, NULL, NULL, NULL, jw_door_status_acc, NULL,
                              NULL, NULL, NULL, NULL, NULL, NULL);
+    init_done = true;
 }
 
 static bool
