@@ -99,6 +99,7 @@ class Plane {
 
     // hook into flight loop
     float jw_state_machine();
+    virtual bool check_teleportation() { return false; }
 
     // UI support functions called from jw_state_machine()
     virtual void update_ui([[maybe_unused]] bool only_if_visible) {}
@@ -149,7 +150,7 @@ class MyPlane : public Plane {
     void update();
 
     void memorize_parked_pos() override ; // for teleportation detection
-    bool check_teleportation();
+    bool check_teleportation() override;
 
     // these 3 are called with prior update() call -> direct read from drefs
     float lat() { return XPLMGetDataf(plane_lat_dr_); }

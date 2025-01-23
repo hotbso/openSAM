@@ -106,7 +106,7 @@ Plane::jw_state_machine()
 
     State new_state{state_};
 
-    if (state_ > IDLE && my_plane.check_teleportation()) {
+    if (state_ > IDLE && check_teleportation()) {
         log_msg("teleportation detected!");
         state_ = new_state = IDLE;
         state_change_ts_ = now;
