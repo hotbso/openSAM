@@ -19,8 +19,8 @@
     USA
 
 */
-#ifndef _MP_PLANE_H_
-#define _MP_PLANE_H_
+#ifndef _MP_PLANE_XPILOT_H_
+#define _MP_PLANE_XPILOT_H_
 
 #include <memory>
 

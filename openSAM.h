@@ -24,7 +24,7 @@
 #include <numbers>
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
 
 #define XPLM200
 #define XPLM210
@@ -105,8 +105,10 @@ struct DoorInfo {
 };
 
 // key is icao + <door num in ascii>
-extern std::map<std::string, DoorInfo> door_info_map;
-extern std::map<std::string, DoorInfo> csl_door_info_map;
+extern std::unordered_map<std::string, DoorInfo> door_info_map;
+extern std::unordered_map<std::string, DoorInfo> csl_door_info_map;
+// key is icao or iata -> icao
+extern std::unordered_map<std::string, std::string> acf_generic_type_map;
 
 extern std::string xp_dir;
 extern std::string base_dir;        // base directory of openSAM

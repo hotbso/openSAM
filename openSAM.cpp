@@ -120,8 +120,9 @@ std::string base_dir; // base directory of openSAM
 
 static MpAdapter *mp_adapter;
 
-std::map<std::string, DoorInfo> door_info_map;
-std::map<std::string, DoorInfo> csl_door_info_map;
+std::unordered_map<std::string, DoorInfo> door_info_map;
+std::unordered_map<std::string, DoorInfo> csl_door_info_map;
+std::unordered_map<std::string, std::string> acf_generic_type_map;
 
 unsigned long long stat_sc_far_skip, stat_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,
@@ -391,7 +392,7 @@ cmd_xp12_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase
 }
 
 static void
-load_door_info(const std::string& fn, std::map<std::string, DoorInfo>& di_map)
+load_door_info(const std::string& fn, std::unordered_map<std::string, DoorInfo>& di_map)
 {
     std::ifstream f(fn);
     if (!f.is_open())
@@ -422,6 +423,36 @@ load_door_info(const std::string& fn, std::map<std::string, DoorInfo>& di_map)
             di_map[std::string(icao) + c] = d;
         }
     }
+
+    log_msg("%d mappings loaded", (int)di_map.size());
+}
+
+static void
+load_acf_generic_type(const std::string& fn)
+{
+    std::ifstream f(fn);
+    if (!f.is_open())
+        throw OsEx("Error loading " + fn);
+
+    log_msg("Building acf_generic_type_map from %s",  fn.c_str());
+
+    std::string line;
+    while (std::getline(f, line)) {
+        size_t i = line.find('\r');
+        if (i != std::string::npos)
+            line.resize(i);
+
+        char code[5];
+        char icao[5];
+        if (2 == sscanf(line.c_str(), "%4s %4s", code, icao)) {
+            if (code[0] == '#')
+                continue;
+
+           acf_generic_type_map[std::string(code)] = std::string(icao);
+        }
+    }
+    
+    log_msg("%d mappings loaded", (int)acf_generic_type_map.size());
 }
 
 // =========================== plugin entry points ===============================================
@@ -455,6 +486,8 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     try {
         load_door_info(base_dir + "acf_door_position.txt", door_info_map);
         load_door_info(base_dir + "csl_door_position.txt", csl_door_info_map);
+        load_acf_generic_type(base_dir + "acf_generic_type.txt");
+
         SceneryPacks scp(xp_dir);
         sam_library_installed = scp.SAM_Library_path.size() > 0;
         collect_sam_xml(scp);

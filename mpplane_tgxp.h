@@ -19,43 +19,28 @@
     USA
 
 */
+#ifndef _MP_PLANE_TGXP_H_
+#define _MP_PLANE_TGXP_H_
 
-#include <cassert>
-#include "openSAM.h"
-#include "plane.h"
+#include <memory>
 
-#include "mpplane_xpilot.h"
-#include "mpplane_tgxp.h"
+class MpAdapter_tgxp : public MpAdapter {
+    // for performance reasons we fetch the whole dref vectors into arrays
+    int vector_size_{0}, byte_area_size_{0};
 
-static MpAdapter *active_adapter;
+    std::unique_ptr<int[]> flight_phase_val_;
+    std::unique_ptr<int[]> traffic_type_val_;
+    std::unique_ptr<char[]> acf_type_val_, flight_id_val_;
+    std::unique_ptr<float[]> x_val_, y_val_, z_val_, psi_val_;
 
-MpAdapter::MpAdapter()
-{
-}
+    friend  MpAdapter* MpAdapter_factory();
 
-MpAdapter::~MpAdapter()
-{
-    mp_planes_.clear();
-    active_adapter = nullptr;
-}
+  protected:
+    static bool probe();        // probe whether xPilot is active
+    MpAdapter_tgxp();
 
-MpAdapter *MpAdapter_factory()
-{
-    // ensure that we only have one active adapter
-    assert(active_adapter == nullptr);
-
-    if (MpAdapter_xPilot::probe())
-        active_adapter = new MpAdapter_xPilot();
-    else if (MpAdapter_tgxp::probe())
-        active_adapter = new MpAdapter_tgxp();
-
-    return active_adapter;
-}
-
-float
-MpAdapter::jw_state_machine() {
-    float jw_loop_delay = 10.0;
-    for (auto & p : mp_planes_)
-        jw_loop_delay = std::min(p.second->jw_state_machine(), jw_loop_delay);
-    return jw_loop_delay;
-}
+  public:
+    ~MpAdapter_tgxp();
+    float update() override;
+};
+#endif

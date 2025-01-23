@@ -109,6 +109,7 @@ Plane::jw_state_machine()
     if (state_ > IDLE && my_plane.check_teleportation()) {
         log_msg("teleportation detected!");
         state_ = new_state = IDLE;
+        state_change_ts_ = now;
 
         for (auto & ajw : active_jws_)
             ajw.reset();
@@ -277,6 +278,7 @@ Plane::jw_state_machine()
     prev_state_ = state_;
 
     if (new_state != state_) {
+        state_change_ts_ = now;
         log_msg("pid=%d, jw state transition, %s -> %s, beacon: %d", id_,
                 state_str_[state_], state_str_[new_state], beacon_on_);
         state_ = new_state;

@@ -29,7 +29,8 @@
 
 #include "jwctrl.h"
 
-static const int kNearJwLimit{3};   // max # of jetways we consider for docking
+static constexpr int kNearJwLimit = 3;      // max # of jetways we consider for docking
+static constexpr float kMpMaxDist = 2000;   // (m) max dist we consider MP planes
 
 //
 // Generic class that provides all plane related values for jetway animation.
@@ -44,6 +45,8 @@ class Plane {
   protected:
     float state_machine_next_ts_{0};    // ts for the next run of the state machine
     State state_{DISABLED}, prev_state_{DISABLED};
+    float state_change_ts_{0};
+
     bool beacon_on_{false}, engines_on_{false}, on_ground_{false}, parkbrake_set_{false};
     std::string icao_;
     float x_, y_, z_, psi_;
@@ -193,8 +196,8 @@ class MpAdapter {
     float jw_state_machine();       // return delay to next call
 };
 
-// hopefully will detect which one is active and provide the appropriate service
-extern MpAdapter *MpAdapter_factory();
+// hopefully will detect which plugin is active and returns the appropriate service
+extern MpAdapter *MpAdapter_factory();  // no supported MP plugin -> nullptr
 
 extern MyPlane my_plane;
 #endif
