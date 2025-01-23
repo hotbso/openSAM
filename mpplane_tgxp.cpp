@@ -29,7 +29,7 @@
 #include "plane.h"
 #include "mpplane_tgxp.h"
 
-constexpr int kSpawnProRun = 10;    // new Planes per update run
+constexpr int kSpawnPerRun = 10;    // new Planes per update run
 
 static XPLMDataRef
     flight_phase_dr,
@@ -126,7 +126,6 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     } catch(const std::out_of_range& ex) {}
 
     state_ = IDLE;
-
 }
 
 void
@@ -138,7 +137,7 @@ MpPlane_tgxp::update(bool beacon)
     beacon_on_ = beacon;
 
     // Jetways are only dockable if they were rendered once.
-    // As the come in view over time we just retry a docking attempt if the plane is stuck
+    // As they come in view over time we just retry a docking attempt if the plane is stuck
     // in CANT_DOCK.
     if (!beacon_on_ && state_ == CANT_DOCK && now > state_change_ts_ + 60.0f)
         state_ = PARKED;
@@ -164,7 +163,7 @@ MpAdapter_tgxp::MpAdapter_tgxp()
     static bool init_done{false};
 
     if (!init_done) {
-        // flight_phase_dr already done in probe
+        // flight_phase_dr is already done in probe
         acf_type_dr = XPLMFindDataRef("trafficglobal/ai/aircraft_code");
         flight_id_dr = XPLMFindDataRef("trafficglobal/ai/tail_number");
         x_dr = XPLMFindDataRef("trafficglobal/ai/position_x");
@@ -234,7 +233,7 @@ float MpAdapter_tgxp::update()
     std::unordered_map<std::string, int> dref_planes;
     dref_planes.reserve(n_planes);
 
-    int spawn_remain = kSpawnProRun;
+    int spawn_remain = kSpawnPerRun;
     for (int i = 0; i < n_planes; i++) {
         if (flight_id_len <=0 || acf_type_len <= 0) {
             log_msg("ERROR: not enough values in byte arrays");
