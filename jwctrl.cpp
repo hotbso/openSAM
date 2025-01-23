@@ -70,12 +70,12 @@ JwCtrl::xz_to_sam_dr(float cabin_x, float cabin_z,
 // fill in geometry data related to specific door
 //
 void
-JwCtrl::setup_for_door(Plane *plane, const DoorInfo& door_info)
+JwCtrl::setup_for_door(Plane& plane, const DoorInfo& door_info)
 {
     // rotate into plane local frame
-    float dx = jw_->x - plane->x();
-    float dz = jw_->z - plane->z();
-    float plane_psi = plane->psi();
+    float dx = jw_->x - plane.x();
+    float dz = jw_->z - plane.z();
+    float plane_psi = plane.psi();
 
     float sin_psi = sinf(D2R * plane_psi);
     float cos_psi = cosf(D2R * plane_psi);
@@ -94,7 +94,7 @@ JwCtrl::setup_for_door(Plane *plane, const DoorInfo& door_info)
 
     door_x_ = -jw_->cabinLength;
     // tgt z = 0.0
-    y_ = (jw_->y + jw_->height) - (plane->y() + door_info.y);
+    y_ = (jw_->y + jw_->height) - (plane.y() + door_info.y);
 
     xz_to_sam_dr(door_x_, 0.0f, door_rot1_, door_extent_, &door_rot2_, &door_rot3_);
 
@@ -137,7 +137,7 @@ operator<(const JwCtrl& a, const JwCtrl& b)
 
 // filter list of jetways jws[]for candidates and add them to nearest_jws[]
 static void
-filter_candidates(Plane* plane, std::vector<JwCtrl>& nearest_jws,
+filter_candidates(Plane& plane, std::vector<JwCtrl>& nearest_jws,
                   std::vector<SamJw*> &jws, const DoorInfo& door_info)
 {
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
@@ -148,7 +148,7 @@ filter_candidates(Plane* plane, std::vector<JwCtrl>& nearest_jws,
             continue;
 
         log_msg("pid=%d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
-                plane->id_, jw_->name, jw_->door, jw_->x, jw_->z, jw_->y, jw_->psi);
+                plane.id_, jw_->name, jw_->door, jw_->x, jw_->z, jw_->y, jw_->psi);
 
         // set up a tentative JwCtrl ...
         JwCtrl njw{};
@@ -160,7 +160,7 @@ filter_candidates(Plane* plane, std::vector<JwCtrl>& nearest_jws,
             njw.x_ < -80.0f || fabsf(njw.z_) > 80.0f) {             // or far away
             if (fabsf(njw.x_) < 120.0f && fabsf(njw.z_) < 120.0f)   // don't pollute the log with jws VERY far away
                 log_msg("pid=%d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw_->initialRot1): %0.1f",
-                        plane->id_, jw_->name, njw.x_, njw.z_, njw.psi_ + jw_->initialRot1);
+                        plane.id_, jw_->name, njw.x_, njw.z_, njw.psi_ + jw_->initialRot1);
             continue;
         }
 
@@ -180,7 +180,7 @@ filter_candidates(Plane* plane, std::vector<JwCtrl>& nearest_jws,
         // ... survived, add to list
         log_msg("--> pid=%d, candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
                 "rot1: %0.1f, extent: %.1f",
-                plane->id_, jw_->name, jw_->library_id, jw_->door,
+                plane.id_, jw_->name, jw_->library_id, jw_->door,
                 njw.x_, njw.z_, njw.y_, njw.psi_, njw.door_rot1_, njw.door_extent_);
 
         nearest_jws.push_back(njw);
@@ -190,9 +190,9 @@ filter_candidates(Plane* plane, std::vector<JwCtrl>& nearest_jws,
 // find nearest jetways, order by z (= door number, hopefully)
 // static member, called by Plane
 int
-JwCtrl::find_nearest_jws(Plane* plane, std::vector<JwCtrl>& nearest_jws)
+JwCtrl::find_nearest_jws(Plane& plane, std::vector<JwCtrl>& nearest_jws)
 {
-    int n_door = plane->n_door_;
+    int n_door = plane.n_door_;
     if (n_door == 0) {
         log_msg("acf has no doors!");
         return 0;
@@ -208,13 +208,13 @@ JwCtrl::find_nearest_jws(Plane* plane, std::vector<JwCtrl>& nearest_jws)
     avg_di.x = 0.0f;
     avg_di.z = 0.0f;
     for (int i = 0; i < n_door; i++) {
-        avg_di.x += plane->door_info_[i].x;
-        avg_di.z += plane->door_info_[i].z;
+        avg_di.x += plane.door_info_[i].x;
+        avg_di.z += plane.door_info_[i].z;
     }
 
     avg_di.x /= n_door;
     avg_di.z /= n_door;
-    avg_di.y = plane->door_info_[0].y;
+    avg_di.y = plane.door_info_[0].y;
 
     nearest_jws.resize(0);
 

@@ -77,7 +77,7 @@ class JwCtrl {
 
     FMOD_CHANNEL *alert_chn_;
 
-    void setup_for_door(Plane *plane, const DoorInfo& door_info);
+    void setup_for_door(Plane& plane, const DoorInfo& door_info);
 
     // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 are optional
     void xz_to_sam_dr(float cabin_x, float cabin_z,
@@ -104,7 +104,7 @@ class JwCtrl {
 
   public:
     // find nearest jetways, order by z (= door number, hopefully)
-    static int find_nearest_jws(Plane* plane, std::vector<JwCtrl>& nearest_jws);
+    static int find_nearest_jws(Plane& plane, std::vector<JwCtrl>& nearest_jws);
 
     // check whether extended nearest njw would crash into parked njw2
     bool collision_check(const JwCtrl &njw2);

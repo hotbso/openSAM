@@ -145,7 +145,7 @@ Plane::jw_state_machine()
             break;
 
         case PARKED:
-            if (JwCtrl::find_nearest_jws(this, nearest_jws_))
+            if (JwCtrl::find_nearest_jws(*this, nearest_jws_))
                 new_state = SELECT_JWS;
             else
                 new_state = CANT_DOCK;
@@ -169,7 +169,7 @@ Plane::jw_state_machine()
             if (active_jws_.size()) {
                 for (auto & ajw : active_jws_) {
                     log_msg("pid=%d, setting up active jw for door: %d", id_, ajw.door_);
-                    ajw.setup_for_door(this, door_info_[ajw.door_]);
+                    ajw.setup_for_door(*this, door_info_[ajw.door_]);
 
                     if (ajw.door_ == 0) // slightly slant towards the nose cone for door LF1
                         ajw.door_rot2_ += 3.0f;
