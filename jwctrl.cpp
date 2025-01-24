@@ -147,8 +147,8 @@ filter_candidates(Plane& plane, std::vector<JwCtrl>& nearest_jws,
         if (jw_->obj_ref_gen < ref_gen)  // not visible -> not dockable
             continue;
 
-        log_msg("pid=%d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
-                plane.id_, jw_->name, jw_->door, jw_->x, jw_->z, jw_->y, jw_->psi);
+        //log_msg("pid=%d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
+        //        plane.id_, jw_->name, jw_->door, jw_->x, jw_->z, jw_->y, jw_->psi);
 
         // set up a tentative JwCtrl ...
         JwCtrl njw{};
