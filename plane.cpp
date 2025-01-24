@@ -191,7 +191,7 @@ Plane::jw_state_machine()
                 float start_ts = now;
                 for (auto & ajw : active_jws_) {
                     // staggered start for docking low to high
-                    ajw.setup_dock_undock(start_ts);
+                    ajw.setup_dock_undock(start_ts, with_alert_sound());
                     start_ts += 5.0f;
                 }
 
@@ -243,7 +243,7 @@ Plane::jw_state_machine()
                 for (auto & ajw : active_jws_) {
                     // staggered start for undocking high to low
                     start_ts -= 5.0f;
-                    ajw.setup_dock_undock(start_ts);
+                    ajw.setup_dock_undock(start_ts, with_alert_sound());
                 }
 
                 XPLMCommandRef cmdr = XPLMFindCommand("openSAM/pre_undock");

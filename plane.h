@@ -94,8 +94,11 @@ class Plane {
     virtual bool toggle_requested() { return false; }
     virtual bool call_post_dock_cmd() { return false; }
 
-    // auto select jetways
+    // auto select jetways + sound
     void select_jws();
+
+    // in general no sound on (mass-) docking
+    virtual bool with_alert_sound() { return (state_ == DOCKED); }
 
     // hook into flight loop
     float jw_state_machine();
@@ -163,6 +166,8 @@ class MyPlane : public Plane {
     void update_ui(bool only_if_visible) override;
     void lock_ui(bool yes_no) override { ui_unlocked_ = !yes_no; }
     static int ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_t param2);
+
+    bool with_alert_sound() override { return true; }
 
     // cmd support
     void auto_mode_set(bool auto_mode);

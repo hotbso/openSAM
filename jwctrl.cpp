@@ -681,13 +681,14 @@ JwCtrl::undock_drive()
 }
 
 void
-JwCtrl::setup_dock_undock(float start_time)
+JwCtrl::setup_dock_undock(float start_time, bool with_sound)
 {
     state_ = TO_AP;
     start_ts_ = start_time;
     last_step_ts_ = start_ts_;
     timeout_ = start_ts_ + kAnimTimeout;
-    alert_on();
+    if (with_sound)
+        alert_on();
     jw_->warnlight = 1;
 }
 

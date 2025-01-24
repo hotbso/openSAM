@@ -110,7 +110,7 @@ class JwCtrl {
     bool collision_check(const JwCtrl &njw2);
 
     // setup for operation
-    void setup_dock_undock(float start_time);
+    void setup_dock_undock(float start_time, bool with_sound);
 
     // drive jetway, return true when done
     bool dock_drive();
