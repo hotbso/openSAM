@@ -90,9 +90,41 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
 
     log_msg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), acf_type.c_str());
 
+    // now check if acf_type is of some traffic pack and
+    // e.g. is "332_EUROWINGSDISCOVER_WE_RD" or "JFAI_A220_300_SWISS"
+    // we split on '_' and extract the first token that contains a digit
+    std::string type_code;
+    if (acf_type.find('_') == std::string::npos)
+        type_code = acf_type;
+    else {
+        std::string s = acf_type;
+        size_t pos;
+        while ((pos = s.find('_')) != std::string::npos) {
+            std::string token = s.substr(0, pos);
+            s.erase(0, pos + 1);
+            if (token.find_first_of("0123456789") != std::string::npos) {
+                type_code = token;
+                log_msg("extracted type code '%s'", type_code.c_str());
+                break;
+            }
+        }
+    }
+
+    if (type_code.size() == 0) {
+        log_msg("pid=%d, could not extract type code from '%s'", id_, acf_type.c_str());
+        state_ = DISABLED;
+        return;
+    }
+
     n_door_ = 0;
     try {
-        icao_ = acf_generic_type_map.at(acf_type);
+        // first an optional translation to icao code
+        try {
+            icao_ = acf_generic_type_map.at(type_code);
+        } catch(const std::out_of_range& ex) {
+            icao_ = type_code;
+        }
+
         door_info_[0] = csl_door_info_map.at(icao_ + '1');
         n_door_++;
 
@@ -112,7 +144,7 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
         log_msg("pid=%d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
                 id_, icao_.c_str(), door_info_[0].x, door_info_[0].y, door_info_[0].z);
     } catch(const std::out_of_range& ex) {
-        log_msg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, acf_type.c_str());
+        log_msg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, type_code.c_str());
         state_ = DISABLED;
         return;
     }
