@@ -160,8 +160,12 @@ Plane::jw_state_machine()
 
             if (auto_mode()) {
                 select_jws();
+                if (active_jws_.size() == 0) {       // e.g. collisions
+                    new_state = CANT_DOCK;
+                    break;
+                }
             } else if (prev_state_ != state_) {
-                lock_ui(false);     // allow jw selection in the ui (if the plne supports it)
+                lock_ui(false);     // allow jw selection in the ui (if the plane supports it)
                 update_ui(true);
             }
 
