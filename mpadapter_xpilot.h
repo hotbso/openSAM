@@ -19,28 +19,29 @@
     USA
 
 */
-#ifndef _MP_PLANE_TGXP_H_
-#define _MP_PLANE_TGXP_H_
+#ifndef _MPADAPTER_XPILOT_H_
+#define _MPADAPTER_XPILOT_H_
 
 #include <memory>
 
-class MpAdapter_tgxp : public MpAdapter {
+#include "mpadapter.h"
+
+class MpAdapter_xPilot : public MpAdapter {
     // for performance reasons we fetch the whole dref vectors into arrays
-    int vector_size_{0}, byte_area_size_{0};
+    int n_planes_;
+    std::unique_ptr<int[]> modeS_id_val_, on_ground_val_, lights_val_;
+    std::unique_ptr<char[]> icao_type_val_, flight_id_val_;
+    std::unique_ptr<float[]> x_val_, y_val_, z_val_, psi_val_, throttle_val_;
 
-    std::unique_ptr<int[]> flight_phase_val_;
-    std::unique_ptr<int[]> traffic_type_val_;
-    std::unique_ptr<char[]> acf_type_val_, flight_id_val_;
-    std::unique_ptr<float[]> x_val_, y_val_, z_val_, psi_val_;
-
-    friend  MpAdapter* MpAdapter_factory();
+    friend std::unique_ptr<MpAdapter> MpAdapter_factory();
 
   protected:
     static bool probe();        // probe whether xPilot is active
-    MpAdapter_tgxp();
+    MpAdapter_xPilot();
 
   public:
-    ~MpAdapter_tgxp();
+    ~MpAdapter_xPilot();
+    const char* personality() const override { return "xPilot"; };
     float update() override;
 };
 #endif

@@ -188,22 +188,5 @@ class MyPlane : public Plane {
 
 };
 
-// Wrapper around the different plugins providing multiplayer planes
-// xPilot, TGXP, liveTraffic, ...
-class MpAdapter {
-  protected:
-    std::unordered_map<std::string, std::unique_ptr<Plane>> mp_planes_;
-    MpAdapter();
-
-  public:
-    virtual ~MpAdapter();
-
-    virtual float update() = 0;     // update status of MP planes
-    float jw_state_machine();       // return delay to next call
-};
-
-// hopefully will detect which plugin is active and returns the appropriate service
-extern MpAdapter *MpAdapter_factory();  // no supported MP plugin -> nullptr
-
 extern MyPlane my_plane;
 #endif

@@ -33,7 +33,7 @@
 #include "jwctrl.h"
 #include "os_anim.h"
 #include "plane.h"
-#include "mpplane_xpilot.h"
+#include "mpadapter.h"
 
 #include "XPLMPlugin.h"
 #include "XPLMProcessing.h"
@@ -91,6 +91,7 @@ std::string xp_dir;
 static std::string pref_path;
 static XPLMMenuID os_menu, seasons_menu;
 static int toggle_mp_item, auto_item, season_item[4];
+static const char* toggle_mp_support_txt = "Toggle Multiplayer Support";
 XPLMCommandRef dock_cmdr;
 
 static int auto_season;
@@ -118,7 +119,7 @@ static int pref_auto_mode;
 float now;            // current timestamp
 std::string base_dir; // base directory of openSAM
 
-static MpAdapter *mp_adapter;
+static std::unique_ptr<MpAdapter> mp_adapter;
 
 std::unordered_map<std::string, DoorInfo> door_info_map;
 std::unordered_map<std::string, DoorInfo> csl_door_info_map;
@@ -226,11 +227,19 @@ cmd_toggle_mp_cb([[maybe_unused]]XPLMCommandRef cmdr,
 
     log_msg("cmd toggle_mp");
     if (mp_adapter) {
-        delete(mp_adapter);
         mp_adapter = nullptr;
     } else {
         mp_adapter = MpAdapter_factory();
     }
+
+    if (mp_adapter) {
+        std::string menu_txt{toggle_mp_support_txt};
+        menu_txt += " (";
+        menu_txt += mp_adapter->personality();
+        menu_txt += ")";
+        XPLMSetMenuItemName(os_menu, toggle_mp_item, menu_txt.c_str(), 0);
+    } else
+        XPLMSetMenuItemName(os_menu, toggle_mp_item, toggle_mp_support_txt, 0);
 
     XPLMCheckMenuItem(os_menu, toggle_mp_item,
                       mp_adapter ? xplm_Menu_Checked : xplm_Menu_Unchecked);
@@ -451,7 +460,7 @@ load_acf_generic_type(const std::string& fn)
            acf_generic_type_map[std::string(code)] = std::string(icao);
         }
     }
-    
+
     log_msg("%d mappings loaded", (int)acf_generic_type_map.size());
 }
 
@@ -585,7 +594,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     XPLMAppendMenuSeparator(os_menu);
 
-    toggle_mp_item = XPLMAppendMenuItemWithCommand(os_menu, "Toggle Multiplayer Support", toggle_mp_cmdr);
+    toggle_mp_item = XPLMAppendMenuItemWithCommand(os_menu, toggle_mp_support_txt, toggle_mp_cmdr);
 
     XPLMAppendMenuSeparator(os_menu);
 

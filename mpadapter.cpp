@@ -24,10 +24,11 @@
 #include "openSAM.h"
 #include "plane.h"
 
-#include "mpplane_xpilot.h"
-#include "mpplane_tgxp.h"
+#include "mpadapter.h"
+#include "mpadapter_xpilot.h"
+#include "mpadapter_tgxp.h"
 
-static MpAdapter *active_adapter;
+static bool active;
 
 MpAdapter::MpAdapter()
 {
@@ -36,20 +37,23 @@ MpAdapter::MpAdapter()
 MpAdapter::~MpAdapter()
 {
     mp_planes_.clear();
-    active_adapter = nullptr;
+    active = false;
 }
 
-MpAdapter *MpAdapter_factory()
+std::unique_ptr<MpAdapter> MpAdapter_factory()
 {
     // ensure that we only have one active adapter
-    assert(active_adapter == nullptr);
+    assert(!active);
+
+    std::unique_ptr<MpAdapter> adapter;
 
     if (MpAdapter_xPilot::probe())
-        active_adapter = new MpAdapter_xPilot();
+        adapter = std::unique_ptr<MpAdapter>(new MpAdapter_xPilot());
     else if (MpAdapter_tgxp::probe())
-        active_adapter = new MpAdapter_tgxp();
+        adapter = std::unique_ptr<MpAdapter>(new MpAdapter_tgxp());
 
-    return active_adapter;
+    active = (adapter != nullptr);
+    return adapter;
 }
 
 float
