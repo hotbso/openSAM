@@ -175,7 +175,7 @@ float MpAdapter_xPilot::update()
     XPLMGetDatab(icao_type_dr, icao_type_val_.get(), 0, n_planes_ * 8);
     XPLMGetDatab(flight_id_dr, flight_id_val_.get(), 0, n_planes_ * 8);
 
-    std::unordered_map<std::string, int> dref_planes;
+    std::unordered_map<std::string, bool> dref_planes;
     dref_planes.reserve(n_planes_);
 
     for (int i = 1; i < n_planes_; i++) {
@@ -195,7 +195,7 @@ float MpAdapter_xPilot::update()
         std::string icao = cptr;
 
         std::string key = flight_id + '/' + icao;
-        dref_planes[key] = i;
+        dref_planes[key] = true;
 
         try {
             auto & pr = mp_planes_.at(key);

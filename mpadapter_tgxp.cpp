@@ -262,7 +262,7 @@ float MpAdapter_tgxp::update()
     if (flight_id_len > 0)
         flight_id_ptr[flight_id_len - 1] = '\0';
 
-    std::unordered_map<std::string, int> dref_planes;
+    std::unordered_map<std::string, bool> dref_planes;
     dref_planes.reserve(n_planes);
 
     int spawn_remain = kSpawnPerRun;
@@ -297,7 +297,7 @@ float MpAdapter_tgxp::update()
 
         // flight_id
         std::string flight_id{fid_ptr}, acf_type{type_ptr};
-        dref_planes[flight_id] = i;
+        dref_planes[flight_id] = true;
 
         try {
             auto & pr = mp_planes_.at(flight_id);
