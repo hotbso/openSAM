@@ -32,7 +32,7 @@
 class MpAdapter {
   protected:
     std::unordered_map<std::string, std::unique_ptr<Plane>> mp_planes_;
-    MpAdapter();
+    MpAdapter() {};
 
   public:
     virtual ~MpAdapter();

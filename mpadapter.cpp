@@ -27,12 +27,9 @@
 #include "mpadapter.h"
 #include "mpadapter_xpilot.h"
 #include "mpadapter_tgxp.h"
+#include "mpadapter_lt.h"
 
 static bool active;
-
-MpAdapter::MpAdapter()
-{
-}
 
 MpAdapter::~MpAdapter()
 {
@@ -49,6 +46,8 @@ std::unique_ptr<MpAdapter> MpAdapter_factory()
 
     if (MpAdapter_xPilot::probe())
         adapter = std::unique_ptr<MpAdapter>(new MpAdapter_xPilot());
+    else if (MpAdapter_lt::probe())
+        adapter = std::unique_ptr<MpAdapter>(new MpAdapter_lt());
     else if (MpAdapter_tgxp::probe())
         adapter = std::unique_ptr<MpAdapter>(new MpAdapter_tgxp());
 
