@@ -8,7 +8,6 @@ PLUGDIR_XP11=openSAM-pkg_XP11/openSAM
 include version.mak
 include Makefile.common
 
-SDK=../SDK
 OBJDIR=./OBJ_osx
 
 TARGET_XP12=$(OBJDIR)/openSAM.xpl
@@ -24,9 +23,9 @@ OBJECTS_XP11_x86=$(OBJECTS_XP11_arm:.o_arm=.o_x86)
 CCx=clang++ -target x86_64-apple-macos11
 CCa=clang++ -target arm64-apple-macos11
 
-DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -DNDEBUG -Wno-deprecated-declarations
+DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -Wno-deprecated-declarations
 
-CFLAGS+=$(CXXSTD) $(OPT) -Wall -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets -DVERSION=\"$(VERSION)\" $(DEFS)
+CFLAGS+=$(CXXSTD) $(OPT) -Wall $(INCLUDES) $(DEBUG) -DVERSION=\"$(VERSION)\" $(DEFS)
 
 LNFLAGS+=-dynamiclib -shared -rdynamic -fvisibility=hidden -Wl,-exported_symbols_list -Wl,linkscript.mac
 

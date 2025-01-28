@@ -1,7 +1,6 @@
 PLUGDIR_XP12=openSAM-pkg/openSAM
 PLUGDIR_XP11=openSAM-pkg_XP11/openSAM
 
-SDK=../SDK
 OPENAL=../libOpenAL32
 OBJDIR=./OBJ_win
 
@@ -29,7 +28,7 @@ LD=g++
 CFLAGS+=$(CXXSTD) -DVERSION=\"$(VERSION)\"   -g0 $(OPT) -Wextra -Wall  \
 	-fdiagnostics-color -Wno-format-overflow -Wno-format-truncation \
     -DWINDOWS -DWIN32   -DIBM=1 \
-	-I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets -I$(OPENAL)
+	$(INCLUDES) $(DEBUG) -I$(OPENAL)
 
 COMPILE.cpp = $(CXX) $(CFLAGS) $(DEPFLAGS) -c
 
