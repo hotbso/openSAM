@@ -213,7 +213,7 @@ MpAdapter_tgxp::~MpAdapter_tgxp()
 }
 
 #define LOAD_DR(type, name) { \
-    int l = XPLMGetDatav ## type ( name ## _dr,  name ## _val_.get(), 0, n_planes); \
+    [[maybe_unused]]int l = XPLMGetDatav ## type ( name ## _dr,  name ## _val_.get(), 0, n_planes); \
     assert(l == n_planes); \
 }
 

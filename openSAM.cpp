@@ -162,7 +162,7 @@ load_pref()
     if (NULL == f)
         return;
 
-    fscanf(f, "%i,%i,%i", &auto_season, &season, &pref_auto_mode);
+    [[maybe_unused]]int n = fscanf(f, "%i,%i,%i", &auto_season, &season, &pref_auto_mode);
     log_msg("From pref: auto_season: %d, seasons: %d, auto_select_jws: %d",
             auto_season,  season, pref_auto_mode);
 
