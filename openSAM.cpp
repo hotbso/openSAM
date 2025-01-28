@@ -86,6 +86,9 @@
 //
 ///
 
+// no multiplayer processing if y_agl > limit
+constexpr float kMultiPlayerHeightLimit = 1000.0f;
+
 static int init_fail;
 std::string xp_dir;
 static std::string pref_path;
@@ -272,13 +275,15 @@ flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
     float anim_loop_delay = anim_next_ts - now;
     float mp_update_delay = mp_update_next_ts - now;
 
-    if (mp_adapter && mp_update_delay <= 0.0f)
+    float my_y_agl = my_plane.y_agl();
+    if (my_y_agl < kMultiPlayerHeightLimit
+        && mp_adapter && mp_update_delay <= 0.0f)
         mp_update_next_ts = now + mp_adapter->update();
 
     if (! my_plane.is_helicopter_) {
         if (jw_loop_delay <= 0.0f) {
             jw_loop_delay = my_plane.jw_state_machine();
-            if (mp_adapter)
+            if (my_y_agl < kMultiPlayerHeightLimit && mp_adapter)
                 jw_loop_delay = std::min(jw_loop_delay,
                                          mp_adapter->jw_state_machine());
 
