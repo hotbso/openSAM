@@ -1,5 +1,8 @@
 name: Build and Release Executables
 
+# if the tag contains -test- the build is pushed into the build-test branch
+# so skunkcrafts does not see it
+
 on:
   push:
     tags:
@@ -239,27 +242,24 @@ jobs:
 
             TAG=${GITHUB_REF##*/}
             TARGET_BRANCH="release"
-            # if TAG contains -
-            if [[ $TAG == *"-"* ]]; then
+            if [[ $TAG == *"-test-"* ]]     # if TAG contains -test-
+            then
+                echo "This is a just a build test"
+                TARGET_BRANCH="build-test"
+            elif [[ $TAG == *"-"* ]]        # if TAG contains -
+            then
                 echo "This is a beta release"
                 TARGET_BRANCH="beta"
             fi
+
             git checkout -b ${TARGET_BRANCH}
             git config --global user.email "release@opensam.com"
             git config --global user.name "GH Release"
             git add release/
+            # force add otherwise ignored directories
+            git add -f release/XP*/openSAM/*_x64/
             git commit -m "new ${TARGET_BRANCH} - ${TAG}"
             git push -f -u origin ${TARGET_BRANCH}
-
-            # push to release branch
-            #git checkout -b release
-            #git config --global user.email "release@opensam.com"
-            #git config --global user.name "GH Release"
-            #git add release/
-            #git commit -m "Release ${VERSION}"
-            #git push -f -u origin release
-
-
 
 
       - name: Create Release

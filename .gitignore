@@ -1,6 +1,6 @@
 /openSAM-pkg_XP11/
 /OBJ_*/
-# *.xpl
+*.xpl
 /*.zip
 
 # Prerequisites
