@@ -61,6 +61,24 @@ Beacon on, of course!
 
 That should look familiar to users of AutoDGS.
 
+Multiplayer support
+------------------
+openSAM supports
+ - xPilot
+ - Traffic Global XP
+ - LiveTraffic
+
+Set up your multiplayer environment as needed (e.g. connect to Vatsim and/or enable/disable MP plugins).
+Then select "Toggle Multiplayer Support" in openSAM's menu.
+If xPilot is connected to Vatsim that takes precedence over other installed multplayer plugins.
+The menu text of "Toggle Multiplayer Support" shows which personality is enabled.
+
+Note:
+xPilot and liveTraffic receive aircraft positions from other sceneries / simulators or the real world and these
+may not match up with your installed scenery. Your mileage will vary.
+
+TGXP gives the visually most pleasing rendition.
+
 The problem of a second door
 ----------------------------
 Up to now there is no reliable way to determine the position of a second door.
