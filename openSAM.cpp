@@ -95,7 +95,6 @@ static std::string pref_path;
 static XPLMMenuID os_menu, seasons_menu;
 static int toggle_mp_item, auto_item, season_item[4];
 static const char* toggle_mp_support_txt = "Toggle Multiplayer Support";
-XPLMCommandRef dock_cmdr;
 
 static int auto_season;
 static int airport_loaded;

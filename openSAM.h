@@ -131,7 +131,6 @@ extern float lat_ref, lon_ref;
 extern unsigned int ref_gen;
 
 extern XPLMMenuID anim_menu;
-extern XPLMCommandRef dock_cmdr;
 
 // terrain probe
 extern XPLMProbeInfo_t probeinfo;
