@@ -10,7 +10,7 @@
 ///             textual info like type, registration, call sign, flight number.
 /// @see        https://twinfan.github.io/LTAPI/
 /// @author     Birger Hoppe
-/// @copyright  (c) 2019-2020 Birger Hoppe
+/// @copyright  (c) 2019-2025 Birger Hoppe
 /// @copyright  Permission is hereby granted, free of charge, to any person obtaining a
 ///             copy of this software and associated documentation files (the "Software"),
 ///             to deal in the Software without restriction, including without limitation
