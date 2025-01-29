@@ -37,7 +37,7 @@ class MpAdapter_lt : public MpAdapter {
 
   public:
     ~MpAdapter_lt();
-    const char* personality() const override { return "liveTraffic"; };
+    const char* personality() const override { return "LiveTraffic"; };
     float update() override;
 };
 #endif
