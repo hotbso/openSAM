@@ -121,7 +121,7 @@ MpPlane_lt::update(bool beacon)
 //==============  MpAdapter_lt ========================================
 bool MpAdapter_lt::probe()
 {
-    return LTAPIConnect::isLTAvail();
+    return (LTAPIConnect::isLTAvail() && LTAPIConnect::doesLTDisplayAc());
 }
 
 MpAdapter_lt::MpAdapter_lt()
