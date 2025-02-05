@@ -28,6 +28,7 @@ struct SamJw  {
   public:
     int is_zc_jw;   // is a zero config jw
     Stand* stand;   // back pointer to stand for zc jetways
+    bool locked;	// locked by a plane
 
     // local x,z computed from the xml's lat/lon
     float xml_x, xml_y, xml_z;
@@ -64,6 +65,7 @@ struct SamJw  {
     }
 
     void reset() {
+        locked = false;
         rotate1 = initialRot1;
         rotate2 = initialRot2;
         rotate3 = initialRot3;

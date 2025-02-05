@@ -78,6 +78,7 @@ Plane::select_jws()
                 goto skip;
 
         nearest_jws_[i_jw].door_ = i_door;
+        nearest_jws_[i_jw].selected_ = true;
         active_jws_.push_back(nearest_jws_[i_jw]);
         log_msg("active jetway for door %d: %s", i_door, active_jws_.back().jw_->name);
         i_door++;
@@ -179,6 +180,11 @@ Plane::jw_state_machine()
                         ajw.door_rot2_ += 3.0f;
                 }
 
+                // unlock jws that were not selected as active jw
+                for (auto & njw : nearest_jws_)
+                    if (! njw.selected_)
+                        njw.jw_->locked = false;
+
                 new_state = CAN_DOCK;
             }
             break;
@@ -211,6 +217,7 @@ Plane::jw_state_machine()
             break;
 
         case DOCKING:
+
             n_done = 0;
             for (auto & ajw : active_jws_) {
                 if (ajw.dock_drive())

@@ -52,6 +52,7 @@ class JwCtrl {
         // TO_AP,                       // sequence for undocking
         TO_PARK };
 
+    bool selected_;     // nearest jw was selected as an active jw
     int door_;          // active JwCtrl associated with door #
     SamJw *jw_;
     JwCtrlState state_;

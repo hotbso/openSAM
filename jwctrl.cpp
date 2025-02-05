@@ -143,33 +143,38 @@ filter_candidates(Plane& plane, std::vector<JwCtrl>& nearest_jws,
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
     // So we find the nearest jetways on the left and do some heuristics
 
-    for (auto jw_ : jws) {
-        if (jw_->obj_ref_gen < ref_gen)  // not visible -> not dockable
+    for (auto jw : jws) {
+        if (jw->obj_ref_gen < ref_gen)  // not visible -> not dockable
             continue;
 
-        //log_msg("pid=%d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
-        //        plane.id_, jw_->name, jw_->door, jw_->x, jw_->z, jw_->y, jw_->psi);
-
-        // set up a tentative JwCtrl ...
-        JwCtrl njw{};
-        njw.jw_ = jw_;
-        njw.setup_for_door(plane, door_info);
-
-        // ... and send it through the filters ...
-        if (njw.x_ > 1.0f || BETWEEN(RA(njw.psi_ + jw_->initialRot1), -130.0f, 20.0f) ||   // on the right side or pointing away
-            njw.x_ < -80.0f || fabsf(njw.z_) > 80.0f) {             // or far away
-            if (fabsf(njw.x_) < 120.0f && fabsf(njw.z_) < 120.0f)   // don't pollute the log with jws VERY far away
-                log_msg("pid=%d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw_->initialRot1): %0.1f",
-                        plane.id_, jw_->name, njw.x_, njw.z_, njw.psi_ + jw_->initialRot1);
+        if (jw->locked) {
+            log_msg("pid=%02d, %s is locked", plane.id_, jw->name);
             continue;
         }
 
-        if (!(BETWEEN(njw.door_rot1_, jw_->minRot1, jw_->maxRot1) && BETWEEN(njw.door_rot2_, jw_->minRot2, jw_->maxRot2)
-            && BETWEEN(njw.door_extent_, jw_->minExtent, jw_->maxExtent))) {
-            log_msg("jw_: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
-                     jw_->name, jw_->door, njw.door_rot1_, njw.door_rot2_, njw.door_rot3_, njw.door_extent_);
+        //log_msg("pid=%02d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
+        //        plane.id_, jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
+
+        // set up a tentative JwCtrl ...
+        JwCtrl njw{};
+        njw.jw_ = jw;
+        njw.setup_for_door(plane, door_info);
+
+        // ... and send it through the filters ...
+        if (njw.x_ > 1.0f || BETWEEN(RA(njw.psi_ + jw->initialRot1), -130.0f, 20.0f) ||   // on the right side or pointing away
+            njw.x_ < -80.0f || fabsf(njw.z_) > 80.0f) {             // or far away
+            if (fabsf(njw.x_) < 120.0f && fabsf(njw.z_) < 120.0f)   // don't pollute the log with jws VERY far away
+                log_msg("pid=%02d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initialRot1): %0.1f",
+                        plane.id_, jw->name, njw.x_, njw.z_, njw.psi_ + jw->initialRot1);
+            continue;
+        }
+
+        if (!(BETWEEN(njw.door_rot1_, jw->minRot1, jw->maxRot1) && BETWEEN(njw.door_rot2_, jw->minRot2, jw->maxRot2)
+            && BETWEEN(njw.door_extent_, jw->minExtent, jw->maxExtent))) {
+            log_msg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
+                     jw->name, jw->door, njw.door_rot1_, njw.door_rot2_, njw.door_rot3_, njw.door_extent_);
             log_msg("  does not fulfil min max criteria in sam.xml");
-            float extra_extent = njw.door_extent_ - jw_->maxExtent;
+            float extra_extent = njw.door_extent_ - jw->maxExtent;
             if (extra_extent < 10.0f) {
                 log_msg("  as extra extent of %0.1f m < 10.0 m we take it as a soft match", extra_extent);
                 njw.soft_match_ = 1;
@@ -178,9 +183,9 @@ filter_candidates(Plane& plane, std::vector<JwCtrl>& nearest_jws,
         }
 
         // ... survived, add to list
-        log_msg("--> pid=%d, candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
+        log_msg("--> pid=%02d, candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
                 "rot1: %0.1f, extent: %.1f",
-                plane.id_, jw_->name, jw_->library_id, jw_->door,
+                plane.id_, jw->name, jw->library_id, jw->door,
                 njw.x_, njw.z_, njw.y_, njw.psi_, njw.door_rot1_, njw.door_extent_);
 
         nearest_jws.push_back(njw);
@@ -231,9 +236,9 @@ JwCtrl::find_nearest_jws(Plane& plane, std::vector<JwCtrl>& nearest_jws)
     // fake names for zc jetways
     int i{0};
     for (auto & njw : nearest_jws) {
-        SamJw *jw_ = njw.jw_;
-        if (jw_->is_zc_jw) {
-            Stand *stand = jw_->stand;
+        SamJw *jw = njw.jw_;
+        if (jw->is_zc_jw) {
+            Stand *stand = jw->stand;
             if (stand) {
                 // stand->id can be eveything from "A11" to "A11 - Terminal 1 (cat C)"
                 char buf[sizeof(stand->id)];
@@ -245,13 +250,17 @@ JwCtrl::find_nearest_jws(Plane& plane, std::vector<JwCtrl>& nearest_jws)
                 int len = strlen(buf);
                 if (len > 10)
                     buf[10] = '\0';
-                snprintf(jw_->name, sizeof(jw_->name) -1, "%s_%c", buf, i + 'A');
+                snprintf(jw->name, sizeof(jw->name) -1, "%s_%c", buf, i + 'A');
             } else
-                snprintf(jw_->name, sizeof(jw_->name) -1, "zc_%c", i + 'A');
+                snprintf(jw->name, sizeof(jw->name) -1, "zc_%c", i + 'A');
 
             i++;
         }
     }
+
+    // lock all nearest_jws
+    for (auto & njw : nearest_jws)
+        njw.jw_->locked = true;
 
     return nearest_jws.size();
 }
@@ -290,7 +299,7 @@ JwCtrl::collision_check(const JwCtrl &njw2)
 
     float s = det(C1, C2, B1, B2) / d;
     float t = det(A1, A2, C1, C2) / d;
-    log_msg("collision check between jw_ %s and %s, s = %0.2f, t = %0.2f", jw_->name, njw2.jw_->name, s, t);
+    log_msg("collision check between jw %s and %s, s = %0.2f, t = %0.2f", jw_->name, njw2.jw_->name, s, t);
 
     if (BETWEEN(t, 0.0f, 1.0f) && BETWEEN(s, 0.0f, 1.0f)) {
         log_msg("collision detected");
@@ -672,6 +681,7 @@ JwCtrl::undock_drive()
             jw_->warnlight = 0;
             alert_off();
             log_msg("park position reached");
+            jw_->locked = false;
             return true;   // done
         }
     }
