@@ -22,7 +22,7 @@
 #ifndef _SAMJW_H_
 #define _SAMJW_H_
 
-static const float FAR_SKIP = 5000;     // (m) don't consider jetways farther away
+static constexpr float FAR_SKIP = 5000;     // (m) don't consider jetways farther away
 
 struct SamJw  {
   public:
