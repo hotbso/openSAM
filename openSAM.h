@@ -37,9 +37,9 @@
 #include "XPLMGraphics.h"
 #include "XPLMScenery.h"
 
-static const float D2R = std::numbers::pi/180.0;
-static const float F2M = 0.3048;	    // 1 ft [m]
-static const float LAT_2_M = 111120;    // 1° lat in m
+static constexpr float D2R = std::numbers::pi/180.0;
+static constexpr float F2M = 0.3048;                    // 1 ft [m]
+static constexpr float LAT_2_M = 111120;                // 1° lat in m
 
 // forwards
 struct Stand;
@@ -99,7 +99,7 @@ struct SceneryPacks {
     SceneryPacks(const std::string& xp_dir);
 };
 
-static const int kMaxDoor{3};
+static constexpr int kMaxDoor = 3;
 struct DoorInfo {
     float x, y, z;
 };
