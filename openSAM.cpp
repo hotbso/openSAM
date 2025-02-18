@@ -526,12 +526,6 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     load_pref();
 
-    probe_ref = XPLMCreateProbe(xplm_ProbeY);
-    if (NULL == probe_ref) {
-        log_msg("Can't create terrain probe");
-        return 0;
-    }
-
     // If commands or dataref accessors are already registered it's to late to
     // fail XPluginStart as the dll is unloaded and X-Plane crashes.
     // So from here on we are doomed to succeed.
@@ -641,8 +635,10 @@ XPluginStop(void)
 PLUGIN_API void
 XPluginDisable(void)
 {
-    if (probe_ref)
+    if (probe_ref) {
         XPLMDestroyProbe(probe_ref);
+        probe_ref = NULL;
+    }
 
     save_pref();
     log_msg("acc called:               %llu", stat_acc_called);
@@ -661,6 +657,12 @@ XPluginEnable(void)
 {
     if (init_fail)  // once and for all
         return 0;
+
+    probe_ref = XPLMCreateProbe(xplm_ProbeY);
+    if (NULL == probe_ref) {
+        log_msg("Can't create terrain probe");
+        return 0;
+    }
 
     return 1;
 }
