@@ -182,8 +182,6 @@ dgs_set_active(void)
     log_msg("dgs set to ACTIVE");
 }
 
-static float last_dgs_x = -1E10f;
-static float last_dgs_z;
 
 // xform lat,lon into the active global frame
 void
@@ -194,7 +192,7 @@ Stand::xform_to_ref_frame()
                          &stand_x, &stand_y, &stand_z);
         ref_gen_ = ::ref_gen;
         dgs_assoc = 0;    // association is lost
-        max_dgs_z_l = last_dgs_x = -1.0E10;
+        max_dgs_z_l = -1.0E10;
         max_dgs_z_l_ts = 1.0E10;
     }
 }
@@ -221,12 +219,6 @@ is_dgs_active(float obj_x, float obj_z, float obj_psi)
 
     stat_dgs_acc++;
 
-    // if it's the same as last time fast exit
-    if (obj_x == last_dgs_x && obj_z == last_dgs_z) {
-        stat_dgs_acc_last++;
-        return 1;
-    }
-
     float dgs_x_l, dgs_z_l;
     nearest_stand->global_2_stand(obj_x, obj_z, dgs_x_l, dgs_z_l);
     //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
@@ -250,10 +242,6 @@ is_dgs_active(float obj_x, float obj_z, float obj_psi)
     }
 
     dgs_assoc = 1;
-
-    // save for optimization
-    last_dgs_x = obj_x;
-    last_dgs_z = obj_z;
     return 1;
 }
 
@@ -456,7 +444,7 @@ find_nearest_stand()
 
         nearest_stand = min_stand;
         dgs_assoc = 0;
-        last_dgs_x = max_dgs_z_l = -1.0E10;
+        max_dgs_z_l = -1.0E10;
         max_dgs_z_l_ts = 1.0E10;
         state = ENGAGED;
     }

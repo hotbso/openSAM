@@ -128,7 +128,7 @@ std::unordered_map<std::string, DoorInfo> csl_door_info_map;
 std::unordered_map<std::string, std::string> acf_generic_type_map;
 
 unsigned long long stat_sc_far_skip, stat_far_skip, stat_near_skip,
-    stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,
+    stat_acc_called, stat_jw_match, stat_dgs_acc,
     stat_anim_acc_called, stat_auto_drf_called;
 
 XPLMProbeInfo_t probeinfo;
@@ -641,14 +641,13 @@ XPluginDisable(void)
     }
 
     save_pref();
-    log_msg("acc called:               %llu", stat_acc_called);
-    log_msg("scenery far skip:         %llu", stat_sc_far_skip);
-    log_msg("far skip:                 %llu", stat_far_skip);
-    log_msg("near skip:                %llu", stat_near_skip);
-    log_msg("dgs acc called:           %llu", stat_dgs_acc);
-    log_msg("last_dgs acc:             %llu", stat_dgs_acc_last);
-    log_msg("stat_anim_acc_called:     %llu", stat_anim_acc_called);
-    log_msg("stat_auto_drf_called:     %llu", stat_auto_drf_called);
+    log_msg("acc called:           %9llu", stat_acc_called);
+    log_msg("scenery far skip:     %9llu", stat_sc_far_skip);
+    log_msg("far skip:             %9llu", stat_far_skip);
+    log_msg("near skip:            %9llu", stat_near_skip);
+    log_msg("dgs acc called:       %9llu", stat_dgs_acc);
+    log_msg("stat_anim_acc_called: %9llu", stat_anim_acc_called);
+    log_msg("stat_auto_drf_called: %9llu", stat_auto_drf_called);
 }
 
 
