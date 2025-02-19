@@ -32,22 +32,22 @@
 #include "XPLMNavigation.h"
 
 // DGS _A = angles [°] (to centerline), _X, _Z = [m] (to stand)
-static const float CAP_A = 15;              // Capture
-static const float CAP_Z = 140;	            // (50-80 in Safedock2 flier)
+static constexpr float CAP_A = 15;              // Capture
+static constexpr float CAP_Z = 140;	            // (50-80 in Safedock2 flier)
 
-static const float AZI_A = 15;              // provide azimuth guidance
-static const float AZI_DISP_A = 10;         // max value for display
-static const float AZI_Z = 90;
+static constexpr float AZI_A = 15;              // provide azimuth guidance
+static constexpr float AZI_DISP_A = 10;         // max value for display
+static constexpr float AZI_Z = 90;
 
-static const float GOOD_Z= 0.5;             // stop position for nw
-static const float GOOD_X = 2.0;            // for mw
+static constexpr float GOOD_Z= 0.5;             // stop position for nw
+static constexpr float GOOD_X = 2.0;            // for mw
 
-static const float REM_Z = 12;      	    // Distance remaining from here on
+static constexpr float REM_Z = 12;      	    // Distance remaining from here on
 
-static const float MAX_DGS_2_STAND_X = 3.0f; // max offset/distance from DGS to stand
-static const float MAX_DGS_2_STAND_Z = 70.0f;
+static constexpr float MAX_DGS_2_STAND_X = 10.0f; // max offset/distance from DGS to stand
+static constexpr float MAX_DGS_2_STAND_Z = 80.0f;
 
-static const float dgs_dist = 20.0f;        // distance from dgs to stand for azimuth computation
+static constexpr float dgs_dist = 20.0f;        // distance from dgs to stand for azimuth computation
 
 // types
 typedef enum
@@ -55,11 +55,11 @@ typedef enum
     DISABLED=0, INACTIVE, ACTIVE, ENGAGED, TRACK, GOOD, BAD, PARKED, DONE
 } state_t;
 
-const char * const state_str[] = {
+static const char * const state_str[] = {
     "DISABLED", "INACTIVE", "ACTIVE", "ENGAGED",
     "TRACK", "GOOD", "BAD", "PARKED", "DONE" };
 static state_t state = DISABLED;
-static float timestamp;
+static float timestamp; // for various states in the state_machine
 
 // Datarefs
 static XPLMDataRef percent_lights_dr, sin_wave_dr;
@@ -71,7 +71,7 @@ static float azimuth, distance;
 static Stand *nearest_stand;
 static float nearest_stand_ts;    // timestamp of last find_nearest_stand()
 // track the max local z (= closest to stand) of dgs objs for nearest_stand
-static float max_dgs_z_l, max_dgs_z_l_ts;
+static float assoc_dgs_z_l, assoc_dgs_x_l, assoc_dgs_ts;
 
 // flag if stand is associated with a dgs
 static int dgs_assoc;
@@ -130,7 +130,7 @@ enum _SAM1_STATE {
     SAM1_STOP_ZONE,
     SAM1_IDLE
 };
-static const float SAM1_LATERAL_OFF = 10.0f;   // switches off VDGS
+static constexpr float SAM1_LATERAL_OFF = 10.0f;   // switches off VDGS
 
 // dref values
 static float sam1_status, sam1_lateral, sam1_longitudinal;
@@ -192,8 +192,9 @@ Stand::xform_to_ref_frame()
                          &stand_x, &stand_y, &stand_z);
         ref_gen_ = ::ref_gen;
         dgs_assoc = 0;    // association is lost
-        max_dgs_z_l = -1.0E10;
-        max_dgs_z_l_ts = 1.0E10;
+        assoc_dgs_z_l = -1.0E10;
+        assoc_dgs_x_l = 1.0E10;
+        assoc_dgs_ts = 1.0E10;
     }
 }
 
@@ -209,13 +210,23 @@ Stand::global_2_stand(float x, float z, float& x_l, float& z_l)
 }
 
 //
-// check whether dgs obj is the (an) active one
+// Check whether dgs obj is the (an) active one.
 //
-static inline int
+// We are looking for the DGS closest to the stand.
+// First of all it must be in a box around the stand and reasonably aligned.
+//
+// Assume that we have an association with x/z values in assoc_dgs_[xz]...
+//
+// Primary criterion is max z value in the stand's local system
+// but...
+// if distance of new candidate (z) nearly the same but closer to stand's centerline(x)
+//    consider it nearer even if z is slightly less
+//
+static inline bool
 is_dgs_active(float obj_x, float obj_z, float obj_psi)
 {
     if (NULL == nearest_stand)
-        return 0;
+        return false;
 
     stat_dgs_acc++;
 
@@ -223,26 +234,28 @@ is_dgs_active(float obj_x, float obj_z, float obj_psi)
     nearest_stand->global_2_stand(obj_x, obj_z, dgs_x_l, dgs_z_l);
     //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
-    if (dgs_assoc && dgs_z_l < max_dgs_z_l)
-        return 0;   // already have a closer one
+    if (dgs_assoc && (dgs_z_l < assoc_dgs_z_l - 2.0f || fabsf(dgs_x_l) > assoc_dgs_x_l))
+        return false;   // already have a closer one
 
     // must be in a box +- MAX_DGS_2_STAND_X, MAX_DGS_2_STAND_Z
     // and reasonably aligned with stand (or for SAM1 anti aligned)
     if (fabsf(dgs_x_l) > MAX_DGS_2_STAND_X
         || dgs_z_l < -MAX_DGS_2_STAND_Z || dgs_z_l > -5.0f
         || BETWEEN(fabsf(RA(nearest_stand->hdgt - obj_psi)), 10.0f, 170.0f))
-        return 0;
+        return false;
 
     // we found one
-    if (dgs_z_l > max_dgs_z_l) {
-        is_marshaller = 0;   // associated to a new dgs
-        max_dgs_z_l = dgs_z_l;
-        max_dgs_z_l_ts = XPLMGetDataf(total_running_time_sec_dr);
+    if ((dgs_z_l > assoc_dgs_z_l - 2.0f && fabsf(dgs_x_l) < assoc_dgs_x_l - 1.0f)
+            || (dgs_z_l > assoc_dgs_z_l)) {
+        is_marshaller = 0;   // associated to a new dgs, don't know yet whether it's a marshaller
+        assoc_dgs_z_l = dgs_z_l;
+        assoc_dgs_x_l = fabsf(dgs_x_l);
+        assoc_dgs_ts = now;
         log_msg("associating DGS: dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
     }
 
     dgs_assoc = 1;
-    return 1;
+    return true;
 }
 
 //
@@ -270,7 +283,7 @@ read_dgs_acc(void *ref)
 
         // if last nearest dgs was found 2 seconds ago
         // this should be the nearest one in this stand's bbox
-        if (now > max_dgs_z_l_ts + 2.0f) {
+        if (now > assoc_dgs_ts + 2.0f) {
             is_marshaller = 1;      // only marshaller queries ident
             marshaller_x = obj_x;
             marshaller_y = XPLMGetDataf(draw_object_y_dr);
@@ -415,7 +428,7 @@ find_nearest_stand()
             }
 
             // for the final comparison give azimuth a higher weight
-            static const float azi_weight = 4.0;
+            static constexpr float azi_weight = 4.0;
             d = len2f(azi_weight * nw_x, nw_z);
 
             if (d < dist) {
@@ -444,8 +457,9 @@ find_nearest_stand()
 
         nearest_stand = min_stand;
         dgs_assoc = 0;
-        max_dgs_z_l = -1.0E10;
-        max_dgs_z_l_ts = 1.0E10;
+        assoc_dgs_z_l = -1.0E10;
+        assoc_dgs_ts = 1.0E10;
+        assoc_dgs_x_l = 1.0E10;
         state = ENGAGED;
     }
 }
@@ -714,7 +728,7 @@ dgs_state_machine()
         // is not necessary for Marshaller + SafedockT2
         // distance=((float)((int)((distance)*2))) / 2;    // multiple of 0.5m
 
-        static const float min_brightness = 0.025;   // relativ to 1
+        static constexpr float min_brightness = 0.025;   // relativ to 1
         float brightness = min_brightness + (1 - min_brightness) * powf(1 - XPLMGetDataf(percent_lights_dr), 1.5);
 
         memset(drefs, 0, sizeof(drefs));
@@ -803,7 +817,7 @@ dgs_state_machine()
                         }
 
                         // move slightly to the plane
-                        static const float delta_z = 1.0f;
+                        static constexpr float delta_z = 1.0f;
                         drawinfo.x = marshaller_x - delta_z * nearest_stand->sin_hdgt;
                         drawinfo.y = marshaller_y_0;
                         drawinfo.z = marshaller_z + delta_z * nearest_stand->cos_hdgt;
