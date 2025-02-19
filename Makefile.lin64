@@ -29,7 +29,7 @@ all: $(TARGET_XP12) $(TARGET_XP11)
     $(shell [ -d $(OBJDIR) ] || mkdir $(OBJDIR))
 
 $(OBJDIR)/%.o: %.cpp version.mak
-	$(CXX) $(CFLAGS) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 $(TARGET_XP12): $(OBJECTS_XP12)
 	$(CC) -o $(TARGET_XP12) $(LNFLAGS) $(OBJECTS_XP12) $(LIBS)
