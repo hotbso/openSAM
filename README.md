@@ -1,4 +1,4 @@
-# openSAM
+# openSAM plugin for X-Plane
 An open source implementation of SAM that drives jetways and provides VDGS and Marshaller service.
 
 **If you are happy with SAM or use an add-on package for SAM like "SAM Ground Service" you can already stop reading here. Also if you have no idea what SAM is or SAM-Seasons are good for you probably won't need this plugin.**
