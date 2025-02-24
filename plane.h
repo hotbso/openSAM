@@ -92,7 +92,7 @@ class Plane {
     virtual bool dock_requested() { return false; }
     virtual bool undock_requested() { return false; }
     virtual bool toggle_requested() { return false; }
-    virtual bool call_post_dock_cmd() { return false; }
+    virtual bool call_pre_post_dock_cmd() { return false; }
 
     // auto select jetways + sound
     void select_jws();
@@ -172,7 +172,7 @@ class MyPlane : public Plane {
     // cmd support
     void auto_mode_set(bool auto_mode);
     bool auto_mode() const override { return auto_mode_; }
-    bool call_post_dock_cmd() override { return true; }
+    bool call_pre_post_dock_cmd() override { return true; }
 
     void request_dock();
     void request_undock();

@@ -217,7 +217,6 @@ Plane::jw_state_machine()
             break;
 
         case DOCKING:
-
             n_done = 0;
             for (auto & ajw : active_jws_) {
                 if (ajw.dock_drive())
@@ -225,7 +224,7 @@ Plane::jw_state_machine()
             }
 
             if (n_done == active_jws_.size()) {
-                if (call_post_dock_cmd()) {
+                if (call_pre_post_dock_cmd()) {
                     XPLMCommandRef cmdr = XPLMFindCommand("openSAM/post_dock");
                     if (cmdr)
                         XPLMCommandOnce(cmdr);
@@ -257,9 +256,11 @@ Plane::jw_state_machine()
                     ajw.setup_dock_undock(start_ts, with_alert_sound());
                 }
 
-                XPLMCommandRef cmdr = XPLMFindCommand("openSAM/pre_undock");
-                if (cmdr)
-                    XPLMCommandOnce(cmdr);
+                if (call_pre_post_dock_cmd()) {
+                    XPLMCommandRef cmdr = XPLMFindCommand("openSAM/pre_undock");
+                    if (cmdr)
+                        XPLMCommandOnce(cmdr);
+                }
 
                 new_state = UNDOCKING;
             }
