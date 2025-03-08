@@ -257,15 +257,6 @@ jw_anim_acc(void *ref)
         }
 
         for (auto jw_ : sc->sam_jws) {
-            // cheap check against bounding box
-            if (lat < jw_->bb_lat_min || lat > jw_->bb_lat_max
-                || RA(lon - jw_->bb_lon_min) < 0 || RA(lon - jw_->bb_lon_max) > 0) {
-                stat_far_skip++;
-                continue;
-            }
-
-            if (fabsf(RA(jw_->heading - obj_psi)) > SAM_2_OBJ_HDG_MAX)
-                continue;
 
             if (jw_->xml_ref_gen < ref_gen) {
                 // we must iterate to get the elevation of the jetway
@@ -298,7 +289,13 @@ jw_anim_acc(void *ref)
                 jw_->xml_ref_gen = ref_gen;
             }
 
-            if (fabs(obj_x - jw_->xml_x) <= SAM_2_OBJ_MAX && fabs(obj_z - jw_->xml_z) <= SAM_2_OBJ_MAX) {
+            if (fabsf(obj_x - jw_->xml_x) <= SAM_2_OBJ_MAX && fabsf(obj_z - jw_->xml_z) <= SAM_2_OBJ_MAX) {
+                // Heading is likely to match.
+                // We check position first as it's more likely to rule out other jetways
+                // letting us perform less checks to find the right one.
+                if (fabsf(RA(jw_->heading - obj_psi)) > SAM_2_OBJ_HDG_MAX)
+                    continue;
+
                 // have a match
                 if (jw_->obj_ref_gen < ref_gen) {
                     // use higher precision values of the actually drawn object

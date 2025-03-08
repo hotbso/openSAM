@@ -511,7 +511,7 @@ collect_sam_xml(const SceneryPacks &scp)
             log_msg("Warning: SAM_Library is installed but 'SAM_Library/libraryjetways.xml' could not be processed");
     }
 
-    for (auto sc_path : scp.sc_paths) {
+    for (auto & sc_path : scp.sc_paths) {
         Scenery* sc = new Scenery();
         if (!parse_sam_xml(sc_path + "sam.xml", sc)) {
             delete(sc);
@@ -527,7 +527,7 @@ collect_sam_xml(const SceneryPacks &scp)
             continue;
         }
 
-        static const float far_skip_dlat = FAR_SKIP / LAT_2_M;
+        static constexpr float far_skip_dlat = FAR_SKIP / LAT_2_M;
 
         // shrink to actual
         sc->sam_jws.shrink_to_fit();
@@ -541,18 +541,12 @@ collect_sam_xml(const SceneryPacks &scp)
         sc->bb_lat_max = sc->bb_lon_max = -1000.0f;
 
         for (auto jw : sc->sam_jws) {
-            jw->bb_lat_min = jw->latitude - far_skip_dlat;
-            jw->bb_lat_max = jw->latitude + far_skip_dlat;
-
             float far_skip_dlon = far_skip_dlat / cosf(jw->latitude * D2R);
-            jw->bb_lon_min = RA(jw->longitude - far_skip_dlon);
-            jw->bb_lon_max = RA(jw->longitude + far_skip_dlon);
+            sc->bb_lat_min = std::min(sc->bb_lat_min, jw->latitude - far_skip_dlat);
+            sc->bb_lat_max = std::max(sc->bb_lat_max, jw->latitude + far_skip_dlat);
 
-            sc->bb_lat_min = std::min(sc->bb_lat_min, jw->bb_lat_min);
-            sc->bb_lat_max = std::max(sc->bb_lat_max, jw->bb_lat_max);
-
-            sc->bb_lon_min = std::min(sc->bb_lon_min, jw->bb_lon_min);
-            sc->bb_lon_max = std::max(sc->bb_lon_max, jw->bb_lon_max);
+            sc->bb_lon_min = std::min(sc->bb_lon_min, RA(jw->longitude - far_skip_dlon));
+            sc->bb_lon_max = std::max(sc->bb_lon_max, RA(jw->longitude + far_skip_dlon));
         }
 
         for (auto stand : sc->stands) {

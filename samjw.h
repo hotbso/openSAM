@@ -56,9 +56,6 @@ struct SamJw  {
           initialRot1, initialRot2, initialRot3, initialExtent;
     int door; // 0 = LF1 or default, 1 = LF2
 
-    float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   // bounding box for FAR_SKIP
-
-
     // set wheels height
     void set_wheels() {
         wheels = tanf(rotate3 * D2R) * (wheelPos + extent);
