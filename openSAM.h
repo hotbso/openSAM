@@ -118,7 +118,7 @@ extern XPLMDataRef lat_ref_dr, lon_ref_dr,
     total_running_time_sec_dr,
     vr_enabled_dr;
 
-extern unsigned long long stat_sc_far_skip, stat_far_skip, stat_near_skip,
+extern unsigned long long stat_sc_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,
     stat_anim_acc_called, stat_auto_drf_called;
 
