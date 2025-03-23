@@ -267,7 +267,8 @@ jw_anim_acc(void *ref)
                 double  x, y ,z;
                 XPLMWorldToLocal(jw_->latitude, jw_->longitude, 0.0, &x, &y, &z);
                 if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
-                    log_msg("terrain probe failed???");
+                    log_msg("terrain probe 1 failed, jw lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
+                            jw_->latitude, jw_->longitude, x, y, z);
                     return 0.0f;
                 }
 
