@@ -184,7 +184,13 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
         Scenery* sc = ctx->sc;
         SamJw *jw = new SamJw();
         get_jw_attrs(attr, jw);
-        sc->sam_jws.push_back(jw);
+        // simple sanity check, e.g Aerosoft LEBL has bogus values
+        if (BETWEEN(jw->latitude, -85.0f, 85.0f) && BETWEEN(jw->longitude, -180.0f, 180.0f))
+            sc->sam_jws.push_back(jw);
+        else {
+            log_msg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude, jw->longitude);
+            delete(jw);
+        }
         return;
     }
 
