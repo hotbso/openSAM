@@ -20,12 +20,28 @@ OBJECTS_XP12_x86=$(OBJECTS_XP12_arm:.o_arm=.o_x86)
 OBJECTS_XP11_arm=$(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o_arm)) $(OBJDIR)/jwctrl_sound_xp11.o_arm
 OBJECTS_XP11_x86=$(OBJECTS_XP11_arm:.o_arm=.o_x86)
 
-CCx=clang++ -target x86_64-apple-macos11
-CCa=clang++ -target arm64-apple-macos11
+# if we run this script on Linux it's osxcross
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    CCx=clang -target x86_64-apple-macos13
+    CCa=clang -target arm64-apple-macos13
+
+    CXXx=clang++ -target x86_64-apple-macos13
+    CXXa=clang++ -target arm64-apple-macos13
+    LIBEXPAT=/opt/local/lib/libexpat.a
+else
+    PATH:=/osxcross/target/bin:$(PATH)
+    CCx=o64-clang -mmacosx-version-min=13.0
+    CCa=oa64-clang -mmacosx-version-min=13.0
+
+    CXXx=o64-clang++ -mmacosx-version-min=13.0
+    CXXa=oa64-clang++ -mmacosx-version-min=13.0
+    LIBEXPAT=/osxcross/target/macports/pkgs/opt/local/lib/libexpat.a
+endif
 
 DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -Wno-deprecated-declarations
 
-CFLAGS+=$(CXXSTD) $(OPT) -Wall $(INCLUDES) $(DEBUG) -DVERSION=\"$(VERSION)\" $(DEFS)
+CXXFLAGS+=$(CXXSTD) $(OPT) -Wall $(INCLUDES) $(DEBUG) -DVERSION=\"$(VERSION)\" $(DEFS)
 
 LNFLAGS+=-dynamiclib -shared -rdynamic -fvisibility=hidden -Wl,-exported_symbols_list -Wl,linkscript.mac
 
@@ -33,7 +49,7 @@ LNFLAGS+=-dynamiclib -shared -rdynamic -fvisibility=hidden -Wl,-exported_symbols
 LIBS+= -F $(SDK)/Libraries/Mac -framework XPLM -framework XPWidgets
 
 # ships with macOS or macPorts
-LIBS+=/opt/local/lib/libexpat.a
+LIBS+=$(LIBEXPAT)
 
 #test:
 #    $(foreach var,$(.VARIABLES),$(info $(var) = $($(var))))
@@ -42,16 +58,16 @@ all: $(TARGET_XP12) $(TARGET_XP11)
     $(shell [ -d $(OBJDIR) ] || mkdir $(OBJDIR))
 
 $(OBJDIR)/%.o_arm: %.cpp version.mak
-	$(CCa) $(CFLAGS) -o $@ -c $<
+	$(CXXa) $(CXXFLAGS) -o $@ -c $<
 
 $(OBJDIR)/%.o_x86: %.cpp  version.mak
-	$(CCx) $(CFLAGS) -o $@ -c $<
+	$(CXXx) $(CXXFLAGS) -o $@ -c $<
 
 $(TARGET_XP12)_arm: $(OBJECTS_XP12_arm)
-	$(CCa) -o $@ $(LNFLAGS) $(OBJECTS_XP12_arm) $(LIBS)
+	$(CXXa) -o $@ $(LNFLAGS) $(OBJECTS_XP12_arm) $(LIBS)
 
 $(TARGET_XP12)_x86: $(OBJECTS_XP12_x86)
-	$(CCx) -o $@ $(LNFLAGS) $(OBJECTS_XP12_x86) $(LIBS)
+	$(CXXx) -o $@ $(LNFLAGS) $(OBJECTS_XP12_x86) $(LIBS)
 
 $(TARGET_XP12): $(TARGET_XP12)_arm $(TARGET_XP12)_x86
 	lipo -create -output $@ $(TARGET_XP12)_arm $(TARGET_XP12)_x86
@@ -59,10 +75,10 @@ $(TARGET_XP12): $(TARGET_XP12)_arm $(TARGET_XP12)_x86
 	cp -p $(TARGET_XP12) "$(PLUGDIR_XP12)/mac_x64/openSAM.xpl"
 
 $(TARGET_XP11)_arm: $(OBJECTS_XP11_arm)
-	$(CCa) -o $@ $(LNFLAGS) $(OBJECTS_XP11_arm) $(LIBS) -framework OpenAL
+	$(CXXa) -o $@ $(LNFLAGS) $(OBJECTS_XP11_arm) $(LIBS) -framework OpenAL
 
 $(TARGET_XP11)_x86: $(OBJECTS_XP11_x86)
-	$(CCx) -o $@ $(LNFLAGS) $(OBJECTS_XP11_x86) $(LIBS) -framework OpenAL
+	$(CXXx) -o $@ $(LNFLAGS) $(OBJECTS_XP11_x86) $(LIBS) -framework OpenAL
 
 $(TARGET_XP11): $(TARGET_XP11)_arm $(TARGET_XP11)_x86
 	lipo -create -output $@ $(TARGET_XP11)_arm $(TARGET_XP11)_x86
