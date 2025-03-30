@@ -129,7 +129,8 @@ std::unordered_map<std::string, std::string> acf_generic_type_map;
 
 unsigned long long stat_sc_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match, stat_dgs_acc,
-    stat_anim_acc_called, stat_auto_drf_called;
+    stat_anim_acc_called, stat_auto_drf_called,
+    stat_jw_cache_hit;
 
 XPLMProbeInfo_t probeinfo;
 XPLMProbeRef probe_ref;
@@ -644,6 +645,8 @@ XPluginDisable(void)
     log_msg("acc called:           %9llu", stat_acc_called);
     log_msg("scenery far skip:     %9llu", stat_sc_far_skip);
     log_msg("near skip:            %9llu", stat_near_skip);
+    log_msg("stat_jw_cache_hit     %9llu", stat_jw_cache_hit);
+    log_msg("cache hit rate:       %9.2f %%", 100.0f * stat_jw_cache_hit / stat_acc_called);
     log_msg("dgs acc called:       %9llu", stat_dgs_acc);
     log_msg("stat_anim_acc_called: %9llu", stat_anim_acc_called);
     log_msg("stat_auto_drf_called: %9llu", stat_auto_drf_called);
@@ -661,7 +664,9 @@ XPluginEnable(void)
         log_msg("Can't create terrain probe");
         return 0;
     }
-
+    stat_sc_far_skip = stat_near_skip = stat_acc_called
+        = stat_jw_match = stat_dgs_acc = stat_anim_acc_called = stat_auto_drf_called
+        = stat_jw_cache_hit = 0;
     return 1;
 }
 

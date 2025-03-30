@@ -120,7 +120,8 @@ extern XPLMDataRef lat_ref_dr, lon_ref_dr,
 
 extern unsigned long long stat_sc_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,
-    stat_anim_acc_called, stat_auto_drf_called;
+    stat_anim_acc_called, stat_auto_drf_called,
+    stat_jw_cache_hit;
 
 extern float now;           // current timestamp
 

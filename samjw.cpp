@@ -32,8 +32,9 @@
 #include "os_dgs.h"
 #include "plane.h"
 
-static const float SAM_2_OBJ_MAX = 2.5;     // m, max delta between coords in sam.xml and object
-static const float SAM_2_OBJ_HDG_MAX = 5;   // °, likewise for heading
+static constexpr float SAM_2_OBJ_MAX = 2.5;     // m, max delta between coords in sam.xml and object
+static constexpr float SAM_2_OBJ_HDG_MAX = 5;   // °, likewise for heading
+static constexpr int kHashBits = 13;            // size of cache
 
 // keep in sync with array below !
 typedef enum dr_code_e {
@@ -59,6 +60,8 @@ static const char *dr_name_jw[] = {
 // zero config jw structures
 std::vector<SamJw *>zc_jws;
 static unsigned int zc_ref_gen;  // change of ref_gen invalidates the whole list
+
+static std::array<SamJw*, (1 << kHashBits)>jw_cache;
 
 //
 // fill in values for a library jetway
@@ -204,6 +207,7 @@ check_ref_frame_shift()
         lat_ref = lat_r;
         lon_ref = lon_r;
         ref_gen++;
+        jw_cache = {};
         log_msg("reference frame shift");
     }
 
@@ -233,13 +237,9 @@ jw_anim_acc(void *ref)
 {
     stat_acc_called++;
 
-    float lat = my_plane.lat();
-    float lon = my_plane.lon();
-
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
     float obj_y = XPLMGetDataf(draw_object_y_dr);
-    float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
     check_ref_frame_shift();
 
@@ -249,92 +249,108 @@ jw_anim_acc(void *ref)
 
     SamJw *jw = nullptr;
 
-    for (auto sc : sceneries) {
-        // cheap check against bounding box
-        if (! sc->in_bbox(lat, lon)) {
-            stat_sc_far_skip++;
-            continue;
-        }
+    // We use the x coordinate in 0.5 m resolution + obj_z.
+    // Results in a hit rate of ~98% for SFD KLAX
+    unsigned cache_idx = ((int)(obj_x * 2.0f + obj_z)) & ((1 << kHashBits) - 1);
+    SamJw* cjw = jw_cache[cache_idx];
+    if (cjw && cjw->x == obj_x && cjw->y == obj_y && cjw->z == obj_z) {
+        stat_jw_cache_hit++;
+        jw = cjw;
+        goto have_jw;
+    }
 
-        for (auto jw_ : sc->sam_jws) {
+    {
+        float lat = my_plane.lat();
+        float lon = my_plane.lon();
+        float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
-            if (jw_->xml_ref_gen < ref_gen) {
-                // we must iterate to get the elevation of the jetway
-                //
-                // this stuff runs once when a jw in a scenery comes in sight
-                // so it should not be too costly
-                //
-                double  x, y ,z;
-                XPLMWorldToLocal(jw_->latitude, jw_->longitude, 0.0, &x, &y, &z);
-                if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
-                    log_msg("terrain probe 1 failed, jw lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
-                            jw_->latitude, jw_->longitude, x, y, z);
-                    return 0.0f;
-                }
-
-                // xform back to world to get an approximation for the elevation
-                double lat, lon, elevation;
-                XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ,
-                                 &lat, &lon, &elevation);
-                //log_msg("elevation: %0.2f", elevation);
-
-                // and again to local with SAM's lat/lon and the approx elevation
-                XPLMWorldToLocal(jw_->latitude, jw_->longitude, elevation, &x, &y, &z);
-                if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
-                    log_msg("terrain probe 2 failed???");
-                    return 0.0f;
-                }
-
-                jw_->xml_x = probeinfo.locationX;
-                jw_->xml_z = probeinfo.locationZ;
-                jw_->xml_ref_gen = ref_gen;
+        for (auto sc : sceneries) {
+            // cheap check against bounding box
+            if (! sc->in_bbox(lat, lon)) {
+                stat_sc_far_skip++;
+                continue;
             }
 
-            if (fabsf(obj_x - jw_->xml_x) <= SAM_2_OBJ_MAX && fabsf(obj_z - jw_->xml_z) <= SAM_2_OBJ_MAX) {
-                // Heading is likely to match.
-                // We check position first as it's more likely to rule out other jetways
-                // letting us perform less checks to find the right one.
-                if (fabsf(RA(jw_->heading - obj_psi)) > SAM_2_OBJ_HDG_MAX)
-                    continue;
+            for (auto jw_ : sc->sam_jws) {
 
-                // have a match
-                if (jw_->obj_ref_gen < ref_gen) {
-                    // use higher precision values of the actually drawn object
-                    jw_->obj_ref_gen = ref_gen;
-                    jw_->x = obj_x;
-                    jw_->z = obj_z;
-                    jw_->y = obj_y;
-                    jw_->psi = obj_psi;
+                if (jw_->xml_ref_gen < ref_gen) {
+                    // we must iterate to get the elevation of the jetway
+                    //
+                    // this stuff runs once when a jw in a scenery comes in sight
+                    // so it should not be too costly
+                    //
+                    double  x, y ,z;
+                    XPLMWorldToLocal(jw_->latitude, jw_->longitude, 0.0, &x, &y, &z);
+                    if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
+                        log_msg("terrain probe 1 failed, jw lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
+                                jw_->latitude, jw_->longitude, x, y, z);
+                        return 0.0f;
+                    }
+
+                    // xform back to world to get an approximation for the elevation
+                    double lat, lon, elevation;
+                    XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ,
+                                     &lat, &lon, &elevation);
+                    //log_msg("elevation: %0.2f", elevation);
+
+                    // and again to local with SAM's lat/lon and the approx elevation
+                    XPLMWorldToLocal(jw_->latitude, jw_->longitude, elevation, &x, &y, &z);
+                    if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
+                        log_msg("terrain probe 2 failed???");
+                        return 0.0f;
+                    }
+
+                    jw_->xml_x = probeinfo.locationX;
+                    jw_->xml_z = probeinfo.locationZ;
+                    jw_->xml_ref_gen = ref_gen;
                 }
 
+                if (fabsf(obj_x - jw_->xml_x) <= SAM_2_OBJ_MAX && fabsf(obj_z - jw_->xml_z) <= SAM_2_OBJ_MAX) {
+                    // Heading is likely to match.
+                    // We check position first as it's more likely to rule out other jetways
+                    // letting us perform less checks to find the right one.
+                    if (fabsf(RA(jw_->heading - obj_psi)) > SAM_2_OBJ_HDG_MAX)
+                        continue;
+
+                    // have a match
+                    if (jw_->obj_ref_gen < ref_gen) {
+                        // use higher precision values of the actually drawn object
+                        jw_->obj_ref_gen = ref_gen;
+                        jw_->x = obj_x;
+                        jw_->z = obj_z;
+                        jw_->y = obj_y;
+                        jw_->psi = obj_psi;
+                    }
+
+                    stat_jw_match++;
+                    jw_cache[cache_idx] = jw = jw_;
+                    goto have_jw;   // of nested loops
+                }
+
+                stat_near_skip++;
+            }
+        }
+
+        // no match of custom jw
+        // check against the zero config table
+        for (auto jw_ : zc_jws) {
+            if (obj_x == jw_->x && obj_z == jw_->z && obj_y == jw_->y) {
                 stat_jw_match++;
-                jw = jw_;
-                goto out;   // of nested loops
+                jw_cache[cache_idx] = jw = jw_;
+                goto have_jw;
             }
 
             stat_near_skip++;
         }
+
+        if (nullptr == jw && BETWEEN(id, 1, MAX_SAM3_LIB_JW))   // unconfigured library jetway
+            jw = configure_zc_jw(id, obj_x, obj_z, obj_y, obj_psi);
+
+        if (nullptr == jw)    // still unconfigured -> bad luck
+            return 0.0f;
     }
 
-    // no match of custom jw
-    // check against the zero config table
-    for (auto jw_ : zc_jws) {
-        if (obj_x == jw_->x && obj_z == jw_->z && obj_y == jw_->y) {
-            stat_jw_match++;
-            jw = jw_;
-            goto out;
-        }
-
-        stat_near_skip++;
-    }
-
-    if (nullptr == jw && BETWEEN(id, 1, MAX_SAM3_LIB_JW))   // unconfigured library jetway
-        jw = configure_zc_jw(id, obj_x, obj_z, obj_y, obj_psi);
-
-    if (nullptr == jw)    // still unconfigured -> bad luck
-        return 0.0f;
-
-   out:
+   have_jw:
     switch (drc) {
         case DR_ROTATE1:
             // a one shot event on first access
