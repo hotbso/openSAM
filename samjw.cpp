@@ -249,9 +249,15 @@ jw_anim_acc(void *ref)
 
     SamJw *jw = nullptr;
 
-    // We use the x coordinate in 0.5 m resolution + obj_z.
-    // Results in a hit rate of ~98% for SFD KLAX
-    unsigned cache_idx = ((int)(obj_x * 2.0f + obj_z)) & ((1 << kHashBits) - 1);
+    // We cache jetway pointers in a "1-way associative cache" 8-) .
+    // The tag is jw->(x, y, z).
+    // For the mapping we use the x coordinate in 0.5 m resolution as base.
+    // Unless the airport is extremely large the high bits are mostly the the same
+    // hence we merge in the z coordinate as high bit.
+    // Results in a hit rate of ~99% for SFD KLAX.
+    unsigned ci_lo = (int)(obj_x * 2.0f) & ((1 << (kHashBits - 1)) - 1);
+    unsigned ci_hi = (int)(obj_z) << (kHashBits -1);
+    unsigned cache_idx = (ci_hi | ci_lo) & ((1 << kHashBits) - 1);
     SamJw* cjw = jw_cache[cache_idx];
     if (cjw && cjw->x == obj_x && cjw->y == obj_y && cjw->z == obj_z) {
         stat_jw_cache_hit++;
