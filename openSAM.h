@@ -72,7 +72,7 @@ struct Scenery {
     std::vector<SamObj*> sam_objs;
     std::vector<SamAnim*> sam_anims;
 
-    float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for FAR_SKIP */
+    float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for kFarSkip */
 
     Scenery() {
         sam_jws.reserve(100); stands.reserve(100);

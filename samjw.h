@@ -1,28 +1,28 @@
-/*
-    openSAM: open source SAM emulator for X Plane
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2024, 2025  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
 
-    Copyright (C) 2024  Holger Teutsch
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-    USA
-
-*/
 #ifndef _SAMJW_H_
 #define _SAMJW_H_
 
-static constexpr float FAR_SKIP = 5000;     // (m) don't consider jetways farther away
+static constexpr float kFarSkip = 5000;     // (m) don't consider jetways farther away
 
 struct SamJw  {
   public:
@@ -57,24 +57,24 @@ struct SamJw  {
     int door; // 0 = LF1 or default, 1 = LF2
 
     // set wheels height
-    void set_wheels() {
+    void SetWheels() {
         wheels = tanf(rotate3 * D2R) * (wheelPos + extent);
     }
 
-    void reset() {
+    void Reset() {
         locked = false;
         rotate1 = initialRot1;
         rotate2 = initialRot2;
         rotate3 = initialRot3;
         extent = initialExtent;
-        set_wheels();
+        SetWheels();
         warnlight = 0;
     }
 
-    void fill_library_values(int id);
-    Stand* find_stand();
+    void FillLibraryValues(int id);
+    Stand* FindStand();
 
-    static void reset_all();
+    static void ResetAll();
 };
 
 extern std::vector<SamJw *>zc_jws;
@@ -83,6 +83,6 @@ extern std::vector<SamJw *>zc_jws;
 #define MAX_SAM3_LIB_JW 27  // index is 0..27
 extern SamJw sam3_lib_jw[];
 
-extern void jw_init(void);
-void check_ref_frame_shift();
+extern void JwInit(void);
+void CheckRefFrameShift();
 #endif

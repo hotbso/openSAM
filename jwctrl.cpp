@@ -104,7 +104,7 @@ JwCtrl::setup_for_door(Plane& plane, const DoorInfo& door_info)
 
     ap_x_ = door_x_ - kAlignDist;
 
-    jw_->set_wheels();
+    jw_->SetWheels();
 }
 
 // a fuzzy comparator for jetway by door number
@@ -206,7 +206,7 @@ JwCtrl::find_nearest_jws(Plane& plane, std::vector<JwCtrl>& nearest_jws)
     // in case we move from a SAM airport to one with XP12 default
     // or autogate jetways this test never executes in the data accessors
     // so we may end up with a stale zc_jws table here
-    check_ref_frame_shift();
+    CheckRefFrameShift();
 
     // compute the 'average' door location
     DoorInfo avg_di;
@@ -355,7 +355,7 @@ void
 JwCtrl::rotate_1_extend()
 {
     xz_to_sam_dr(cabin_x_, cabin_z_, jw_->rotate1, jw_->extent, nullptr, nullptr);
-    jw_->set_wheels();
+    jw_->SetWheels();
 }
 
 // rotation 3
@@ -370,7 +370,7 @@ JwCtrl::rotate_3(float rot3, float dt)
             jw_->rotate3 = std::min(jw_->rotate3 + d_rot3, rot3);
     }
 
-    jw_->set_wheels();
+    jw_->SetWheels();
 
     if (fabsf(jw_->rotate3 - rot3) > 0.1f)
         return 0;
@@ -575,7 +575,7 @@ JwCtrl::undock_drive()
     if (now > timeout_) {
         log_msg("undock_drive() timeout!");
         state_ = PARKED;
-        jw_->reset();
+        jw_->Reset();
         alert_off();
         return true;   // -> done
     }
@@ -705,7 +705,7 @@ JwCtrl::setup_dock_undock(float start_time, bool with_sound)
 void
 JwCtrl::reset()
 {
-    alert_off(); jw_->reset();
+    alert_off(); jw_->Reset();
 }
 
 // static

@@ -543,7 +543,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     MyPlane::init();
     my_plane.auto_mode_set(pref_auto_mode);
-    jw_init();
+    JwInit();
     JwCtrl::init();
     dgs_init();
     anim_init();

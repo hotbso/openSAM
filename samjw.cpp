@@ -1,24 +1,23 @@
-/*
-    openSAM: open source SAM emulator for X Plane
-
-    Copyright (C) 2024  Holger Teutsch
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-    USA
-
-*/
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2024, 2025  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
 
 #include <cstdlib>
 #include <cmath>
@@ -32,9 +31,9 @@
 #include "os_dgs.h"
 #include "plane.h"
 
-static constexpr float SAM_2_OBJ_MAX = 2.5;     // m, max delta between coords in sam.xml and object
-static constexpr float SAM_2_OBJ_HDG_MAX = 5;   // °, likewise for heading
-static constexpr int kHashBits = 13;            // size of cache
+static constexpr float kSam2ObjMax = 2.5;     // m, max delta between coords in sam.xml and object
+static constexpr float kSam2ObjHdgMax = 5;    // °, likewise for heading
+static constexpr int kHashBits = 13;          // size of cache
 
 // keep in sync with array below !
 typedef enum dr_code_e {
@@ -67,7 +66,7 @@ static std::array<SamJw*, (1 << kHashBits)>jw_cache;
 // fill in values for a library jetway
 //
 void
-SamJw::fill_library_values(int id)
+SamJw::FillLibraryValues(int id)
 {
     if (library_id)
         return;
@@ -111,7 +110,7 @@ SamJw::fill_library_values(int id)
 // find the stand the jetway belongs to
 //
 Stand*
-SamJw::find_stand()
+SamJw::FindStand()
 {
     float dist = 1.0E10;
     Stand *min_stand = nullptr;
@@ -150,11 +149,11 @@ SamJw::find_stand()
 // configure a zc library jetway
 //
 static SamJw*
-configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
+ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
 {
     // library jetways may be in view from very far away when stand information is not
     // yet available. We won't see details anyway.
-    if (len2f(obj_x - my_plane.x(), obj_z - my_plane.z()) > 0.5f * FAR_SKIP
+    if (len2f(obj_x - my_plane.x(), obj_z - my_plane.z()) > 0.5f * kFarSkip
         || fabsf(obj_y - my_plane.y()) > 1000.0f)
         return nullptr;
 
@@ -166,9 +165,9 @@ configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
     jw->psi = obj_psi;
     jw->is_zc_jw = 1;
     strcpy(jw->name, "zc_");
-    jw->fill_library_values(id);
+    jw->FillLibraryValues(id);
 
-    Stand *stand = jw->find_stand();
+    Stand *stand = jw->FindStand();
     if (stand) {
         // delta = cabin points perpendicular to stand
         float delta = RA((stand->hdgt + 90.0f) - jw->psi);
@@ -186,7 +185,7 @@ configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
     jw->rotate2 = jw->initialRot2;
     jw->rotate3 = jw->initialRot3;
     jw->extent = jw->initialExtent;
-    jw->set_wheels();
+    jw->SetWheels();
 
     zc_jws.push_back(jw);
 
@@ -197,7 +196,7 @@ configure_zc_jw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
 
 // check for shift of reference frame
 void
-check_ref_frame_shift()
+CheckRefFrameShift()
 {
     // check for shift of reference frame
     float lat_r = XPLMGetDataf(lat_ref_dr);
@@ -233,7 +232,7 @@ check_ref_frame_shift()
 // sam/jetways/15/rotate2  -> (15, DR_ROTATE2)
 //
 static float
-jw_anim_acc(void *ref)
+JwAnimAcc(void *ref)
 {
     stat_acc_called++;
 
@@ -241,7 +240,7 @@ jw_anim_acc(void *ref)
     float obj_z = XPLMGetDataf(draw_object_z_dr);
     float obj_y = XPLMGetDataf(draw_object_y_dr);
 
-    check_ref_frame_shift();
+    CheckRefFrameShift();
 
     uint64_t ctx = (uint64_t)ref;
     dr_code_t drc = (dr_code_t)(ctx & 0xffffffff);
@@ -277,19 +276,19 @@ jw_anim_acc(void *ref)
                 continue;
             }
 
-            for (auto jw_ : sc->sam_jws) {
+            for (auto tjw : sc->sam_jws) {
 
-                if (jw_->xml_ref_gen < ref_gen) {
+                if (tjw->xml_ref_gen < ref_gen) {
                     // we must iterate to get the elevation of the jetway
                     //
                     // this stuff runs once when a jw in a scenery comes in sight
                     // so it should not be too costly
                     //
                     double  x, y ,z;
-                    XPLMWorldToLocal(jw_->latitude, jw_->longitude, 0.0, &x, &y, &z);
+                    XPLMWorldToLocal(tjw->latitude, tjw->longitude, 0.0, &x, &y, &z);
                     if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
                         log_msg("terrain probe 1 failed, jw lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
-                                jw_->latitude, jw_->longitude, x, y, z);
+                                tjw->latitude, tjw->longitude, x, y, z);
                         return 0.0f;
                     }
 
@@ -300,36 +299,36 @@ jw_anim_acc(void *ref)
                     //log_msg("elevation: %0.2f", elevation);
 
                     // and again to local with SAM's lat/lon and the approx elevation
-                    XPLMWorldToLocal(jw_->latitude, jw_->longitude, elevation, &x, &y, &z);
+                    XPLMWorldToLocal(tjw->latitude, tjw->longitude, elevation, &x, &y, &z);
                     if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
                         log_msg("terrain probe 2 failed???");
                         return 0.0f;
                     }
 
-                    jw_->xml_x = probeinfo.locationX;
-                    jw_->xml_z = probeinfo.locationZ;
-                    jw_->xml_ref_gen = ref_gen;
+                    tjw->xml_x = probeinfo.locationX;
+                    tjw->xml_z = probeinfo.locationZ;
+                    tjw->xml_ref_gen = ref_gen;
                 }
 
-                if (fabsf(obj_x - jw_->xml_x) <= SAM_2_OBJ_MAX && fabsf(obj_z - jw_->xml_z) <= SAM_2_OBJ_MAX) {
+                if (fabsf(obj_x - tjw->xml_x) <= kSam2ObjMax && fabsf(obj_z - tjw->xml_z) <= kSam2ObjMax) {
                     // Heading is likely to match.
                     // We check position first as it's more likely to rule out other jetways
                     // letting us perform less checks to find the right one.
-                    if (fabsf(RA(jw_->heading - obj_psi)) > SAM_2_OBJ_HDG_MAX)
+                    if (fabsf(RA(tjw->heading - obj_psi)) > kSam2ObjHdgMax)
                         continue;
 
                     // have a match
-                    if (jw_->obj_ref_gen < ref_gen) {
+                    if (tjw->obj_ref_gen < ref_gen) {
                         // use higher precision values of the actually drawn object
-                        jw_->obj_ref_gen = ref_gen;
-                        jw_->x = obj_x;
-                        jw_->z = obj_z;
-                        jw_->y = obj_y;
-                        jw_->psi = obj_psi;
+                        tjw->obj_ref_gen = ref_gen;
+                        tjw->x = obj_x;
+                        tjw->z = obj_z;
+                        tjw->y = obj_y;
+                        tjw->psi = obj_psi;
                     }
 
                     stat_jw_match++;
-                    jw_cache[cache_idx] = jw = jw_;
+                    jw_cache[cache_idx] = jw = tjw;
                     goto have_jw;   // of nested loops
                 }
 
@@ -339,10 +338,10 @@ jw_anim_acc(void *ref)
 
         // no match of custom jw
         // check against the zero config table
-        for (auto jw_ : zc_jws) {
-            if (obj_x == jw_->x && obj_z == jw_->z && obj_y == jw_->y) {
+        for (auto tjw : zc_jws) {
+            if (obj_x == tjw->x && obj_z == tjw->z && obj_y == tjw->y) {
                 stat_jw_match++;
-                jw_cache[cache_idx] = jw = jw_;
+                jw_cache[cache_idx] = jw = tjw;
                 goto have_jw;
             }
 
@@ -350,7 +349,7 @@ jw_anim_acc(void *ref)
         }
 
         if (nullptr == jw && BETWEEN(id, 1, MAX_SAM3_LIB_JW))   // unconfigured library jetway
-            jw = configure_zc_jw(id, obj_x, obj_z, obj_y, obj_psi);
+            jw = ConfigureZcJw(id, obj_x, obj_z, obj_y, obj_psi);
 
         if (nullptr == jw)    // still unconfigured -> bad luck
             return 0.0f;
@@ -361,7 +360,7 @@ jw_anim_acc(void *ref)
         case DR_ROTATE1:
             // a one shot event on first access
             if (id > 0) {
-                jw->fill_library_values(id);
+                jw->FillLibraryValues(id);
             }
             return jw->rotate1;
             break;
@@ -399,18 +398,18 @@ jw_anim_acc(void *ref)
 
 // static method, reset all jetways
 void
-SamJw::reset_all()
+SamJw::ResetAll()
 {
     for (auto sc : sceneries)
         for (auto jw : sc->sam_jws)
-            jw->reset();
+            jw->Reset();
 
     for (auto jw : zc_jws)
-        jw->reset();
+        jw->Reset();
 }
 
 void
-jw_init()
+JwInit()
 {
     zc_jws.reserve(150);
 
@@ -420,20 +419,20 @@ jw_init()
         name[99] = '\0';
         snprintf(name, sizeof(name) - 1, "sam/jetway/%s", dr_name_jw[drc]);
         XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL,
-                                 NULL, jw_anim_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, (void *)(uint64_t)drc, NULL);
 
         for (int i = 1; i <= MAX_SAM3_LIB_JW; i++) {
             snprintf(name, sizeof(name) - 1, "sam/jetway/%02d/%s", i, dr_name_jw[drc]);
             uint64_t ctx = (uint64_t)i << 32|(uint64_t)drc;
             XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL,
-                                     NULL, jw_anim_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                     NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                      NULL, NULL, NULL, (void *)ctx, NULL);
         }
 
     }
 
 
-    SamJw::reset_all();
+    SamJw::ResetAll();
     srand(time(NULL));
 }

@@ -533,7 +533,7 @@ collect_sam_xml(const SceneryPacks &scp)
             continue;
         }
 
-        static constexpr float far_skip_dlat = FAR_SKIP / LAT_2_M;
+        static constexpr float far_skip_dlat = kFarSkip / LAT_2_M;
 
         // shrink to actual
         sc->sam_jws.shrink_to_fit();

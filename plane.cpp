@@ -117,7 +117,7 @@ Plane::jw_state_machine()
 
         nearest_jws_.resize(0);
         active_jws_.resize(0);
-        SamJw::reset_all();
+        SamJw::ResetAll();
     }
 
     unsigned n_done;
