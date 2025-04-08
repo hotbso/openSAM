@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<scenery name="openSAM Library" locked="true">
+  <datarefs>
+    <dataref name="sam/library/windturbine" label="SAM Library - Wind Turbines" autoplay="true" randomize_phase="true" augment_wind_speed="true">
+      <animation t="0" v="0" />
+      <animation t="3.5" v="360" />
+    </dataref>
+    <dataref name="sam/library/hangar/door60s" label="SAM Library - Hangar - Door 60s" autoplay="false" randomize_phase="false" augment_wind_speed="false">
+      <animation t="0" v="0" />
+      <animation t="60" v="60" />
+    </dataref>
+    <dataref name="sam/library/hangar/door40s" label="SAM Library - Hangar - Door 40s" autoplay="false" randomize_phase="false" augment_wind_speed="false">
+      <animation t="0" v="0" />
+      <animation t="40" v="40" />
+    </dataref>
+    <dataref name="sam/library/hangar/door20s" label="SAM Library - Hangar - Door 20s" autoplay="false" randomize_phase="false" augment_wind_speed="false">
+      <animation t="0" v="0" />
+      <animation t="20" v="20" />
+    </dataref>
+    <dataref name="sam/library/light/obs" label="SAM Library - Light - Obstacle" autoplay="true" randomize_phase="true" augment_wind_speed="false">
+      <animation t="0" v="0" />
+      <animation t="2.5" v="1" />
+    </dataref>
+    <dataref name="sam/library/radar2s" label="SAM Library - Radar - 2s" autoplay="true" randomize_phase="true" augment_wind_speed="false">
+      <animation t="0" v="0" />
+      <animation t="2" v="360" />
+    </dataref>
+    <dataref name="sam/library/radar4s" label="SAM Library - Radar - 4s" autoplay="true" randomize_phase="true" augment_wind_speed="false">
+      <animation t="0" v="0" />
+      <animation t="4" v="360" />
+    </dataref>
+    <dataref name="sam/library/radar6s" label="SAM Library - Radar - 6s" autoplay="true" randomize_phase="true" augment_wind_speed="false">
+      <animation t="0" v="0" />
+      <animation t="6" v="360" />
+    </dataref>
+  </datarefs>
+</scenery>
