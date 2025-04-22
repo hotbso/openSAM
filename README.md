@@ -21,7 +21,9 @@ Download link for skunkcrafts updater:
 
 https://forums.x-plane.org/index.php?/forums/topic/292710-skunkcrafts-updater-standalone-client/
 
-Support Discord: https://discord.gg/b2CtsG6fZ6## Installation
+Support Discord: https://discord.gg/BtDvKcUSEP
+
+## Installation
 
 ## Installation
 - Remove the SAM plugin (but keep the embedded SAM_Library somewhere)
