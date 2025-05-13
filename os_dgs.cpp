@@ -62,7 +62,8 @@ static state_t state = DISABLED;
 static float timestamp; // for various states in the state_machine
 
 // Datarefs
-static XPLMDataRef percent_lights_dr, sin_wave_dr;
+static XPLMDataRef percent_lights_dr, sin_wave_dr,
+    zulu_time_minutes_dr, zulu_time_hours_dr;
 
 // Published DataRef values
 static int status, track, lr;
@@ -96,7 +97,11 @@ enum _DGS_DREF {
     DGS_DR_ICAO_2,
     DGS_DR_ICAO_3,
     DGS_DR_BRIGHTNESS,
-    DGS_DR_NUM             // # of drefs
+    DGS_DR_TIME_UTC_M0,
+    DGS_DR_TIME_UTC_M1,
+    DGS_DR_TIME_UTC_H0,
+    DGS_DR_TIME_UTC_H1,
+    DGS_DR_NUM              // # of drefs
 };
 
 // keep exactly the same order as list above
@@ -112,6 +117,10 @@ static const char *dgs_dlist_dr[] = {
     "opensam/dgs/icao_2",
     "opensam/dgs/icao_3",
     "opensam/dgs/vdgs_brightness",
+    "opensam/dgs/time_utc_m0",
+    "opensam/dgs/time_utc_m1",
+    "opensam/dgs/time_utc_h0",
+    "opensam/dgs/time_utc_h1",
     NULL
 };
 
@@ -267,6 +276,25 @@ is_dgs_active(float obj_x, float obj_z, float obj_psi)
 static float
 read_dgs_acc(void *ref)
 {
+    int dr_index = (uint64_t)ref;
+
+    // serve these for all objects
+    if (DGS_DR_TIME_UTC_M0 <= dr_index && dr_index <= DGS_DR_TIME_UTC_H1) {
+        int zm = XPLMGetDatai(zulu_time_minutes_dr);
+        int zh = XPLMGetDatai(zulu_time_hours_dr);
+        switch (dr_index) {
+            case DGS_DR_TIME_UTC_M0:
+                return zm % 10;
+            case DGS_DR_TIME_UTC_M1:
+                return zm / 10;
+            case DGS_DR_TIME_UTC_H0:
+                return zh % 10;
+            case DGS_DR_TIME_UTC_H1:
+                return zh / 10;
+        }
+
+        return 0;   // should not be reached
+    }
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
@@ -274,8 +302,6 @@ read_dgs_acc(void *ref)
 
     if (!is_dgs_active(obj_x, obj_z, obj_psi))
         return 0.0f;
-
-    int dr_index = (uint64_t)ref;
 
     if (DGS_DR_IDENT == dr_index) {
         if (fabsf(RA(nearest_stand->hdgt - obj_psi)) > 10.0f)   // no anti alignment for the Marshaller
@@ -469,6 +495,8 @@ dgs_init()
 {
     percent_lights_dr = XPLMFindDataRef("sim/graphics/scenery/percent_lights_on");
     sin_wave_dr = XPLMFindDataRef("sim/graphics/animation/sin_wave_2");
+    zulu_time_minutes_dr = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_minutes");
+    zulu_time_hours_dr = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_hours");
 
     // create the dgs animation datarefs
     for (int i = 0; i < DGS_DR_NUM; i++)
