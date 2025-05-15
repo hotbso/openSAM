@@ -52,12 +52,12 @@ static constexpr float dgs_dist = 20.0f;        // distance from dgs to stand fo
 // types
 typedef enum
 {
-    DISABLED=0, INACTIVE, ACTIVE, ENGAGED, TRACK, GOOD, BAD, PARKED, DONE
+    DISABLED=0, INACTIVE, ACTIVE, ENGAGED, TRACK, GOOD, BAD, PARKED, CHOCKS, DONE
 } state_t;
 
 static const char * const state_str[] = {
     "DISABLED", "INACTIVE", "ACTIVE", "ENGAGED",
-    "TRACK", "GOOD", "BAD", "PARKED", "DONE" };
+    "TRACK", "GOOD", "BAD", "PARKED", "CHOCKS", "DONE" };
 static state_t state = DISABLED;
 static float timestamp; // for various states in the state_machine
 
@@ -85,6 +85,8 @@ static XPLMInstanceRef marshaller_inst, stairs_inst;
 static int update_stand_log_ts;   // throttling of logging
 static float sin_wave_prev;
 
+static float time_utc_m0, time_utc_m1, time_utc_h0, time_utc_h1, vdgs_brightness;
+
 enum _DGS_DREF {
     DGS_DR_IDENT,
     DGS_DR_STATUS,
@@ -92,15 +94,12 @@ enum _DGS_DREF {
     DGS_DR_TRACK,
     DGS_DR_AZIMUTH,
     DGS_DR_DISTANCE,
+    DGS_DR_DISTANCE_0,      // if distance < 10: full meters digit
+    DGS_DR_DISTANCE_01,     // first decimal digit
     DGS_DR_ICAO_0,
     DGS_DR_ICAO_1,
     DGS_DR_ICAO_2,
     DGS_DR_ICAO_3,
-    DGS_DR_BRIGHTNESS,
-    DGS_DR_TIME_UTC_M0,
-    DGS_DR_TIME_UTC_M1,
-    DGS_DR_TIME_UTC_H0,
-    DGS_DR_TIME_UTC_H1,
     DGS_DR_NUM              // # of drefs
 };
 
@@ -112,15 +111,12 @@ static const char *dgs_dlist_dr[] = {
     "opensam/dgs/track",
     "opensam/dgs/azimuth",
     "opensam/dgs/distance",
+    "opensam/dgs/distance_0",
+    "opensam/dgs/distance_01",
     "opensam/dgs/icao_0",
     "opensam/dgs/icao_1",
     "opensam/dgs/icao_2",
     "opensam/dgs/icao_3",
-    "opensam/dgs/vdgs_brightness",
-    "opensam/dgs/time_utc_m0",
-    "opensam/dgs/time_utc_m1",
-    "opensam/dgs/time_utc_h0",
-    "opensam/dgs/time_utc_h1",
     NULL
 };
 
@@ -267,6 +263,16 @@ is_dgs_active(float obj_x, float obj_z, float obj_psi)
     return true;
 }
 
+// Dataref accessor for the global datarefs, *_utc_* + brightness
+static float
+DgsGlobalAcc(void *ref)
+{
+    if (ref == nullptr)
+        return -1.0f;
+
+    return *(float *)ref;
+}
+
 //
 // Accessor for the "opensam/dgs/..." datarefs
 //
@@ -274,27 +280,9 @@ is_dgs_active(float obj_x, float obj_z, float obj_psi)
 //
 //
 static float
-read_dgs_acc(void *ref)
+DgsActiveAcc(void *ref)
 {
     int dr_index = (uint64_t)ref;
-
-    // serve these for all objects
-    if (DGS_DR_TIME_UTC_M0 <= dr_index && dr_index <= DGS_DR_TIME_UTC_H1) {
-        int zm = XPLMGetDatai(zulu_time_minutes_dr);
-        int zh = XPLMGetDatai(zulu_time_hours_dr);
-        switch (dr_index) {
-            case DGS_DR_TIME_UTC_M0:
-                return zm % 10;
-            case DGS_DR_TIME_UTC_M1:
-                return zm / 10;
-            case DGS_DR_TIME_UTC_H0:
-                return zh % 10;
-            case DGS_DR_TIME_UTC_H1:
-                return zh / 10;
-        }
-
-        return 0;   // should not be reached
-    }
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
@@ -501,8 +489,20 @@ dgs_init()
     // create the dgs animation datarefs
     for (int i = 0; i < DGS_DR_NUM; i++)
         XPLMRegisterDataAccessor(dgs_dlist_dr[i], xplmType_Float, 0, NULL,
-                                 NULL, read_dgs_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, DgsActiveAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, (void *)(uint64_t)i, NULL);
+
+    // these are served globally
+    XPLMRegisterDataAccessor("opensam/dgs/time_utc_m0", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc,
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &time_utc_m0, 0);
+    XPLMRegisterDataAccessor("opensam/dgs/time_utc_m1", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc,
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &time_utc_m1, 0);
+    XPLMRegisterDataAccessor("opensam/dgs/time_utc_h0", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc,
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &time_utc_h0, 0);
+    XPLMRegisterDataAccessor("opensam/dgs/time_utc_h1", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc,
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &time_utc_h1, 0);
+    XPLMRegisterDataAccessor("opensam/dgs/vdgs_brightness", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc,
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &vdgs_brightness, 0);
 
     XPLMRegisterDataAccessor("sam/vdgs/status", xplmType_Float, 0, NULL,
                              NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -544,8 +544,18 @@ dgs_init()
 float
 dgs_state_machine()
 {
+    // update global dataref values
+    static constexpr float min_brightness = 0.025;   // relativ to 1
+    vdgs_brightness = min_brightness + (1 - min_brightness) * powf(1 - XPLMGetDataf(percent_lights_dr), 1.5);
+    int zm = XPLMGetDatai(zulu_time_minutes_dr);
+    int zh = XPLMGetDatai(zulu_time_hours_dr);
+    time_utc_m0 = zm % 10;
+    time_utc_m1 = zm / 10;
+    time_utc_h0 = zh % 10;
+    time_utc_h1 = zh / 10;
+
     if (state <= INACTIVE)
-        return 2.0;
+        return 1.0;
 
     // throttle costly search
     if (INACTIVE < state && now > nearest_stand_ts + 2.0) {
@@ -555,7 +565,7 @@ dgs_state_machine()
 
     if (nearest_stand == NULL) {
         state = ACTIVE;
-        return 2.0;
+        return 1.0;
     }
 
     int lr_prev = lr;
@@ -719,12 +729,27 @@ dgs_state_machine()
             status = 3;
             lr = 0;
             // wait for beacon off
-            if (! beacon_on)
+            if (! beacon_on) {
+                new_state = DONE;
+                if (!my_plane.dont_connect_jetway_) { // check whether it's a ToLiss, then set chocks
+                    XPLMDataRef tls_chocks = XPLMFindDataRef("AirbusFBW/Chocks");
+                    if (tls_chocks) {
+                        XPLMSetDatai(tls_chocks, 1);
+                        if (! is_marshaller)
+                            new_state = CHOCKS;
+                    }
+                }
+            }
+            break;
+
+        case CHOCKS:
+            status = 6;
+            if (now > timestamp + 5.0)
                 new_state = DONE;
             break;
 
         case DONE:
-            if (now > timestamp + 5.0f) {
+            if (now > timestamp + 3.0f) {
                 if (!my_plane.dont_connect_jetway_)   // wait some seconds for the jw handler to catch up
                     my_plane.request_dock();
 
@@ -752,17 +777,21 @@ dgs_state_machine()
         }
 
         distance = clampf(distance, -GOOD_Z, REM_Z);
+        float d_0 = 0.0f;
+        float d_01 = 0.0f;
+        if (0.0f <= distance && distance < 10.0f) {
+            d_0 = (float)(int)distance;
+            d_01 = (int)((distance - d_0) * 10.0f);
+        }
 
-        // is not necessary for Marshaller + SafedockT2
-        // distance=((float)((int)((distance)*2))) / 2;    // multiple of 0.5m
-
-        static constexpr float min_brightness = 0.025;   // relativ to 1
-        float brightness = min_brightness + (1 - min_brightness) * powf(1 - XPLMGetDataf(percent_lights_dr), 1.5);
+        distance = ((float)((int)((distance)*2))) / 2;    // multiple of 0.5m
 
         memset(drefs, 0, sizeof(drefs));
         drefs[DGS_DR_STATUS] = status;
         drefs[DGS_DR_TRACK] = track;
         drefs[DGS_DR_DISTANCE] = distance;
+        drefs[DGS_DR_DISTANCE_0] = d_0;
+        drefs[DGS_DR_DISTANCE_01] = d_01;
         drefs[DGS_DR_AZIMUTH] = azimuth;
         drefs[DGS_DR_LR] = lr;
 
@@ -770,12 +799,7 @@ dgs_state_machine()
         if (state == TRACK) {
             for (int i = 0; i < 4; i++)
                 drefs[DGS_DR_ICAO_0 + i] = icao[i];
-
-            if (isalpha((uint8_t)icao[3]))
-                drefs[DGS_DR_ICAO_3] += 0.98;    // bug in VDGS
         }
-
-        drefs[DGS_DR_BRIGHTNESS] = brightness;
 
         // translate into compatible SAM1 values
         sam1_lateral = -x_dr;
@@ -800,6 +824,7 @@ dgs_state_machine()
                 sam1_status = SAM1_TRACK;
                 break;
 
+            case CHOCKS:
             case DONE:
                 sam1_status = SAM1_IDLE;
                 sam1_longitudinal = 0.0;
