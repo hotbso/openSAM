@@ -37,12 +37,22 @@ OBJ_DRAPED 0 0 0 0
 
 def gen_variant(master, v_name, height, turn_180 = False):
     lines = open(master, "r").readlines()
-    dh = height - 5.0
+    dh = height
 
     vlines = []
 
     first_lod = True
+    n_no_opensam = 0
     for l in lines:
+        if "# NO-openSAM_end" in l:
+            n_no_opensam -= 1
+            continue
+        elif "# NO-openSAM_begin" in l:
+            n_no_opensam += 1
+
+        if n_no_opensam > 0:
+            continue
+
         l = l.replace("AutoDGS", "opensam")
         if "LOD" in l and not first_lod:
             vlines.append("ANIM_end\n")
@@ -87,8 +97,8 @@ target_dir = "../openSAM-pkg/openSAM_Library"
 gen_files = []
 
 tex_files = ["../../AutoDGS/DGSs-Safedock-T2-24/Safedock-T2-24.png", "../../AutoDGS/DGSs-Safedock-T2-24/Safedock-T2-24_LIT.png"]
-tmpl_obj = "../../AutoDGS/DGSs-Safedock-T2-24/Safedock-T2-24-5m.obj"
-tmpl_obj_pole = "../../AutoDGS/DGSs-Safedock-T2-24/Safedock-T2-24-5m-pole.obj"
+tmpl_obj = "../../AutoDGS/DGSs-Safedock-T2-24/Safedock-T2-24.obj"
+tmpl_obj_pole = "../../AutoDGS/DGSs-Safedock-T2-24/Safedock-T2-24-pole.obj"
 
 for h in [0, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7]:
     name = f"Safedock-T2-24_{h:0.1f}m"
