@@ -1,0 +1,46 @@
+## Credits
+Jonathan Harris (aka Marginal) (https://github.com/Marginal) for creating Autogate
+@Papickx + @cxn0026 for providing better textures and day + night lighting
+@zodiac1214 (aka cfanap) (https://github.com/zodiac1214) for creating the automated build and release system including skunkcrafts support
+
+## License
+Please observe that this material is covered by various licenses.
+
+### The objects and textures of the Marshaller and source code of Autogate by Marginal:
+-- copy of license remark from https://github.com/Marginal/AutoGate ---
+The plugin code in the src directory is licensed under the GNU LGPL v2.1 license.
+The rest of the kit is licensed under the Creative Commons Attribution license.
+In short, you can use any part of this kit (including the 3D objects and their textures) in original or modified
+form in a free or commerical scenery package, but you must give the author credit.
+
+### The alerting sound for jetways:
+pixabay.com "8 royalty-free reverse-beep sound effects"
+https://pixabay.com/sound-effects/backing-up-beepwav-14889/
+
+### LTAPI code
+
+/// @author     Birger Hoppe
+/// @copyright  (c) 2019-2025 Birger Hoppe
+/// @copyright  Permission is hereby granted, free of charge, to any person obtaining a
+///             copy of this software and associated documentation files (the "Software"),
+///             to deal in the Software without restriction, including without limitation
+///             the rights to use, copy, modify, merge, publish, distribute, sublicense,
+///             and/or sell copies of the Software, and to permit persons to whom the
+///             Software is furnished to do so, subject to the following conditions:\n
+///             The above copyright notice and this permission notice shall be included in
+///             all copies or substantial portions of the Software.\n
+///             THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+///             IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+///             FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+///             AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+///             LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+///             OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+///             THE SOFTWARE.
+
+### Contributions by hotbso:
+This is in part a derived work from Autogate so the above mentioned licenses apply accordingly
+to the components of this project.
+The VDGS Safedock-T2-24 and variants is an original work of hotbso.
+The textures and the .obj model are shared under https://creativecommons.org/licenses/by-sa/4.0/ .
+
+The source code is available at: https://github.com/hotbso/openSAM
