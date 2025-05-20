@@ -277,6 +277,8 @@ JwAnimAcc(void *ref)
             }
 
             for (auto tjw : sc->sam_jws) {
+                if (tjw->bad)
+                    continue;
 
                 if (tjw->xml_ref_gen < ref_gen) {
                     // we must iterate to get the elevation of the jetway
@@ -287,8 +289,10 @@ JwAnimAcc(void *ref)
                     double  x, y ,z;
                     XPLMWorldToLocal(tjw->latitude, tjw->longitude, 0.0, &x, &y, &z);
                     if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
-                        log_msg("terrain probe 1 failed, jw lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
-                                tjw->latitude, tjw->longitude, x, y, z);
+                        log_msg("terrain probe 1 failed, jw: '%s', lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
+                                tjw->name, tjw->latitude, tjw->longitude, x, y, z);
+                        log_msg("jw: '%s' marked BAD", tjw->name);
+                        tjw->bad = true;
                         return 0.0f;
                     }
 

@@ -26,6 +26,7 @@ static constexpr float kFarSkip = 5000;     // (m) don't consider jetways farthe
 
 struct SamJw  {
   public:
+    bool bad;       // marked bad, e.g. terrain probe failed
     int is_zc_jw;   // is a zero config jw
     Stand* stand;   // back pointer to stand for zc jetways
     bool locked;	// locked by a plane
