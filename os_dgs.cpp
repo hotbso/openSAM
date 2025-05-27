@@ -227,7 +227,7 @@ Stand::Global2Stand(float x, float z, float& x_l, float& z_l)
 //    consider it nearer even if z is slightly less
 //
 static inline bool
-IsDgsAvtive(float obj_x, float obj_z, float obj_psi)
+IsDgsActive(float obj_x, float obj_z, float obj_psi)
 {
     if (NULL == nearest_stand)
         return false;
@@ -287,7 +287,7 @@ DgsActiveAcc(void *ref)
     float obj_z = XPLMGetDataf(draw_object_z_dr);
     float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
-    if (!IsDgsAvtive(obj_x, obj_z, obj_psi))
+    if (!IsDgsActive(obj_x, obj_z, obj_psi))
         return 0.0f;
 
     if (DGS_DR_IDENT == dr_index) {
@@ -318,7 +318,7 @@ static float
 DgsSam1Acc(void *ref)
 {
     int dr_index = (uint64_t)ref;
-    if (!IsDgsAvtive(XPLMGetDataf(draw_object_x_dr), XPLMGetDataf(draw_object_z_dr),
+    if (!IsDgsActive(XPLMGetDataf(draw_object_x_dr), XPLMGetDataf(draw_object_z_dr),
                      XPLMGetDataf(draw_object_psi_dr)))
         switch (dr_index) {
             case SAM1_DR_STATUS:
