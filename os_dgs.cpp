@@ -32,22 +32,22 @@
 #include "XPLMNavigation.h"
 
 // DGS _A = angles [°] (to centerline), _X, _Z = [m] (to stand)
-static constexpr float CAP_A = 15;              // Capture
-static constexpr float CAP_Z = 140;	            // (50-80 in Safedock2 flier)
+static constexpr float kCapA = 15;              // Capture
+static constexpr float kCapZ = 140;	            // (50-80 in Safedock2 flier)
 
-static constexpr float AZI_A = 15;              // provide azimuth guidance
-static constexpr float AZI_DISP_A = 10;         // max value for display
-static constexpr float AZI_Z = 90;
+static constexpr float kAziA = 15;              // provide azimuth guidance
+static constexpr float kAziDispA = 10;          // max value for display
+static constexpr float kAziZ = 90;
 
-static constexpr float GOOD_Z= 0.5;             // stop position for nw
-static constexpr float GOOD_X = 2.0;            // for mw
+static constexpr float kGoodZ= 0.5;             // stop position for nw
+static constexpr float kGoodX = 2.0;            // for mw
 
-static constexpr float REM_Z = 12;      	    // Distance remaining from here on
+static constexpr float kRemZ = 12;      	    // Distance remaining from here on
 
-static constexpr float MAX_DGS_2_STAND_X = 10.0f; // max offset/distance from DGS to stand
-static constexpr float MAX_DGS_2_STAND_Z = 80.0f;
+static constexpr float kMaxDgs2StandX = 10.0f;  // max offset/distance from DGS to stand
+static constexpr float kMaxDgs2StandZ = 80.0f;
 
-static constexpr float dgs_dist = 20.0f;        // distance from dgs to stand for azimuth computation
+static constexpr float kDgsDist = 20.0f;        // distance from dgs to stand for azimuth computation
 
 // types
 typedef enum
@@ -70,7 +70,7 @@ static int status, track, lr;
 static float azimuth, distance;
 
 static Stand *nearest_stand;
-static float nearest_stand_ts;    // timestamp of last find_nearest_stand()
+static float nearest_stand_ts;    // timestamp of last FindNearestStand()
 // track the max local z (= closest to stand) of dgs objs for nearest_stand
 static float assoc_dgs_z_l, assoc_dgs_x_l, assoc_dgs_ts;
 
@@ -140,9 +140,8 @@ static constexpr float SAM1_LATERAL_OFF = 10.0f;   // switches off VDGS
 // dref values
 static float sam1_status, sam1_lateral, sam1_longitudinal;
 
-
 void
-dgs_set_inactive(void)
+DgsSetInactive(void)
 {
     log_msg("dgs set to INACTIVE");
     nearest_stand = NULL;
@@ -160,7 +159,7 @@ dgs_set_inactive(void)
 
 // set mode to arrival
 void
-dgs_set_active(void)
+DgsSetArrival(void)
 {
     if (! my_plane.on_ground()) {
         log_msg("can't set active when not on ground");
@@ -168,7 +167,7 @@ dgs_set_active(void)
     }
 
     // can be teleportation
-    dgs_set_inactive();
+    DgsSetInactive();
     my_plane.reset_beacon();
 
     float lat = my_plane.lat();
@@ -190,7 +189,7 @@ dgs_set_active(void)
 
 // xform lat,lon into the active global frame
 void
-Stand::xform_to_ref_frame()
+Stand::Xform2RefFrame()
 {
     if (ref_gen_ < ::ref_gen) {
         XPLMWorldToLocal(lat, lon, my_plane.elevation(),
@@ -205,7 +204,7 @@ Stand::xform_to_ref_frame()
 
 // xform global coordinates into the stand frame
 void
-Stand::global_2_stand(float x, float z, float& x_l, float& z_l)
+Stand::Global2Stand(float x, float z, float& x_l, float& z_l)
 {
     float dx = x - stand_x;
     float dz = z - stand_z;
@@ -228,7 +227,7 @@ Stand::global_2_stand(float x, float z, float& x_l, float& z_l)
 //    consider it nearer even if z is slightly less
 //
 static inline bool
-is_dgs_active(float obj_x, float obj_z, float obj_psi)
+IsDgsAvtive(float obj_x, float obj_z, float obj_psi)
 {
     if (NULL == nearest_stand)
         return false;
@@ -236,16 +235,16 @@ is_dgs_active(float obj_x, float obj_z, float obj_psi)
     stat_dgs_acc++;
 
     float dgs_x_l, dgs_z_l;
-    nearest_stand->global_2_stand(obj_x, obj_z, dgs_x_l, dgs_z_l);
+    nearest_stand->Global2Stand(obj_x, obj_z, dgs_x_l, dgs_z_l);
     //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
     if (dgs_assoc && (dgs_z_l < assoc_dgs_z_l - 2.0f || fabsf(dgs_x_l) > assoc_dgs_x_l))
         return false;   // already have a closer one
 
-    // must be in a box +- MAX_DGS_2_STAND_X, MAX_DGS_2_STAND_Z
+    // must be in a box +- kMaxDgs2StandX, kMaxDgs2StandZ
     // and reasonably aligned with stand (or for SAM1 anti aligned)
-    if (fabsf(dgs_x_l) > MAX_DGS_2_STAND_X
-        || dgs_z_l < -MAX_DGS_2_STAND_Z || dgs_z_l > -5.0f
+    if (fabsf(dgs_x_l) > kMaxDgs2StandX
+        || dgs_z_l < -kMaxDgs2StandZ || dgs_z_l > -5.0f
         || BETWEEN(fabsf(RA(nearest_stand->hdgt - obj_psi)), 10.0f, 170.0f))
         return false;
 
@@ -288,7 +287,7 @@ DgsActiveAcc(void *ref)
     float obj_z = XPLMGetDataf(draw_object_z_dr);
     float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
-    if (!is_dgs_active(obj_x, obj_z, obj_psi))
+    if (!IsDgsAvtive(obj_x, obj_z, obj_psi))
         return 0.0f;
 
     if (DGS_DR_IDENT == dr_index) {
@@ -316,11 +315,11 @@ DgsActiveAcc(void *ref)
 // This function is called from draw loops, efficient coding required.
 //
 static float
-read_sam1_acc(void *ref)
+DgsSam1Acc(void *ref)
 {
     int dr_index = (uint64_t)ref;
-    if (!is_dgs_active(XPLMGetDataf(draw_object_x_dr), XPLMGetDataf(draw_object_z_dr),
-                       XPLMGetDataf(draw_object_psi_dr)))
+    if (!IsDgsAvtive(XPLMGetDataf(draw_object_x_dr), XPLMGetDataf(draw_object_z_dr),
+                     XPLMGetDataf(draw_object_psi_dr)))
         switch (dr_index) {
             case SAM1_DR_STATUS:
                 return SAM1_IDLE;
@@ -330,7 +329,7 @@ read_sam1_acc(void *ref)
                 return 0.0f;
         }
 
-    //log_msg("read_sam1_acc: %d", dr_index);
+    //log_msg("DgsSam1Acc: %d", dr_index);
     switch (dr_index) {
         case SAM1_DR_STATUS:
             return sam1_status;
@@ -349,7 +348,7 @@ read_sam1_acc(void *ref)
 // This function is called from draw loops, efficient coding required.
 //
 static int
-read_sam1_icao_acc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs, int n)
+DgsSam1IcaoAcc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs, int n)
 {
     if (values == NULL)
         return 4;
@@ -371,7 +370,7 @@ read_sam1_icao_acc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs, int n
 }
 
 static void
-find_nearest_stand()
+FindNearestStand()
 {
     double dist = 1.0E10;
     Stand *min_stand = NULL;
@@ -399,17 +398,17 @@ find_nearest_stand()
             if (fabs(local_hdgt) > 90.0)
                 continue;   // not looking to stand
 
-            stand->xform_to_ref_frame();
+            stand->Xform2RefFrame();
 
             float local_x, local_z;
-            stand->global_2_stand(plane_x, plane_z, local_x, local_z);
+            stand->Global2Stand(plane_x, plane_z, local_x, local_z);
 
             // nose wheel
             float nw_z = local_z - my_plane.nose_gear_z_;
             float nw_x = local_x + my_plane.nose_gear_z_ * sin(D2R * local_hdgt);
 
             float d = len2f(nw_x, nw_z);
-            if (d > CAP_Z + 50) // fast exit
+            if (d > kCapZ + 50) // fast exit
                 continue;
 
             //log_msg("stand: %s, z: %2.1f, x: %2.1f", stand->id, nw_z, nw_x);
@@ -465,9 +464,9 @@ find_nearest_stand()
             }
         }
 
-        log_msg("stand: %s, %f, %f, %f, dist: %f, dgs_dist: %0.2f", min_stand->id,
+        log_msg("stand: %s, %f, %f, %f, dist: %f, kDgsDist: %0.2f", min_stand->id,
                 min_stand->lat, min_stand->lon,
-                min_stand->hdgt, dist, dgs_dist);
+                min_stand->hdgt, dist, kDgsDist);
 
         nearest_stand = min_stand;
         dgs_assoc = 0;
@@ -479,7 +478,7 @@ find_nearest_stand()
 }
 
 int
-dgs_init()
+DgsInit()
 {
     percent_lights_dr = XPLMFindDataRef("sim/graphics/scenery/percent_lights_on");
     sin_wave_dr = XPLMFindDataRef("sim/graphics/animation/sin_wave_2");
@@ -505,24 +504,24 @@ dgs_init()
                              NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &vdgs_brightness, 0);
 
     XPLMRegisterDataAccessor("sam/vdgs/status", xplmType_Float, 0, NULL,
-                             NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                             NULL, DgsSam1Acc, NULL, NULL, NULL, NULL, NULL, NULL,
                              NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
 
     XPLMRegisterDataAccessor("sam/docking/lateral", xplmType_Float, 0, NULL,
-                             NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                             NULL, DgsSam1Acc, NULL, NULL, NULL, NULL, NULL, NULL,
                              NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_LATERAL, NULL);
 
     XPLMRegisterDataAccessor("sam/docking/longitudinal", xplmType_Float, 0, NULL,
-                             NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                             NULL, DgsSam1Acc, NULL, NULL, NULL, NULL, NULL, NULL,
                              NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_LONGITUDINAL, NULL);
 
     XPLMRegisterDataAccessor("sam/docking/icao", xplmType_IntArray, 0, NULL, NULL,
-                             NULL, NULL, NULL, NULL, read_sam1_icao_acc, NULL,
+                             NULL, NULL, NULL, NULL, DgsSam1IcaoAcc, NULL,
                              NULL, NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_ICAO, NULL);
 
     // some custom VDGS use "sam/docking/status", e.g. Gaya LOWW
     XPLMRegisterDataAccessor("sam/docking/status", xplmType_Float, 0, NULL,
-                             NULL, read_sam1_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                             NULL, DgsSam1Acc, NULL, NULL, NULL, NULL, NULL, NULL,
                              NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
 
     marshaller_obj = XPLMLoadObject("Resources/plugins/openSAM/objects/Marshaller.obj");
@@ -537,12 +536,12 @@ dgs_init()
         return 0;
     }
 
-    dgs_set_inactive();
+    DgsSetInactive();
     return 1;
 }
 
 float
-dgs_state_machine()
+DgsStateMachine()
 {
     // update global dataref values
     static constexpr float min_brightness = 0.025;   // relativ to 1
@@ -559,7 +558,7 @@ dgs_state_machine()
 
     // throttle costly search
     if (INACTIVE < state && now > nearest_stand_ts + 2.0) {
-        find_nearest_stand();
+        FindNearestStand();
         nearest_stand_ts = now;
     }
 
@@ -578,7 +577,7 @@ dgs_state_machine()
     // xform plane pos into stand local coordinate system
 
     float local_x, local_z;
-    nearest_stand->global_2_stand(my_plane.x(), my_plane.z(), local_x, local_z);
+    nearest_stand->Global2Stand(my_plane.x(), my_plane.z(), local_x, local_z);
 
     // relative reading to stand +/- 180
     float local_hdgt = RA(my_plane.psi() - nearest_stand->hdgt);
@@ -599,21 +598,21 @@ dgs_state_machine()
     float x_dr = local_x + plane_z_dr * sin(D2R * local_hdgt);
 
     if (fabs(x_dr) > 0.5f && z_dr > 0)
-        azimuth = atanf(x_dr / (z_dr + 0.5f * dgs_dist)) / D2R;
+        azimuth = atanf(x_dr / (z_dr + 0.5f * kDgsDist)) / D2R;
     else
         azimuth = 0.0;
 
     float azimuth_nw;
     if (nw_z > 0)
-        azimuth_nw = atanf(nw_x / (nw_z + 0.5f * dgs_dist)) / D2R;
+        azimuth_nw = atanf(nw_x / (nw_z + 0.5f * kDgsDist)) / D2R;
     else
         azimuth_nw = 0.0;
 
-    int locgood = (fabsf(mw_x) <= GOOD_X && fabsf(nw_z) <= GOOD_Z);
+    int locgood = (fabsf(mw_x) <= kGoodX && fabsf(nw_z) <= kGoodZ);
     int beacon_on = my_plane.beacon_on();
 
     status = lr = track = 0;
-    distance = nw_z - GOOD_Z;
+    distance = nw_z - kGoodZ;
 
     // catch the phase ~180° point -> the Marshaller's arm is straight
     float sin_wave = XPLMGetDataf(sin_wave_dr);
@@ -624,7 +623,7 @@ dgs_state_machine()
     switch (state) {
         case ENGAGED:
             if (beacon_on) {
-                if ((distance <= CAP_Z) && (fabsf(azimuth_nw) <= CAP_A))
+                if ((distance <= kCapZ) && (fabsf(azimuth_nw) <= kCapA))
                     new_state = TRACK;
             } else { // not beacon_on
                 new_state = DONE;
@@ -642,24 +641,24 @@ dgs_state_machine()
                     break;
                 }
 
-                if (nw_z < -GOOD_Z) {
+                if (nw_z < -kGoodZ) {
                     new_state = BAD;
                     break;
                 }
 
-                if ((distance > CAP_Z) || (fabsf(azimuth_nw) > CAP_A)) {
+                if ((distance > kCapZ) || (fabsf(azimuth_nw) > kCapA)) {
                     new_state = ENGAGED;    // moving away from current gate
                     break;
                 }
 
                 status = 1;	// plane id
-                if (distance > AZI_Z || fabsf(azimuth_nw) > AZI_A) {
+                if (distance > kAziZ || fabsf(azimuth_nw) > kAziA) {
                     track=1;	// lead-in only
                     break;
                 }
 
                 // compute distance and guidance commands
-                azimuth = clampf(azimuth, -AZI_A, AZI_A);
+                azimuth = clampf(azimuth, -kAziA, kAziA);
                 float req_hdgt = -3.5f * azimuth;        // to track back to centerline
                 float d_hdgt = req_hdgt - local_hdgt;   // degrees to turn
 
@@ -676,10 +675,10 @@ dgs_state_machine()
                     lr = 1;
 
                 // xform azimuth to values required by OBJ
-                azimuth = clampf(azimuth, -AZI_DISP_A, AZI_DISP_A) * 4.0 / AZI_DISP_A;
+                azimuth = clampf(azimuth, -kAziDispA, kAziDispA) * 4.0 / kAziDispA;
                 azimuth=((float)((int)(azimuth * 2))) / 2;  // round to 0.5 increments
 
-                if (distance <= REM_Z/2) {
+                if (distance <= kRemZ/2) {
                     track = 3;
                     loop_delay = 0.03;
                 } else // azimuth only
@@ -712,11 +711,11 @@ dgs_state_machine()
         case BAD:
             if (!beacon_on
                 && (now > timestamp + 5.0f)) {
-                dgs_set_inactive();
+                DgsSetInactive();
                 return loop_delay;
             }
 
-            if (nw_z >= -GOOD_Z)
+            if (nw_z >= -kGoodZ)
                 new_state = TRACK;
             else {
                 // Too far
@@ -753,7 +752,7 @@ dgs_state_machine()
                 if (!my_plane.dont_connect_jetway_)   // wait some seconds for the jw handler to catch up
                     my_plane.request_dock();
 
-                dgs_set_inactive();
+                DgsSetInactive();
                 return loop_delay;
             }
             break;
@@ -776,7 +775,7 @@ dgs_state_machine()
             azimuth = 0.0;
         }
 
-        distance = clampf(distance, -GOOD_Z, REM_Z);
+        distance = clampf(distance, -kGoodZ, kRemZ);
         float d_0 = 0.0f;
         float d_01 = 0.0f;
         if (0.0f <= distance && distance < 10.0f) {

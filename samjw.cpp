@@ -124,10 +124,10 @@ SamJw::FindStand()
             continue;
 
         for (auto s : sc->stands) {
-            s->xform_to_ref_frame();
+            s->Xform2RefFrame();
 
             float local_x, local_z;
-            s->global_2_stand(x, z, local_x, local_z);
+            s->Global2Stand(x, z, local_x, local_z);
             if (local_x > 2.0f)     // on the right
                 continue;
 

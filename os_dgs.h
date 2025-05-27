@@ -30,15 +30,15 @@ struct Stand {
     char id[40];
 
     // xform lat,lon to reference frame
-    void xform_to_ref_frame();
+    void Xform2RefFrame();
 
     // xform x,z to stand-local coordinate system
-    void global_2_stand(float x, float z, float& x_l, float& z_l);
+    void Global2Stand(float x, float z, float& x_l, float& z_l);
 };
 
-extern int dgs_init(void);
-extern float dgs_state_machine(void);
-extern void dgs_set_active(void);
-extern void dgs_set_inactive(void);
+extern int DgsInit(void);
+extern float DgsStateMachine(void);
+extern void DgsSetArrival(void);
+extern void DgsSetInactive(void);
 
 

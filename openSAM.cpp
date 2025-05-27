@@ -204,7 +204,7 @@ cmd_activate_cb([[maybe_unused]] XPLMCommandRef cmdr,
         return 0;
 
     log_msg("cmd manually_activate");
-    dgs_set_active();
+    DgsSetArrival();
     return 0;
 }
 
@@ -265,9 +265,9 @@ flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
     // check for transition
     if (on_ground != on_ground_prev) {
         if (on_ground)
-            dgs_set_active();
+            DgsSetArrival();
         else
-            dgs_set_inactive();
+            DgsSetInactive();
     }
 
     float jw_loop_delay = jw_next_ts - now;
@@ -292,7 +292,7 @@ flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
         }
 
         if (dgs_loop_delay <= 0.0f) {
-            dgs_loop_delay = dgs_state_machine();
+            dgs_loop_delay = DgsStateMachine();
             dgs_next_ts = now + dgs_loop_delay;
         }
     }
@@ -545,7 +545,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     my_plane.auto_mode_set(pref_auto_mode);
     JwInit();
     JwCtrl::init();
-    dgs_init();
+    DgsInit();
     anim_init();
 
     // own commands
