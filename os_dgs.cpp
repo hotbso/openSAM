@@ -894,7 +894,8 @@ DgsStateMachine()
             d_01 = (int)((distance - d_0) * 10.0f);
         }
 
-        distance = ((float)((int)((distance)*2))) / 2;    // multiple of 0.5m
+        if (! is_marshaller)
+            distance = ((float)((int)((distance)*2))) / 2;    // multiple of 0.5m
 
         memset(drefs, 0, sizeof(drefs));
         drefs[DGS_DR_STATUS] = status;
