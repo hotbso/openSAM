@@ -126,6 +126,7 @@ MyPlane::MyPlane()
     acf_door_y_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_y");
     acf_door_z_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_z");
     acf_livery_path_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_livery_path");
+    pax_no_dr_ = nullptr;
 
     icao_ = "0000";
     reset_beacon();
@@ -327,6 +328,10 @@ MyPlane::plane_loaded()
         icao_ ="A320";
     else if (icao_ == "A21N")
         icao_ ="A321";
+
+    pax_no_dr_probed_ = false;
+    pax_no_dr_ = nullptr;
+    pax_no_ = 0;
 }
 
 void MyPlane::livery_loaded()
@@ -415,6 +420,15 @@ MyPlane::update()
 
     parkbrake_set_ = (XPLMGetDataf(parkbrake_dr_) > 0.5f);
     elevation_ = XPLMGetDataf(plane_elevation_dr_);
+    if (! pax_no_dr_probed_) {
+        pax_no_dr_probed_ = true;
+        pax_no_dr_ = XPLMFindDataRef("AirbusFBW/NoPax"); // currently only ToLiss
+        if (pax_no_dr_)
+            log_msg("ToLiss detected");
+    }
+
+    if (pax_no_dr_)
+        pax_no_ = XPLMGetDataf(pax_no_dr_) + 0.5f;
 }
 
 void

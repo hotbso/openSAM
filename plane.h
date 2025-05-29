@@ -116,6 +116,8 @@ class Plane {
 //
 class MyPlane : public Plane {
     XPLMDataRef plane_lat_dr_, plane_lon_dr_, plane_y_agl_dr_;
+    XPLMDataRef pax_no_dr_;
+    bool pax_no_dr_probed_;
 
     bool use_engines_on_;   // instead of beacon, e.g. Zibo
 
@@ -132,6 +134,7 @@ class MyPlane : public Plane {
     bool ui_unlocked_{false}; // the ui is unlocked for jw_selection
 
     float elevation_;
+    int pax_no_;
 
   public:
     static void init();         // call once
@@ -161,6 +164,7 @@ class MyPlane : public Plane {
     float y_agl() { return XPLMGetDataf(plane_y_agl_dr_); }
 
     float elevation() const { return elevation_; }
+    int pax_no() const { return pax_no_; }
 
     // UI support
     void update_ui(bool only_if_visible) override;
