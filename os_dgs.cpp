@@ -52,11 +52,11 @@ static constexpr float kDgsDist = 20.0f;        // distance from dgs to stand fo
 // types
 typedef enum
 {
-    DISABLED=0, INACTIVE, ACTIVE, ENGAGED, TRACK, GOOD, BAD, PARKED, CHOCKS, DONE
+    DISABLED=0, INACTIVE, DEPARTURE, BOARDING, ARRIVAL, ENGAGED, TRACK, GOOD, BAD, PARKED, CHOCKS, DONE
 } state_t;
 
 static const char * const state_str[] = {
-    "DISABLED", "INACTIVE", "ACTIVE", "ENGAGED",
+    "DISABLED", "INACTIVE", "DEPARTURE", "BOARDING", "ARRIVAL", "ENGAGED",
     "TRACK", "GOOD", "BAD", "PARKED", "CHOCKS", "DONE" };
 static state_t state = DISABLED;
 static float timestamp; // for various states in the state_machine
@@ -100,6 +100,10 @@ enum _DGS_DREF {
     DGS_DR_ICAO_1,
     DGS_DR_ICAO_2,
     DGS_DR_ICAO_3,
+    DGS_DR_BOARDING,        // boarding state 0/1
+    DGS_DR_PAXNO_0,         // 3 digits
+    DGS_DR_PAXNO_1,
+    DGS_DR_PAXNO_2,
     DGS_DR_NUM              // # of drefs
 };
 
@@ -117,7 +121,11 @@ static const char *dgs_dlist_dr[] = {
     "opensam/dgs/icao_1",
     "opensam/dgs/icao_2",
     "opensam/dgs/icao_3",
-    NULL
+    "opensam/dgs/boarding",
+    "opensam/dgs/paxno_0",
+    "opensam/dgs/paxno_1",
+    "opensam/dgs/paxno_2",
+    nullptr
 };
 
 static float drefs[DGS_DR_NUM];
@@ -140,19 +148,21 @@ static constexpr float SAM1_LATERAL_OFF = 10.0f;   // switches off VDGS
 // dref values
 static float sam1_status, sam1_lateral, sam1_longitudinal;
 
+#define LogMsg log_msg  // transitional
+
 void
 DgsSetInactive(void)
 {
     log_msg("dgs set to INACTIVE");
-    nearest_stand = NULL;
+    nearest_stand = nullptr;
     state = INACTIVE;
 
     if (marshaller_inst) {
         XPLMDestroyInstance(marshaller_inst);
-        marshaller_inst = NULL;
+        marshaller_inst = nullptr;
         if (stairs_inst) {
             XPLMDestroyInstance(stairs_inst);
-            stairs_inst = NULL;
+            stairs_inst = nullptr;
         }
     }
 }
@@ -182,8 +192,8 @@ DgsSetArrival(void)
         log_msg("now on airport: %s", airport_id);
     }
 
-    state = ACTIVE;
-    log_msg("dgs set to ACTIVE");
+    state = ARRIVAL;
+    log_msg("dgs set to ARRIVAL");
 }
 
 
@@ -229,7 +239,7 @@ Stand::Global2Stand(float x, float z, float& x_l, float& z_l)
 static inline bool
 IsDgsActive(float obj_x, float obj_z, float obj_psi)
 {
-    if (NULL == nearest_stand)
+    if (nullptr == nearest_stand)
         return false;
 
     stat_dgs_acc++;
@@ -350,7 +360,7 @@ DgsSam1Acc(void *ref)
 static int
 DgsSam1IcaoAcc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs, int n)
 {
-    if (values == NULL)
+    if (values == nullptr)
         return 4;
 
     if (n <= 0 || ofs < 0 || ofs >= 4)
@@ -373,7 +383,7 @@ static void
 FindNearestStand()
 {
     double dist = 1.0E10;
-    Stand *min_stand = NULL;
+    Stand *min_stand = nullptr;
 
     float plane_lat = my_plane.lat();
     float plane_lon = my_plane.lon();
@@ -452,15 +462,15 @@ FindNearestStand()
         }
     }
 
-    if (min_stand != NULL && min_stand != nearest_stand) {
+    if (min_stand != nullptr && min_stand != nearest_stand) {
         is_marshaller = 0;
 
         if (marshaller_inst) {
             XPLMDestroyInstance(marshaller_inst);
-            marshaller_inst = NULL;
+            marshaller_inst = nullptr;
             if (stairs_inst) {
                 XPLMDestroyInstance(stairs_inst);
-                stairs_inst = NULL;
+                stairs_inst = nullptr;
             }
         }
 
@@ -474,6 +484,55 @@ FindNearestStand()
         assoc_dgs_ts = 1.0E10;
         assoc_dgs_x_l = 1.0E10;
         state = ENGAGED;
+    }
+}
+
+static void
+FindDepartureStand()
+{
+    float plane_lat = my_plane.lat();
+    float plane_lon = my_plane.lon();
+
+    float plane_x = my_plane.x();
+    float plane_z = my_plane.z();
+    float plane_hdgt = my_plane.psi();
+
+    // nose wheel
+    float nw_z = plane_z - my_plane.nose_gear_z_ * cosf(D2R * plane_hdgt);;
+    float nw_x = plane_x + my_plane.nose_gear_z_ * sinf(D2R * plane_hdgt);
+
+    Stand *ds = nullptr;
+
+    for (auto sc : sceneries) {
+        // cheap check against bounding box
+        if (plane_lat < sc->bb_lat_min || plane_lat > sc->bb_lat_max
+            || RA(plane_lon - sc->bb_lon_min) < 0 || RA(plane_lon - sc->bb_lon_max) > 0) {
+            continue;
+        }
+
+        for (auto s : sc->stands) {
+            if (fabsf(RA(plane_hdgt - s->hdgt)) > 3.0f)
+                continue;
+
+            s->Xform2RefFrame();
+
+            float dx = nw_x - s->stand_x;
+            float dz = nw_z - s->stand_z;
+            //LogMsg("stand: %s, z: %2.1f, x: %2.1f", s->id, dz, dx);
+            if (fabsf(dx * dx + dz * dz) < 1.0f) {
+                ds = s;
+                break;
+            }
+        }
+    }
+
+    if (ds != nearest_stand) {
+        LogMsg("departure stand is: %s", ds->id);
+        nearest_stand = ds;
+        dgs_assoc = 0;
+        assoc_dgs_z_l = -1.0E10;
+        assoc_dgs_ts = 1.0E10;
+        assoc_dgs_x_l = 1.0E10;
     }
 }
 
@@ -525,13 +584,13 @@ DgsInit()
                              NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
 
     marshaller_obj = XPLMLoadObject("Resources/plugins/openSAM/objects/Marshaller.obj");
-    if (NULL == marshaller_obj) {
+    if (nullptr == marshaller_obj) {
         log_msg("Could not load Marshaller.obj");
         return 0;
     }
 
     stairs_obj = XPLMLoadObject("Resources/default scenery/airport scenery/Ramp_Equipment/Stair_Maint_1.obj");
-    if (NULL == stairs_obj) {
+    if (nullptr == stairs_obj) {
         log_msg("Could not load Stair_Maint_1.obj");
         return 0;
     }
@@ -553,17 +612,71 @@ DgsStateMachine()
     time_utc_h0 = zh % 10;
     time_utc_h1 = zh / 10;
 
-    if (state <= INACTIVE)
-        return 1.0;
+    // DEPARTURE and friends ...
+    // that's all low freq stuff
+    if (INACTIVE <= state && state <= BOARDING) {
+        // on beacon or engine or teleportation -> INACTIVE
+        if (my_plane.beacon_on() || my_plane.engines_on()) {
+            nearest_stand = nullptr;
+            state = INACTIVE;
+            return 2.0f;
+        }
+
+        // check for stand
+        FindDepartureStand();
+        if (nearest_stand == nullptr) {
+            state = INACTIVE;
+            return 4.0f;
+        }
+
+        if (my_plane.pax_no() == 0) {
+            state = DEPARTURE;
+            LogMsg("New state %s", state_str[state]);
+        }
+
+        if (state == INACTIVE)
+            return 4.0f;
+
+        // FALLTHROUGH
+    }
+
+    if (state == DEPARTURE) {
+        if (my_plane.pax_no() == 0)
+            return 4.0f;
+        state = BOARDING;
+        LogMsg("New state %s", state_str[state]);
+        // FALLTHROUGH
+    }
+
+    if (state == BOARDING) {
+        int pax_no = my_plane.pax_no();
+        LogMsg("boarding pax_no: %d", pax_no);
+        int pn[3]{ -1, -1, -1};
+        for (int i = 0; i < 3; i++) {
+            pn[i] = pax_no % 10;
+            pax_no /= 10;
+            if (pax_no == 0)
+                break;
+        }
+
+        drefs[DGS_DR_BOARDING] = 1;
+        for (int i = 0; i < 3; i++)
+            drefs[DGS_DR_PAXNO_0 + i] = pn[i];
+
+        return 1.0f;
+    }
+
+    // ARRIVAL and friends ...
+    // this can be high freq stuff
 
     // throttle costly search
-    if (INACTIVE < state && now > nearest_stand_ts + 2.0) {
+    if (now > nearest_stand_ts + 2.0f) {
         FindNearestStand();
         nearest_stand_ts = now;
     }
 
-    if (nearest_stand == NULL) {
-        state = ACTIVE;
+    if (nearest_stand == nullptr) {
+        state = ARRIVAL;
         return 1.0;
     }
 
@@ -768,7 +881,7 @@ DgsStateMachine()
         return -1;  // see you on next frame
     }
 
-    if (state > ACTIVE) {
+    if (state > ARRIVAL) {
         // xform drefs into required constraints for the OBJs
         if (track == 0 || track == 1) {
             distance = 0;
@@ -841,12 +954,12 @@ DgsStateMachine()
             drawinfo.heading = marshaller_psi;
             drawinfo.pitch = drawinfo.roll = 0.0;
 
-            if (NULL == marshaller_inst) {
+            if (nullptr == marshaller_inst) {
                 log_msg("place marshaller at %0.2f, %0.2f, %0.2f, hdg: %0.1f°",
                         marshaller_x, marshaller_y, marshaller_z, marshaller_psi);
 
                 marshaller_inst = XPLMCreateInstance(marshaller_obj, dgs_dlist_dr);
-                if (marshaller_inst == NULL) {
+                if (marshaller_inst == nullptr) {
                     log_msg("error creating marshaller instance");
                     state = DISABLED;
                     return 0.0;
@@ -860,9 +973,9 @@ DgsStateMachine()
 
                     if (marshaller_y - marshaller_y_0 > 2.0f) {
                         log_msg("Marshaller_high detected, place stairs");
-                        static const char * null[] = {NULL};
+                        static const char * null[] = {nullptr};
                         stairs_inst = XPLMCreateInstance(stairs_obj, null);
-                        if (stairs_inst == NULL) {
+                        if (stairs_inst == nullptr) {
                             log_msg("error creating stairs instance");
                             state = DISABLED;
                             return 0.0;
