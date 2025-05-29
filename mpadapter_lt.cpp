@@ -57,7 +57,7 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao,
     on_ground_ = true;  // otherwise we were not here
     parkbrake_set_ = true;
 
-    log_msg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao.c_str());
+    LogMsg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao.c_str());
 
     n_door_ = 0;
     try {
@@ -75,14 +75,14 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao,
 
         // refine y for ground level
         if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
-            log_msg("terrain probe failed???");
+            LogMsg("terrain probe failed???");
         }
         y_ = probeinfo.locationY;
 
-        log_msg("pid=%d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
+        LogMsg("pid=%d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
                 id_, icao_.c_str(), door_info_[0].x, door_info_[0].y, door_info_[0].z);
     } catch(const std::out_of_range& ex) {
-        log_msg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
+        LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
         state_ = DISABLED;
         return;
     }
@@ -112,7 +112,7 @@ MpPlane_lt::update(bool beacon)
     if (!beacon_on_ && state_ == CANT_DOCK && now > state_change_ts_ + 60.0f)
         state_ = PARKED;
 
-    log_msg("MP update: pid=%02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, state: %s",
+    LogMsg("MP update: pid=%02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, state: %s",
             id_, icao_.c_str(), flight_id_.c_str(), beacon_on_, parkbrake_set_,
             state_str_[state_]);
 
@@ -126,12 +126,12 @@ bool MpAdapter_lt::probe()
 
 MpAdapter_lt::MpAdapter_lt()
 {
-    log_msg("MpAdapter_lt constructor");
+    LogMsg("MpAdapter_lt constructor");
 }
 
 MpAdapter_lt::~MpAdapter_lt()
 {
-    log_msg("MpAdapter_lt destructor");
+    LogMsg("MpAdapter_lt destructor");
 }
 
 // static
@@ -139,7 +139,7 @@ float MpAdapter_lt::update()
 {
     float my_lat = my_plane.lat();
     float my_lon = my_plane.lon();
-    float my_cos_lat = cosf(my_lat * D2R);
+    float my_cos_lat = cosf(my_lat * kD2R);
 
     lt_connect_.UpdateAcList();
     const MapLTAPIAircraft& lt_planes = lt_connect_.getAcMap();
@@ -161,10 +161,10 @@ float MpAdapter_lt::update()
             continue;
 
         if (len2f((lt_plane.getLon() - my_lon) * my_cos_lat,
-                   lt_plane.getLat() - my_lat) * LAT_2_M > kMpMaxDist)
+                   lt_plane.getLat() - my_lat) * kLat2M > kMpMaxDist)
             continue;
 
-        //log_msg("LT lat/lon: %0.2f, %0.2f", lt_plane.getLat(), lt_plane.getLon());
+        //LogMsg("LT lat/lon: %0.2f, %0.2f", lt_plane.getLat(), lt_plane.getLon());
         double x, y, z;
         lt_plane.getLocalCoord(x, y, z);
         float psi = lt_plane.getHeading();      // TODO: mag to true adjustment
@@ -183,7 +183,7 @@ float MpAdapter_lt::update()
                 mp_planes_.emplace(key, new MpPlane_lt(flight_id, icao, x, y, z, psi));
             }
         }
-        //log_msg("LT: %d, %s, %s %0.2f, %0.2f, %0.2f",
+        //LogMsg("LT: %d, %s, %s %0.2f, %0.2f, %0.2f",
         //        flight_phase, flight_id.c_str(), icao.c_str(), x, y, z);
     }
 
@@ -195,10 +195,10 @@ float MpAdapter_lt::update()
         try {
             lt_planes.at(key);
         } catch(const std::out_of_range& ex) {
-            log_msg("pid=%d not longer exists, deleted", plane.id_);
+            LogMsg("pid=%d not longer exists, deleted", plane.id_);
             mp_planes_.erase(key);
         }
     }
-    log_msg("------------------ MP active planes found: %d -----------------", (int)mp_planes_.size());
+    LogMsg("------------------ MP active planes found: %d -----------------", (int)mp_planes_.size());
     return kDefaultWait;
 }

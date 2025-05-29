@@ -37,9 +37,9 @@
 #include "XPLMGraphics.h"
 #include "XPLMScenery.h"
 
-static constexpr float D2R = std::numbers::pi/180.0;
-static constexpr float F2M = 0.3048;                    // 1 ft [m]
-static constexpr float LAT_2_M = 111120;                // 1° lat in m
+static constexpr float kD2R = std::numbers::pi/180.0;
+static constexpr float kF2M = 0.3048;                   // 1 ft [m]
+static constexpr float kLat2M = 111120;                 // 1° lat in m
 
 // forwards
 struct Stand;
@@ -138,9 +138,9 @@ extern XPLMProbeInfo_t probeinfo;
 extern XPLMProbeRef probe_ref;
 
 // functions
-extern void log_msg(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+extern void LogMsg(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
-extern void toggle_ui(void);
+extern void ToggleUI(void);
 
 #define BETWEEN(x ,a ,b) ((a) <= (x) && (x) <= (b))
 

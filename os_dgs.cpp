@@ -148,12 +148,10 @@ static constexpr float SAM1_LATERAL_OFF = 10.0f;   // switches off VDGS
 // dref values
 static float sam1_status, sam1_lateral, sam1_longitudinal;
 
-#define LogMsg log_msg  // transitional
-
 void
 DgsSetInactive(void)
 {
-    log_msg("dgs set to INACTIVE");
+    LogMsg("dgs set to INACTIVE");
     nearest_stand = nullptr;
     state = INACTIVE;
 
@@ -172,7 +170,7 @@ void
 DgsSetArrival(void)
 {
     if (! my_plane.on_ground()) {
-        log_msg("can't set active when not on ground");
+        LogMsg("can't set active when not on ground");
         return;
     }
 
@@ -189,11 +187,11 @@ DgsSetArrival(void)
     if (XPLM_NAV_NOT_FOUND != ref) {
         XPLMGetNavAidInfo(ref, NULL, &lat, &lon, NULL, NULL, NULL, airport_id,
                 NULL, NULL);
-        log_msg("now on airport: %s", airport_id);
+        LogMsg("now on airport: %s", airport_id);
     }
 
     state = ARRIVAL;
-    log_msg("dgs set to ARRIVAL");
+    LogMsg("dgs set to ARRIVAL");
 }
 
 
@@ -246,7 +244,7 @@ IsDgsActive(float obj_x, float obj_z, float obj_psi)
 
     float dgs_x_l, dgs_z_l;
     nearest_stand->Global2Stand(obj_x, obj_z, dgs_x_l, dgs_z_l);
-    //log_msg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
+    //LogMsg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
     if (dgs_assoc && (dgs_z_l < assoc_dgs_z_l - 2.0f || fabsf(dgs_x_l) > assoc_dgs_x_l))
         return false;   // already have a closer one
@@ -265,7 +263,7 @@ IsDgsActive(float obj_x, float obj_z, float obj_psi)
         assoc_dgs_z_l = dgs_z_l;
         assoc_dgs_x_l = fabsf(dgs_x_l);
         assoc_dgs_ts = now;
-        log_msg("associating DGS: dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
+        LogMsg("associating DGS: dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
     }
 
     dgs_assoc = 1;
@@ -339,7 +337,7 @@ DgsSam1Acc(void *ref)
                 return 0.0f;
         }
 
-    //log_msg("DgsSam1Acc: %d", dr_index);
+    //LogMsg("DgsSam1Acc: %d", dr_index);
     switch (dr_index) {
         case SAM1_DR_STATUS:
             return sam1_status;
@@ -415,23 +413,23 @@ FindNearestStand()
 
             // nose wheel
             float nw_z = local_z - my_plane.nose_gear_z_;
-            float nw_x = local_x + my_plane.nose_gear_z_ * sin(D2R * local_hdgt);
+            float nw_x = local_x + my_plane.nose_gear_z_ * sin(kD2R * local_hdgt);
 
             float d = len2f(nw_x, nw_z);
             if (d > kCapZ + 50) // fast exit
                 continue;
 
-            //log_msg("stand: %s, z: %2.1f, x: %2.1f", stand->id, nw_z, nw_x);
+            //LogMsg("stand: %s, z: %2.1f, x: %2.1f", stand->id, nw_z, nw_x);
 
             // behind
             if (nw_z < -4.0) {
-                //log_msg("behind: %s",stand->id);
+                //LogMsg("behind: %s",stand->id);
                 continue;
             }
 
             if (nw_z > 10.0) {
-                float angle = atan(nw_x / nw_z) / D2R;
-                //log_msg("angle to plane: %s, %3.1f",stand->id, angle);
+                float angle = atan(nw_x / nw_z) / kD2R;
+                //LogMsg("angle to plane: %s, %3.1f",stand->id, angle);
 
                 // check whether plane is in a +-60° sector relative to stand
                 if (fabsf(angle) > 60.0)
@@ -440,12 +438,12 @@ FindNearestStand()
                 // drive-by and beyond a +- 60° sector relative to plane's direction
                 float rel_to_stand = RA(-angle - local_hdgt);
 
-                //log_msg("rel_to_stand: %s, nw_x: %0.1f, local_hdgt %0.1f, rel_to_stand: %0.1f",
+                //LogMsg("rel_to_stand: %s, nw_x: %0.1f, local_hdgt %0.1f, rel_to_stand: %0.1f",
                 //      stand->id, nw_x, local_hdgt, rel_to_stand);
 
                 if ((nw_x > 10.0 && rel_to_stand < -60.0)
                     || (nw_x < -10.0 && rel_to_stand > 60.0)) {
-                    //log_msg("drive by %s",stand->id);
+                    //LogMsg("drive by %s",stand->id);
                     continue;
                 }
             }
@@ -455,7 +453,7 @@ FindNearestStand()
             d = len2f(azi_weight * nw_x, nw_z);
 
             if (d < dist) {
-                //log_msg("new min: %s, z: %2.1f, x: %2.1f",stand->id, nw_z, nw_x);
+                //LogMsg("new min: %s, z: %2.1f, x: %2.1f",stand->id, nw_z, nw_x);
                 dist = d;
                 min_stand = stand;
             }
@@ -474,7 +472,7 @@ FindNearestStand()
             }
         }
 
-        log_msg("stand: %s, %f, %f, %f, dist: %f, kDgsDist: %0.2f", min_stand->id,
+        LogMsg("stand: %s, %f, %f, %f, dist: %f, kDgsDist: %0.2f", min_stand->id,
                 min_stand->lat, min_stand->lon,
                 min_stand->hdgt, dist, kDgsDist);
 
@@ -498,8 +496,8 @@ FindDepartureStand()
     float plane_hdgt = my_plane.psi();
 
     // nose wheel
-    float nw_z = plane_z - my_plane.nose_gear_z_ * cosf(D2R * plane_hdgt);;
-    float nw_x = plane_x + my_plane.nose_gear_z_ * sinf(D2R * plane_hdgt);
+    float nw_z = plane_z - my_plane.nose_gear_z_ * cosf(kD2R * plane_hdgt);;
+    float nw_x = plane_x + my_plane.nose_gear_z_ * sinf(kD2R * plane_hdgt);
 
     Stand *ds = nullptr;
 
@@ -585,13 +583,13 @@ DgsInit()
 
     marshaller_obj = XPLMLoadObject("Resources/plugins/openSAM/objects/Marshaller.obj");
     if (nullptr == marshaller_obj) {
-        log_msg("Could not load Marshaller.obj");
+        LogMsg("Could not load Marshaller.obj");
         return 0;
     }
 
     stairs_obj = XPLMLoadObject("Resources/default scenery/airport scenery/Ramp_Equipment/Stair_Maint_1.obj");
     if (nullptr == stairs_obj) {
-        log_msg("Could not load Stair_Maint_1.obj");
+        LogMsg("Could not load Stair_Maint_1.obj");
         return 0;
     }
 
@@ -697,27 +695,27 @@ DgsStateMachine()
 
     // nose wheel
     float nw_z = local_z - my_plane.nose_gear_z_;
-    float nw_x = local_x + my_plane.nose_gear_z_ * sinf(D2R * local_hdgt);
+    float nw_x = local_x + my_plane.nose_gear_z_ * sinf(kD2R * local_hdgt);
 
     // main wheel pos on logitudinal axis
     float mw_z = local_z - my_plane.main_gear_z_;
-    float mw_x = local_x + my_plane.main_gear_z_ * sinf(D2R * local_hdgt);
+    float mw_x = local_x + my_plane.main_gear_z_ * sinf(kD2R * local_hdgt);
 
     // ref pos on logitudinal axis of acf blending from mw to nw as we come closer
     // should be nw if dist is below 6 m
     float a = clampf((nw_z - 6.0f) / 20.0f, 0.0f, 1.0f);
     float plane_z_dr = (1.0f - a) * my_plane.nose_gear_z_ + a * my_plane.main_gear_z_;
     float z_dr = local_z - plane_z_dr;
-    float x_dr = local_x + plane_z_dr * sin(D2R * local_hdgt);
+    float x_dr = local_x + plane_z_dr * sin(kD2R * local_hdgt);
 
     if (fabs(x_dr) > 0.5f && z_dr > 0)
-        azimuth = atanf(x_dr / (z_dr + 0.5f * kDgsDist)) / D2R;
+        azimuth = atanf(x_dr / (z_dr + 0.5f * kDgsDist)) / kD2R;
     else
         azimuth = 0.0;
 
     float azimuth_nw;
     if (nw_z > 0)
-        azimuth_nw = atanf(nw_x / (nw_z + 0.5f * kDgsDist)) / D2R;
+        azimuth_nw = atanf(nw_x / (nw_z + 0.5f * kDgsDist)) / kD2R;
     else
         azimuth_nw = 0.0;
 
@@ -776,7 +774,7 @@ DgsStateMachine()
                 float d_hdgt = req_hdgt - local_hdgt;   // degrees to turn
 
                 if (now > update_stand_log_ts + 2.0f)
-                    log_msg("is_marshaller: %d, azimuth: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), ref: (%0.1f, %0.1f), "
+                    LogMsg("is_marshaller: %d, azimuth: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), ref: (%0.1f, %0.1f), "
                            "x: %0.1f, local_hdgt: %0.1f, d_hdgt: %0.1f",
                            is_marshaller, azimuth, mw_x, mw_z, nw_x, nw_z,
                            x_dr, z_dr,
@@ -875,7 +873,7 @@ DgsStateMachine()
     }
 
     if (new_state != state) {
-        log_msg("dgs state transition %s -> %s, beacon: %d", state_str[state], state_str[new_state], beacon_on);
+        LogMsg("dgs state transition %s -> %s, beacon: %d", state_str[state], state_str[new_state], beacon_on);
         state = new_state;
         timestamp = now;
         return -1;  // see you on next frame
@@ -955,12 +953,12 @@ DgsStateMachine()
             drawinfo.pitch = drawinfo.roll = 0.0;
 
             if (nullptr == marshaller_inst) {
-                log_msg("place marshaller at %0.2f, %0.2f, %0.2f, hdg: %0.1f°",
+                LogMsg("place marshaller at %0.2f, %0.2f, %0.2f, hdg: %0.1f°",
                         marshaller_x, marshaller_y, marshaller_z, marshaller_psi);
 
                 marshaller_inst = XPLMCreateInstance(marshaller_obj, dgs_dlist_dr);
                 if (marshaller_inst == nullptr) {
-                    log_msg("error creating marshaller instance");
+                    LogMsg("error creating marshaller instance");
                     state = DISABLED;
                     return 0.0;
                 }
@@ -972,11 +970,11 @@ DgsStateMachine()
                     marshaller_y_0 = probeinfo.locationY;   // ground 0
 
                     if (marshaller_y - marshaller_y_0 > 2.0f) {
-                        log_msg("Marshaller_high detected, place stairs");
+                        LogMsg("Marshaller_high detected, place stairs");
                         static const char * null[] = {nullptr};
                         stairs_inst = XPLMCreateInstance(stairs_obj, null);
                         if (stairs_inst == nullptr) {
-                            log_msg("error creating stairs instance");
+                            LogMsg("error creating stairs instance");
                             state = DISABLED;
                             return 0.0;
                         }
@@ -1001,10 +999,10 @@ DgsStateMachine()
         // don't flood the log
         if (now > update_stand_log_ts + 2.0f) {
             update_stand_log_ts = now;
-            log_msg("stand: %s, state: %s, assoc: %d, status: %d, track: %d, lr: %d, distance: %0.2f, azimuth: %0.1f",
+            LogMsg("stand: %s, state: %s, assoc: %d, status: %d, track: %d, lr: %d, distance: %0.2f, azimuth: %0.1f",
                    nearest_stand->id, state_str[state], dgs_assoc,
                    status, track, lr, distance, azimuth);
-            log_msg("sam1: status %0.0f, lateral: %0.1f, longitudinal: %0.1f",
+            LogMsg("sam1: status %0.0f, lateral: %0.1f, longitudinal: %0.1f",
                     sam1_status, sam1_lateral, sam1_longitudinal);
         }
     }

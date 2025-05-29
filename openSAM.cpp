@@ -149,7 +149,7 @@ save_pref()
     fprintf(f, "%d,%d,%d", auto_season, s, pref_auto_mode);
     fclose(f);
 
-    log_msg("Saving pref auto_season: %d, season: %d, auto_select_jws: %d", auto_season, s, pref_auto_mode);
+    LogMsg("Saving pref auto_season: %d, season: %d, auto_select_jws: %d", auto_season, s, pref_auto_mode);
 }
 
 static void
@@ -166,7 +166,7 @@ load_pref()
         return;
 
     [[maybe_unused]]int n = fscanf(f, "%i,%i,%i", &auto_season, &season, &pref_auto_mode);
-    log_msg("From pref: auto_season: %d, seasons: %d, auto_select_jws: %d",
+    LogMsg("From pref: auto_season: %d, seasons: %d, auto_select_jws: %d",
             auto_season,  season, pref_auto_mode);
 
     fclose(f);
@@ -192,7 +192,7 @@ read_season_acc(void *ref)
     int s = (long long)ref;
     int val = (s == season);
 
-    //log_msg("accessor %s called, returns %d", dr_name[s], val);
+    //LogMsg("accessor %s called, returns %d", dr_name[s], val);
     return val;
 }
 
@@ -203,7 +203,7 @@ cmd_activate_cb([[maybe_unused]] XPLMCommandRef cmdr,
     if (xplm_CommandBegin != phase)
         return 0;
 
-    log_msg("cmd manually_activate");
+    LogMsg("cmd manually_activate");
     DgsSetArrival();
     return 0;
 }
@@ -215,8 +215,8 @@ cmd_toggle_ui_cb([[maybe_unused]] XPLMCommandRef cmdr,
     if (xplm_CommandBegin != phase)
         return 0;
 
-    log_msg("cmd toggle_ui");
-    toggle_ui();
+    LogMsg("cmd ToggleUI");
+    ToggleUI();
     return 0;
 }
 
@@ -228,7 +228,7 @@ cmd_toggle_mp_cb([[maybe_unused]]XPLMCommandRef cmdr,
     if (xplm_CommandBegin != phase)
         return 0;
 
-    log_msg("cmd toggle_mp");
+    LogMsg("cmd toggle_mp");
     if (mp_adapter) {
         mp_adapter = nullptr;
     } else {
@@ -301,7 +301,7 @@ flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
         anim_loop_delay = anim_state_machine();
         anim_next_ts = now + anim_loop_delay;
     }
-    //log_msg("jw_loop_delay: %0.2f", jw_loop_delay);
+    //LogMsg("jw_loop_delay: %0.2f", jw_loop_delay);
     return std::min(anim_loop_delay, std::min(jw_loop_delay, dgs_loop_delay));
 }
 
@@ -339,7 +339,7 @@ set_season_auto()
         }
     }
 
-    log_msg("nh: %d, day: %d, season: %d", nh, day, season);
+    LogMsg("nh: %d, day: %d, season: %d", nh, day, season);
 }
 
 // emulate a kind of radio buttons
@@ -379,7 +379,7 @@ cmd_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, voi
     if (xplm_CommandBegin != phase)
         return 0;
 
-    log_msg("cmd_dock_jw_cb called");
+    LogMsg("cmd_dock_jw_cb called");
 
     if (ref == NULL)
         my_plane.request_dock();
@@ -399,7 +399,7 @@ cmd_xp12_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase
     if (xplm_CommandBegin != phase)
         return 1;
 
-    log_msg("cmd_xp12_dock_jw_cb called");
+    LogMsg("cmd_xp12_dock_jw_cb called");
 
     my_plane.request_toggle();
     return 1;       // pass on to XP12, likely there is no XP12 jw here 8-)
@@ -412,7 +412,7 @@ load_door_info(const std::string& fn, std::unordered_map<std::string, DoorInfo>&
     if (!f.is_open())
         throw OsEx("Error loading " + fn);
 
-    log_msg("Building door_info_map from %s",  fn.c_str());
+    LogMsg("Building door_info_map from %s",  fn.c_str());
 
     std::string line;
     while (std::getline(f, line)) {
@@ -428,7 +428,7 @@ load_door_info(const std::string& fn, std::unordered_map<std::string, DoorInfo>&
                 continue;
 
             if (d < 1 || d > kMaxDoor) {
-                log_msg("invalid entry: '%s'", line.c_str());
+                LogMsg("invalid entry: '%s'", line.c_str());
                 continue;
             }
 
@@ -438,7 +438,7 @@ load_door_info(const std::string& fn, std::unordered_map<std::string, DoorInfo>&
         }
     }
 
-    log_msg("%d mappings loaded", (int)di_map.size());
+    LogMsg("%d mappings loaded", (int)di_map.size());
 }
 
 static void
@@ -448,7 +448,7 @@ load_acf_generic_type(const std::string& fn)
     if (!f.is_open())
         throw OsEx("Error loading " + fn);
 
-    log_msg("Building acf_generic_type_map from %s",  fn.c_str());
+    LogMsg("Building acf_generic_type_map from %s",  fn.c_str());
 
     std::string line;
     while (std::getline(f, line)) {
@@ -466,14 +466,14 @@ load_acf_generic_type(const std::string& fn)
         }
     }
 
-    log_msg("%d mappings loaded", (int)acf_generic_type_map.size());
+    LogMsg("%d mappings loaded", (int)acf_generic_type_map.size());
 }
 
 // =========================== plugin entry points ===============================================
 PLUGIN_API int
 XPluginStart(char *out_name, char *out_sig, char *out_desc)
 {
-    log_msg("Startup " VERSION);
+    LogMsg("Startup " VERSION);
 
     probeinfo.structSize = sizeof(XPLMProbeInfo_t);
     strcpy(out_name, "openSAM " VERSION);
@@ -505,10 +505,10 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
         SceneryPacks scp(xp_dir);
         sam_library_installed = scp.SAM_Library_path.size() > 0;
         collect_sam_xml(scp);
-        log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
+        LogMsg("%d sceneries with sam jetways found", (int)sceneries.size());
         JwCtrl::sound_init();
     } catch (const OsEx& ex) {
-        log_msg("fatal error: '%s', bye!", ex.what());
+        LogMsg("fatal error: '%s', bye!", ex.what());
         return 0;   // bye
     }
 
@@ -552,7 +552,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Manually activate searching for DGS");
     XPLMRegisterCommandHandler(activate_cmdr, cmd_activate_cb, 0, NULL);
 
-    XPLMCommandRef toggle_ui_cmdr = XPLMCreateCommand("openSAM/toggle_ui", "Toggle UI");
+    XPLMCommandRef toggle_ui_cmdr = XPLMCreateCommand("openSAM/ToggleUI", "Toggle UI");
     XPLMRegisterCommandHandler(toggle_ui_cmdr, cmd_toggle_ui_cb, 0, NULL);
 
     XPLMCommandRef dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
@@ -620,7 +620,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 #if 0
     // keep in case we need it later
   fail:
-    log_msg("init failure, can't enable openSAM");
+    LogMsg("init failure, can't enable openSAM");
     init_fail = 1;
     return 1;
 #endif
@@ -642,14 +642,14 @@ XPluginDisable(void)
     }
 
     save_pref();
-    log_msg("acc called:           %9llu", stat_acc_called);
-    log_msg("scenery far skip:     %9llu", stat_sc_far_skip);
-    log_msg("near skip:            %9llu", stat_near_skip);
-    log_msg("stat_jw_cache_hit     %9llu", stat_jw_cache_hit);
-    log_msg("cache hit rate:       %9.2f %%", 100.0f * stat_jw_cache_hit / stat_acc_called);
-    log_msg("dgs acc called:       %9llu", stat_dgs_acc);
-    log_msg("stat_anim_acc_called: %9llu", stat_anim_acc_called);
-    log_msg("stat_auto_drf_called: %9llu", stat_auto_drf_called);
+    LogMsg("acc called:           %9llu", stat_acc_called);
+    LogMsg("scenery far skip:     %9llu", stat_sc_far_skip);
+    LogMsg("near skip:            %9llu", stat_near_skip);
+    LogMsg("stat_jw_cache_hit     %9llu", stat_jw_cache_hit);
+    LogMsg("cache hit rate:       %9.2f %%", 100.0f * stat_jw_cache_hit / stat_acc_called);
+    LogMsg("dgs acc called:       %9llu", stat_dgs_acc);
+    LogMsg("stat_anim_acc_called: %9llu", stat_anim_acc_called);
+    LogMsg("stat_auto_drf_called: %9llu", stat_auto_drf_called);
 }
 
 
@@ -661,7 +661,7 @@ XPluginEnable(void)
 
     probe_ref = XPLMCreateProbe(xplm_ProbeY);
     if (NULL == probe_ref) {
-        log_msg("Can't create terrain probe");
+        LogMsg("Can't create terrain probe");
         return 0;
     }
     stat_sc_far_skip = stat_near_skip = stat_acc_called

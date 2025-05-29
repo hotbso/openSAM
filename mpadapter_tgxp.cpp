@@ -88,7 +88,7 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     on_ground_ = true;  // otherwise we were not here
     parkbrake_set_ = true;
 
-    log_msg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), acf_type.c_str());
+    LogMsg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), acf_type.c_str());
 
     // now check if acf_type is of some traffic pack and
     // e.g. is "332_EUROWINGSDISCOVER_WE_RD" or "JFAI_A220_300_SWISS"
@@ -104,14 +104,14 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
             s.erase(0, pos + 1);
             if (token.find_first_of("0123456789") != std::string::npos) {
                 type_code = token;
-                log_msg("extracted type code '%s'", type_code.c_str());
+                LogMsg("extracted type code '%s'", type_code.c_str());
                 break;
             }
         }
     }
 
     if (type_code.size() == 0) {
-        log_msg("pid=%d, could not extract type code from '%s'", id_, acf_type.c_str());
+        LogMsg("pid=%d, could not extract type code from '%s'", id_, acf_type.c_str());
         state_ = DISABLED;
         return;
     }
@@ -130,21 +130,21 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
 
         // lateral adjustment
         constexpr float z_adjust = 1.0f;      // backwards
-        x_ = x + -sinf(D2R * psi) * z_adjust;
-        z_ = z + cosf(D2R * psi) * z_adjust;
+        x_ = x + -sinf(kD2R * psi) * z_adjust;
+        z_ = z + cosf(kD2R * psi) * z_adjust;
 
         //get y for ground level
         if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
-            log_msg("terrain probe failed???");
+            LogMsg("terrain probe failed???");
         }
         y_ = probeinfo.locationY;
 
         psi_ = psi;
 
-        log_msg("pid=%d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
+        LogMsg("pid=%d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
                 id_, icao_.c_str(), door_info_[0].x, door_info_[0].y, door_info_[0].z);
     } catch(const std::out_of_range& ex) {
-        log_msg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, type_code.c_str());
+        LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, type_code.c_str());
         state_ = DISABLED;
         return;
     }
@@ -174,7 +174,7 @@ MpPlane_tgxp::update(bool beacon)
     if (!beacon_on_ && state_ == CANT_DOCK && now > state_change_ts_ + 60.0f)
         state_ = PARKED;
 
-    log_msg("MP update: pid=%02d, slot: %02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, state: %s",
+    LogMsg("MP update: pid=%02d, slot: %02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, state: %s",
             id_, slot_, icao_.c_str(), flight_id_.c_str(), beacon_on_, parkbrake_set_,
             state_str_[state_]);
 
@@ -191,7 +191,7 @@ bool MpAdapter_tgxp::probe()
 
 MpAdapter_tgxp::MpAdapter_tgxp()
 {
-    log_msg("MpAdapter_tgxp constructor");
+    LogMsg("MpAdapter_tgxp constructor");
     static bool init_done{false};
 
     if (!init_done) {
@@ -209,7 +209,7 @@ MpAdapter_tgxp::MpAdapter_tgxp()
 
 MpAdapter_tgxp::~MpAdapter_tgxp()
 {
-    log_msg("MpAdapter_tgxp destructor");
+    LogMsg("MpAdapter_tgxp destructor");
 }
 
 #define LOAD_DR(type, name) { \
@@ -221,11 +221,11 @@ MpAdapter_tgxp::~MpAdapter_tgxp()
 float MpAdapter_tgxp::update()
 {
     int n_planes = XPLMGetDatavi(flight_phase_dr, NULL, 0, 0);
-    log_msg("MpPlane_tgxp drefs #: %d", n_planes);
+    LogMsg("MpPlane_tgxp drefs #: %d", n_planes);
 
     if (n_planes > vector_size_) {
         vector_size_ = std::max(n_planes + 50, 200);
-        log_msg("allocated vector_size_ %d", vector_size_);
+        LogMsg("allocated vector_size_ %d", vector_size_);
         flight_phase_val_ = std::make_unique_for_overwrite<int []>(vector_size_);
         traffic_type_val_ = std::make_unique_for_overwrite<int []>(vector_size_);
         x_val_ = std::make_unique_for_overwrite<float []>(vector_size_);
@@ -238,7 +238,7 @@ float MpAdapter_tgxp::update()
                      XPLMGetDatab(flight_id_dr, nullptr, 0, 0));
     if (s > byte_area_size_) {
         byte_area_size_ = s + 512;
-        log_msg("allocated byte_area_size_ %d", byte_area_size_);
+        LogMsg("allocated byte_area_size_ %d", byte_area_size_);
         acf_type_val_ = std::make_unique_for_overwrite<char []>(byte_area_size_);
         flight_id_val_ = std::make_unique_for_overwrite<char []>(byte_area_size_);
     }
@@ -252,13 +252,13 @@ float MpAdapter_tgxp::update()
 
     char *acf_type_ptr = acf_type_val_.get();
     int acf_type_len = XPLMGetDatab(acf_type_dr, acf_type_ptr, 0, byte_area_size_);
-    log_msg("acf_type_len: %d", acf_type_len);
+    LogMsg("acf_type_len: %d", acf_type_len);
     if (acf_type_len > 0)
         acf_type_ptr[acf_type_len - 1] = '\0';
 
     char *flight_id_ptr = flight_id_val_.get();
     int flight_id_len = XPLMGetDatab(flight_id_dr, flight_id_ptr, 0, byte_area_size_);
-    log_msg("flight_id_len: %d", flight_id_len);
+    LogMsg("flight_id_len: %d", flight_id_len);
     if (flight_id_len > 0)
         flight_id_ptr[flight_id_len - 1] = '\0';
 
@@ -268,7 +268,7 @@ float MpAdapter_tgxp::update()
     int spawn_remain = kSpawnPerRun;
     for (int i = 0; i < n_planes; i++) {
         if (flight_id_len <=0 || acf_type_len <= 0) {
-            log_msg("ERROR: not enough values in byte arrays");
+            LogMsg("ERROR: not enough values in byte arrays");
             break;
         }
 
@@ -312,7 +312,7 @@ float MpAdapter_tgxp::update()
                                                     x_val_[i], y_val_[i], z_val_[i], psi_val_[i]));
             }
         }
-        //log_msg("TGXP: %d, %d, %s, %s %0.2f, %0.2f, %0.2f",
+        //LogMsg("TGXP: %d, %d, %s, %s %0.2f, %0.2f, %0.2f",
         //        i, flight_phase, flight_id.c_str(), acf_type.c_str(), x_val_[i], y_val_[i], z_val_[i]);
     }
 
@@ -324,10 +324,10 @@ float MpAdapter_tgxp::update()
         try {
             dref_planes.at(key);
         } catch(const std::out_of_range& ex) {
-            log_msg("pid=%d not longer exists, deleted", plane.id_);
+            LogMsg("pid=%d not longer exists, deleted", plane.id_);
             mp_planes_.erase(key);
         }
     }
-    log_msg("------------------ MP active planes found: %d -----------------", (int)mp_planes_.size());
+    LogMsg("------------------ MP active planes found: %d -----------------", (int)mp_planes_.size());
     return 2.0f;
 }

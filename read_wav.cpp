@@ -62,7 +62,7 @@ read_wav(const std::string& fname, Sound& sound)
 
 	FILE *f = fopen(fname.c_str(), "rb");
     if (NULL == f) {
-        log_msg("can't open wav %s", fname.c_str());
+        LogMsg("can't open wav %s", fname.c_str());
         return;
     }
 
@@ -70,7 +70,7 @@ read_wav(const std::string& fname, Sound& sound)
     CHUNK_HEADER chunk;
 
     if (1 != fread(&header, sizeof(header), 1, f)) {
-        log_msg("can't read header");
+        LogMsg("can't read header");
         fclose(f);
         return;
     }
@@ -79,7 +79,7 @@ read_wav(const std::string& fname, Sound& sound)
         || memcmp(header.wav, "WAVE", 4)
         || memcmp(header.fmtheader.id, "fmt ", 4)
         || header.fmtheader.size < sizeof(WAV_FORMAT)) {
-        log_msg("wav invalid header");
+        LogMsg("wav invalid header");
         fclose(f);
         return;
     }
@@ -92,13 +92,13 @@ read_wav(const std::string& fname, Sound& sound)
         if (0 == memcmp(chunk.id, "data", 4)) {
             void *data = malloc(chunk.size);
             if (NULL == data) {
-                log_msg("Can't malloc data for wav file");
+                LogMsg("Can't malloc data for wav file");
                 fclose(f);
                 return;
             }
 
             if (1 != fread(data, chunk.size, 1, f)) {
-                log_msg("error reading wav file");
+                LogMsg("error reading wav file");
                 fclose(f);
                 free(data);
                 return;
@@ -116,6 +116,6 @@ read_wav(const std::string& fname, Sound& sound)
     }
 
     fclose (f);
-	log_msg("can't find data chunk in %s", fname.c_str());
+	LogMsg("can't find data chunk in %s", fname.c_str());
     return;
 }

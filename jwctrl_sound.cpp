@@ -70,8 +70,8 @@ JwCtrl::alert_setpos()
     FMOD_VECTOR pos;
 
     float rot1 = RA((jw_->rotate1 + jw_->psi) - 90.0f);
-    pos.x = jw_->x + (jw_->extent + jw_->cabinPos) * cosf(rot1 * D2R);
+    pos.x = jw_->x + (jw_->extent + jw_->cabinPos) * cosf(rot1 * kD2R);
     pos.y = jw_->y + jw_->height;
-    pos.z = jw_->z + (jw_->extent + jw_->cabinPos) * sinf(rot1 * D2R);
+    pos.z = jw_->z + (jw_->extent + jw_->cabinPos) * sinf(rot1 * kD2R);
     XPLMSetAudioPosition(alert_chn_, &pos, &vel);
 }

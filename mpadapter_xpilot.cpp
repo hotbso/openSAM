@@ -63,17 +63,17 @@ MpPlane_xPilot::MpPlane_xPilot(int slot, const std::string& flight_id, const std
 
     on_ground_ = true;  // otherwise we were not here
 
-    log_msg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao_.c_str());
+    LogMsg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao_.c_str());
 
     n_door_ = 0;
     try {
         door_info_[0] = csl_door_info_map.at(icao_ + '1');
         n_door_++;
-        log_msg("pid=%d, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
+        LogMsg("pid=%d, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
                 id_, door_info_[0].x, door_info_[0].y, door_info_[0].z);
     }
     catch(const std::out_of_range& ex) {
-        log_msg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
+        LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
         state_ = DISABLED;
         return;
     }
@@ -103,7 +103,7 @@ MpPlane_xPilot::update(float x, float y, float z, float psi, float throttle, int
     beacon_on_ = ((lights & 1) == 1);
     parkbrake_set_ = ((now - last_move_ts_) > 10.0f);
 
-    log_msg("MP update: pid=%02d, slot: %02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, engine_on: %d, state: %s",
+    LogMsg("MP update: pid=%02d, slot: %02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, engine_on: %d, state: %s",
             id_, slot_, icao_.c_str(), flight_id_.c_str(), beacon_on_, parkbrake_set_, engines_on_,
             state_str_[state_]);
 }
@@ -120,7 +120,7 @@ bool MpAdapter_xPilot::probe()
 
 MpAdapter_xPilot::MpAdapter_xPilot()
 {
-    log_msg("MpAdapter_xPilot constructor");
+    LogMsg("MpAdapter_xPilot constructor");
     static bool init_done{false};
 
     if (!init_done) {
@@ -138,7 +138,7 @@ MpAdapter_xPilot::MpAdapter_xPilot()
     }
 
     n_planes_ = XPLMGetDatavi(modeS_id_dr, NULL, 0, 0);
-    log_msg("MpPlane_xPilot drefs #: %d", n_planes_);
+    LogMsg("MpPlane_xPilot drefs #: %d", n_planes_);
 
     modeS_id_val_= std::make_unique_for_overwrite<int []>(n_planes_);
     icao_type_val_ = std::make_unique_for_overwrite<char []>(n_planes_ * 8);
@@ -154,7 +154,7 @@ MpAdapter_xPilot::MpAdapter_xPilot()
 
 MpAdapter_xPilot::~MpAdapter_xPilot()
 {
-    log_msg("MpAdapter_xPilot destructor");
+    LogMsg("MpAdapter_xPilot destructor");
 }
 
 #define LOAD_DR(type, name) \
@@ -216,11 +216,11 @@ float MpAdapter_xPilot::update()
         try {
             dref_planes.at(key);
         } catch(const std::out_of_range& ex) {
-            log_msg("pid=%d not longer exists, deleted", plane.id_);
+            LogMsg("pid=%d not longer exists, deleted", plane.id_);
             mp_planes_.erase(key);
         }
     }
 
-    log_msg("------------------ MP active planes found: %d -----------------", (int)mp_planes_.size());
+    LogMsg("------------------ MP active planes found: %d -----------------", (int)mp_planes_.size());
     return 2.0f;
 }

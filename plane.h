@@ -148,7 +148,7 @@ class MyPlane : public Plane {
     ~MyPlane() {}
 
     void plane_loaded();        // called from XPLM_MSG_PLANE_LOADED handler
-    void livery_loaded();       // called from  XPLM_MSG_LIVERY_LOADED handler
+    void livery_loaded();       // called from XPLM_MSG_LIVERY_LOADED handler
 
     void reset_beacon();
 

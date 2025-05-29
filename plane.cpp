@@ -45,7 +45,7 @@ const char * const Plane::state_str_[] = {
 Plane::~Plane()
 {
     if (IDLE <= state_) {
-        log_msg("pid=%d, Plane destructor", id_);
+        LogMsg("pid=%d, Plane destructor", id_);
         for (auto & ajw : active_jws_)
             ajw.reset();
         active_jws_.resize(0);
@@ -80,7 +80,7 @@ Plane::select_jws()
         nearest_jws_[i_jw].door_ = i_door;
         nearest_jws_[i_jw].selected_ = true;
         active_jws_.push_back(nearest_jws_[i_jw]);
-        log_msg("active jetway for door %d: %s", i_door, active_jws_.back().jw_->name);
+        LogMsg("active jetway for door %d: %s", i_door, active_jws_.back().jw_->name);
         i_door++;
         if (i_door >= n_door_)
             break;
@@ -90,7 +90,7 @@ Plane::select_jws()
     }
 
     if (active_jws_.size() == 0)
-        log_msg("Oh no, no active jetways left in select_jws()!");
+        LogMsg("Oh no, no active jetways left in select_jws()!");
 }
 
 // the state machine called from the flight loop
@@ -108,7 +108,7 @@ Plane::jw_state_machine()
     State new_state{state_};
 
     if (state_ > IDLE && check_teleportation()) {
-        log_msg("teleportation detected!");
+        LogMsg("teleportation detected!");
         state_ = new_state = IDLE;
         state_change_ts_ = now;
 
@@ -154,7 +154,7 @@ Plane::jw_state_machine()
 
         case SELECT_JWS:
             if (beacon_on_) {
-                log_msg("SELECT_JWS and beacon goes on");
+                LogMsg("SELECT_JWS and beacon goes on");
                 new_state = IDLE;
                 break;
             }
@@ -173,7 +173,7 @@ Plane::jw_state_machine()
             // or wait for GUI selection
             if (active_jws_.size()) {
                 for (auto & ajw : active_jws_) {
-                    log_msg("pid=%d, setting up active jw for door: %d", id_, ajw.door_);
+                    LogMsg("pid=%d, setting up active jw for door: %d", id_, ajw.door_);
                     ajw.setup_for_door(*this, door_info_[ajw.door_]);
 
                     if (ajw.door_ == 0) // slightly slant towards the nose cone for door LF1
@@ -191,13 +191,13 @@ Plane::jw_state_machine()
 
         case CAN_DOCK:
             if (beacon_on_) {
-                log_msg("CAN_DOCK and beacon goes on");
+                LogMsg("CAN_DOCK and beacon goes on");
                 new_state = IDLE;
             }
 
             // mp planes always dock directly
             if (dock_requested() || toggle_requested()) {
-                log_msg("pid=%d, docking requested", id_);
+                LogMsg("pid=%d, docking requested", id_);
                 float start_ts = now;
                 for (auto & ajw : active_jws_) {
                     // staggered start for docking low to high
@@ -244,10 +244,10 @@ Plane::jw_state_machine()
             }
 
             if (beacon_on_)
-                log_msg("pid=%d, DOCKED and beacon goes on", id_);
+                LogMsg("pid=%d, DOCKED and beacon goes on", id_);
 
             if (beacon_on_ || undock_requested() || toggle_requested()) {
-                log_msg("undocking requested");
+                LogMsg("undocking requested");
 
                 float start_ts = now + active_jws_.size() * 5.0f;
                 for (auto & ajw : active_jws_) {
@@ -282,7 +282,7 @@ Plane::jw_state_machine()
             break;
 
         default:
-            log_msg("Bad state %d", state_);
+            LogMsg("Bad state %d", state_);
             new_state = DISABLED;
             break;
     }
@@ -291,7 +291,7 @@ Plane::jw_state_machine()
 
     if (new_state != state_) {
         state_change_ts_ = now;
-        log_msg("pid=%d, jw state transition, %s -> %s, beacon: %d", id_,
+        LogMsg("pid=%d, jw state transition, %s -> %s, beacon: %d", id_,
                 state_str_[state_], state_str_[new_state], beacon_on_);
         state_ = new_state;
 

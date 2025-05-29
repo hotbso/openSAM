@@ -63,7 +63,7 @@ show_widget(widget_ctx_t *ctx)
     ctx->t = (ctx->t - ctx->h > yl) ? ctx->t : (yr - ctx->h - 50);
     ctx->t = (ctx->t >= ctx->h) ? ctx->t : (yr / 2);
 
-    log_msg("show_widget: s: (%d, %d) -> (%d, %d), w: (%d, %d) -> (%d,%d)",
+    LogMsg("show_widget: s: (%d, %d) -> (%d, %d), w: (%d, %d) -> (%d,%d)",
            xl, yl, xr, yr, ctx->l, ctx->t, ctx->l + ctx->w, ctx->t - ctx->h);
 
     XPSetWidgetGeometry(ctx->widget, ctx->l, ctx->t, ctx->l + ctx->w, ctx->t - ctx->h);
@@ -71,13 +71,13 @@ show_widget(widget_ctx_t *ctx)
 
     int in_vr = XPLMGetDatai(vr_enabled_dr);
     if (in_vr) {
-        log_msg("VR mode detected");
+        LogMsg("VR mode detected");
         XPLMWindowID window =  XPGetWidgetUnderlyingWindow(ctx->widget);
         XPLMSetWindowPositioningMode(window, xplm_WindowVR, -1);
         ctx->in_vr = 1;
     } else {
         if (ctx->in_vr) {
-            log_msg("widget now out of VR, map at (%d,%d)", ctx->l, ctx->t);
+            LogMsg("widget now out of VR, map at (%d,%d)", ctx->l, ctx->t);
             XPLMWindowID window =  XPGetWidgetUnderlyingWindow(ctx->widget);
             XPLMSetWindowPositioningMode(window, xplm_WindowPositionFree, -1);
 
@@ -108,7 +108,7 @@ MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id,
     unsigned n_door = my_plane.n_door_;
 
     if (msg == xpMsg_PushButtonPressed && widget_id == dock_btn) {
-        log_msg("Dock pressed");
+        LogMsg("Dock pressed");
         if (! my_plane.auto_mode() && my_plane.ui_unlocked_) {
             // we can be called several times in this callback, so we need
             // some effort to maintain the selected flags
@@ -124,7 +124,7 @@ MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id,
                 for (unsigned j = 0; j < my_plane.nearest_jws_.size(); j++) {
                     int state = (uint64_t)XPGetWidgetProperty(jw_btn[i][j], xpProperty_ButtonState, NULL);
                     if (state) {
-                        log_msg("active jw for door %d is %s", i, my_plane.nearest_jws_[j].jw_->name);
+                        LogMsg("active jw for door %d is %s", i, my_plane.nearest_jws_[j].jw_->name);
                         my_plane.nearest_jws_[j].selected_ = true;
                         my_plane.nearest_jws_[j].door_ = i;
                         my_plane.active_jws_.push_back(my_plane.nearest_jws_[j]);
@@ -139,7 +139,7 @@ MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id,
     }
 
     if (msg == xpMsg_PushButtonPressed && widget_id == undock_btn) {
-        log_msg("Undock pressed");
+        LogMsg("Undock pressed");
         my_plane.undock_requested_ = true;
         close_ui();
         return 1;
@@ -147,7 +147,7 @@ MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id,
 
     if (msg == xpMsg_ButtonStateChanged && widget_id == auto_btn) {
         bool auto_mode = (bool)(uint64_t)param2;
-        log_msg("auto_mode now: %d", auto_mode);
+        LogMsg("auto_mode now: %d", auto_mode);
 
         my_plane.auto_mode_set(auto_mode);  // start over with new setting
         return 1;
@@ -166,12 +166,12 @@ MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id,
                 }
 
         if (idoor < 0 || ijw < 0) {
-            log_msg("invalid button selection???");
+            LogMsg("invalid button selection???");
             return 1;
         }
 
         int new_state = (int)(uint64_t)param2;
-        log_msg("button door: %d, jw: %d pressed, name: %s, new_state: %d", idoor, ijw,
+        LogMsg("button door: %d, jw: %d pressed, name: %s, new_state: %d", idoor, ijw,
                 my_plane.nearest_jws_[ijw].jw_->name, new_state);
 
         // unselect all other buttons for the selected door
@@ -194,11 +194,11 @@ void
 MyPlane::update_ui(bool only_if_visible)
 {
     if (ui_widget == NULL || (only_if_visible && !XPIsWidgetVisible(ui_widget))) {
-        log_msg("update_ui: widget is not visible");
+        LogMsg("update_ui: widget is not visible");
         return;
     }
 
-    log_msg("update_ui started");
+    LogMsg("update_ui started");
     XPSetWidgetProperty(auto_btn, xpProperty_ButtonState, auto_mode_);
 
     // hide everything
@@ -218,7 +218,7 @@ MyPlane::update_ui(bool only_if_visible)
             }
     }
 
-    log_msg("update_ui finished");
+    LogMsg("update_ui finished");
 }
 
 static void
@@ -304,8 +304,8 @@ create_ui()
 }
 
 void
-toggle_ui(void) {
-    log_msg("toggle_ui called");
+ToggleUI(void) {
+    LogMsg("ToggleUI called");
 
     if (ui_widget == NULL)
         create_ui();

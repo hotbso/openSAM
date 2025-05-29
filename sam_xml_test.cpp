@@ -41,9 +41,9 @@ main(int argc, char **argv) {
     try {
         SceneryPacks scp(xp_dir);
         collect_sam_xml(scp);
-        log_msg("%d sceneries with sam jetways found", (int)sceneries.size());
+        LogMsg("%d sceneries with sam jetways found", (int)sceneries.size());
     } catch (const OsEx& ex) {
-        log_msg("fatal error: '%s', bye!", ex.what());
+        LogMsg("fatal error: '%s', bye!", ex.what());
         return 0;   // bye
     }
 
@@ -88,14 +88,14 @@ main(int argc, char **argv) {
         SamJw *jw = &sam3_lib_jw[i];
         if (jw->id == 0)
             continue;
-        log_msg("%d; %s height: %0.2f, cabinPos: %0.2f", jw->id, jw->name, jw->height, jw->cabinPos);
+        LogMsg("%d; %s height: %0.2f, cabinPos: %0.2f", jw->id, jw->name, jw->height, jw->cabinPos);
     }
 
     puts("Ramps");
     for (auto sc : sceneries) {
         printf("%s\n", sc->name);
         for (auto stand : sc->stands) {
-            log_msg("%-40s %5.6f, %5.6f %6.2f", stand->id,
+            LogMsg("%-40s %5.6f, %5.6f %6.2f", stand->id,
                     stand->lat, stand->lon, stand->hdgt);
         }
         puts("\n");

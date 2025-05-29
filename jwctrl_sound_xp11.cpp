@@ -50,7 +50,7 @@ static const float GAIN_INTERNAL = 0.5f;	/* Quieter in internal views */
 #define CHECKERR(msg) \
     { ALuint e = alGetError(); \
      if (e != AL_NO_ERROR) { \
-        {log_msg("%s: %d", msg, e); \
+        {LogMsg("%s: %d", msg, e); \
         return 0; } \
     } }
 
@@ -58,7 +58,7 @@ bool
 JwCtrl::sound_dev_init()
 {
     if (NULL == alcGetCurrentContext()) {
-        log_msg("cannot open XP11's openAL context");
+        LogMsg("cannot open XP11's openAL context");
         return false;
     }
 
@@ -84,7 +84,7 @@ JwCtrl::sound_dev_init()
     alSourcefv(snd_src, AL_POSITION, zero);
     alSourcefv(snd_src, AL_VELOCITY, zero);
     if (alGetError()) {
-        log_msg("sound init error");
+        LogMsg("sound init error");
         return false;
     }
 
@@ -131,21 +131,21 @@ JwCtrl::alert_setpos()
     // Calculate relative location ignoring tilt
     XPLMCameraPosition_t camera;
     XPLMReadCameraPosition(&camera);
-    camera.heading *= D2R;
+    camera.heading *= kD2R;
     float cos_h = cosf(camera.heading);
     float sin_h = sinf(camera.heading);
 
     float rot1 = RA((jw_->rotate1 + jw_->psi) - 90.0f);
-    float dx = jw_->x + (jw_->extent + jw_->cabinPos) * cosf(rot1 * D2R) - camera.x;
+    float dx = jw_->x + (jw_->extent + jw_->cabinPos) * cosf(rot1 * kD2R) - camera.x;
     float dy = jw_->y + jw_->height - camera.y;
-    float dz = jw_->z + (jw_->extent + jw_->cabinPos) * sinf(rot1 * D2R) - camera.z;
+    float dz = jw_->z + (jw_->extent + jw_->cabinPos) * sinf(rot1 * kD2R) - camera.z;
 
     ALfloat snd_rel[3];
     snd_rel[0] =  cos_h * dx + sin_h * dz;
     snd_rel[2] = -sin_h * dx + cos_h * dz;
     snd_rel[1] = dy;
 
-    //log_msg("snd_rel: %0.1f, %0.1f, %0.1f", snd_rel[0], snd_rel[1], snd_rel[2]);
+    //LogMsg("snd_rel: %0.1f, %0.1f, %0.1f", snd_rel[0], snd_rel[1], snd_rel[2]);
     alSourcefv(snd_src, AL_POSITION, snd_rel);
     alSourcef(snd_src, AL_GAIN, XPLMGetDatai(view_external_dr) ? GAIN_EXTERNAL : GAIN_INTERNAL);
 }

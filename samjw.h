@@ -59,7 +59,7 @@ struct SamJw  {
 
     // set wheels height
     void SetWheels() {
-        wheels = tanf(rotate3 * D2R) * (wheelPos + extent);
+        wheels = tanf(rotate3 * kD2R) * (wheelPos + extent);
     }
 
     void Reset() {

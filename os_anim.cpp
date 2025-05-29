@@ -58,7 +58,7 @@ anim_acc(void *ref)
         lat_ref = lat_r;
         lon_ref = lon_r;
         ref_gen++;
-        log_msg("reference frame shift");
+        LogMsg("reference frame shift");
     }
 
     int drf_idx = (uint64_t)ref;
@@ -89,7 +89,7 @@ anim_acc(void *ref)
             }
 
             SamDrf *drf = sam_drfs[drf_idx];
-            //log_msg("acc %s called, %s %s", drf->name, anim->label, anim->title);
+            //LogMsg("acc %s called, %s %s", drf->name, anim->label, anim->title);
 
             if (now > cur_sc_ts + 20.0f) {  // avoid high freq flicker
                 cur_sc = sc;
@@ -165,7 +165,7 @@ anim_menu_cb([[maybe_unused]] void *menu_ref, void *item_ref)
     unsigned int idx = (uint64_t)item_ref;
     SamAnim *anim = menu_sc->sam_anims[idx];
 
-    log_msg("anim_menu_cb: label: %s, menu_item: %d", anim->label, anim->menu_item);
+    LogMsg("anim_menu_cb: label: %s, menu_item: %d", anim->label, anim->menu_item);
     now = XPLMGetDataf(total_running_time_sec_dr);
 
     bool reverse;
@@ -192,7 +192,7 @@ anim_menu_cb([[maybe_unused]] void *menu_ref, void *item_ref)
 static void
 build_menu(Scenery* sc)
 {
-    log_msg("build menu for scenery %s", sc->name);
+    LogMsg("build menu for scenery %s", sc->name);
     XPLMClearAllMenuItems(anim_menu);
 
     for (unsigned i = 0; i < sc->sam_anims.size(); i++) {
@@ -202,7 +202,7 @@ build_menu(Scenery* sc)
 
         char menu_line[70];
         snprintf(menu_line, sizeof(menu_line) - 1, "%s %s", anim->label, anim->title);
-        log_msg("%s", menu_line);
+        LogMsg("%s", menu_line);
         anim->menu_item = XPLMAppendMenuItem(anim_menu, menu_line, (void *)(uint64_t)i, 0);
         XPLMCheckMenuItem(anim_menu, anim->menu_item, chk);
     }
@@ -215,7 +215,7 @@ anim_state_machine(void)
 {
     // check whether we have recently seen a scenery
     if (cur_sc && now > cur_sc_ts + 180.0f) {
-        log_msg("have not seen a custom animated scenery recently");
+        LogMsg("have not seen a custom animated scenery recently");
         cur_sc = NULL;
     }
 
@@ -224,7 +224,7 @@ anim_state_machine(void)
         if (menu_sc)
             build_menu(menu_sc);
         else {
-            log_msg("clear menu");
+            LogMsg("clear menu");
             XPLMClearAllMenuItems(anim_menu);
         }
     }

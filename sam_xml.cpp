@@ -188,7 +188,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
         if (BETWEEN(jw->latitude, -85.0f, 85.0f) && BETWEEN(jw->longitude, -180.0f, 180.0f))
             sc->sam_jws.push_back(jw);
         else {
-            log_msg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude, jw->longitude);
+            LogMsg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude, jw->longitude);
             delete(jw);
         }
         return;
@@ -198,7 +198,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
         SamJw sam_jw;
         get_jw_attrs(attr, &sam_jw);
         if (!BETWEEN(sam_jw.id, 1, MAX_SAM3_LIB_JW)) {
-            log_msg("invalid library jw '%s', %d", sam_jw.name, sam_jw.id);
+            LogMsg("invalid library jw '%s', %d", sam_jw.name, sam_jw.id);
             return;
         }
 
@@ -215,20 +215,20 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
     if (ctx->in_datarefs && (0 == strcmp(name, "dataref"))) {
         ctx->in_dataref = true;
         //for (int i = 0; attr[i]; i += 2)
-        //    log_msg("dataref %s, %s", attr[i], attr[i+1]);
+        //    LogMsg("dataref %s, %s", attr[i], attr[i+1]);
 
         auto drf = new SamDrf();
         ctx->cur_dataref = drf;
 
         GET_STR_ATTR(drf, name);
         if (drf->name[0] == '\0') {
-            log_msg("name attribute not found for dataref");
+            LogMsg("name attribute not found for dataref");
             ctx->cur_dataref = NULL;
             return;
         }
 
         if (lookup_drf(drf->name) >= 0) {
-            log_msg("duplicate definition for dataref '%s', ingnored", drf->name);
+            LogMsg("duplicate definition for dataref '%s', ingnored", drf->name);
             ctx->cur_dataref = NULL;
             return;
         }
@@ -243,7 +243,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
     if (ctx->in_dataref && ctx->cur_dataref && (0 == strcmp(name, "animation"))) {
         SamDrf *d = ctx->cur_dataref;
         if (d->n_tv == DRF_MAX_ANIM) {
-            log_msg("animation table overflow for %s", d->name);
+            LogMsg("animation table overflow for %s", d->name);
             return;
         }
 
@@ -315,7 +315,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
             sc->sam_anims.push_back(anim);
         else {
             delete(anim);
-            log_msg("dataref of object not found for checkbox entry");
+            LogMsg("dataref of object not found for checkbox entry");
         }
         return;
     }
@@ -339,7 +339,7 @@ end_element(void *user_data, const XML_Char *name) {
     else if (0 == strcmp(name, "dataref")) {
         ctx->in_dataref = false;
         if (ctx->cur_dataref && ctx->cur_dataref->n_tv < 2)    // sanity check
-            log_msg("too few animation entries for %s", ctx->cur_dataref->name);
+            LogMsg("too few animation entries for %s", ctx->cur_dataref->name);
     }
 
     else if (0 == strcmp(name, "objects"))
@@ -357,7 +357,7 @@ parse_sam_xml(const std::string& fn, Scenery* sc)
     if (fd < 0)
         return 0;
 
-    log_msg("Processing '%s'", fn.c_str());
+    LogMsg("Processing '%s'", fn.c_str());
     XML_Parser parser = XML_ParserCreate(NULL);
     if (NULL == parser)
         goto out;
@@ -374,12 +374,12 @@ parse_sam_xml(const std::string& fn, Scenery* sc)
         void *buf = XML_GetBuffer(parser, BUFSIZE);
         int len = read(fd, buf, BUFSIZE);
         if (len < 0) {
-            log_msg("error reading sam.xml: %s", strerror(errno));
+            LogMsg("error reading sam.xml: %s", strerror(errno));
             goto out;
         }
 
         if (XML_ParseBuffer(parser, len, len == 0) == XML_STATUS_ERROR) {
-            log_msg("Parse error at line %lu: %s",
+            LogMsg("Parse error at line %lu: %s",
                     XML_GetCurrentLineNumber(parser),
                     XML_ErrorString(XML_GetErrorCode(parser)));
             goto out;
@@ -406,7 +406,7 @@ parse_apt_dat(const std::string& fn, Scenery* sc)
     if (apt.fail())
         return false;
 
-    log_msg("Processing '%s'", fn.c_str());
+    LogMsg("Processing '%s'", fn.c_str());
 
     std::string line;
     line.reserve(2000);          // can be quite long
@@ -417,7 +417,7 @@ parse_apt_dat(const std::string& fn, Scenery* sc)
             line.resize(i);
 
         if (line.find("1300 ") == 0) {
-            //log_msg("%s", line);
+            //LogMsg("%s", line);
             line.erase(0, 5);
             Stand *stand = new Stand();
             int len;
@@ -425,11 +425,11 @@ parse_apt_dat(const std::string& fn, Scenery* sc)
                            &stand->lat, &stand->lon, &stand->hdgt, &len);
             if (3 == n) {
                 strncpy(stand->id, line.c_str() + len, sizeof(stand->id) - 1);
-                //log_msg("%d %d, %f %f %f '%s'", n, len, stand->lat, stand->lon, stand->hdgt, stand->id);
+                //LogMsg("%d %d, %f %f %f '%s'", n, len, stand->lat, stand->lon, stand->hdgt, stand->id);
 
                 stand->hdgt = RA(stand->hdgt);
-                stand->sin_hdgt = sinf(D2R * stand->hdgt);
-                stand->cos_hdgt = cosf(D2R * stand->hdgt);
+                stand->sin_hdgt = sinf(kD2R * stand->hdgt);
+                stand->cos_hdgt = cosf(kD2R * stand->hdgt);
                 sc->stands.push_back(stand);
             } else {
                 delete(stand);
@@ -449,7 +449,7 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir)
 
     std::ifstream scpi(scpi_name);
     if (scpi.fail()) {
-        log_msg("Can't open '%s'", scpi_name.c_str());
+        LogMsg("Can't open '%s'", scpi_name.c_str());
         return;
     }
 
@@ -514,7 +514,7 @@ collect_sam_xml(const SceneryPacks &scp)
     if (scp.SAM_Library_path.size() > 0) {
         Scenery dummy;
         if (!parse_sam_xml(scp.SAM_Library_path + "libraryjetways.xml", &dummy))
-            log_msg("Warning: SAM_Library is installed but 'SAM_Library/libraryjetways.xml' could not be processed");
+            LogMsg("Warning: SAM_Library is installed but 'SAM_Library/libraryjetways.xml' could not be processed");
     }
 
     for (auto & sc_path : scp.sc_paths) {
@@ -533,7 +533,7 @@ collect_sam_xml(const SceneryPacks &scp)
             continue;
         }
 
-        static constexpr float far_skip_dlat = kFarSkip / LAT_2_M;
+        static constexpr float far_skip_dlat = kFarSkip / kLat2M;
 
         // shrink to actual
         sc->sam_jws.shrink_to_fit();
@@ -547,7 +547,7 @@ collect_sam_xml(const SceneryPacks &scp)
         sc->bb_lat_max = sc->bb_lon_max = -1000.0f;
 
         for (auto jw : sc->sam_jws) {
-            float far_skip_dlon = far_skip_dlat / cosf(jw->latitude * D2R);
+            float far_skip_dlon = far_skip_dlat / cosf(jw->latitude * kD2R);
             sc->bb_lat_min = std::min(sc->bb_lat_min, jw->latitude - far_skip_dlat);
             sc->bb_lat_max = std::max(sc->bb_lat_max, jw->latitude + far_skip_dlat);
 
@@ -556,7 +556,7 @@ collect_sam_xml(const SceneryPacks &scp)
         }
 
         for (auto stand : sc->stands) {
-            float far_skip_dlon = far_skip_dlat / cosf(stand->lat * D2R);
+            float far_skip_dlon = far_skip_dlat / cosf(stand->lat * kD2R);
 
             sc->bb_lat_min = std::min(sc->bb_lat_min, stand->lat - far_skip_dlat);
             sc->bb_lat_max = std::max(sc->bb_lat_max, stand->lat + far_skip_dlat);

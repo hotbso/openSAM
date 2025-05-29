@@ -72,13 +72,13 @@ SamJw::FillLibraryValues(int id)
         return;
 
     if (!BETWEEN(id, 1, MAX_SAM3_LIB_JW)) {
-        log_msg("sanity check failed for jw: '%s', id: %d", name, id);
+        LogMsg("sanity check failed for jw: '%s', id: %d", name, id);
         return;
     }
 
     library_id = id;
 
-    log_msg("filling in library data for '%s', id: %d", name, id);
+    LogMsg("filling in library data for '%s', id: %d", name, id);
 
     const SamJw *ljw = &sam3_lib_jw[id];
 
@@ -134,7 +134,7 @@ SamJw::FindStand()
             float d = len2f(local_x, local_z);
 
             if (d < dist) {
-                //log_msg("new min: %s, z: %2.1f, x: %2.1f",stand->id, local_z, local_x);
+                //LogMsg("new min: %s, z: %2.1f, x: %2.1f",stand->id, local_z, local_x);
                 dist = d;
                 min_stand = s;
             }
@@ -174,7 +174,7 @@ ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
         // randomize
         float delta_r = (0.2f + 0.8f * (0.01f * (rand() % 100))) * delta;
         jw->initialRot2 = delta_r;
-        log_msg("jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, initialRot2: %0.1f",
+        LogMsg("jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, initialRot2: %0.1f",
                 jw->psi, stand->hdgt, delta, jw->initialRot2);
     } else
         jw->initialRot2 = 5.0f;
@@ -189,7 +189,7 @@ ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
 
     zc_jws.push_back(jw);
 
-    log_msg("added to zc table stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
+    LogMsg("added to zc table stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
             stand ? stand->id : "<NULL>", jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
     return jw;
 }
@@ -207,12 +207,12 @@ CheckRefFrameShift()
         lon_ref = lon_r;
         ref_gen++;
         jw_cache = {};
-        log_msg("reference frame shift");
+        LogMsg("reference frame shift");
     }
 
     if (zc_ref_gen < ref_gen) {
         // from a different frame = stale data
-        log_msg("zc_jws deleted");
+        LogMsg("zc_jws deleted");
         for (auto jw : zc_jws)
             delete(jw);
 
@@ -289,9 +289,9 @@ JwAnimAcc(void *ref)
                     double  x, y ,z;
                     XPLMWorldToLocal(tjw->latitude, tjw->longitude, 0.0, &x, &y, &z);
                     if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
-                        log_msg("terrain probe 1 failed, jw: '%s', lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
+                        LogMsg("terrain probe 1 failed, jw: '%s', lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
                                 tjw->name, tjw->latitude, tjw->longitude, x, y, z);
-                        log_msg("jw: '%s' marked BAD", tjw->name);
+                        LogMsg("jw: '%s' marked BAD", tjw->name);
                         tjw->bad = true;
                         return 0.0f;
                     }
@@ -300,12 +300,12 @@ JwAnimAcc(void *ref)
                     double lat, lon, elevation;
                     XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ,
                                      &lat, &lon, &elevation);
-                    //log_msg("elevation: %0.2f", elevation);
+                    //LogMsg("elevation: %0.2f", elevation);
 
                     // and again to local with SAM's lat/lon and the approx elevation
                     XPLMWorldToLocal(tjw->latitude, tjw->longitude, elevation, &x, &y, &z);
                     if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
-                        log_msg("terrain probe 2 failed???");
+                        LogMsg("terrain probe 2 failed???");
                         return 0.0f;
                     }
 
@@ -393,7 +393,7 @@ JwAnimAcc(void *ref)
             return jw->warnlight;
             break;
         default:
-            log_msg("Accessor got invalid DR code: %d", drc);
+            LogMsg("Accessor got invalid DR code: %d", drc);
             return 0.0f;
     }
 
