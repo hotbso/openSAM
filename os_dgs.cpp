@@ -39,10 +39,12 @@ static constexpr float kAziA = 15;              // provide azimuth guidance
 static constexpr float kAziDispA = 10;          // max value for display
 static constexpr float kAziZ = 90;
 
-static constexpr float kGoodZ= 0.5;             // stop position for nw
+static constexpr float kGoodZ_p = 0.2;          // stop position for nw / to stop
+static constexpr float kGoodZ_m = -0.5;         // stop position for nw / beyond stop
+
 static constexpr float kGoodX = 2.0;            // for mw
 
-static constexpr float kRemZ = 12;      	    // Distance remaining from here on
+static constexpr float kCrZ = 12;      	        // Closing Rate starts here VDGS, Marshaller uses 0.5 * kCrZ
 
 static constexpr float kMaxDgs2StandX = 10.0f;  // max offset/distance from DGS to stand
 static constexpr float kMaxDgs2StandZ = 80.0f;
@@ -719,11 +721,11 @@ DgsStateMachine()
     else
         azimuth_nw = 0.0;
 
-    int locgood = (fabsf(mw_x) <= kGoodX && fabsf(nw_z) <= kGoodZ);
+    int locgood = (fabsf(mw_x) <= kGoodX && kGoodZ_m <= nw_z && nw_z <= kGoodZ_p);
     int beacon_on = my_plane.beacon_on();
 
     status = lr = track = 0;
-    distance = nw_z - kGoodZ;
+    distance = nw_z;
 
     // catch the phase ~180° point -> the Marshaller's arm is straight
     float sin_wave = XPLMGetDataf(sin_wave_dr);
@@ -752,7 +754,7 @@ DgsStateMachine()
                     break;
                 }
 
-                if (nw_z < -kGoodZ) {
+                if (nw_z < kGoodZ_m) {
                     new_state = BAD;
                     break;
                 }
@@ -789,7 +791,7 @@ DgsStateMachine()
                 azimuth = clampf(azimuth, -kAziDispA, kAziDispA) * 4.0 / kAziDispA;
                 azimuth=((float)((int)(azimuth * 2))) / 2;  // round to 0.5 increments
 
-                if (distance <= kRemZ/2) {
+                if (distance <= kCrZ/2) {
                     track = 3;
                     loop_delay = 0.03;
                 } else // azimuth only
@@ -826,7 +828,7 @@ DgsStateMachine()
                 return loop_delay;
             }
 
-            if (nw_z >= -kGoodZ)
+            if (nw_z >= kGoodZ_m)   // moving backwards
                 new_state = TRACK;
             else {
                 // Too far
@@ -886,12 +888,18 @@ DgsStateMachine()
             azimuth = 0.0;
         }
 
-        distance = clampf(distance, -kGoodZ, kRemZ);
-        float d_0 = 0.0f;
-        float d_01 = 0.0f;
+        distance = clampf(distance, kGoodZ_m, kCrZ);
+        int d_0 = 0;
+        int d_01 = 0;
+        // according to Safegate_SDK_UG_Pilots_v1.10_s.pdf
+        // > 3m: 1.0 m decrements, <= 3m 0.2m decrements
         if (0.0f <= distance && distance < 10.0f) {
-            d_0 = (float)(int)distance;
-            d_01 = (int)((distance - d_0) * 10.0f);
+            d_0 = distance;
+            if (d_0 < 3) {
+                int d = (distance - d_0) * 10.0f;
+                d &= ~1;    // make it even = 0.2m increments
+                d_01 = d;
+            }
         }
 
         if (! is_marshaller)
