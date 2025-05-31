@@ -65,7 +65,8 @@ static float timestamp; // for various states in the state_machine
 
 // Datarefs
 static XPLMDataRef percent_lights_dr, sin_wave_dr,
-    zulu_time_minutes_dr, zulu_time_hours_dr;
+    zulu_time_minutes_dr, zulu_time_hours_dr,
+    ground_speed_dr;
 
 // Published DataRef values
 static int status, track, lr;
@@ -543,6 +544,7 @@ DgsInit()
     sin_wave_dr = XPLMFindDataRef("sim/graphics/animation/sin_wave_2");
     zulu_time_minutes_dr = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_minutes");
     zulu_time_hours_dr = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_hours");
+    ground_speed_dr = XPLMFindDataRef("sim/flightmodel/position/groundspeed");
 
     // create the dgs animation datarefs
     for (int i = 0; i < DGS_DR_NUM; i++)
@@ -726,6 +728,7 @@ DgsStateMachine()
 
     status = lr = track = 0;
     distance = nw_z;
+    bool slow = false;
 
     // catch the phase ~180° point -> the Marshaller's arm is straight
     float sin_wave = XPLMGetDataf(sin_wave_dr);
@@ -774,6 +777,10 @@ DgsStateMachine()
                 azimuth = clampf(azimuth, -kAziA, kAziA);
                 float req_hdgt = -3.5f * azimuth;        // to track back to centerline
                 float d_hdgt = req_hdgt - local_hdgt;   // degrees to turn
+                float gs = XPLMGetDataf(ground_speed_dr);
+                slow = (distance > 20.0f && gs > 4.0f)
+                       || (10.0f < distance && distance <= 20.0f && gs > 3.0f)
+                       || (distance <= 10.0f && gs > 2.0f);
 
                 if (now > update_stand_log_ts + 2.0f)
                     LogMsg("is_marshaller: %d, azimuth: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), ref: (%0.1f, %0.1f), "
@@ -914,8 +921,13 @@ DgsStateMachine()
         drefs[DGS_DR_AZIMUTH] = azimuth;
         drefs[DGS_DR_LR] = lr;
 
-        const char* icao = my_plane.icao().c_str();
-        if (state == TRACK) {
+        if (slow) {
+            drefs[DGS_DR_ICAO_0] = 'S';
+            drefs[DGS_DR_ICAO_1] = 'L';
+            drefs[DGS_DR_ICAO_2] = 'O';
+            drefs[DGS_DR_ICAO_3] = 'W';
+        } else {
+            const char* icao = my_plane.icao().c_str();
             for (int i = 0; i < 4; i++)
                 drefs[DGS_DR_ICAO_0 + i] = icao[i];
         }
