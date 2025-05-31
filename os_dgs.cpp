@@ -525,7 +525,7 @@ FindDepartureStand()
     }
 
     if (ds != nearest_stand) {
-        LogMsg("departure stand is: %s", ds->id);
+        LogMsg("departure stand is: %s", ds ? ds->id : "none");
         nearest_stand = ds;
         dgs_assoc = 0;
         assoc_dgs_z_l = -1.0E10;
