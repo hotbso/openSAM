@@ -614,6 +614,8 @@ DgsStateMachine()
     time_utc_h0 = zh % 10;
     time_utc_h1 = zh / 10;
 
+    state_t prev_state = state;
+
     // DEPARTURE and friends ...
     // that's all low freq stuff
     if (INACTIVE <= state && state <= BOARDING) {
@@ -633,7 +635,8 @@ DgsStateMachine()
 
         if (my_plane.pax_no() == 0) {
             state = DEPARTURE;
-            LogMsg("New state %s", state_str[state]);
+            if (state != prev_state)
+                LogMsg("New state %s", state_str[state]);
         }
 
         if (state == INACTIVE)
