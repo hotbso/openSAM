@@ -139,7 +139,11 @@ extern XPLMProbeRef probe_ref;
 
 // functions
 extern void LogMsgImpl(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+#ifdef __FILE_NAME__
 #define LogMsg(fmt, ...) LogMsgImpl(__FILE_NAME__  ":%d: " fmt, __LINE__ __VA_OPT__(,) __VA_ARGS__)
+#else
+#define LogMsg(fmt, ...) LogMsgImpl(__FILE__  ":%d: " fmt, __LINE__ __VA_OPT__(,) __VA_ARGS__)
+#endif
 
 extern void ToggleUI(void);
 
