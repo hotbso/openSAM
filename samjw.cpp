@@ -23,6 +23,7 @@
 #include <cmath>
 #include <ctime>
 #include <cstring>
+#include <cassert>
 
 #include "openSAM.h"
 #include "samjw.h"
@@ -71,7 +72,7 @@ SamJw::FillLibraryValues(int id)
     if (library_id)
         return;
 
-    if (!BETWEEN(id, 1, MAX_SAM3_LIB_JW)) {
+    if (!BETWEEN(id, 1, max_lib_jw_id)) {
         LogMsg("sanity check failed for jw: '%s', id: %d", name, id);
         return;
     }
@@ -80,7 +81,8 @@ SamJw::FillLibraryValues(int id)
 
     LogMsg("filling in library data for '%s', id: %d", name, id);
 
-    const SamJw *ljw = &sam3_lib_jw[id];
+    const SamJw *ljw = lib_jw[id];
+    assert(ljw != nullptr);
 
     height = ljw->height;
     wheelPos = ljw->wheelPos;
@@ -352,7 +354,7 @@ JwAnimAcc(void *ref)
             stat_near_skip++;
         }
 
-        if (nullptr == jw && BETWEEN(id, 1, MAX_SAM3_LIB_JW))   // unconfigured library jetway
+        if (nullptr == jw && BETWEEN(id, 1, max_lib_jw_id))   // unconfigured library jetway
             jw = ConfigureZcJw(id, obj_x, obj_z, obj_y, obj_psi);
 
         if (nullptr == jw)    // still unconfigured -> bad luck
@@ -426,7 +428,9 @@ JwInit()
                                  NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, (void *)(uint64_t)drc, NULL);
 
-        for (int i = 1; i <= MAX_SAM3_LIB_JW; i++) {
+        for (int i = 1; i < (int)lib_jw.size(); i++) {
+            if (lib_jw[i] == nullptr)
+                continue;
             snprintf(name, sizeof(name) - 1, "sam/jetway/%02d/%s", i, dr_name_jw[drc]);
             uint64_t ctx = (uint64_t)i << 32|(uint64_t)drc;
             XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL,

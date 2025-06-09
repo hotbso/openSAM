@@ -1,24 +1,23 @@
-/*
-    openSAM: open source SAM emulator for X Plane
-
-    Copyright (C) 2024  Holger Teutsch
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-    USA
-
-*/
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2024, 2025  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
 
 #include <cstddef>
 #include <cstdlib>
@@ -31,7 +30,7 @@
 #include "samjw.h"
 #include "os_anim.h"
 
-std::string xp_dir{"E:/X-Plane-12"};
+std::string xp_dir{"E:/X-Plane-12-test"};
 
 int
 main(int argc, char **argv) {
@@ -84,18 +83,20 @@ main(int argc, char **argv) {
     }
 
     puts("Library jetways");
-    for (int i = 0; i <= MAX_SAM3_LIB_JW; i++) {
-        SamJw *jw = &sam3_lib_jw[i];
-        if (jw->id == 0)
+    for (int i = 1; i < (int)lib_jw.size(); i++) {
+        SamJw *jw = lib_jw[i];
+        if (jw == nullptr)
             continue;
-        LogMsg("%d; %s height: %0.2f, cabinPos: %0.2f", jw->id, jw->name, jw->height, jw->cabinPos);
+        printf("%d; %s height: %0.2f, cabinPos: %0.2f\n", jw->id, jw->name, jw->height, jw->cabinPos);
     }
+
+    printf("Max id: %d\n\n", max_lib_jw_id);
 
     puts("Ramps");
     for (auto sc : sceneries) {
         printf("%s\n", sc->name);
         for (auto stand : sc->stands) {
-            LogMsg("%-40s %5.6f, %5.6f %6.2f", stand->id,
+            printf("%-40s %5.6f, %5.6f %6.2f\n", stand->id,
                     stand->lat, stand->lon, stand->hdgt);
         }
         puts("\n");

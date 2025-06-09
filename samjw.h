@@ -80,9 +80,9 @@ struct SamJw  {
 
 extern std::vector<SamJw *>zc_jws;
 
-// fortunately SAM3 is abandoned so this will never change 8-)
-#define MAX_SAM3_LIB_JW 27  // index is 0..27
-extern SamJw sam3_lib_jw[];
+// library jetways, SAM3 and openSAM
+extern std::vector<SamJw*> lib_jw;
+extern int max_lib_jw_id;           // highest id found
 
 extern void JwInit(void);
 void CheckRefFrameShift();

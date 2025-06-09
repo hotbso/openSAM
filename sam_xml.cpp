@@ -1,24 +1,23 @@
-/*
-    openSAM: open source SAM emulator for X Plane
-
-    Copyright (C) 2024  Holger Teutsch
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-    USA
-
-*/
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2024, 2025  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
 
 #include <cstddef>
 #include <cstdlib>
@@ -56,7 +55,8 @@ typedef struct _expat_ctx {
 
 std::vector<Scenery *> sceneries;
 
-SamJw sam3_lib_jw[MAX_SAM3_LIB_JW + 1];
+std::vector<SamJw*> lib_jw;
+int max_lib_jw_id;
 
 std::vector<SamDrf*> sam_drfs;
 
@@ -195,14 +195,13 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
     }
 
     if (ctx->in_sets && (0 == strcmp(name, "set"))) {
-        SamJw sam_jw;
-        get_jw_attrs(attr, &sam_jw);
-        if (!BETWEEN(sam_jw.id, 1, MAX_SAM3_LIB_JW)) {
-            LogMsg("invalid library jw '%s', %d", sam_jw.name, sam_jw.id);
-            return;
-        }
+        SamJw *sam_jw = new SamJw;
+        get_jw_attrs(attr, sam_jw);
 
-        sam3_lib_jw[sam_jw.id] = sam_jw;
+        if (sam_jw->id > (int)lib_jw.size())
+            lib_jw.resize(sam_jw->id + 20);
+        lib_jw[sam_jw->id] = sam_jw;
+        max_lib_jw_id = std::max(max_lib_jw_id, sam_jw->id);
         return;
     }
 
@@ -505,14 +504,18 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir)
 void
 collect_sam_xml(const SceneryPacks &scp)
 {
+    lib_jw.reserve(50);
+
     // drefs from openSAM_Library must come first
     Scenery dummy;
     if (scp.openSAM_Library_path.size() == 0 ||
         !parse_sam_xml(scp.openSAM_Library_path + "sam.xml", &dummy))
         throw OsEx("openSAM_Library is not installed or inaccessible!");
 
+    if (!parse_sam_xml(scp.openSAM_Library_path + "libraryjetways.xml", &dummy))
+        LogMsg("Warning: 'openSAM_Library/libraryjetways.xml' could not be processed");
+
     if (scp.SAM_Library_path.size() > 0) {
-        Scenery dummy;
         if (!parse_sam_xml(scp.SAM_Library_path + "libraryjetways.xml", &dummy))
             LogMsg("Warning: SAM_Library is installed but 'SAM_Library/libraryjetways.xml' could not be processed");
     }
