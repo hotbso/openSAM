@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<libraryjetwayconfiguration>
+    <sets>
+		<set id="30" name="SWA Jetway 5m w/ Logo" height="5.0" wheelPos="9.5" cabinPos="15.90" cabinLength="2.10" wheelDiameter="0.97" wheelDistance="2" sound="alarm3.ogg" minRot1="90" maxRot1="-90" minRot2="0.00" maxRot2="30" minRot3="2.6" maxRot3="5.00" minExtent="0.00" maxExtent="6.00" minWheels="0" maxWheels="0" />	
+	</sets>
+</libraryjetwayconfiguration>
+
+
+    
+   

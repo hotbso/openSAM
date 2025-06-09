@@ -39,6 +39,8 @@ EXPORT  		openSAM/dgs/Safedock-T2_4.0m_pole.obj	dgs/Safedock-T2-24_4.0m_pole.obj
 EXPORT  		openSAM/dgs/Safedock-T2_4.5m_pole.obj	dgs/Safedock-T2-24_4.5m_pole.obj
 EXPORT  		openSAM/dgs/Safedock-T2_5.0m_pole.obj	dgs/Safedock-T2-24_5.0m_pole.obj
 
+EXPORT          opensam/jetways/SWA_5m_logo.obj         jetways/SWA/Jetway_5m_With_Logo.obj
+
 # stuff below should not show up in WED
 DEPRECATED
 
