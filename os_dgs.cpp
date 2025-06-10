@@ -1,25 +1,24 @@
-/*
-    openSAM: open source SAM emulator for X Plane
-
-    Copyright (C) 2024  Holger Teutsch
-              (C) Jonathan Harris 2006-2013
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-    USA
-
-*/
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2024, 2025  Holger Teutsch
+//              (C) Jonathan Harris 2006-2013
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
 
 #include <cstddef>
 #include <cstring>
@@ -234,7 +233,7 @@ Stand::Global2Stand(float x, float z, float& x_l, float& z_l)
 //
 // Primary criterion is max z value in the stand's local system
 // but...
-// if distance of new candidate (z) nearly the same but closer to stand's centerline(x)
+// if distance of a new candidate (z) is nearly the same but closer to stand's centerline (x)
 //    consider it nearer even if z is slightly less
 //
 static inline bool
