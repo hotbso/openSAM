@@ -3480,6 +3480,1664 @@ ATTR_light_level 0.0 1.0 opensam/dgs/vdgs_brightness	7000
 ANIM_begin
     ANIM_hide -10000.0000 -0.0010 opensam/dgs/status
     ANIM_hide 0.0010 10000.0000 opensam/dgs/status
+    # NO-openSAM_begin
+        # char stack opensam/dgs/r1c0 @(5, 82)
+        
+
+        # char 0
+        ANIM_begin
+            ANIM_hide -2 47 opensam/dgs/r1c0
+            ANIM_hide 49 1000 opensam/dgs/r1c0
+            TRIS 1266 6
+        ANIM_end
+
+        # char 1
+        ANIM_begin
+            ANIM_hide -2 48 opensam/dgs/r1c0
+            ANIM_hide 50 1000 opensam/dgs/r1c0
+            TRIS 1272 6
+        ANIM_end
+
+        # char 2
+        ANIM_begin
+            ANIM_hide -2 49 opensam/dgs/r1c0
+            ANIM_hide 51 1000 opensam/dgs/r1c0
+            TRIS 1278 6
+        ANIM_end
+
+        # char 3
+        ANIM_begin
+            ANIM_hide -2 50 opensam/dgs/r1c0
+            ANIM_hide 52 1000 opensam/dgs/r1c0
+            TRIS 1284 6
+        ANIM_end
+
+        # char 4
+        ANIM_begin
+            ANIM_hide -2 51 opensam/dgs/r1c0
+            ANIM_hide 53 1000 opensam/dgs/r1c0
+            TRIS 1290 6
+        ANIM_end
+
+        # char 5
+        ANIM_begin
+            ANIM_hide -2 52 opensam/dgs/r1c0
+            ANIM_hide 54 1000 opensam/dgs/r1c0
+            TRIS 1296 6
+        ANIM_end
+
+        # char 6
+        ANIM_begin
+            ANIM_hide -2 53 opensam/dgs/r1c0
+            ANIM_hide 55 1000 opensam/dgs/r1c0
+            TRIS 1302 6
+        ANIM_end
+
+        # char 7
+        ANIM_begin
+            ANIM_hide -2 54 opensam/dgs/r1c0
+            ANIM_hide 56 1000 opensam/dgs/r1c0
+            TRIS 1308 6
+        ANIM_end
+
+        # char 8
+        ANIM_begin
+            ANIM_hide -2 55 opensam/dgs/r1c0
+            ANIM_hide 57 1000 opensam/dgs/r1c0
+            TRIS 1314 6
+        ANIM_end
+
+        # char 9
+        ANIM_begin
+            ANIM_hide -2 56 opensam/dgs/r1c0
+            ANIM_hide 58 1000 opensam/dgs/r1c0
+            TRIS 1320 6
+        ANIM_end
+
+        # char 10
+        ANIM_begin
+            ANIM_hide -2 64 opensam/dgs/r1c0
+            ANIM_hide 66 1000 opensam/dgs/r1c0
+            TRIS 1326 6
+        ANIM_end
+
+        # char 11
+        ANIM_begin
+            ANIM_hide -2 65 opensam/dgs/r1c0
+            ANIM_hide 67 1000 opensam/dgs/r1c0
+            TRIS 1332 6
+        ANIM_end
+
+        # char 12
+        ANIM_begin
+            ANIM_hide -2 66 opensam/dgs/r1c0
+            ANIM_hide 68 1000 opensam/dgs/r1c0
+            TRIS 1338 6
+        ANIM_end
+
+        # char 13
+        ANIM_begin
+            ANIM_hide -2 67 opensam/dgs/r1c0
+            ANIM_hide 69 1000 opensam/dgs/r1c0
+            TRIS 1344 6
+        ANIM_end
+
+        # char 14
+        ANIM_begin
+            ANIM_hide -2 68 opensam/dgs/r1c0
+            ANIM_hide 70 1000 opensam/dgs/r1c0
+            TRIS 1350 6
+        ANIM_end
+
+        # char 15
+        ANIM_begin
+            ANIM_hide -2 69 opensam/dgs/r1c0
+            ANIM_hide 71 1000 opensam/dgs/r1c0
+            TRIS 1356 6
+        ANIM_end
+
+        # char 16
+        ANIM_begin
+            ANIM_hide -2 70 opensam/dgs/r1c0
+            ANIM_hide 72 1000 opensam/dgs/r1c0
+            TRIS 1362 6
+        ANIM_end
+
+        # char 17
+        ANIM_begin
+            ANIM_hide -2 71 opensam/dgs/r1c0
+            ANIM_hide 73 1000 opensam/dgs/r1c0
+            TRIS 1368 6
+        ANIM_end
+
+        # char 18
+        ANIM_begin
+            ANIM_hide -2 72 opensam/dgs/r1c0
+            ANIM_hide 74 1000 opensam/dgs/r1c0
+            TRIS 1374 6
+        ANIM_end
+
+        # char 19
+        ANIM_begin
+            ANIM_hide -2 73 opensam/dgs/r1c0
+            ANIM_hide 75 1000 opensam/dgs/r1c0
+            TRIS 1380 6
+        ANIM_end
+
+        # char 20
+        ANIM_begin
+            ANIM_hide -2 74 opensam/dgs/r1c0
+            ANIM_hide 76 1000 opensam/dgs/r1c0
+            TRIS 1386 6
+        ANIM_end
+
+        # char 21
+        ANIM_begin
+            ANIM_hide -2 75 opensam/dgs/r1c0
+            ANIM_hide 77 1000 opensam/dgs/r1c0
+            TRIS 1392 6
+        ANIM_end
+
+        # char 22
+        ANIM_begin
+            ANIM_hide -2 76 opensam/dgs/r1c0
+            ANIM_hide 78 1000 opensam/dgs/r1c0
+            TRIS 1398 6
+        ANIM_end
+
+        # char 23
+        ANIM_begin
+            ANIM_hide -2 77 opensam/dgs/r1c0
+            ANIM_hide 79 1000 opensam/dgs/r1c0
+            TRIS 1404 6
+        ANIM_end
+
+        # char 24
+        ANIM_begin
+            ANIM_hide -2 78 opensam/dgs/r1c0
+            ANIM_hide 80 1000 opensam/dgs/r1c0
+            TRIS 1410 6
+        ANIM_end
+
+        # char 25
+        ANIM_begin
+            ANIM_hide -2 79 opensam/dgs/r1c0
+            ANIM_hide 81 1000 opensam/dgs/r1c0
+            TRIS 1416 6
+        ANIM_end
+
+        # char 26
+        ANIM_begin
+            ANIM_hide -2 80 opensam/dgs/r1c0
+            ANIM_hide 82 1000 opensam/dgs/r1c0
+            TRIS 1422 6
+        ANIM_end
+
+        # char 27
+        ANIM_begin
+            ANIM_hide -2 81 opensam/dgs/r1c0
+            ANIM_hide 83 1000 opensam/dgs/r1c0
+            TRIS 1428 6
+        ANIM_end
+
+        # char 28
+        ANIM_begin
+            ANIM_hide -2 82 opensam/dgs/r1c0
+            ANIM_hide 84 1000 opensam/dgs/r1c0
+            TRIS 1434 6
+        ANIM_end
+
+        # char 29
+        ANIM_begin
+            ANIM_hide -2 83 opensam/dgs/r1c0
+            ANIM_hide 85 1000 opensam/dgs/r1c0
+            TRIS 1440 6
+        ANIM_end
+
+        # char 30
+        ANIM_begin
+            ANIM_hide -2 84 opensam/dgs/r1c0
+            ANIM_hide 86 1000 opensam/dgs/r1c0
+            TRIS 1446 6
+        ANIM_end
+
+        # char 31
+        ANIM_begin
+            ANIM_hide -2 85 opensam/dgs/r1c0
+            ANIM_hide 87 1000 opensam/dgs/r1c0
+            TRIS 1452 6
+        ANIM_end
+
+        # char 32
+        ANIM_begin
+            ANIM_hide -2 86 opensam/dgs/r1c0
+            ANIM_hide 88 1000 opensam/dgs/r1c0
+            TRIS 1458 6
+        ANIM_end
+
+        # char 33
+        ANIM_begin
+            ANIM_hide -2 87 opensam/dgs/r1c0
+            ANIM_hide 89 1000 opensam/dgs/r1c0
+            TRIS 1464 6
+        ANIM_end
+
+        # char 34
+        ANIM_begin
+            ANIM_hide -2 88 opensam/dgs/r1c0
+            ANIM_hide 90 1000 opensam/dgs/r1c0
+            TRIS 1470 6
+        ANIM_end
+
+        # char 35
+        ANIM_begin
+            ANIM_hide -2 89 opensam/dgs/r1c0
+            ANIM_hide 91 1000 opensam/dgs/r1c0
+            TRIS 1476 6
+        ANIM_end
+
+        # char 36
+        ANIM_begin
+            ANIM_hide -2 35 opensam/dgs/r1c0
+            ANIM_hide 37 1000 opensam/dgs/r1c0
+            TRIS 1482 6
+        ANIM_end
+
+        # char 37
+        ANIM_begin
+            ANIM_hide -2 36 opensam/dgs/r1c0
+            ANIM_hide 38 1000 opensam/dgs/r1c0
+            TRIS 1488 6
+        ANIM_end
+
+        # char 38
+        ANIM_begin
+            ANIM_hide -2 37 opensam/dgs/r1c0
+            ANIM_hide 39 1000 opensam/dgs/r1c0
+            TRIS 1494 6
+        ANIM_end
+
+        # char stack opensam/dgs/r1c1 @(17, 82)
+        
+
+        # char 0
+        ANIM_begin
+            ANIM_hide -2 47 opensam/dgs/r1c1
+            ANIM_hide 49 1000 opensam/dgs/r1c1
+            TRIS 1500 6
+        ANIM_end
+
+        # char 1
+        ANIM_begin
+            ANIM_hide -2 48 opensam/dgs/r1c1
+            ANIM_hide 50 1000 opensam/dgs/r1c1
+            TRIS 1506 6
+        ANIM_end
+
+        # char 2
+        ANIM_begin
+            ANIM_hide -2 49 opensam/dgs/r1c1
+            ANIM_hide 51 1000 opensam/dgs/r1c1
+            TRIS 1512 6
+        ANIM_end
+
+        # char 3
+        ANIM_begin
+            ANIM_hide -2 50 opensam/dgs/r1c1
+            ANIM_hide 52 1000 opensam/dgs/r1c1
+            TRIS 1518 6
+        ANIM_end
+
+        # char 4
+        ANIM_begin
+            ANIM_hide -2 51 opensam/dgs/r1c1
+            ANIM_hide 53 1000 opensam/dgs/r1c1
+            TRIS 1524 6
+        ANIM_end
+
+        # char 5
+        ANIM_begin
+            ANIM_hide -2 52 opensam/dgs/r1c1
+            ANIM_hide 54 1000 opensam/dgs/r1c1
+            TRIS 1530 6
+        ANIM_end
+
+        # char 6
+        ANIM_begin
+            ANIM_hide -2 53 opensam/dgs/r1c1
+            ANIM_hide 55 1000 opensam/dgs/r1c1
+            TRIS 1536 6
+        ANIM_end
+
+        # char 7
+        ANIM_begin
+            ANIM_hide -2 54 opensam/dgs/r1c1
+            ANIM_hide 56 1000 opensam/dgs/r1c1
+            TRIS 1542 6
+        ANIM_end
+
+        # char 8
+        ANIM_begin
+            ANIM_hide -2 55 opensam/dgs/r1c1
+            ANIM_hide 57 1000 opensam/dgs/r1c1
+            TRIS 1548 6
+        ANIM_end
+
+        # char 9
+        ANIM_begin
+            ANIM_hide -2 56 opensam/dgs/r1c1
+            ANIM_hide 58 1000 opensam/dgs/r1c1
+            TRIS 1554 6
+        ANIM_end
+
+        # char 10
+        ANIM_begin
+            ANIM_hide -2 64 opensam/dgs/r1c1
+            ANIM_hide 66 1000 opensam/dgs/r1c1
+            TRIS 1560 6
+        ANIM_end
+
+        # char 11
+        ANIM_begin
+            ANIM_hide -2 65 opensam/dgs/r1c1
+            ANIM_hide 67 1000 opensam/dgs/r1c1
+            TRIS 1566 6
+        ANIM_end
+
+        # char 12
+        ANIM_begin
+            ANIM_hide -2 66 opensam/dgs/r1c1
+            ANIM_hide 68 1000 opensam/dgs/r1c1
+            TRIS 1572 6
+        ANIM_end
+
+        # char 13
+        ANIM_begin
+            ANIM_hide -2 67 opensam/dgs/r1c1
+            ANIM_hide 69 1000 opensam/dgs/r1c1
+            TRIS 1578 6
+        ANIM_end
+
+        # char 14
+        ANIM_begin
+            ANIM_hide -2 68 opensam/dgs/r1c1
+            ANIM_hide 70 1000 opensam/dgs/r1c1
+            TRIS 1584 6
+        ANIM_end
+
+        # char 15
+        ANIM_begin
+            ANIM_hide -2 69 opensam/dgs/r1c1
+            ANIM_hide 71 1000 opensam/dgs/r1c1
+            TRIS 1590 6
+        ANIM_end
+
+        # char 16
+        ANIM_begin
+            ANIM_hide -2 70 opensam/dgs/r1c1
+            ANIM_hide 72 1000 opensam/dgs/r1c1
+            TRIS 1596 6
+        ANIM_end
+
+        # char 17
+        ANIM_begin
+            ANIM_hide -2 71 opensam/dgs/r1c1
+            ANIM_hide 73 1000 opensam/dgs/r1c1
+            TRIS 1602 6
+        ANIM_end
+
+        # char 18
+        ANIM_begin
+            ANIM_hide -2 72 opensam/dgs/r1c1
+            ANIM_hide 74 1000 opensam/dgs/r1c1
+            TRIS 1608 6
+        ANIM_end
+
+        # char 19
+        ANIM_begin
+            ANIM_hide -2 73 opensam/dgs/r1c1
+            ANIM_hide 75 1000 opensam/dgs/r1c1
+            TRIS 1614 6
+        ANIM_end
+
+        # char 20
+        ANIM_begin
+            ANIM_hide -2 74 opensam/dgs/r1c1
+            ANIM_hide 76 1000 opensam/dgs/r1c1
+            TRIS 1620 6
+        ANIM_end
+
+        # char 21
+        ANIM_begin
+            ANIM_hide -2 75 opensam/dgs/r1c1
+            ANIM_hide 77 1000 opensam/dgs/r1c1
+            TRIS 1626 6
+        ANIM_end
+
+        # char 22
+        ANIM_begin
+            ANIM_hide -2 76 opensam/dgs/r1c1
+            ANIM_hide 78 1000 opensam/dgs/r1c1
+            TRIS 1632 6
+        ANIM_end
+
+        # char 23
+        ANIM_begin
+            ANIM_hide -2 77 opensam/dgs/r1c1
+            ANIM_hide 79 1000 opensam/dgs/r1c1
+            TRIS 1638 6
+        ANIM_end
+
+        # char 24
+        ANIM_begin
+            ANIM_hide -2 78 opensam/dgs/r1c1
+            ANIM_hide 80 1000 opensam/dgs/r1c1
+            TRIS 1644 6
+        ANIM_end
+
+        # char 25
+        ANIM_begin
+            ANIM_hide -2 79 opensam/dgs/r1c1
+            ANIM_hide 81 1000 opensam/dgs/r1c1
+            TRIS 1650 6
+        ANIM_end
+
+        # char 26
+        ANIM_begin
+            ANIM_hide -2 80 opensam/dgs/r1c1
+            ANIM_hide 82 1000 opensam/dgs/r1c1
+            TRIS 1656 6
+        ANIM_end
+
+        # char 27
+        ANIM_begin
+            ANIM_hide -2 81 opensam/dgs/r1c1
+            ANIM_hide 83 1000 opensam/dgs/r1c1
+            TRIS 1662 6
+        ANIM_end
+
+        # char 28
+        ANIM_begin
+            ANIM_hide -2 82 opensam/dgs/r1c1
+            ANIM_hide 84 1000 opensam/dgs/r1c1
+            TRIS 1668 6
+        ANIM_end
+
+        # char 29
+        ANIM_begin
+            ANIM_hide -2 83 opensam/dgs/r1c1
+            ANIM_hide 85 1000 opensam/dgs/r1c1
+            TRIS 1674 6
+        ANIM_end
+
+        # char 30
+        ANIM_begin
+            ANIM_hide -2 84 opensam/dgs/r1c1
+            ANIM_hide 86 1000 opensam/dgs/r1c1
+            TRIS 1680 6
+        ANIM_end
+
+        # char 31
+        ANIM_begin
+            ANIM_hide -2 85 opensam/dgs/r1c1
+            ANIM_hide 87 1000 opensam/dgs/r1c1
+            TRIS 1686 6
+        ANIM_end
+
+        # char 32
+        ANIM_begin
+            ANIM_hide -2 86 opensam/dgs/r1c1
+            ANIM_hide 88 1000 opensam/dgs/r1c1
+            TRIS 1692 6
+        ANIM_end
+
+        # char 33
+        ANIM_begin
+            ANIM_hide -2 87 opensam/dgs/r1c1
+            ANIM_hide 89 1000 opensam/dgs/r1c1
+            TRIS 1698 6
+        ANIM_end
+
+        # char 34
+        ANIM_begin
+            ANIM_hide -2 88 opensam/dgs/r1c1
+            ANIM_hide 90 1000 opensam/dgs/r1c1
+            TRIS 1704 6
+        ANIM_end
+
+        # char 35
+        ANIM_begin
+            ANIM_hide -2 89 opensam/dgs/r1c1
+            ANIM_hide 91 1000 opensam/dgs/r1c1
+            TRIS 1710 6
+        ANIM_end
+
+        # char 36
+        ANIM_begin
+            ANIM_hide -2 35 opensam/dgs/r1c1
+            ANIM_hide 37 1000 opensam/dgs/r1c1
+            TRIS 1716 6
+        ANIM_end
+
+        # char 37
+        ANIM_begin
+            ANIM_hide -2 36 opensam/dgs/r1c1
+            ANIM_hide 38 1000 opensam/dgs/r1c1
+            TRIS 1722 6
+        ANIM_end
+
+        # char 38
+        ANIM_begin
+            ANIM_hide -2 37 opensam/dgs/r1c1
+            ANIM_hide 39 1000 opensam/dgs/r1c1
+            TRIS 1728 6
+        ANIM_end
+
+        # char stack opensam/dgs/r1c2 @(29, 82)
+        
+
+        # char 0
+        ANIM_begin
+            ANIM_hide -2 47 opensam/dgs/r1c2
+            ANIM_hide 49 1000 opensam/dgs/r1c2
+            TRIS 1734 6
+        ANIM_end
+
+        # char 1
+        ANIM_begin
+            ANIM_hide -2 48 opensam/dgs/r1c2
+            ANIM_hide 50 1000 opensam/dgs/r1c2
+            TRIS 1740 6
+        ANIM_end
+
+        # char 2
+        ANIM_begin
+            ANIM_hide -2 49 opensam/dgs/r1c2
+            ANIM_hide 51 1000 opensam/dgs/r1c2
+            TRIS 1746 6
+        ANIM_end
+
+        # char 3
+        ANIM_begin
+            ANIM_hide -2 50 opensam/dgs/r1c2
+            ANIM_hide 52 1000 opensam/dgs/r1c2
+            TRIS 1752 6
+        ANIM_end
+
+        # char 4
+        ANIM_begin
+            ANIM_hide -2 51 opensam/dgs/r1c2
+            ANIM_hide 53 1000 opensam/dgs/r1c2
+            TRIS 1758 6
+        ANIM_end
+
+        # char 5
+        ANIM_begin
+            ANIM_hide -2 52 opensam/dgs/r1c2
+            ANIM_hide 54 1000 opensam/dgs/r1c2
+            TRIS 1764 6
+        ANIM_end
+
+        # char 6
+        ANIM_begin
+            ANIM_hide -2 53 opensam/dgs/r1c2
+            ANIM_hide 55 1000 opensam/dgs/r1c2
+            TRIS 1770 6
+        ANIM_end
+
+        # char 7
+        ANIM_begin
+            ANIM_hide -2 54 opensam/dgs/r1c2
+            ANIM_hide 56 1000 opensam/dgs/r1c2
+            TRIS 1776 6
+        ANIM_end
+
+        # char 8
+        ANIM_begin
+            ANIM_hide -2 55 opensam/dgs/r1c2
+            ANIM_hide 57 1000 opensam/dgs/r1c2
+            TRIS 1782 6
+        ANIM_end
+
+        # char 9
+        ANIM_begin
+            ANIM_hide -2 56 opensam/dgs/r1c2
+            ANIM_hide 58 1000 opensam/dgs/r1c2
+            TRIS 1788 6
+        ANIM_end
+
+        # char 10
+        ANIM_begin
+            ANIM_hide -2 64 opensam/dgs/r1c2
+            ANIM_hide 66 1000 opensam/dgs/r1c2
+            TRIS 1794 6
+        ANIM_end
+
+        # char 11
+        ANIM_begin
+            ANIM_hide -2 65 opensam/dgs/r1c2
+            ANIM_hide 67 1000 opensam/dgs/r1c2
+            TRIS 1800 6
+        ANIM_end
+
+        # char 12
+        ANIM_begin
+            ANIM_hide -2 66 opensam/dgs/r1c2
+            ANIM_hide 68 1000 opensam/dgs/r1c2
+            TRIS 1806 6
+        ANIM_end
+
+        # char 13
+        ANIM_begin
+            ANIM_hide -2 67 opensam/dgs/r1c2
+            ANIM_hide 69 1000 opensam/dgs/r1c2
+            TRIS 1812 6
+        ANIM_end
+
+        # char 14
+        ANIM_begin
+            ANIM_hide -2 68 opensam/dgs/r1c2
+            ANIM_hide 70 1000 opensam/dgs/r1c2
+            TRIS 1818 6
+        ANIM_end
+
+        # char 15
+        ANIM_begin
+            ANIM_hide -2 69 opensam/dgs/r1c2
+            ANIM_hide 71 1000 opensam/dgs/r1c2
+            TRIS 1824 6
+        ANIM_end
+
+        # char 16
+        ANIM_begin
+            ANIM_hide -2 70 opensam/dgs/r1c2
+            ANIM_hide 72 1000 opensam/dgs/r1c2
+            TRIS 1830 6
+        ANIM_end
+
+        # char 17
+        ANIM_begin
+            ANIM_hide -2 71 opensam/dgs/r1c2
+            ANIM_hide 73 1000 opensam/dgs/r1c2
+            TRIS 1836 6
+        ANIM_end
+
+        # char 18
+        ANIM_begin
+            ANIM_hide -2 72 opensam/dgs/r1c2
+            ANIM_hide 74 1000 opensam/dgs/r1c2
+            TRIS 1842 6
+        ANIM_end
+
+        # char 19
+        ANIM_begin
+            ANIM_hide -2 73 opensam/dgs/r1c2
+            ANIM_hide 75 1000 opensam/dgs/r1c2
+            TRIS 1848 6
+        ANIM_end
+
+        # char 20
+        ANIM_begin
+            ANIM_hide -2 74 opensam/dgs/r1c2
+            ANIM_hide 76 1000 opensam/dgs/r1c2
+            TRIS 1854 6
+        ANIM_end
+
+        # char 21
+        ANIM_begin
+            ANIM_hide -2 75 opensam/dgs/r1c2
+            ANIM_hide 77 1000 opensam/dgs/r1c2
+            TRIS 1860 6
+        ANIM_end
+
+        # char 22
+        ANIM_begin
+            ANIM_hide -2 76 opensam/dgs/r1c2
+            ANIM_hide 78 1000 opensam/dgs/r1c2
+            TRIS 1866 6
+        ANIM_end
+
+        # char 23
+        ANIM_begin
+            ANIM_hide -2 77 opensam/dgs/r1c2
+            ANIM_hide 79 1000 opensam/dgs/r1c2
+            TRIS 1872 6
+        ANIM_end
+
+        # char 24
+        ANIM_begin
+            ANIM_hide -2 78 opensam/dgs/r1c2
+            ANIM_hide 80 1000 opensam/dgs/r1c2
+            TRIS 1878 6
+        ANIM_end
+
+        # char 25
+        ANIM_begin
+            ANIM_hide -2 79 opensam/dgs/r1c2
+            ANIM_hide 81 1000 opensam/dgs/r1c2
+            TRIS 1884 6
+        ANIM_end
+
+        # char 26
+        ANIM_begin
+            ANIM_hide -2 80 opensam/dgs/r1c2
+            ANIM_hide 82 1000 opensam/dgs/r1c2
+            TRIS 1890 6
+        ANIM_end
+
+        # char 27
+        ANIM_begin
+            ANIM_hide -2 81 opensam/dgs/r1c2
+            ANIM_hide 83 1000 opensam/dgs/r1c2
+            TRIS 1896 6
+        ANIM_end
+
+        # char 28
+        ANIM_begin
+            ANIM_hide -2 82 opensam/dgs/r1c2
+            ANIM_hide 84 1000 opensam/dgs/r1c2
+            TRIS 1902 6
+        ANIM_end
+
+        # char 29
+        ANIM_begin
+            ANIM_hide -2 83 opensam/dgs/r1c2
+            ANIM_hide 85 1000 opensam/dgs/r1c2
+            TRIS 1908 6
+        ANIM_end
+
+        # char 30
+        ANIM_begin
+            ANIM_hide -2 84 opensam/dgs/r1c2
+            ANIM_hide 86 1000 opensam/dgs/r1c2
+            TRIS 1914 6
+        ANIM_end
+
+        # char 31
+        ANIM_begin
+            ANIM_hide -2 85 opensam/dgs/r1c2
+            ANIM_hide 87 1000 opensam/dgs/r1c2
+            TRIS 1920 6
+        ANIM_end
+
+        # char 32
+        ANIM_begin
+            ANIM_hide -2 86 opensam/dgs/r1c2
+            ANIM_hide 88 1000 opensam/dgs/r1c2
+            TRIS 1926 6
+        ANIM_end
+
+        # char 33
+        ANIM_begin
+            ANIM_hide -2 87 opensam/dgs/r1c2
+            ANIM_hide 89 1000 opensam/dgs/r1c2
+            TRIS 1932 6
+        ANIM_end
+
+        # char 34
+        ANIM_begin
+            ANIM_hide -2 88 opensam/dgs/r1c2
+            ANIM_hide 90 1000 opensam/dgs/r1c2
+            TRIS 1938 6
+        ANIM_end
+
+        # char 35
+        ANIM_begin
+            ANIM_hide -2 89 opensam/dgs/r1c2
+            ANIM_hide 91 1000 opensam/dgs/r1c2
+            TRIS 1944 6
+        ANIM_end
+
+        # char 36
+        ANIM_begin
+            ANIM_hide -2 35 opensam/dgs/r1c2
+            ANIM_hide 37 1000 opensam/dgs/r1c2
+            TRIS 1950 6
+        ANIM_end
+
+        # char 37
+        ANIM_begin
+            ANIM_hide -2 36 opensam/dgs/r1c2
+            ANIM_hide 38 1000 opensam/dgs/r1c2
+            TRIS 1956 6
+        ANIM_end
+
+        # char 38
+        ANIM_begin
+            ANIM_hide -2 37 opensam/dgs/r1c2
+            ANIM_hide 39 1000 opensam/dgs/r1c2
+            TRIS 1962 6
+        ANIM_end
+
+        # char stack opensam/dgs/r1c3 @(41, 82)
+        
+
+        # char 0
+        ANIM_begin
+            ANIM_hide -2 47 opensam/dgs/r1c3
+            ANIM_hide 49 1000 opensam/dgs/r1c3
+            TRIS 1968 6
+        ANIM_end
+
+        # char 1
+        ANIM_begin
+            ANIM_hide -2 48 opensam/dgs/r1c3
+            ANIM_hide 50 1000 opensam/dgs/r1c3
+            TRIS 1974 6
+        ANIM_end
+
+        # char 2
+        ANIM_begin
+            ANIM_hide -2 49 opensam/dgs/r1c3
+            ANIM_hide 51 1000 opensam/dgs/r1c3
+            TRIS 1980 6
+        ANIM_end
+
+        # char 3
+        ANIM_begin
+            ANIM_hide -2 50 opensam/dgs/r1c3
+            ANIM_hide 52 1000 opensam/dgs/r1c3
+            TRIS 1986 6
+        ANIM_end
+
+        # char 4
+        ANIM_begin
+            ANIM_hide -2 51 opensam/dgs/r1c3
+            ANIM_hide 53 1000 opensam/dgs/r1c3
+            TRIS 1992 6
+        ANIM_end
+
+        # char 5
+        ANIM_begin
+            ANIM_hide -2 52 opensam/dgs/r1c3
+            ANIM_hide 54 1000 opensam/dgs/r1c3
+            TRIS 1998 6
+        ANIM_end
+
+        # char 6
+        ANIM_begin
+            ANIM_hide -2 53 opensam/dgs/r1c3
+            ANIM_hide 55 1000 opensam/dgs/r1c3
+            TRIS 2004 6
+        ANIM_end
+
+        # char 7
+        ANIM_begin
+            ANIM_hide -2 54 opensam/dgs/r1c3
+            ANIM_hide 56 1000 opensam/dgs/r1c3
+            TRIS 2010 6
+        ANIM_end
+
+        # char 8
+        ANIM_begin
+            ANIM_hide -2 55 opensam/dgs/r1c3
+            ANIM_hide 57 1000 opensam/dgs/r1c3
+            TRIS 2016 6
+        ANIM_end
+
+        # char 9
+        ANIM_begin
+            ANIM_hide -2 56 opensam/dgs/r1c3
+            ANIM_hide 58 1000 opensam/dgs/r1c3
+            TRIS 2022 6
+        ANIM_end
+
+        # char 10
+        ANIM_begin
+            ANIM_hide -2 64 opensam/dgs/r1c3
+            ANIM_hide 66 1000 opensam/dgs/r1c3
+            TRIS 2028 6
+        ANIM_end
+
+        # char 11
+        ANIM_begin
+            ANIM_hide -2 65 opensam/dgs/r1c3
+            ANIM_hide 67 1000 opensam/dgs/r1c3
+            TRIS 2034 6
+        ANIM_end
+
+        # char 12
+        ANIM_begin
+            ANIM_hide -2 66 opensam/dgs/r1c3
+            ANIM_hide 68 1000 opensam/dgs/r1c3
+            TRIS 2040 6
+        ANIM_end
+
+        # char 13
+        ANIM_begin
+            ANIM_hide -2 67 opensam/dgs/r1c3
+            ANIM_hide 69 1000 opensam/dgs/r1c3
+            TRIS 2046 6
+        ANIM_end
+
+        # char 14
+        ANIM_begin
+            ANIM_hide -2 68 opensam/dgs/r1c3
+            ANIM_hide 70 1000 opensam/dgs/r1c3
+            TRIS 2052 6
+        ANIM_end
+
+        # char 15
+        ANIM_begin
+            ANIM_hide -2 69 opensam/dgs/r1c3
+            ANIM_hide 71 1000 opensam/dgs/r1c3
+            TRIS 2058 6
+        ANIM_end
+
+        # char 16
+        ANIM_begin
+            ANIM_hide -2 70 opensam/dgs/r1c3
+            ANIM_hide 72 1000 opensam/dgs/r1c3
+            TRIS 2064 6
+        ANIM_end
+
+        # char 17
+        ANIM_begin
+            ANIM_hide -2 71 opensam/dgs/r1c3
+            ANIM_hide 73 1000 opensam/dgs/r1c3
+            TRIS 2070 6
+        ANIM_end
+
+        # char 18
+        ANIM_begin
+            ANIM_hide -2 72 opensam/dgs/r1c3
+            ANIM_hide 74 1000 opensam/dgs/r1c3
+            TRIS 2076 6
+        ANIM_end
+
+        # char 19
+        ANIM_begin
+            ANIM_hide -2 73 opensam/dgs/r1c3
+            ANIM_hide 75 1000 opensam/dgs/r1c3
+            TRIS 2082 6
+        ANIM_end
+
+        # char 20
+        ANIM_begin
+            ANIM_hide -2 74 opensam/dgs/r1c3
+            ANIM_hide 76 1000 opensam/dgs/r1c3
+            TRIS 2088 6
+        ANIM_end
+
+        # char 21
+        ANIM_begin
+            ANIM_hide -2 75 opensam/dgs/r1c3
+            ANIM_hide 77 1000 opensam/dgs/r1c3
+            TRIS 2094 6
+        ANIM_end
+
+        # char 22
+        ANIM_begin
+            ANIM_hide -2 76 opensam/dgs/r1c3
+            ANIM_hide 78 1000 opensam/dgs/r1c3
+            TRIS 2100 6
+        ANIM_end
+
+        # char 23
+        ANIM_begin
+            ANIM_hide -2 77 opensam/dgs/r1c3
+            ANIM_hide 79 1000 opensam/dgs/r1c3
+            TRIS 2106 6
+        ANIM_end
+
+        # char 24
+        ANIM_begin
+            ANIM_hide -2 78 opensam/dgs/r1c3
+            ANIM_hide 80 1000 opensam/dgs/r1c3
+            TRIS 2112 6
+        ANIM_end
+
+        # char 25
+        ANIM_begin
+            ANIM_hide -2 79 opensam/dgs/r1c3
+            ANIM_hide 81 1000 opensam/dgs/r1c3
+            TRIS 2118 6
+        ANIM_end
+
+        # char 26
+        ANIM_begin
+            ANIM_hide -2 80 opensam/dgs/r1c3
+            ANIM_hide 82 1000 opensam/dgs/r1c3
+            TRIS 2124 6
+        ANIM_end
+
+        # char 27
+        ANIM_begin
+            ANIM_hide -2 81 opensam/dgs/r1c3
+            ANIM_hide 83 1000 opensam/dgs/r1c3
+            TRIS 2130 6
+        ANIM_end
+
+        # char 28
+        ANIM_begin
+            ANIM_hide -2 82 opensam/dgs/r1c3
+            ANIM_hide 84 1000 opensam/dgs/r1c3
+            TRIS 2136 6
+        ANIM_end
+
+        # char 29
+        ANIM_begin
+            ANIM_hide -2 83 opensam/dgs/r1c3
+            ANIM_hide 85 1000 opensam/dgs/r1c3
+            TRIS 2142 6
+        ANIM_end
+
+        # char 30
+        ANIM_begin
+            ANIM_hide -2 84 opensam/dgs/r1c3
+            ANIM_hide 86 1000 opensam/dgs/r1c3
+            TRIS 2148 6
+        ANIM_end
+
+        # char 31
+        ANIM_begin
+            ANIM_hide -2 85 opensam/dgs/r1c3
+            ANIM_hide 87 1000 opensam/dgs/r1c3
+            TRIS 2154 6
+        ANIM_end
+
+        # char 32
+        ANIM_begin
+            ANIM_hide -2 86 opensam/dgs/r1c3
+            ANIM_hide 88 1000 opensam/dgs/r1c3
+            TRIS 2160 6
+        ANIM_end
+
+        # char 33
+        ANIM_begin
+            ANIM_hide -2 87 opensam/dgs/r1c3
+            ANIM_hide 89 1000 opensam/dgs/r1c3
+            TRIS 2166 6
+        ANIM_end
+
+        # char 34
+        ANIM_begin
+            ANIM_hide -2 88 opensam/dgs/r1c3
+            ANIM_hide 90 1000 opensam/dgs/r1c3
+            TRIS 2172 6
+        ANIM_end
+
+        # char 35
+        ANIM_begin
+            ANIM_hide -2 89 opensam/dgs/r1c3
+            ANIM_hide 91 1000 opensam/dgs/r1c3
+            TRIS 2178 6
+        ANIM_end
+
+        # char 36
+        ANIM_begin
+            ANIM_hide -2 35 opensam/dgs/r1c3
+            ANIM_hide 37 1000 opensam/dgs/r1c3
+            TRIS 2184 6
+        ANIM_end
+
+        # char 37
+        ANIM_begin
+            ANIM_hide -2 36 opensam/dgs/r1c3
+            ANIM_hide 38 1000 opensam/dgs/r1c3
+            TRIS 2190 6
+        ANIM_end
+
+        # char 38
+        ANIM_begin
+            ANIM_hide -2 37 opensam/dgs/r1c3
+            ANIM_hide 39 1000 opensam/dgs/r1c3
+            TRIS 2196 6
+        ANIM_end
+
+        # char stack opensam/dgs/r1c4 @(53, 82)
+        
+
+        # char 0
+        ANIM_begin
+            ANIM_hide -2 47 opensam/dgs/r1c4
+            ANIM_hide 49 1000 opensam/dgs/r1c4
+            TRIS 2202 6
+        ANIM_end
+
+        # char 1
+        ANIM_begin
+            ANIM_hide -2 48 opensam/dgs/r1c4
+            ANIM_hide 50 1000 opensam/dgs/r1c4
+            TRIS 2208 6
+        ANIM_end
+
+        # char 2
+        ANIM_begin
+            ANIM_hide -2 49 opensam/dgs/r1c4
+            ANIM_hide 51 1000 opensam/dgs/r1c4
+            TRIS 2214 6
+        ANIM_end
+
+        # char 3
+        ANIM_begin
+            ANIM_hide -2 50 opensam/dgs/r1c4
+            ANIM_hide 52 1000 opensam/dgs/r1c4
+            TRIS 2220 6
+        ANIM_end
+
+        # char 4
+        ANIM_begin
+            ANIM_hide -2 51 opensam/dgs/r1c4
+            ANIM_hide 53 1000 opensam/dgs/r1c4
+            TRIS 2226 6
+        ANIM_end
+
+        # char 5
+        ANIM_begin
+            ANIM_hide -2 52 opensam/dgs/r1c4
+            ANIM_hide 54 1000 opensam/dgs/r1c4
+            TRIS 2232 6
+        ANIM_end
+
+        # char 6
+        ANIM_begin
+            ANIM_hide -2 53 opensam/dgs/r1c4
+            ANIM_hide 55 1000 opensam/dgs/r1c4
+            TRIS 2238 6
+        ANIM_end
+
+        # char 7
+        ANIM_begin
+            ANIM_hide -2 54 opensam/dgs/r1c4
+            ANIM_hide 56 1000 opensam/dgs/r1c4
+            TRIS 2244 6
+        ANIM_end
+
+        # char 8
+        ANIM_begin
+            ANIM_hide -2 55 opensam/dgs/r1c4
+            ANIM_hide 57 1000 opensam/dgs/r1c4
+            TRIS 2250 6
+        ANIM_end
+
+        # char 9
+        ANIM_begin
+            ANIM_hide -2 56 opensam/dgs/r1c4
+            ANIM_hide 58 1000 opensam/dgs/r1c4
+            TRIS 2256 6
+        ANIM_end
+
+        # char 10
+        ANIM_begin
+            ANIM_hide -2 64 opensam/dgs/r1c4
+            ANIM_hide 66 1000 opensam/dgs/r1c4
+            TRIS 2262 6
+        ANIM_end
+
+        # char 11
+        ANIM_begin
+            ANIM_hide -2 65 opensam/dgs/r1c4
+            ANIM_hide 67 1000 opensam/dgs/r1c4
+            TRIS 2268 6
+        ANIM_end
+
+        # char 12
+        ANIM_begin
+            ANIM_hide -2 66 opensam/dgs/r1c4
+            ANIM_hide 68 1000 opensam/dgs/r1c4
+            TRIS 2274 6
+        ANIM_end
+
+        # char 13
+        ANIM_begin
+            ANIM_hide -2 67 opensam/dgs/r1c4
+            ANIM_hide 69 1000 opensam/dgs/r1c4
+            TRIS 2280 6
+        ANIM_end
+
+        # char 14
+        ANIM_begin
+            ANIM_hide -2 68 opensam/dgs/r1c4
+            ANIM_hide 70 1000 opensam/dgs/r1c4
+            TRIS 2286 6
+        ANIM_end
+
+        # char 15
+        ANIM_begin
+            ANIM_hide -2 69 opensam/dgs/r1c4
+            ANIM_hide 71 1000 opensam/dgs/r1c4
+            TRIS 2292 6
+        ANIM_end
+
+        # char 16
+        ANIM_begin
+            ANIM_hide -2 70 opensam/dgs/r1c4
+            ANIM_hide 72 1000 opensam/dgs/r1c4
+            TRIS 2298 6
+        ANIM_end
+
+        # char 17
+        ANIM_begin
+            ANIM_hide -2 71 opensam/dgs/r1c4
+            ANIM_hide 73 1000 opensam/dgs/r1c4
+            TRIS 2304 6
+        ANIM_end
+
+        # char 18
+        ANIM_begin
+            ANIM_hide -2 72 opensam/dgs/r1c4
+            ANIM_hide 74 1000 opensam/dgs/r1c4
+            TRIS 2310 6
+        ANIM_end
+
+        # char 19
+        ANIM_begin
+            ANIM_hide -2 73 opensam/dgs/r1c4
+            ANIM_hide 75 1000 opensam/dgs/r1c4
+            TRIS 2316 6
+        ANIM_end
+
+        # char 20
+        ANIM_begin
+            ANIM_hide -2 74 opensam/dgs/r1c4
+            ANIM_hide 76 1000 opensam/dgs/r1c4
+            TRIS 2322 6
+        ANIM_end
+
+        # char 21
+        ANIM_begin
+            ANIM_hide -2 75 opensam/dgs/r1c4
+            ANIM_hide 77 1000 opensam/dgs/r1c4
+            TRIS 2328 6
+        ANIM_end
+
+        # char 22
+        ANIM_begin
+            ANIM_hide -2 76 opensam/dgs/r1c4
+            ANIM_hide 78 1000 opensam/dgs/r1c4
+            TRIS 2334 6
+        ANIM_end
+
+        # char 23
+        ANIM_begin
+            ANIM_hide -2 77 opensam/dgs/r1c4
+            ANIM_hide 79 1000 opensam/dgs/r1c4
+            TRIS 2340 6
+        ANIM_end
+
+        # char 24
+        ANIM_begin
+            ANIM_hide -2 78 opensam/dgs/r1c4
+            ANIM_hide 80 1000 opensam/dgs/r1c4
+            TRIS 2346 6
+        ANIM_end
+
+        # char 25
+        ANIM_begin
+            ANIM_hide -2 79 opensam/dgs/r1c4
+            ANIM_hide 81 1000 opensam/dgs/r1c4
+            TRIS 2352 6
+        ANIM_end
+
+        # char 26
+        ANIM_begin
+            ANIM_hide -2 80 opensam/dgs/r1c4
+            ANIM_hide 82 1000 opensam/dgs/r1c4
+            TRIS 2358 6
+        ANIM_end
+
+        # char 27
+        ANIM_begin
+            ANIM_hide -2 81 opensam/dgs/r1c4
+            ANIM_hide 83 1000 opensam/dgs/r1c4
+            TRIS 2364 6
+        ANIM_end
+
+        # char 28
+        ANIM_begin
+            ANIM_hide -2 82 opensam/dgs/r1c4
+            ANIM_hide 84 1000 opensam/dgs/r1c4
+            TRIS 2370 6
+        ANIM_end
+
+        # char 29
+        ANIM_begin
+            ANIM_hide -2 83 opensam/dgs/r1c4
+            ANIM_hide 85 1000 opensam/dgs/r1c4
+            TRIS 2376 6
+        ANIM_end
+
+        # char 30
+        ANIM_begin
+            ANIM_hide -2 84 opensam/dgs/r1c4
+            ANIM_hide 86 1000 opensam/dgs/r1c4
+            TRIS 2382 6
+        ANIM_end
+
+        # char 31
+        ANIM_begin
+            ANIM_hide -2 85 opensam/dgs/r1c4
+            ANIM_hide 87 1000 opensam/dgs/r1c4
+            TRIS 2388 6
+        ANIM_end
+
+        # char 32
+        ANIM_begin
+            ANIM_hide -2 86 opensam/dgs/r1c4
+            ANIM_hide 88 1000 opensam/dgs/r1c4
+            TRIS 2394 6
+        ANIM_end
+
+        # char 33
+        ANIM_begin
+            ANIM_hide -2 87 opensam/dgs/r1c4
+            ANIM_hide 89 1000 opensam/dgs/r1c4
+            TRIS 2400 6
+        ANIM_end
+
+        # char 34
+        ANIM_begin
+            ANIM_hide -2 88 opensam/dgs/r1c4
+            ANIM_hide 90 1000 opensam/dgs/r1c4
+            TRIS 2406 6
+        ANIM_end
+
+        # char 35
+        ANIM_begin
+            ANIM_hide -2 89 opensam/dgs/r1c4
+            ANIM_hide 91 1000 opensam/dgs/r1c4
+            TRIS 2412 6
+        ANIM_end
+
+        # char 36
+        ANIM_begin
+            ANIM_hide -2 35 opensam/dgs/r1c4
+            ANIM_hide 37 1000 opensam/dgs/r1c4
+            TRIS 2418 6
+        ANIM_end
+
+        # char 37
+        ANIM_begin
+            ANIM_hide -2 36 opensam/dgs/r1c4
+            ANIM_hide 38 1000 opensam/dgs/r1c4
+            TRIS 2424 6
+        ANIM_end
+
+        # char 38
+        ANIM_begin
+            ANIM_hide -2 37 opensam/dgs/r1c4
+            ANIM_hide 39 1000 opensam/dgs/r1c4
+            TRIS 2430 6
+        ANIM_end
+
+        # char stack opensam/dgs/r1c5 @(65, 82)
+        
+
+        # char 0
+        ANIM_begin
+            ANIM_hide -2 47 opensam/dgs/r1c5
+            ANIM_hide 49 1000 opensam/dgs/r1c5
+            TRIS 2436 6
+        ANIM_end
+
+        # char 1
+        ANIM_begin
+            ANIM_hide -2 48 opensam/dgs/r1c5
+            ANIM_hide 50 1000 opensam/dgs/r1c5
+            TRIS 2442 6
+        ANIM_end
+
+        # char 2
+        ANIM_begin
+            ANIM_hide -2 49 opensam/dgs/r1c5
+            ANIM_hide 51 1000 opensam/dgs/r1c5
+            TRIS 2448 6
+        ANIM_end
+
+        # char 3
+        ANIM_begin
+            ANIM_hide -2 50 opensam/dgs/r1c5
+            ANIM_hide 52 1000 opensam/dgs/r1c5
+            TRIS 2454 6
+        ANIM_end
+
+        # char 4
+        ANIM_begin
+            ANIM_hide -2 51 opensam/dgs/r1c5
+            ANIM_hide 53 1000 opensam/dgs/r1c5
+            TRIS 2460 6
+        ANIM_end
+
+        # char 5
+        ANIM_begin
+            ANIM_hide -2 52 opensam/dgs/r1c5
+            ANIM_hide 54 1000 opensam/dgs/r1c5
+            TRIS 2466 6
+        ANIM_end
+
+        # char 6
+        ANIM_begin
+            ANIM_hide -2 53 opensam/dgs/r1c5
+            ANIM_hide 55 1000 opensam/dgs/r1c5
+            TRIS 2472 6
+        ANIM_end
+
+        # char 7
+        ANIM_begin
+            ANIM_hide -2 54 opensam/dgs/r1c5
+            ANIM_hide 56 1000 opensam/dgs/r1c5
+            TRIS 2478 6
+        ANIM_end
+
+        # char 8
+        ANIM_begin
+            ANIM_hide -2 55 opensam/dgs/r1c5
+            ANIM_hide 57 1000 opensam/dgs/r1c5
+            TRIS 2484 6
+        ANIM_end
+
+        # char 9
+        ANIM_begin
+            ANIM_hide -2 56 opensam/dgs/r1c5
+            ANIM_hide 58 1000 opensam/dgs/r1c5
+            TRIS 2490 6
+        ANIM_end
+
+        # char 10
+        ANIM_begin
+            ANIM_hide -2 64 opensam/dgs/r1c5
+            ANIM_hide 66 1000 opensam/dgs/r1c5
+            TRIS 2496 6
+        ANIM_end
+
+        # char 11
+        ANIM_begin
+            ANIM_hide -2 65 opensam/dgs/r1c5
+            ANIM_hide 67 1000 opensam/dgs/r1c5
+            TRIS 2502 6
+        ANIM_end
+
+        # char 12
+        ANIM_begin
+            ANIM_hide -2 66 opensam/dgs/r1c5
+            ANIM_hide 68 1000 opensam/dgs/r1c5
+            TRIS 2508 6
+        ANIM_end
+
+        # char 13
+        ANIM_begin
+            ANIM_hide -2 67 opensam/dgs/r1c5
+            ANIM_hide 69 1000 opensam/dgs/r1c5
+            TRIS 2514 6
+        ANIM_end
+
+        # char 14
+        ANIM_begin
+            ANIM_hide -2 68 opensam/dgs/r1c5
+            ANIM_hide 70 1000 opensam/dgs/r1c5
+            TRIS 2520 6
+        ANIM_end
+
+        # char 15
+        ANIM_begin
+            ANIM_hide -2 69 opensam/dgs/r1c5
+            ANIM_hide 71 1000 opensam/dgs/r1c5
+            TRIS 2526 6
+        ANIM_end
+
+        # char 16
+        ANIM_begin
+            ANIM_hide -2 70 opensam/dgs/r1c5
+            ANIM_hide 72 1000 opensam/dgs/r1c5
+            TRIS 2532 6
+        ANIM_end
+
+        # char 17
+        ANIM_begin
+            ANIM_hide -2 71 opensam/dgs/r1c5
+            ANIM_hide 73 1000 opensam/dgs/r1c5
+            TRIS 2538 6
+        ANIM_end
+
+        # char 18
+        ANIM_begin
+            ANIM_hide -2 72 opensam/dgs/r1c5
+            ANIM_hide 74 1000 opensam/dgs/r1c5
+            TRIS 2544 6
+        ANIM_end
+
+        # char 19
+        ANIM_begin
+            ANIM_hide -2 73 opensam/dgs/r1c5
+            ANIM_hide 75 1000 opensam/dgs/r1c5
+            TRIS 2550 6
+        ANIM_end
+
+        # char 20
+        ANIM_begin
+            ANIM_hide -2 74 opensam/dgs/r1c5
+            ANIM_hide 76 1000 opensam/dgs/r1c5
+            TRIS 2556 6
+        ANIM_end
+
+        # char 21
+        ANIM_begin
+            ANIM_hide -2 75 opensam/dgs/r1c5
+            ANIM_hide 77 1000 opensam/dgs/r1c5
+            TRIS 2562 6
+        ANIM_end
+
+        # char 22
+        ANIM_begin
+            ANIM_hide -2 76 opensam/dgs/r1c5
+            ANIM_hide 78 1000 opensam/dgs/r1c5
+            TRIS 2568 6
+        ANIM_end
+
+        # char 23
+        ANIM_begin
+            ANIM_hide -2 77 opensam/dgs/r1c5
+            ANIM_hide 79 1000 opensam/dgs/r1c5
+            TRIS 2574 6
+        ANIM_end
+
+        # char 24
+        ANIM_begin
+            ANIM_hide -2 78 opensam/dgs/r1c5
+            ANIM_hide 80 1000 opensam/dgs/r1c5
+            TRIS 2580 6
+        ANIM_end
+
+        # char 25
+        ANIM_begin
+            ANIM_hide -2 79 opensam/dgs/r1c5
+            ANIM_hide 81 1000 opensam/dgs/r1c5
+            TRIS 2586 6
+        ANIM_end
+
+        # char 26
+        ANIM_begin
+            ANIM_hide -2 80 opensam/dgs/r1c5
+            ANIM_hide 82 1000 opensam/dgs/r1c5
+            TRIS 2592 6
+        ANIM_end
+
+        # char 27
+        ANIM_begin
+            ANIM_hide -2 81 opensam/dgs/r1c5
+            ANIM_hide 83 1000 opensam/dgs/r1c5
+            TRIS 2598 6
+        ANIM_end
+
+        # char 28
+        ANIM_begin
+            ANIM_hide -2 82 opensam/dgs/r1c5
+            ANIM_hide 84 1000 opensam/dgs/r1c5
+            TRIS 2604 6
+        ANIM_end
+
+        # char 29
+        ANIM_begin
+            ANIM_hide -2 83 opensam/dgs/r1c5
+            ANIM_hide 85 1000 opensam/dgs/r1c5
+            TRIS 2610 6
+        ANIM_end
+
+        # char 30
+        ANIM_begin
+            ANIM_hide -2 84 opensam/dgs/r1c5
+            ANIM_hide 86 1000 opensam/dgs/r1c5
+            TRIS 2616 6
+        ANIM_end
+
+        # char 31
+        ANIM_begin
+            ANIM_hide -2 85 opensam/dgs/r1c5
+            ANIM_hide 87 1000 opensam/dgs/r1c5
+            TRIS 2622 6
+        ANIM_end
+
+        # char 32
+        ANIM_begin
+            ANIM_hide -2 86 opensam/dgs/r1c5
+            ANIM_hide 88 1000 opensam/dgs/r1c5
+            TRIS 2628 6
+        ANIM_end
+
+        # char 33
+        ANIM_begin
+            ANIM_hide -2 87 opensam/dgs/r1c5
+            ANIM_hide 89 1000 opensam/dgs/r1c5
+            TRIS 2634 6
+        ANIM_end
+
+        # char 34
+        ANIM_begin
+            ANIM_hide -2 88 opensam/dgs/r1c5
+            ANIM_hide 90 1000 opensam/dgs/r1c5
+            TRIS 2640 6
+        ANIM_end
+
+        # char 35
+        ANIM_begin
+            ANIM_hide -2 89 opensam/dgs/r1c5
+            ANIM_hide 91 1000 opensam/dgs/r1c5
+            TRIS 2646 6
+        ANIM_end
+
+        # char 36
+        ANIM_begin
+            ANIM_hide -2 35 opensam/dgs/r1c5
+            ANIM_hide 37 1000 opensam/dgs/r1c5
+            TRIS 2652 6
+        ANIM_end
+
+        # char 37
+        ANIM_begin
+            ANIM_hide -2 36 opensam/dgs/r1c5
+            ANIM_hide 38 1000 opensam/dgs/r1c5
+            TRIS 2658 6
+        ANIM_end
+
+        # char 38
+        ANIM_begin
+            ANIM_hide -2 37 opensam/dgs/r1c5
+            ANIM_hide 39 1000 opensam/dgs/r1c5
+            TRIS 2664 6
+        ANIM_end
+
+    # NO-openSAM_end
         # char stack opensam/dgs/time_utc_h1 @(12, 66)
         
 

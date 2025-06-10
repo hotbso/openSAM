@@ -44,14 +44,15 @@ def gen_variant(master, v_name, height, turn_180 = False):
     first_lod = True
     n_no_opensam = 0
     for l in lines:
-        if "# NO-openSAM_end" in l:
-            n_no_opensam -= 1
-            continue
-        elif "# NO-openSAM_begin" in l:
-            n_no_opensam += 1
+        if False:
+            if "# NO-openSAM_end" in l:
+                n_no_opensam -= 1
+                continue
+            elif "# NO-openSAM_begin" in l:
+                n_no_opensam += 1
 
-        if n_no_opensam > 0:
-            continue
+            if n_no_opensam > 0:
+                continue
 
         l = l.replace("AutoDGS", "opensam")
         if "LOD" in l and not first_lod:
