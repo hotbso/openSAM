@@ -19,7 +19,7 @@ LD=g++
 
 CFLAGS=$(OPT) -DVERSION=\"$(VERSION)\" \
     -Wall -Wextra -Wno-format-overflow -Wno-format-truncation \
-    $(INCLUDES) $(DEBUG) -fPIC -DLIN=1 -fno-stack-protector
+    $(INCLUDES) $(DEBUG) -fPIC -DLIN=1 -fno-stack-protector $(DEFINES)
 
 CXXFLAGS=$(CXXSTD) $(CFLAGS)
 LNFLAGS=-shared -rdynamic -nodefaultlibs -undefined_warning

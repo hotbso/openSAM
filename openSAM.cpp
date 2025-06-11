@@ -473,6 +473,7 @@ load_acf_generic_type(const std::string& fn)
 PLUGIN_API int
 XPluginStart(char *out_name, char *out_sig, char *out_desc)
 {
+    LogMsgInit("opensam");
     LogMsg("Startup " VERSION);
 
     probeinfo.structSize = sizeof(XPLMProbeInfo_t);

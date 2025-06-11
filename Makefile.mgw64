@@ -28,7 +28,7 @@ LD=g++
 CFLAGS+=$(CXXSTD) -DVERSION=\"$(VERSION)\"   -g0 $(OPT) -Wextra -Wall  \
 	-fdiagnostics-color -Wno-format-overflow -Wno-format-truncation \
     -DWINDOWS -DWIN32   -DIBM=1 \
-	$(INCLUDES) $(DEBUG) -I$(OPENAL)
+	$(INCLUDES) $(DEBUG) -I$(OPENAL) $(DEFINES)
 
 COMPILE.cpp = $(CXX) $(CFLAGS) $(DEPFLAGS) -c
 

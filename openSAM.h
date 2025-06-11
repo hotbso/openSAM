@@ -25,16 +25,12 @@
 #include <vector>
 #include <unordered_map>
 
-#define XPLM200
-#define XPLM210
-#define XPLM300
-#define XPLM301
-#define XPLM400
-
 #include "XPLMDataAccess.h"
 #include "XPLMMenus.h"
 #include "XPLMGraphics.h"
 #include "XPLMScenery.h"
+
+#include "log_msg.h"
 
 static constexpr float kD2R = std::numbers::pi/180.0;
 static constexpr float kF2M = 0.3048;                   // 1 ft [m]
@@ -137,12 +133,6 @@ extern XPLMProbeInfo_t probeinfo;
 extern XPLMProbeRef probe_ref;
 
 // functions
-extern void LogMsgImpl(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
-#ifdef __FILE_NAME__
-#define LogMsg(fmt, ...) LogMsgImpl(__FILE_NAME__  ":%d: " fmt, __LINE__ __VA_OPT__(,) __VA_ARGS__)
-#else
-#define LogMsg(fmt, ...) LogMsgImpl(__FILE__  ":%d: " fmt, __LINE__ __VA_OPT__(,) __VA_ARGS__)
-#endif
 
 extern void ToggleUI(void);
 

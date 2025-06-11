@@ -26,73 +26,20 @@
 #include "plane.h"
 #include "samjw.h"
 #include "jwctrl.h"
+#include "widget_ctx.h"
 
 #include "XPLMDisplay.h"
 #include "XPStandardWidgets.h"
 
-typedef struct _widget_ctx
-{
-    XPWidgetID widget;
-    int in_vr;          /* currently in vr */
-    int l, t, w, h;     /* last geometry before bringing into vr */
-} widget_ctx_t;
-
-static widget_ctx_t ui_widget_ctx;
+static WidgetCtx ui_widget_ctx;
 
 static XPWidgetID ui_widget, jw_btn[kMaxDoor][kNearJwLimit],
     auto_btn, dock_btn, undock_btn;
 
 static void
-show_widget(widget_ctx_t *ctx)
-{
-    if (XPIsWidgetVisible(ctx->widget))
-        return;
-
-    /* force window into visible area of screen
-       we use modern windows under the hut so UI coordinates are in boxels */
-
-    /* Note that (0,0) is the top left while for widgets it's bottom left
-     * so we pass the y* arguments that the outcome is in widget coordinates */
-
-    int xl, yl, xr, yr;
-    XPLMGetScreenBoundsGlobal(&xl, &yr, &xr, &yl);
-
-    ctx->l = (ctx->l + ctx->w < xr) ? ctx->l : xr - ctx->w - 50;
-    ctx->l = (ctx->l <= xl) ? 20 : ctx->l;
-
-    ctx->t = (ctx->t - ctx->h > yl) ? ctx->t : (yr - ctx->h - 50);
-    ctx->t = (ctx->t >= ctx->h) ? ctx->t : (yr / 2);
-
-    LogMsg("show_widget: s: (%d, %d) -> (%d, %d), w: (%d, %d) -> (%d,%d)",
-           xl, yl, xr, yr, ctx->l, ctx->t, ctx->l + ctx->w, ctx->t - ctx->h);
-
-    XPSetWidgetGeometry(ctx->widget, ctx->l, ctx->t, ctx->l + ctx->w, ctx->t - ctx->h);
-    XPShowWidget(ctx->widget);
-
-    int in_vr = XPLMGetDatai(vr_enabled_dr);
-    if (in_vr) {
-        LogMsg("VR mode detected");
-        XPLMWindowID window =  XPGetWidgetUnderlyingWindow(ctx->widget);
-        XPLMSetWindowPositioningMode(window, xplm_WindowVR, -1);
-        ctx->in_vr = 1;
-    } else {
-        if (ctx->in_vr) {
-            LogMsg("widget now out of VR, map at (%d,%d)", ctx->l, ctx->t);
-            XPLMWindowID window =  XPGetWidgetUnderlyingWindow(ctx->widget);
-            XPLMSetWindowPositioningMode(window, xplm_WindowPositionFree, -1);
-
-            /* A resize is necessary so it shows up on the main screen again */
-            XPSetWidgetGeometry(ctx->widget, ctx->l, ctx->t, ctx->l + ctx->w, ctx->t - ctx->h);
-            ctx->in_vr = 0;
-        }
-    }
-}
-
-static void
 close_ui()
 {
-    XPGetWidgetGeometry(ui_widget_ctx.widget, &ui_widget_ctx.l, &ui_widget_ctx.t, NULL, NULL);
-    XPHideWidget(ui_widget_ctx.widget);
+    ui_widget_ctx.Hide();
 }
 
 // static
@@ -239,18 +186,12 @@ create_ui()
     int height = 240;
     int left1;
 
-    ui_widget_ctx.l = left;
-    ui_widget_ctx.t = top;
-    ui_widget_ctx.w = width;
-    ui_widget_ctx.h = height;
-
     ui_widget = XPCreateWidget(left, top, left + width, top - height,
                                0, "openSAM " VERSION, 1, NULL, xpWidgetClass_MainWindow);
-    ui_widget_ctx.widget = ui_widget;
+    ui_widget_ctx.Set(ui_widget, left, top, width, height);
 
     XPSetWidgetProperty(ui_widget, xpProperty_MainWindowHasCloseBoxes, 1);
     XPAddWidgetCallback(ui_widget, MyPlane::ui_widget_cb);
-
 
     top -= 20;
     left1 = left + 60;
@@ -317,6 +258,6 @@ ToggleUI(void) {
 
     if (! my_plane.is_helicopter_) {
         my_plane.update_ui(0);
-        show_widget(&ui_widget_ctx);
+        ui_widget_ctx.Show();
     }
 }

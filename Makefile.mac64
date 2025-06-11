@@ -39,7 +39,7 @@ else
     LIBEXPAT=/osxcross/target/macports/pkgs/opt/local/lib/libexpat.a
 endif
 
-DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -Wno-deprecated-declarations
+DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -Wno-deprecated-declarations $(DEFINES)
 
 CXXFLAGS+=$(CXXSTD) $(OPT) -Wall $(INCLUDES) $(DEBUG) -DVERSION=\"$(VERSION)\" $(DEFS)
 
