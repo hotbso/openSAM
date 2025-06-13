@@ -20,13 +20,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get XPlane SDK
+      - name: Get XPlane SDK + xplib
         shell: bash
         run: |
             SDK_VERSION=411
             curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o "XPSDK${SDK_VERSION}.zip"
             unzip XPSDK${SDK_VERSION}.zip
             mv SDK ../
+            git clone https://github.com/hotbso/xplib.git ../xplib
 
       - uses: melusina-org/setup-macports@v1
         if: startsWith(matrix.os, 'macos')
@@ -76,13 +77,14 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - name: Get XPlane SDK
+      - name: Get XPlane SDK + xplib
         shell: bash
         run: |
             SDK_VERSION=411
             curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o "XPSDK${SDK_VERSION}.zip"
             unzip XPSDK${SDK_VERSION}.zip
             mv SDK ../
+            git clone https://github.com/hotbso/xplib.git ../xplib
 
       - name: Get libOpenal32
         shell: bash
