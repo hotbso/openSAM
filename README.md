@@ -8,7 +8,17 @@ This is a lightweight open source replacement for SAM's basic functionality: Jet
 It supports the multiplayer plugins *xPilot, Traffic Global XP and LiveTraffic* as well.
 
 It is meant to be a drop in replacement for SAM, i.e. at startup it scans for SAM enabled sceneries and uses the original configuration files.
-![Image](images/EDDM_A340-600.jpg) ![Image](images/custom-animation.jpg) ![Image](images/Marshaller_high.jpg) ![Image](images/MP-TGXP.jpg)
+### Jetways
+![Image](images/EDDM_A340-600.jpg)
+### DGS
+![Image](images/Marshaller_high.jpg) 
+### Simbrief integration
+Requires the simbrief_hub plugin (https://github.com/hotbso/simbrief_hub)
+![Image](images/simbrief.jpg)
+### Custom animations
+![Image](images/custom-animation.jpg)
+### Multiplayer support
+![Image](images/MP-TGXP.jpg) 
 
 ## Download
 Download the latest (non-beta-)release here: https://github.com/hotbso/openSAM/releases/latest
