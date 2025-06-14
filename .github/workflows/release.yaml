@@ -172,6 +172,7 @@ jobs:
               cp -r ${OPENSAM_ARTIFACT}/LICENSE $RELEASE_FOLDER/.
               cp -r ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt $RELEASE_FOLDER/.
               cp -r ${OPENSAM_ARTIFACT}/00_README.txt $RELEASE_FOLDER/.
+              cp -r ${OPENSAM_ARTIFACT}/README.html $RELEASE_FOLDER/.
 
               echo "=============== OPEN SAM ARTIFACT ==============="
               rsync -av  ${OPENSAM_ARTIFACT}/openSAM/ ${OPENSAM_FOLDER}/
@@ -179,6 +180,7 @@ jobs:
               cp -r ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_FOLDER}/LICENSE
               cp -r ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_FOLDER}/Credits_and_Licensing.txt
               cp -r ${OPENSAM_ARTIFACT}/00_README.txt ${OPENSAM_FOLDER}/00_README.txt
+              cp -r ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_FOLDER}/.
               ls -l ${OPENSAM_FOLDER}
               echo
 
@@ -187,6 +189,7 @@ jobs:
               cp -r ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_LIBRARY_FOLDER}/LICENSE
               cp -r ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_LIBRARY_FOLDER}/Credits_and_Licensing.txt
               cp -r ${OPENSAM_ARTIFACT}/00_README.txt ${OPENSAM_LIBRARY_FOLDER}/00_README.txt
+              cp -r ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_LIBRARY_FOLDER}/.
               ls -l ${OPENSAM_LIBRARY_FOLDER}
 
               ## skunkcrafts for openSAM_Library
