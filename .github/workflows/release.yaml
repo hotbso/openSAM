@@ -236,8 +236,8 @@ jobs:
                 echo "$modified_file|$filesize" >> ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_sizeslist.txt
               done
 
-              touch ${OPENSAM_FOLDER}/skunkcrafts_updater_blacklist.txt
-              touch ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_blacklist.txt
+              echo "00_README.txt" > ${OPENSAM_FOLDER}/skunkcrafts_updater_blacklist.txt
+              echo "00_README.txt" > ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_blacklist.txt
 
               (cd ${RELEASE_FOLDER} && 7z a "${{ github.workspace }}/openSAM-${XP_VERSION}-${VERSION}.zip" *)
             done
