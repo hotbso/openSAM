@@ -411,11 +411,15 @@ parse_apt_dat(const std::string& fn, Scenery* sc)
     line.reserve(2000);          // can be quite long
 
     while (std::getline(apt, line)) {
-        size_t i = line.find('\r');
-        if (i != std::string::npos)
-            line.resize(i);
+        // 1302 icao_code ENRM
+        if (line.starts_with("1302 icao_code ")) {
+            sc->arpt_icao = line.substr(15, 4);
+            continue;
+        }
 
         if (line.find("1300 ") == 0) {
+            if (line.back() == '\r')
+                line.pop_back();
             //LogMsg("%s", line);
             line.erase(0, 5);
             Stand *stand = new Stand();

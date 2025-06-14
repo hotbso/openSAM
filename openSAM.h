@@ -61,6 +61,7 @@ struct Scenery {
     Scenery& operator=(const Scenery&) = delete;
 
     char name[52];
+    std::string arpt_icao;
 
     std::vector<SamJw*> sam_jws;
     std::vector<Stand*> stands;

@@ -8,7 +8,7 @@ DEFINES=-DXPLM200 -DXPLM210 -DXPLM300 -DXPLM301 -DXPLM400
 # all sources without jwctrl_sound*.cpp which gets special treatment
 SOURCES=openSAM.cpp os_dgs.cpp samjw.cpp jwctrl.cpp os_ui.cpp os_anim.cpp sam_xml.cpp read_wav.cpp \
     plane.cpp myplane.cpp LTAPI.cpp mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp \
-    log_msg.cpp widget_ctx.cpp
+    log_msg.cpp widget_ctx.cpp simbrief.cpp
 
 # the c++ standard to use
 CXXSTD=-std=c++20

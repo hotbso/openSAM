@@ -19,6 +19,8 @@
 //    USA
 //
 
+#include <string>
+
 struct Stand {
     float lat, lon, hdgt;   // from apt.dat
 

@@ -22,10 +22,12 @@
 
 #include <cstddef>
 #include <cstring>
+#include <cassert>
 
 #include "openSAM.h"
 #include "os_dgs.h"
 #include "plane.h"
+#include "simbrief.h"
 
 #include "XPLMInstance.h"
 #include "XPLMNavigation.h"
@@ -50,6 +52,19 @@ static constexpr float kMaxDgs2StandZ = 80.0f;
 
 static constexpr float kDgsDist = 20.0f;        // distance from dgs to stand for azimuth computation
 
+static constexpr int kR1Nchar = 6;              // chars in row 1 of the VDGS
+
+class ScrollTxt {
+    std::string txt_;           // text to scroll
+    int char_pos_;              // next char to enter on the right
+    int dr_scroll_;             // dref value for scroll ctrl
+    char chars_[kR1Nchar]{};    // chars currently visible
+
+  public:
+    ScrollTxt(const std::string& txt);
+    float Tick();
+};
+
 // types
 typedef enum
 {
@@ -71,13 +86,15 @@ static XPLMDataRef percent_lights_dr, sin_wave_dr,
 static int status, track, lr;
 static float azimuth, distance;
 
-static Stand *nearest_stand;
-static float nearest_stand_ts;    // timestamp of last FindNearestStand()
-// track the max local z (= closest to stand) of dgs objs for nearest_stand
+static Stand *active_stand;
+static float active_stand_ts;   // timestamp of last FindNearestStand()
+// track the max local z (= closest to stand) of dgs objs for active_stand
 static float assoc_dgs_z_l, assoc_dgs_x_l, assoc_dgs_ts;
+static bool dgs_assoc;          // stand is associated with a dgs
 
-// flag if stand is associated with a dgs
-static int dgs_assoc;
+static std::string arpt_icao;           // departure airport
+static std::string display_name;        // departure stand's 'net' name <= kR1Nchar
+static std::unique_ptr<ScrollTxt> scroll_txt; // on departure stand
 
 static int is_marshaller;
 static float marshaller_x, marshaller_y, marshaller_z, marshaller_y_0, marshaller_psi;
@@ -88,6 +105,10 @@ static int update_stand_log_ts;   // throttling of logging
 static float sin_wave_prev;
 
 static float time_utc_m0, time_utc_m1, time_utc_h0, time_utc_h1, vdgs_brightness;
+
+static std::unique_ptr<Ofp> ofp;
+static int ofp_seqno;
+static float ofp_ts;
 
 enum _DGS_DREF {
     DGS_DR_IDENT,
@@ -102,6 +123,13 @@ enum _DGS_DREF {
     DGS_DR_ICAO_1,
     DGS_DR_ICAO_2,
     DGS_DR_ICAO_3,
+    DGS_DR_R1_SCROLL,
+    DGS_DR_R1C0,            // top row (=1), char #
+    DGS_DR_R1C1,
+    DGS_DR_R1C2,
+    DGS_DR_R1C3,
+    DGS_DR_R1C4,
+    DGS_DR_R1C5,
     DGS_DR_BOARDING,        // boarding state 0/1
     DGS_DR_PAXNO_0,         // 3 digits
     DGS_DR_PAXNO_1,
@@ -123,6 +151,13 @@ static const char *dgs_dlist_dr[] = {
     "opensam/dgs/icao_1",
     "opensam/dgs/icao_2",
     "opensam/dgs/icao_3",
+    "opensam/dgs/r1_scroll",
+    "opensam/dgs/r1c0",
+    "opensam/dgs/r1c1",
+    "opensam/dgs/r1c2",
+    "opensam/dgs/r1c3",
+    "opensam/dgs/r1c4",
+    "opensam/dgs/r1c5",
     "opensam/dgs/boarding",
     "opensam/dgs/paxno_0",
     "opensam/dgs/paxno_1",
@@ -150,11 +185,46 @@ static constexpr float SAM1_LATERAL_OFF = 10.0f;   // switches off VDGS
 // dref values
 static float sam1_status, sam1_lateral, sam1_longitudinal;
 
+//------------------------------------------------------------------------------------
+ScrollTxt::ScrollTxt(const std::string& txt)
+{
+    txt_ = txt;
+    dr_scroll_= 10;   // right most
+    chars_[kR1Nchar - 1] = txt_[0];
+    char_pos_ = 0;
+}
+
+float
+ScrollTxt::Tick()
+{
+    if (txt_.size() == 0)
+        return 4.0f;
+
+    dr_scroll_ -= 2;
+    if (dr_scroll_ < 0) {
+        dr_scroll_ = 10;
+        char_pos_++;
+        if (char_pos_ >= (int)txt_.size())
+            char_pos_ = 0;
+
+        for (int i = 1; i < kR1Nchar; i++)
+            chars_[i - 1] = chars_[i];
+        chars_[kR1Nchar - 1] = txt_[char_pos_];
+    }
+
+    drefs[DGS_DR_R1_SCROLL] = dr_scroll_;
+    for (int i = 0; i < kR1Nchar; i++)
+        drefs[DGS_DR_R1C0 + i] = chars_[i];
+
+    return 0.05f;
+};
+
+
 void
 DgsSetInactive(void)
 {
     LogMsg("dgs set to INACTIVE");
-    nearest_stand = nullptr;
+    active_stand = nullptr;
     state = INACTIVE;
 
     if (marshaller_inst) {
@@ -205,7 +275,7 @@ Stand::Xform2RefFrame()
         XPLMWorldToLocal(lat, lon, my_plane.elevation(),
                          &stand_x, &stand_y, &stand_z);
         ref_gen_ = ::ref_gen;
-        dgs_assoc = 0;    // association is lost
+        dgs_assoc = false;      // association is lost
         assoc_dgs_z_l = -1.0E10;
         assoc_dgs_x_l = 1.0E10;
         assoc_dgs_ts = 1.0E10;
@@ -239,13 +309,13 @@ Stand::Global2Stand(float x, float z, float& x_l, float& z_l)
 static inline bool
 IsDgsActive(float obj_x, float obj_z, float obj_psi)
 {
-    if (nullptr == nearest_stand)
+    if (nullptr == active_stand)
         return false;
 
     stat_dgs_acc++;
 
     float dgs_x_l, dgs_z_l;
-    nearest_stand->Global2Stand(obj_x, obj_z, dgs_x_l, dgs_z_l);
+    active_stand->Global2Stand(obj_x, obj_z, dgs_x_l, dgs_z_l);
     //LogMsg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
     if (dgs_assoc && (dgs_z_l < assoc_dgs_z_l - 2.0f || fabsf(dgs_x_l) > assoc_dgs_x_l))
@@ -255,7 +325,7 @@ IsDgsActive(float obj_x, float obj_z, float obj_psi)
     // and reasonably aligned with stand (or for SAM1 anti aligned)
     if (fabsf(dgs_x_l) > kMaxDgs2StandX
         || dgs_z_l < -kMaxDgs2StandZ || dgs_z_l > -5.0f
-        || BETWEEN(fabsf(RA(nearest_stand->hdgt - obj_psi)), 10.0f, 170.0f))
+        || BETWEEN(fabsf(RA(active_stand->hdgt - obj_psi)), 10.0f, 170.0f))
         return false;
 
     // we found one
@@ -268,7 +338,7 @@ IsDgsActive(float obj_x, float obj_z, float obj_psi)
         LogMsg("associating DGS: dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
     }
 
-    dgs_assoc = 1;
+    dgs_assoc = true;
     return true;
 }
 
@@ -301,7 +371,7 @@ DgsActiveAcc(void *ref)
         return 0.0f;
 
     if (DGS_DR_IDENT == dr_index) {
-        if (fabsf(RA(nearest_stand->hdgt - obj_psi)) > 10.0f)   // no anti alignment for the Marshaller
+        if (fabsf(RA(active_stand->hdgt - obj_psi)) > 10.0f)   // no anti alignment for the Marshaller
             return 0.0;
 
         // if last nearest dgs was found 2 seconds ago
@@ -462,7 +532,7 @@ FindNearestStand()
         }
     }
 
-    if (min_stand != nullptr && min_stand != nearest_stand) {
+    if (min_stand != nullptr && min_stand != active_stand) {
         is_marshaller = 0;
 
         if (marshaller_inst) {
@@ -478,8 +548,8 @@ FindNearestStand()
                 min_stand->lat, min_stand->lon,
                 min_stand->hdgt, dist, kDgsDist);
 
-        nearest_stand = min_stand;
-        dgs_assoc = 0;
+        active_stand = min_stand;
+        dgs_assoc = false;
         assoc_dgs_z_l = -1.0E10;
         assoc_dgs_ts = 1.0E10;
         assoc_dgs_x_l = 1.0E10;
@@ -487,9 +557,12 @@ FindNearestStand()
     }
 }
 
-static void
+// -> changed
+static bool
 FindDepartureStand()
 {
+    bool changed = false;
+
     float plane_lat = my_plane.lat();
     float plane_lon = my_plane.lon();
 
@@ -502,6 +575,7 @@ FindDepartureStand()
     float nw_x = plane_x + my_plane.nose_gear_z_ * sinf(kD2R * plane_hdgt);
 
     Stand *ds = nullptr;
+    Scenery *min_sc = nullptr;
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
@@ -521,19 +595,56 @@ FindDepartureStand()
             //LogMsg("stand: %s, z: %2.1f, x: %2.1f", s->id, dz, dx);
             if (fabsf(dx * dx + dz * dz) < 1.0f) {
                 ds = s;
+                min_sc = sc;
                 break;
             }
         }
     }
 
-    if (ds != nearest_stand) {
-        LogMsg("departure stand is: %s", ds ? ds->id : "none");
-        nearest_stand = ds;
-        dgs_assoc = 0;
+    if (ds != active_stand) {
+        if (ds) {
+            // create display name
+            // a stand name can be anything between "1" and "Gate A 40 (Class C, Terminal 3)"
+            // we try to extract the net name "A 40" in the latter case
+            const std::string& dsn = ds->id;
+
+            if (dsn.starts_with("Stand"))
+                display_name = dsn.substr(6);
+            else if (dsn.starts_with("Gate"))
+                display_name = dsn.substr(5);
+            else
+                display_name = dsn;
+
+            // delete stuff following and including a "(,;"
+            if (display_name.length() > kR1Nchar) {
+                const auto i = display_name.find_first_of("(,;");
+                if (i != std::string::npos) {
+                    display_name.resize(i);
+                    display_name.erase(display_name.find_last_not_of(" ") + 1);
+                }
+            }
+
+            // trim whitespace
+            display_name.erase(0, display_name.find_first_not_of(" "));
+
+            if (display_name.length() > kR1Nchar)
+                display_name.clear();  // give up
+            arpt_icao = min_sc->arpt_icao;
+            LogMsg("departure stand is: %s/%s, display_name: '%s'",
+                   arpt_icao.c_str(), ds->id, display_name.c_str());
+        } else {
+            LogMsg("No departure stand found");
+        }
+
+        active_stand = ds;
+        dgs_assoc = false;
         assoc_dgs_z_l = -1.0E10;
         assoc_dgs_ts = 1.0E10;
         assoc_dgs_x_l = 1.0E10;
+        changed = true;
     }
+
+    return changed;
 }
 
 int
@@ -616,45 +727,64 @@ DgsStateMachine()
     state_t prev_state = state;
 
     // DEPARTURE and friends ...
-    // that's all low freq stuff
     if (INACTIVE <= state && state <= BOARDING) {
         // on beacon or engine or teleportation -> INACTIVE
         if (my_plane.beacon_on() || my_plane.engines_on()) {
-            nearest_stand = nullptr;
+            active_stand = nullptr;
             state = INACTIVE;
             return 2.0f;
         }
 
         // check for stand
-        FindDepartureStand();
-        if (nearest_stand == nullptr) {
+        bool changed = FindDepartureStand();
+        if (active_stand == nullptr) {
             state = INACTIVE;
             return 4.0f;
         }
 
-        if (my_plane.pax_no() == 0) {
-            state = DEPARTURE;
-            if (state != prev_state)
-                LogMsg("New state %s", state_str[state]);
-        }
-
-        if (state == INACTIVE)
-            return 4.0f;
+        if (changed)
+            scroll_txt = std::make_unique<ScrollTxt>(arpt_icao + " STAND " + display_name + "   ");
 
         // FALLTHROUGH
     }
 
+    assert(active_stand != nullptr);
+
+    if (my_plane.pax_no() <= 0) {
+        state = DEPARTURE;
+        if (state != prev_state)
+            LogMsg("New state %s", state_str[state]);
+            // FALLTHROUGH
+    }
+
+    if (state == INACTIVE)
+        return std::min(4.0f, scroll_txt->Tick());
+
     if (state == DEPARTURE) {
-        if (my_plane.pax_no() == 0)
-            return 4.0f;
-        state = BOARDING;
-        LogMsg("New state %s", state_str[state]);
+       // although LoadIfNewer is cheap throttling it is even cheaper
+        if (now > ofp_ts + 5.0f) {
+            ofp_ts = now;
+            ofp = Ofp::LoadIfNewer(ofp_seqno);  // fetch ofp
+            if (ofp) {
+                ofp_seqno = ofp->seqno;
+                std::string ofp_str = ofp->GenDepartureStr();
+                scroll_txt = make_unique<ScrollTxt>(arpt_icao + " STAND " + display_name + "   "
+                                                        + ofp_str + "   ");
+            }
+        }
+
+        if (my_plane.pax_no() > 0) {
+            state = BOARDING;
+            LogMsg("New state %s", state_str[state]);
+            // FALLTHROUGH
+        } else
+            return scroll_txt->Tick();  // just scroll the text
         // FALLTHROUGH
     }
 
     if (state == BOARDING) {
         int pax_no = my_plane.pax_no();
-        LogMsg("boarding pax_no: %d", pax_no);
+        //LogMsg("boarding pax_no: %d", pax_no);
         int pn[3]{ -1, -1, -1};
         for (int i = 0; i < 3; i++) {
             pn[i] = pax_no % 10;
@@ -667,19 +797,19 @@ DgsStateMachine()
         for (int i = 0; i < 3; i++)
             drefs[DGS_DR_PAXNO_0 + i] = pn[i];
 
-        return 1.0f;
+        return std::min(1.0f, scroll_txt->Tick());
     }
 
     // ARRIVAL and friends ...
     // this can be high freq stuff
 
     // throttle costly search
-    if (now > nearest_stand_ts + 2.0f) {
+    if (now > active_stand_ts + 2.0f) {
         FindNearestStand();
-        nearest_stand_ts = now;
+        active_stand_ts = now;
     }
 
-    if (nearest_stand == nullptr) {
+    if (active_stand == nullptr) {
         state = ARRIVAL;
         return 1.0;
     }
@@ -694,10 +824,10 @@ DgsStateMachine()
     // xform plane pos into stand local coordinate system
 
     float local_x, local_z;
-    nearest_stand->Global2Stand(my_plane.x(), my_plane.z(), local_x, local_z);
+    active_stand->Global2Stand(my_plane.x(), my_plane.z(), local_x, local_z);
 
     // relative reading to stand +/- 180
-    float local_hdgt = RA(my_plane.psi() - nearest_stand->hdgt);
+    float local_hdgt = RA(my_plane.psi() - active_stand->hdgt);
 
     // nose wheel
     float nw_z = local_z - my_plane.nose_gear_z_;
@@ -1004,9 +1134,9 @@ DgsStateMachine()
 
                         // move slightly to the plane
                         static constexpr float delta_z = 1.0f;
-                        drawinfo.x = marshaller_x - delta_z * nearest_stand->sin_hdgt;
+                        drawinfo.x = marshaller_x - delta_z * active_stand->sin_hdgt;
                         drawinfo.y = marshaller_y_0;
-                        drawinfo.z = marshaller_z + delta_z * nearest_stand->cos_hdgt;
+                        drawinfo.z = marshaller_z + delta_z * active_stand->cos_hdgt;
                         XPLMInstanceSetPosition(stairs_inst, &drawinfo, NULL);
                     }
                 }
@@ -1023,7 +1153,7 @@ DgsStateMachine()
         if (now > update_stand_log_ts + 2.0f) {
             update_stand_log_ts = now;
             LogMsg("stand: %s, state: %s, assoc: %d, status: %d, track: %d, lr: %d, distance: %0.2f, azimuth: %0.1f",
-                   nearest_stand->id, state_str[state], dgs_assoc,
+                   active_stand->id, state_str[state], dgs_assoc,
                    status, track, lr, distance, azimuth);
             LogMsg("sam1: status %0.0f, lateral: %0.1f, longitudinal: %0.1f",
                     sam1_status, sam1_lateral, sam1_longitudinal);
