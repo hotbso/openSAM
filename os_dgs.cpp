@@ -746,58 +746,57 @@ DgsStateMachine()
             scroll_txt = std::make_unique<ScrollTxt>(arpt_icao + " STAND " + display_name + "   ");
 
         // FALLTHROUGH
-    }
+        assert(active_stand != nullptr);
 
-    assert(active_stand != nullptr);
+        if (my_plane.pax_no() <= 0) {
+            state = DEPARTURE;
+            if (state != prev_state)
+                LogMsg("New state %s", state_str[state]);
+                // FALLTHROUGH
+        }
 
-    if (my_plane.pax_no() <= 0) {
-        state = DEPARTURE;
-        if (state != prev_state)
-            LogMsg("New state %s", state_str[state]);
-            // FALLTHROUGH
-    }
+        if (state == INACTIVE)
+            return std::min(4.0f, scroll_txt->Tick());
 
-    if (state == INACTIVE)
-        return std::min(4.0f, scroll_txt->Tick());
-
-    if (state == DEPARTURE) {
-       // although LoadIfNewer is cheap throttling it is even cheaper
-        if (now > ofp_ts + 5.0f) {
-            ofp_ts = now;
-            ofp = Ofp::LoadIfNewer(ofp_seqno);  // fetch ofp
-            if (ofp) {
-                ofp_seqno = ofp->seqno;
-                std::string ofp_str = ofp->GenDepartureStr();
-                scroll_txt = make_unique<ScrollTxt>(arpt_icao + " STAND " + display_name + "   "
-                                                        + ofp_str + "   ");
+        if (state == DEPARTURE) {
+           // although LoadIfNewer is cheap throttling it is even cheaper
+            if (now > ofp_ts + 5.0f) {
+                ofp_ts = now;
+                ofp = Ofp::LoadIfNewer(ofp_seqno);  // fetch ofp
+                if (ofp) {
+                    ofp_seqno = ofp->seqno;
+                    std::string ofp_str = ofp->GenDepartureStr();
+                    scroll_txt = make_unique<ScrollTxt>(arpt_icao + " STAND " + display_name + "   "
+                                                            + ofp_str + "   ");
+                }
             }
-        }
 
-        if (my_plane.pax_no() > 0) {
-            state = BOARDING;
-            LogMsg("New state %s", state_str[state]);
+            if (my_plane.pax_no() > 0) {
+                state = BOARDING;
+                LogMsg("New state %s", state_str[state]);
+                // FALLTHROUGH
+            } else
+                return scroll_txt->Tick();  // just scroll the text
             // FALLTHROUGH
-        } else
-            return scroll_txt->Tick();  // just scroll the text
-        // FALLTHROUGH
-    }
-
-    if (state == BOARDING) {
-        int pax_no = my_plane.pax_no();
-        //LogMsg("boarding pax_no: %d", pax_no);
-        int pn[3]{ -1, -1, -1};
-        for (int i = 0; i < 3; i++) {
-            pn[i] = pax_no % 10;
-            pax_no /= 10;
-            if (pax_no == 0)
-                break;
         }
 
-        drefs[DGS_DR_BOARDING] = 1;
-        for (int i = 0; i < 3; i++)
-            drefs[DGS_DR_PAXNO_0 + i] = pn[i];
+        if (state == BOARDING) {
+            int pax_no = my_plane.pax_no();
+            //LogMsg("boarding pax_no: %d", pax_no);
+            int pn[3]{ -1, -1, -1};
+            for (int i = 0; i < 3; i++) {
+                pn[i] = pax_no % 10;
+                pax_no /= 10;
+                if (pax_no == 0)
+                    break;
+            }
 
-        return std::min(1.0f, scroll_txt->Tick());
+            drefs[DGS_DR_BOARDING] = 1;
+            for (int i = 0; i < 3; i++)
+                drefs[DGS_DR_PAXNO_0 + i] = pn[i];
+
+            return std::min(1.0f, scroll_txt->Tick());
+        }
     }
 
     // ARRIVAL and friends ...
