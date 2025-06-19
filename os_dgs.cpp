@@ -766,6 +766,7 @@ DgsStateMachine()
                 if (ofp) {
                     ofp_seqno = ofp->seqno;
                     std::string ofp_str = ofp->GenDepartureStr();
+                    LogMsg("ofp_str: '%s'", ofp_str.c_str());
                     scroll_txt = make_unique<ScrollTxt>(arpt_icao + " STAND " + display_name + "   "
                                                             + ofp_str + "   ");
                 }
