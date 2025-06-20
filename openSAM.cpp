@@ -86,6 +86,8 @@
 //
 ///
 
+const char* log_msg_prefix = "opensam: ";
+
 // no multiplayer processing if y_agl > limit
 constexpr float kMultiPlayerHeightLimit = 1000.0f;
 
@@ -473,7 +475,6 @@ load_acf_generic_type(const std::string& fn)
 PLUGIN_API int
 XPluginStart(char *out_name, char *out_sig, char *out_desc)
 {
-    LogMsgInit("opensam");
     LogMsg("Startup " VERSION);
 
     probeinfo.structSize = sizeof(XPLMProbeInfo_t);
@@ -631,6 +632,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 PLUGIN_API void
 XPluginStop(void)
 {
+    LogMsg("plugin stopped");
 }
 
 
@@ -647,7 +649,7 @@ XPluginDisable(void)
     LogMsg("scenery far skip:     %9llu", stat_sc_far_skip);
     LogMsg("near skip:            %9llu", stat_near_skip);
     LogMsg("stat_jw_cache_hit     %9llu", stat_jw_cache_hit);
-    LogMsg("cache hit rate:       %9.2f %%", 100.0f * stat_jw_cache_hit / stat_acc_called);
+    LogMsg("cache hit rate:       %9.2f %%", 100.0f * stat_jw_cache_hit / (stat_acc_called + 1));
     LogMsg("dgs acc called:       %9llu", stat_dgs_acc);
     LogMsg("stat_anim_acc_called: %9llu", stat_anim_acc_called);
     LogMsg("stat_auto_drf_called: %9llu", stat_auto_drf_called);
