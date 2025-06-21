@@ -30,6 +30,8 @@
 #include "samjw.h"
 #include "os_anim.h"
 
+const char *log_msg_prefix = "sam_cml_test: ";
+
 std::string xp_dir{"E:/X-Plane-12-test"};
 
 int

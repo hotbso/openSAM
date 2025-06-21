@@ -64,7 +64,8 @@ install_xp11: $(TARGET_XP11)
 clean:
 	rm -f ./$(OBJDIR)/* sam_xml_test.exe
 
-sam_xml_test.exe: sam_xml_test.cpp sam_xml.cpp log_msg.cpp $(HEADERS)
-	$(CXX) $(CXXSTD) -Wall -fdiagnostics-color -Wno-format-overflow -I$(SDK)/CHeaders/XPLM -DIBM=1 \
+sam_xml_test.exe: sam_xml_test.cpp sam_xml.cpp ../xplib/log_msg.cpp $(HEADERS)
+	$(CXX) $(CXXSTD) -Wall -fdiagnostics-color -Wno-format-overflow \
+    -I../xplib -I$(SDK)/CHeaders/XPLM -DIBM=1 -DXPLM200 -DXPLM210 -DXPLM300 -DXPLM301 \
     -DWINDOWS -DWIN32 -DLOCAL_DEBUGSTRING -o sam_xml_test.exe \
-        sam_xml_test.cpp sam_xml.cpp log_msg.cpp -l:libexpat.a
+        sam_xml_test.cpp sam_xml.cpp ../xplib/log_msg.cpp -l:libexpat.a
