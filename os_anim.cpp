@@ -26,8 +26,8 @@
 #include "openSAM.h"
 #include "os_anim.h"
 
-static const float SAM_2_OBJ_MAX = 2.5;     // m, max delta between coords in sam.xml and object
-static const float SAM_2_OBJ_HDG_MAX = 5;   // °, likewise for heading
+static constexpr float kSam2ObjMax = 2.5;   // m, max delta between coords in sam.xml and object
+static constexpr float kSam2ObjHdgMax = 5;  // °, likewise for heading
 
 static Scenery* cur_sc;           // the current scenery determined by dref access
 static float cur_sc_ts = -100.0f; // timestamp of selection of cur_sc
@@ -41,7 +41,7 @@ static Scenery* menu_sc;          // the scenery the menu is built of
 // ref is uint64_t is the index into the global dref table
 //
 static float
-anim_acc(void *ref)
+AnimAcc(void *ref)
 {
     stat_anim_acc_called++;
 
@@ -69,7 +69,7 @@ anim_acc(void *ref)
 
             SamObj *obj = sc->sam_objs[anim->obj_idx];
 
-            if (fabsf(RA(obj->heading - obj_psi)) > SAM_2_OBJ_HDG_MAX)
+            if (fabsf(RA(obj->heading - obj_psi)) > kSam2ObjHdgMax)
                 continue;
 
             if (obj->xml_ref_gen < ref_gen) {
@@ -82,7 +82,7 @@ anim_acc(void *ref)
                 obj->xml_ref_gen = ref_gen;
             }
 
-            if (fabs(obj_x - obj->xml_x) > SAM_2_OBJ_MAX || fabs(obj_z - obj->xml_z) > SAM_2_OBJ_MAX) {
+            if (fabs(obj_x - obj->xml_x) > kSam2ObjMax || fabs(obj_z - obj->xml_z) > kSam2ObjMax) {
                 stat_near_skip++;
                 continue;
             }
@@ -131,7 +131,7 @@ anim_acc(void *ref)
 // ref is a ptr to the dref
 //
 static float
-auto_drf_acc(void *ref)
+AutoDrfAcc(void *ref)
 {
     stat_auto_drf_called++;
 
@@ -156,7 +156,7 @@ auto_drf_acc(void *ref)
 }
 
 void
-anim_menu_cb([[maybe_unused]] void *menu_ref, void *item_ref)
+AnimMenuCb([[maybe_unused]] void *menu_ref, void *item_ref)
 {
     if (NULL == menu_sc)    // just in case
         return;
@@ -164,7 +164,7 @@ anim_menu_cb([[maybe_unused]] void *menu_ref, void *item_ref)
     unsigned int idx = (uint64_t)item_ref;
     SamAnim *anim = menu_sc->sam_anims[idx];
 
-    LogMsg("anim_menu_cb: label: %s, menu_item: %d", anim->label, anim->menu_item);
+    LogMsg("AnimMenuCb: label: %s, menu_item: %d", anim->label, anim->menu_item);
     now = XPLMGetDataf(total_running_time_sec_dr);
 
     bool reverse;
@@ -189,7 +189,7 @@ anim_menu_cb([[maybe_unused]] void *menu_ref, void *item_ref)
 }
 
 static void
-build_menu(Scenery* sc)
+BuildMenu(Scenery* sc)
 {
     LogMsg("build menu for scenery %s", sc->name);
     XPLMClearAllMenuItems(anim_menu);
@@ -210,7 +210,7 @@ build_menu(Scenery* sc)
 // not much state here, just regularly check for a current scenery
 // and maintain the menu
 float
-anim_state_machine(void)
+AnimStateMachine(void)
 {
     // check whether we have recently seen a scenery
     if (cur_sc && now > cur_sc_ts + 180.0f) {
@@ -221,7 +221,7 @@ anim_state_machine(void)
     if (cur_sc != menu_sc) {
         menu_sc = cur_sc;
         if (menu_sc)
-            build_menu(menu_sc);
+            BuildMenu(menu_sc);
         else {
             LogMsg("clear menu");
             XPLMClearAllMenuItems(anim_menu);
@@ -231,21 +231,21 @@ anim_state_machine(void)
     return 5.0f;
 }
 
-int
-anim_init()
+bool
+AnimInit()
 {
     for (unsigned i = 0; i < sam_drfs.size(); i++) {
         const SamDrf *drf = sam_drfs[i];
         if (drf->autoplay)
             XPLMRegisterDataAccessor(drf->name, xplmType_Float, 0, NULL,
-                                     NULL, auto_drf_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                     NULL, AutoDrfAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                      NULL, NULL, NULL, (void *)drf, NULL);
         else
             XPLMRegisterDataAccessor(drf->name, xplmType_Float, 0, NULL,
-                                     NULL, anim_acc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                     NULL, AnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                      NULL, NULL, NULL, (void *)(uint64_t)i, NULL);
     }
 
-    return 1;
+    return true;
 }
 

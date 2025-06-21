@@ -66,7 +66,7 @@ class SamAnim {
 
 extern std::vector<SamDrf*> sam_drfs;
 
-extern int anim_init(void);
-extern float anim_state_machine(void);
-extern void anim_menu_cb(void *menu_ref, void *item_ref);
+extern bool AnimInit(void);
+extern float AnimStateMachine(void);
+extern void AnimMenuCb(void *menu_ref, void *item_ref);
 

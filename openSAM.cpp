@@ -299,7 +299,7 @@ flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
     }
 
     if (anim_loop_delay <= 0.0f) {
-        anim_loop_delay = anim_state_machine();
+        anim_loop_delay = AnimStateMachine();
         anim_next_ts = now + anim_loop_delay;
     }
     //LogMsg("jw_loop_delay: %0.2f", jw_loop_delay);
@@ -547,7 +547,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     JwInit();
     JwCtrl::init();
     DgsInit();
-    anim_init();
+    AnimInit();
 
     // own commands
     XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Manually activate searching for DGS");
@@ -586,7 +586,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     // openSAM -> Remote control
     int rc_menu_item = XPLMAppendMenuItem(os_menu, "Remote Control", NULL, 0);
-    anim_menu = XPLMCreateMenu("Remote Control", os_menu, rc_menu_item, anim_menu_cb, NULL);
+    anim_menu = XPLMCreateMenu("Remote Control", os_menu, rc_menu_item, AnimMenuCb, NULL);
 
     XPLMAppendMenuSeparator(os_menu);
 
