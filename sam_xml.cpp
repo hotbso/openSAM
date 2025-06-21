@@ -63,7 +63,7 @@ std::vector<SamDrf*> sam_drfs;
 static const int BUFSIZE = 4096;
 
 static const char *
-lookup_attr(const XML_Char **attr, const char *name) {
+LookupAttr(const XML_Char **attr, const char *name) {
     for (int i = 0; attr[i]; i += 2)
         if (0 == strcmp(attr[i], name))
             return attr[i+1];
@@ -73,33 +73,33 @@ lookup_attr(const XML_Char **attr, const char *name) {
 
 #define GET_INT_ATTR(ptr, n) \
 { \
-    const char *val = lookup_attr(attr, #n); \
+    const char *val = LookupAttr(attr, #n); \
     if (val) \
         ptr->n = atoi(val); \
 }
 
 #define GET_FLOAT_ATTR(ptr, n) \
 { \
-    const char *val = lookup_attr(attr, #n); \
+    const char *val = LookupAttr(attr, #n); \
     if (val) \
         ptr->n = atof(val); \
 }
 
 #define GET_STR_ATTR(ptr, n) \
 { \
-    const char *val = lookup_attr(attr, #n); \
+    const char *val = LookupAttr(attr, #n); \
     if (val) \
         strncpy(ptr->n, val, sizeof(ptr->n) - 1); \
 }
 
 #define GET_BOOL_ATTR(ptr, n) \
 { \
-    const char *val = lookup_attr(attr, #n); \
+    const char *val = LookupAttr(attr, #n); \
     ptr->n = (val && (0 == strcmp(val, "true"))); \
 }
 
 static void
-get_jw_attrs(const XML_Char **attr, SamJw *sam_jw)
+GetJwAttrs(const XML_Char **attr, SamJw *sam_jw)
 {
     *sam_jw = (SamJw){};
 
@@ -130,7 +130,7 @@ get_jw_attrs(const XML_Char **attr, SamJw *sam_jw)
     GET_FLOAT_ATTR(sam_jw, initialRot3)
     GET_FLOAT_ATTR(sam_jw, initialExtent)
 
-    const char *val = lookup_attr(attr, "forDoorLocation");
+    const char *val = LookupAttr(attr, "forDoorLocation");
     if (val) {
         if (0 == strcmp(val, "LF2"))
             sam_jw->door = 1;
@@ -141,7 +141,7 @@ get_jw_attrs(const XML_Char **attr, SamJw *sam_jw)
 }
 
 static int
-lookup_drf(const char *name)
+LookupDrf(const char *name)
 {
     for (unsigned int i = 0; i < sam_drfs.size(); i++)
         if (0 == strcmp(sam_drfs[i]->name, name))
@@ -151,7 +151,7 @@ lookup_drf(const char *name)
 }
 
 static int
-lookup_obj(const Scenery* sc, const char *id)
+LookupObj(const Scenery* sc, const char *id)
 {
     for (unsigned int i = 0; i < sc->sam_objs.size(); i++)
         if (0 == strcmp(sc->sam_objs[i]->id, id))
@@ -162,7 +162,7 @@ lookup_obj(const Scenery* sc, const char *id)
 
 // expat's callbacks
 static void XMLCALL
-start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
+StartElement(void *user_data, const XML_Char *name, const XML_Char **attr) {
     expat_ctx_t *ctx = (expat_ctx_t *)user_data;
 
     if (0 == strcmp(name, "scenery")) {
@@ -183,7 +183,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
     if (ctx->in_jetways && (0 == strcmp(name, "jetway"))) {
         Scenery* sc = ctx->sc;
         SamJw *jw = new SamJw();
-        get_jw_attrs(attr, jw);
+        GetJwAttrs(attr, jw);
         // simple sanity check, e.g Aerosoft LEBL has bogus values
         if (BETWEEN(jw->latitude, -85.0f, 85.0f) && BETWEEN(jw->longitude, -180.0f, 180.0f))
             sc->sam_jws.push_back(jw);
@@ -196,7 +196,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
 
     if (ctx->in_sets && (0 == strcmp(name, "set"))) {
         SamJw *sam_jw = new SamJw;
-        get_jw_attrs(attr, sam_jw);
+        GetJwAttrs(attr, sam_jw);
 
         if (sam_jw->id > (int)lib_jw.size())
             lib_jw.resize(sam_jw->id + 20);
@@ -226,7 +226,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
             return;
         }
 
-        if (lookup_drf(drf->name) >= 0) {
+        if (LookupDrf(drf->name) >= 0) {
             LogMsg("duplicate definition for dataref '%s', ingnored", drf->name);
             ctx->cur_dataref = NULL;
             return;
@@ -235,19 +235,17 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
         GET_BOOL_ATTR(drf, autoplay);
         GET_BOOL_ATTR(drf, randomize_phase);
         GET_BOOL_ATTR(drf, augment_wind_speed);
+        drf->t.reserve(10);
+        drf->v.reserve(10);
+        drf->s.reserve(10);
         sam_drfs.push_back(drf);
         return;
     }
 
     if (ctx->in_dataref && ctx->cur_dataref && (0 == strcmp(name, "animation"))) {
         SamDrf *d = ctx->cur_dataref;
-        if (d->n_tv == DRF_MAX_ANIM) {
-            LogMsg("animation table overflow for %s", d->name);
-            return;
-        }
-
-        const char *attr_t = lookup_attr(attr, "t");
-        const char *attr_v = lookup_attr(attr, "v");
+        const char *attr_t = LookupAttr(attr, "t");
+        const char *attr_v = LookupAttr(attr, "v");
 
         if (attr_t && attr_v) {
             float t = atof(attr_t);
@@ -257,10 +255,11 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
                 d->v[d->n_tv - 1] = v;
             else {
                 int n = d->n_tv;
-                d->t[n] = t;
-                d->v[n] = v;
+                d->t.push_back(t);
+                d->v.push_back(v);
                 // save a few cycles in the accessor
-                d->s[n] = (v - d->v[n-1]) / (t - d->t[n-1]);
+                float s = n > 0 ? (v - d->v[n-1]) / (t - d->t[n-1]) : 0.0f;
+                d->s.push_back(s);
                 d->n_tv++;
             }
         }
@@ -302,13 +301,13 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
 
         anim->obj_idx = anim->drf_idx = -1;
 
-        const char *inst = lookup_attr(attr, "instance");
+        const char *inst = LookupAttr(attr, "instance");
         if (inst)
-            anim->obj_idx = lookup_obj(sc, inst);
+            anim->obj_idx = LookupObj(sc, inst);
 
-        const char *name = lookup_attr(attr, "dataref");
+        const char *name = LookupAttr(attr, "dataref");
         if (name)
-            anim->drf_idx = lookup_drf(name);
+            anim->drf_idx = LookupDrf(name);
 
         if (anim->obj_idx >= 0 && anim->drf_idx >= 0)
             sc->sam_anims.push_back(anim);
@@ -323,7 +322,7 @@ start_element(void *user_data, const XML_Char *name, const XML_Char **attr) {
 }
 
 static void XMLCALL
-end_element(void *user_data, const XML_Char *name) {
+EndElement(void *user_data, const XML_Char *name) {
     expat_ctx_t *ctx = (expat_ctx_t *)user_data;
 
     if (0 == strcmp(name, "jetways"))
@@ -337,8 +336,14 @@ end_element(void *user_data, const XML_Char *name) {
 
     else if (0 == strcmp(name, "dataref")) {
         ctx->in_dataref = false;
-        if (ctx->cur_dataref && ctx->cur_dataref->n_tv < 2)    // sanity check
-            LogMsg("too few animation entries for %s", ctx->cur_dataref->name);
+        auto drf = ctx->cur_dataref;
+        if (drf) {
+            drf->t.shrink_to_fit();
+            drf->v.shrink_to_fit();
+            drf->s.shrink_to_fit();
+            if (drf->n_tv < 2)    // sanity check
+                LogMsg("too few animation entries for %s", drf->name);
+        }
     }
 
     else if (0 == strcmp(name, "objects"))
@@ -349,7 +354,7 @@ end_element(void *user_data, const XML_Char *name) {
 }
 
 static bool
-parse_sam_xml(const std::string& fn, Scenery* sc)
+ParseSamXml(const std::string& fn, Scenery* sc)
 {
     bool rc = false;
     int fd = open(fn.c_str(), O_RDONLY|O_BINARY);
@@ -367,7 +372,7 @@ parse_sam_xml(const std::string& fn, Scenery* sc)
     ctx.sc = sc;
 
     XML_SetUserData(parser, &ctx);
-    XML_SetElementHandler(parser, start_element, end_element);
+    XML_SetElementHandler(parser, StartElement, EndElement);
 
     for (;;) {
         void *buf = XML_GetBuffer(parser, BUFSIZE);
@@ -399,7 +404,7 @@ parse_sam_xml(const std::string& fn, Scenery* sc)
 
 // go through apt.dat and collect stand information from 1300 lines
 static bool
-parse_apt_dat(const std::string& fn, Scenery* sc)
+ParseAptDat(const std::string& fn, Scenery* sc)
 {
     std::ifstream apt(fn);
     if (apt.fail())
@@ -506,33 +511,33 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir)
 
 // collect sam.xml from all sceneries
 void
-collect_sam_xml(const SceneryPacks &scp)
+CollectSamXml(const SceneryPacks &scp)
 {
     lib_jw.reserve(50);
 
     // drefs from openSAM_Library must come first
     Scenery dummy;
     if (scp.openSAM_Library_path.size() == 0 ||
-        !parse_sam_xml(scp.openSAM_Library_path + "sam.xml", &dummy))
+        !ParseSamXml(scp.openSAM_Library_path + "sam.xml", &dummy))
         throw OsEx("openSAM_Library is not installed or inaccessible!");
 
-    if (!parse_sam_xml(scp.openSAM_Library_path + "libraryjetways.xml", &dummy))
+    if (!ParseSamXml(scp.openSAM_Library_path + "libraryjetways.xml", &dummy))
         LogMsg("Warning: 'openSAM_Library/libraryjetways.xml' could not be processed");
 
     if (scp.SAM_Library_path.size() > 0) {
-        if (!parse_sam_xml(scp.SAM_Library_path + "libraryjetways.xml", &dummy))
+        if (!ParseSamXml(scp.SAM_Library_path + "libraryjetways.xml", &dummy))
             LogMsg("Warning: SAM_Library is installed but 'SAM_Library/libraryjetways.xml' could not be processed");
     }
 
     for (auto & sc_path : scp.sc_paths) {
         Scenery* sc = new Scenery();
-        if (!parse_sam_xml(sc_path + "sam.xml", sc)) {
+        if (!ParseSamXml(sc_path + "sam.xml", sc)) {
             delete(sc);
             continue;
         }
 
         // read stands from apt.dat
-        parse_apt_dat(sc_path + "Earth nav data/apt.dat", sc);
+        ParseAptDat(sc_path + "Earth nav data/apt.dat", sc);
 
         // don't save empty sceneries
         if (sc->sam_jws.size() == 0 && sc->stands.size() == 0 && sc->sam_anims.size() == 0) {

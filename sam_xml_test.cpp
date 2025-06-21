@@ -41,7 +41,7 @@ main(int argc, char **argv) {
 
     try {
         SceneryPacks scp(xp_dir);
-        collect_sam_xml(scp);
+        CollectSamXml(scp);
         LogMsg("%d sceneries with sam jetways found", (int)sceneries.size());
     } catch (const OsEx& ex) {
         LogMsg("fatal error: '%s', bye!", ex.what());

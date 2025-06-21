@@ -84,7 +84,7 @@ struct Scenery {
 extern std::vector<Scenery *> sceneries;
 
 // a poor man's factory for creating sceneries
-extern void collect_sam_xml(const SceneryPacks &scp);
+extern void CollectSamXml(const SceneryPacks &scp);
 
 struct SceneryPacks {
     std::string openSAM_Library_path;
