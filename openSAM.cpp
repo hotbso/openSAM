@@ -690,9 +690,4 @@ XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, long in_msg, void *
         my_plane.plane_loaded();
         return;
     }
-    // livery loaded
-    if (in_msg == XPLM_MSG_LIVERY_LOADED && in_param == 0) {
-        my_plane.livery_loaded();
-        return;
-    }
 }

@@ -336,40 +336,6 @@ MyPlane::plane_loaded()
     pax_no_ = 0;
 }
 
-void MyPlane::livery_loaded()
-{
-    // check ToLiss A321 door config
-    if (icao_ != "A321")
-        return;
-
-    LogMsg("A321 detected, checking door config");
-
-    char path[512];
-    strcpy(path, xp_dir.c_str());
-    int len = strlen(path);
-    int n = XPLMGetDatab(acf_livery_path_dr_, path + len, 0, sizeof(path) - len - 50);
-    path[len + n] = '\0';
-    strcat(path, "livery.tlscfg");
-    LogMsg("tlscfg path: '%s'", path);
-
-    FILE *f = fopen(path, "r");
-    if (f) {
-        char line[150];
-        line[sizeof(line) - 1] = '\0';
-        while (fgets(line, sizeof(line) - 1, f)) {
-            if (NULL != strstr(line, "exit_Configuration")) {
-                if (NULL == strstr(line, "CLASSIC")) {
-                    LogMsg("door != CLASSIC, setting n_door to 1");
-                    n_door_ = 1;
-                }
-                break;
-            }
-        }
-
-        fclose(f);
-    }
-}
-
 void
 MyPlane::update()
 {
@@ -450,6 +416,17 @@ MyPlane::memorize_parked_pos()
         XPLMGetNavAidInfo(ref, NULL, NULL, NULL, NULL, NULL, NULL, airport_id,
                 NULL, NULL);
         LogMsg("parked on airport: %s, lat,lon: %0.5f,%0.5f", airport_id, lat, lon);
+    }
+
+    // due to the delayed update of datarefs it's now a good time
+    // to check ToLiss' A321 door config
+    if (icao_ != "A321")
+        return;
+
+    LogMsg("A321 detected, checking door config");
+    if (auto door_dr = XPLMFindDataRef("AirbusFBW/A321ExitConfig")) {
+        n_door_ = XPLMGetDatai(door_dr) == 0 ? 2 : 1;   // 0 = CLASSIC = 2 doors
+        LogMsg("n_door from dataref: %d", n_door_);
     }
 }
 
