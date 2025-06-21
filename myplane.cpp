@@ -96,7 +96,7 @@ static XPLMDataRef plane_x_dr_, plane_y_dr_, plane_z_dr_,
     beacon_dr_, eng_running_dr_, parkbrake_dr_, gear_fnrml_dr_,
     is_helicopter_dr_,
     acf_icao_dr_, acf_cg_y_dr_, acf_cg_z_dr_, acf_gear_z_dr_,
-    acf_door_x_dr_, acf_door_y_dr_, acf_door_z_dr_, acf_livery_path_dr_;
+    acf_door_x_dr_, acf_door_y_dr_, acf_door_z_dr_;
 
 static bool find_icao_in_file(const std::string& acf_icao, const std::string& fn);
 
@@ -125,7 +125,6 @@ MyPlane::MyPlane()
     acf_door_x_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_x");
     acf_door_y_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_y");
     acf_door_z_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_z");
-    acf_livery_path_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_livery_path");
     pax_no_dr_ = nullptr;
 
     icao_ = "0000";
