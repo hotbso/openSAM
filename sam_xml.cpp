@@ -200,6 +200,8 @@ StartElement(void *user_data, const XML_Char *name, const XML_Char **attr) {
 
         if (sam_jw->id > (int)lib_jw.size())
             lib_jw.resize(sam_jw->id + 20);
+        if (lib_jw[sam_jw->id])
+            LogMsg("duplicate jetway id detected: %d", sam_jw->id);
         lib_jw[sam_jw->id] = sam_jw;
         max_lib_jw_id = std::max(max_lib_jw_id, sam_jw->id);
         return;
@@ -516,15 +518,14 @@ CollectSamXml(const SceneryPacks &scp)
         !ParseSamXml(scp.openSAM_Library_path + "sam.xml"))
         throw OsEx("openSAM_Library is not installed or inaccessible!");
 
-    if (!ParseSamXml(scp.openSAM_Library_path + "libraryjetways.xml"))
-        LogMsg("Warning: 'openSAM_Library/libraryjetways.xml' could not be processed");
-
     if (scp.SAM_Library_path.size() > 0) {
         if (!ParseSamXml(scp.SAM_Library_path + "libraryjetways.xml"))
             LogMsg("Warning: SAM_Library is installed but 'SAM_Library/libraryjetways.xml' could not be processed");
     }
 
     for (auto & sc_path : scp.sc_paths) {
+        ParseSamXml(sc_path + "libraryjetways.xml");    // always try libraryjetways.xml
+
         Scenery* sc = new Scenery();
         if (!ParseSamXml(sc_path + "sam.xml", sc)) {
             delete(sc);
@@ -579,5 +580,6 @@ CollectSamXml(const SceneryPacks &scp)
 
     sceneries.shrink_to_fit();
     sam_drfs.shrink_to_fit();
+    lib_jw.resize(max_lib_jw_id + 1);
 }
 
