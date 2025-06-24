@@ -41,7 +41,7 @@
 #include "os_anim.h"
 
 // context for element handlers
-typedef struct _expat_ctx {
+struct ExpatCtx {
     XML_Parser parser;
     bool in_jetways;
     bool in_sets;
@@ -51,7 +51,7 @@ typedef struct _expat_ctx {
 
     Scenery* sc;
     SamDrf *cur_dataref;
-} expat_ctx_t;
+};
 
 std::vector<Scenery *> sceneries;
 
@@ -163,9 +163,10 @@ LookupObj(const Scenery* sc, const char *id)
 // expat's callbacks
 static void XMLCALL
 StartElement(void *user_data, const XML_Char *name, const XML_Char **attr) {
-    expat_ctx_t *ctx = (expat_ctx_t *)user_data;
+    ExpatCtx *ctx = (ExpatCtx *)user_data;
+    Scenery* sc = ctx->sc;
 
-    if (0 == strcmp(name, "scenery")) {
+    if (sc && (0 == strcmp(name, "scenery"))) {
         GET_STR_ATTR(ctx->sc, name);
         return;
     }
@@ -180,8 +181,7 @@ StartElement(void *user_data, const XML_Char *name, const XML_Char **attr) {
         return;
     }
 
-    if (ctx->in_jetways && (0 == strcmp(name, "jetway"))) {
-        Scenery* sc = ctx->sc;
+    if (sc && ctx->in_jetways && (0 == strcmp(name, "jetway"))) {
         SamJw *jw = new SamJw();
         GetJwAttrs(attr, jw);
         // simple sanity check, e.g Aerosoft LEBL has bogus values
@@ -273,9 +273,7 @@ StartElement(void *user_data, const XML_Char *name, const XML_Char **attr) {
         return;
     }
 
-    if (ctx->in_objects && (0 == strcmp(name, "instance"))) {
-        Scenery* sc = ctx->sc;
-
+    if (sc && ctx->in_objects && (0 == strcmp(name, "instance"))) {
         SamObj *obj = new SamObj();
         GET_STR_ATTR(obj, id);
         GET_FLOAT_ATTR(obj, latitude);
@@ -292,9 +290,7 @@ StartElement(void *user_data, const XML_Char *name, const XML_Char **attr) {
         return;
     }
 
-    if (ctx->in_gui && (0 == strcmp(name, "checkbox"))) {
-        Scenery* sc = ctx->sc;
-
+    if (sc && ctx->in_gui && (0 == strcmp(name, "checkbox"))) {
         SamAnim *anim = new SamAnim();
         GET_STR_ATTR(anim, label);
         GET_STR_ATTR(anim, title);
@@ -323,7 +319,7 @@ StartElement(void *user_data, const XML_Char *name, const XML_Char **attr) {
 
 static void XMLCALL
 EndElement(void *user_data, const XML_Char *name) {
-    expat_ctx_t *ctx = (expat_ctx_t *)user_data;
+    ExpatCtx *ctx = (ExpatCtx *)user_data;
 
     if (0 == strcmp(name, "jetways"))
         ctx->in_jetways = false;
@@ -354,7 +350,7 @@ EndElement(void *user_data, const XML_Char *name) {
 }
 
 static bool
-ParseSamXml(const std::string& fn, Scenery* sc)
+ParseSamXml(const std::string& fn, Scenery* sc = nullptr)
 {
     bool rc = false;
     int fd = open(fn.c_str(), O_RDONLY|O_BINARY);
@@ -366,8 +362,8 @@ ParseSamXml(const std::string& fn, Scenery* sc)
     if (NULL == parser)
         goto out;
 
-    expat_ctx_t ctx;
-    memset(&ctx, 0, sizeof(ctx));
+    ExpatCtx ctx;
+    ctx = {};
     ctx.parser = parser;
     ctx.sc = sc;
 
@@ -516,16 +512,15 @@ CollectSamXml(const SceneryPacks &scp)
     lib_jw.reserve(50);
 
     // drefs from openSAM_Library must come first
-    Scenery dummy;
     if (scp.openSAM_Library_path.size() == 0 ||
-        !ParseSamXml(scp.openSAM_Library_path + "sam.xml", &dummy))
+        !ParseSamXml(scp.openSAM_Library_path + "sam.xml"))
         throw OsEx("openSAM_Library is not installed or inaccessible!");
 
-    if (!ParseSamXml(scp.openSAM_Library_path + "libraryjetways.xml", &dummy))
+    if (!ParseSamXml(scp.openSAM_Library_path + "libraryjetways.xml"))
         LogMsg("Warning: 'openSAM_Library/libraryjetways.xml' could not be processed");
 
     if (scp.SAM_Library_path.size() > 0) {
-        if (!ParseSamXml(scp.SAM_Library_path + "libraryjetways.xml", &dummy))
+        if (!ParseSamXml(scp.SAM_Library_path + "libraryjetways.xml"))
             LogMsg("Warning: SAM_Library is installed but 'SAM_Library/libraryjetways.xml' could not be processed");
     }
 
