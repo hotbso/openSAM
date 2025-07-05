@@ -742,8 +742,12 @@ DgsStateMachine()
             return 4.0f;
         }
 
-        if (changed)
-            scroll_txt = std::make_unique<ScrollTxt>(arpt_icao + " STAND " + display_name + "   ");
+        if (changed) {
+            if (display_name.empty())
+                scroll_txt = std::make_unique<ScrollTxt>(arpt_icao);
+            else
+                scroll_txt = std::make_unique<ScrollTxt>(arpt_icao + " STAND " + display_name + "   ");
+        }
 
         // FALLTHROUGH
         assert(active_stand != nullptr);
@@ -767,7 +771,11 @@ DgsStateMachine()
                     ofp_seqno = ofp->seqno;
                     std::string ofp_str = ofp->GenDepartureStr();
                     LogMsg("ofp_str: '%s'", ofp_str.c_str());
-                    scroll_txt = make_unique<ScrollTxt>(arpt_icao + " STAND " + display_name + "   "
+                    if (display_name.empty())
+                        scroll_txt = make_unique<ScrollTxt>(arpt_icao + "   "
+                                                            + ofp_str + "   ");
+                    else
+                        scroll_txt = make_unique<ScrollTxt>(arpt_icao + " STAND " + display_name + "   "
                                                             + ofp_str + "   ");
                 }
             }
