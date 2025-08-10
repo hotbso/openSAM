@@ -44,7 +44,7 @@ jobs:
             echo "VERSION=$TAG" > version.mak
           fi
 
-          if [ $OS == "macos-latest" ]; then
+          if [ $OS == "macos-14" ]; then
             port selfupdate
             port install expat +universal
             make -f Makefile.mac64
