@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         # use oldest possible ubuntu version in order to avoid compatibility errors with libc
-        os: [ubuntu-22.04, macos-latest]
+        os: [ubuntu-22.04, macos-14]
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
@@ -32,7 +32,7 @@ jobs:
       - uses: melusina-org/setup-macports@v1
         if: startsWith(matrix.os, 'macos')
         with:
-          macports-version: 2.7.1
+          macports-version: 2.11.4
 
       - name: Build Executable
         shell: bash
@@ -44,8 +44,8 @@ jobs:
             echo "VERSION=$TAG" > version.mak
           fi
 
-          if [ $OS == "macos-latest" ]; then
-            port selfupdate
+          if [ $OS == "macos-14" ]; then
+            #port selfupdate
             port install expat +universal
             make -f Makefile.mac64
           else
@@ -74,6 +74,7 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-expat
             make
+            git
 
       - uses: actions/checkout@v3
 

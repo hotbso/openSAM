@@ -31,6 +31,8 @@
 #include "XPLMDisplay.h"
 #include "XPStandardWidgets.h"
 
+#include "version.h"
+
 static WidgetCtx ui_widget_ctx;
 
 static XPWidgetID ui_widget, jw_btn[kMaxDoor][kNearJwLimit],
@@ -187,7 +189,7 @@ create_ui()
     int left1;
 
     ui_widget = XPCreateWidget(left, top, left + width, top - height,
-                               0, "openSAM " VERSION, 1, NULL, xpWidgetClass_MainWindow);
+                               0, "openSAM " VERSION_SHORT, 1, NULL, xpWidgetClass_MainWindow);
     ui_widget_ctx.Set(ui_widget, left, top, width, height);
 
     XPSetWidgetProperty(ui_widget, xpProperty_MainWindowHasCloseBoxes, 1);

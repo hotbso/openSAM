@@ -2,6 +2,18 @@ VPATH:=.:../xplib
 SDK=../SDK
 INCLUDES=-I. -I../xplib -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets
 
+# build version.h
+include version.mak
+
+COMMIT:=$(shell git log -1  --pretty=format:"%h")
+XPLIB_COMMIT:=$(shell cd ../xplib; git log -1  --pretty=format:"%h")
+
+VERSION_L:=$(VERSION) $(COMMIT),XPLIB:$(XPLIB_COMMIT)
+VH:=version.h
+# Sigh, echo -e is not universally available
+$(shell (echo "//generated file!"; echo "#define VERSION \"$(VERSION_L)\""; echo "#define VERSION_SHORT \"$(VERSION)\"") > $(VH).n)
+$(shell if [ ! -f $(VH) ]; then mv $(VH).n $(VH); elif cmp -s $(VH).n $(VH); then rm $(VH).n; else mv $(VH).n $(VH); fi)
+
 # platform independent defines
 DEFINES=-DXPLM200 -DXPLM210 -DXPLM300 -DXPLM301 -DXPLM400
 
