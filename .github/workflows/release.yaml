@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         # use oldest possible ubuntu version in order to avoid compatibility errors with libc
-        os: [ubuntu-22.04, macos-latest]
+        os: [ubuntu-22.04, macos-14]
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
