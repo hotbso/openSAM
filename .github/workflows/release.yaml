@@ -74,6 +74,7 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-expat
             make
+            git
 
       - uses: actions/checkout@v3
 

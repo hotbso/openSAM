@@ -1,7 +1,6 @@
 PLUGDIR_XP12=openSAM-pkg/openSAM
 PLUGDIR_XP11=openSAM-pkg_XP11/openSAM
 
-include version.mak
 include Makefile.common
 
 OBJDIR=./OBJ_lx
@@ -17,7 +16,7 @@ OBJECTS_XP11=$(OBJECTS) $(OBJDIR)/jwctrl_sound_xp11.o
 CXX=g++
 LD=g++
 
-CFLAGS=$(OPT) -DVERSION=\"$(VERSION)\" \
+CFLAGS=$(OPT) \
     -Wall -Wextra -Wno-format-overflow -Wno-format-truncation \
     $(INCLUDES) $(DEBUG) -fPIC -DLIN=1 -fno-stack-protector $(DEFINES)
 
@@ -28,7 +27,7 @@ LIBS=-lexpat
 all: $(TARGET_XP12) $(TARGET_XP11)
     $(shell [ -d $(OBJDIR) ] || mkdir $(OBJDIR))
 
-$(OBJDIR)/%.o: %.cpp version.mak
+$(OBJDIR)/%.o: %.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 $(TARGET_XP12): $(OBJECTS_XP12)

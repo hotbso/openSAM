@@ -2,6 +2,7 @@
 /OBJ_*/
 *.xpl
 /*.zip
+version.h
 
 # Prerequisites
 *.d

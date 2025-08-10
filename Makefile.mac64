@@ -1,11 +1,8 @@
 PLUGDIR=openSAM-pkg/openSAM
 
-include version.mak
-
 PLUGDIR_XP12=openSAM-pkg/openSAM
 PLUGDIR_XP11=openSAM-pkg_XP11/openSAM
 
-include version.mak
 include Makefile.common
 
 OBJDIR=./OBJ_osx
@@ -37,11 +34,13 @@ else
     CXXx=o64-clang++ -mmacosx-version-min=13.0
     CXXa=oa64-clang++ -mmacosx-version-min=13.0
     LIBEXPAT=/osxcross/target/macports/pkgs/opt/local/lib/libexpat.a
+    # the latest SDK has a framework format that is currently not understood by osxcross
+    SDK=../SDK-4.0.1
 endif
 
 DEFS= -DAPL=1 -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -Wno-deprecated-declarations $(DEFINES)
 
-CXXFLAGS+=$(CXXSTD) $(OPT) -Wall $(INCLUDES) $(DEBUG) -DVERSION=\"$(VERSION)\" $(DEFS)
+CXXFLAGS+=$(CXXSTD) $(OPT) -Wall $(INCLUDES) $(DEBUG) $(DEFS)
 
 LNFLAGS+=-dynamiclib -shared -rdynamic -fvisibility=hidden -Wl,-exported_symbols_list -Wl,linkscript.mac
 
@@ -57,10 +56,10 @@ LIBS+=$(LIBEXPAT)
 all: $(TARGET_XP12) $(TARGET_XP11)
     $(shell [ -d $(OBJDIR) ] || mkdir $(OBJDIR))
 
-$(OBJDIR)/%.o_arm: %.cpp version.mak
+$(OBJDIR)/%.o_arm: %.cpp $(HEADERS)
 	$(CXXa) $(CXXFLAGS) -o $@ -c $<
 
-$(OBJDIR)/%.o_x86: %.cpp  version.mak
+$(OBJDIR)/%.o_x86: %.cpp $(HEADERS)
 	$(CXXx) $(CXXFLAGS) -o $@ -c $<
 
 $(TARGET_XP12)_arm: $(OBJECTS_XP12_arm)

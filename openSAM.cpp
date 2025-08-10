@@ -37,6 +37,8 @@
 #include "XPLMPlugin.h"
 #include "XPLMProcessing.h"
 
+#include "version.h"
+
 //
 // C++ style:
 // This is largely moved over code from C to C++.
