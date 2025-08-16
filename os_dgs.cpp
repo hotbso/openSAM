@@ -762,7 +762,8 @@ DgsStateMachine()
         if (state == INACTIVE)
             return std::min(4.0f, scroll_txt->Tick());
 
-        if (state == DEPARTURE) {
+        // cdm data may come in late during boarding
+        if (state == DEPARTURE || state == BOARDING) {
            // although LoadIfNewer is cheap throttling it is even cheaper
             if (now > ofp_ts + 5.0f) {
                 ofp_ts = now;
@@ -780,6 +781,9 @@ DgsStateMachine()
                 }
             }
 
+        }
+
+        if (state == DEPARTURE) {
             if (my_plane.pax_no() > 0) {
                 state = BOARDING;
                 LogMsg("New state %s", state_str[state]);
