@@ -186,39 +186,50 @@ static constexpr float SAM1_LATERAL_OFF = 10.0f;   // switches off VDGS
 static float sam1_status, sam1_lateral, sam1_longitudinal;
 
 //------------------------------------------------------------------------------------
-ScrollTxt::ScrollTxt(const std::string& txt)
-{
+ScrollTxt::ScrollTxt(const std::string &txt) {
     txt_ = txt;
-    dr_scroll_= 10;   // right most
-    chars_[kR1Nchar - 1] = txt_[0];
-    char_pos_ = 0;
+
+    // don't scroll short texts
+    if (txt_.size() > kR1Nchar) {
+        dr_scroll_ = 10;  // right most
+        chars_[kR1Nchar - 1] = txt_[0];
+        char_pos_ = 0;
+    } else {
+        dr_scroll_ = 0;
+        int ofs = (kR1Nchar - (int)txt_.size()) / 2;
+        for (int i = 0; i < (int)txt_.size(); i++) {
+            chars_[i + ofs] = txt_[i];
+        }
+    }
 }
 
-float
-ScrollTxt::Tick()
-{
+float ScrollTxt::Tick() {
+    float delay = 4.0f;
+
     if (txt_.size() == 0)
-        return 4.0f;
+        return delay;
 
-    dr_scroll_ -= 2;
-    if (dr_scroll_ < 0) {
-        dr_scroll_ = 10;
-        char_pos_++;
-        if (char_pos_ >= (int)txt_.size())
-            char_pos_ = 0;
+    if (txt_.size() > kR1Nchar) {
+        dr_scroll_ -= 2;
+        if (dr_scroll_ < 0) {
+            dr_scroll_ = 10;
+            char_pos_++;
+            if (char_pos_ >= (int)txt_.size())
+                char_pos_ = 0;
 
-        for (int i = 1; i < kR1Nchar; i++)
-            chars_[i - 1] = chars_[i];
-        chars_[kR1Nchar - 1] = txt_[char_pos_];
+            for (int i = 1; i < kR1Nchar; i++)
+                chars_[i - 1] = chars_[i];
+            chars_[kR1Nchar - 1] = txt_[char_pos_];
+        }
+        delay = 0.05f; // scrolling, short delay
     }
 
     drefs[DGS_DR_R1_SCROLL] = dr_scroll_;
     for (int i = 0; i < kR1Nchar; i++)
         drefs[DGS_DR_R1C0 + i] = chars_[i];
 
-    return 0.05f;
-};
-
+    return delay;
+}
 
 void
 DgsSetInactive(void)
