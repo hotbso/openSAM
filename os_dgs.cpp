@@ -863,12 +863,12 @@ DgsStateMachine()
     // ref pos on logitudinal axis of acf blending from mw to nw as we come closer
     // should be nw if dist is below 6 m
     float a = clampf((nw_z - 6.0f) / 20.0f, 0.0f, 1.0f);
-    float plane_z_dr = (1.0f - a) * my_plane.nose_gear_z_ + a * my_plane.main_gear_z_;
-    float z_dr = local_z - plane_z_dr;
-    float x_dr = local_x + plane_z_dr * sin(kD2R * local_hdgt);
+    float plane_ref_z = (1.0f - a) * my_plane.nose_gear_z_ + a * my_plane.main_gear_z_;
+    float ref_z = local_z - plane_ref_z;
+    float ref_x = local_x + plane_ref_z * sin(kD2R * local_hdgt);
 
-    if (fabs(x_dr) > 0.5f && z_dr > 0)
-        azimuth = atanf(x_dr / (z_dr + 0.5f * kDgsDist)) / kD2R;
+    if (fabs(ref_x) > 0.5f && ref_z > 0)
+        azimuth = atanf(ref_x / (ref_z + 0.5f * kDgsDist)) / kD2R;
     else
         azimuth = 0.0;
 
@@ -941,7 +941,7 @@ DgsStateMachine()
                     LogMsg("is_marshaller: %d, azimuth: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), ref: (%0.1f, %0.1f), "
                            "x: %0.1f, local_hdgt: %0.1f, d_hdgt: %0.1f",
                            is_marshaller, azimuth, mw_x, mw_z, nw_x, nw_z,
-                           x_dr, z_dr,
+                           ref_x, ref_z,
                            local_x, local_hdgt, d_hdgt);
 
                 if (d_hdgt < -1.5)
@@ -1088,8 +1088,8 @@ DgsStateMachine()
         }
 
         // translate into compatible SAM1 values
-        sam1_lateral = -x_dr;
-        sam1_longitudinal = std::min(z_dr, 30.0f);
+        sam1_lateral = -ref_x;
+        sam1_longitudinal = std::min(ref_z, 30.0f);
 
         switch (state) {
             case ENGAGED:
