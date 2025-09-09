@@ -115,7 +115,7 @@ enum _DGS_DREF {
     DGS_DR_STATUS,
     DGS_DR_LR,
     DGS_DR_TRACK,
-    DGS_DR_AZIMUTH,
+    DGS_DR_XTRACK,
     DGS_DR_DISTANCE,
     DGS_DR_DISTANCE_0,      // if distance < 10: full meters digit
     DGS_DR_DISTANCE_01,     // first decimal digit
@@ -143,7 +143,7 @@ static const char *dgs_dlist_dr[] = {
     "opensam/dgs/status",
     "opensam/dgs/lr",
     "opensam/dgs/track",
-    "opensam/dgs/azimuth",
+    "opensam/dgs/xtrack",
     "opensam/dgs/distance",
     "opensam/dgs/distance_0",
     "opensam/dgs/distance_01",
@@ -1073,7 +1073,7 @@ DgsStateMachine()
         drefs[DGS_DR_DISTANCE] = distance;
         drefs[DGS_DR_DISTANCE_0] = d_0;
         drefs[DGS_DR_DISTANCE_01] = d_01;
-        drefs[DGS_DR_AZIMUTH] = azimuth;
+        drefs[DGS_DR_XTRACK] = azimuth;
         drefs[DGS_DR_LR] = lr;
 
         if (slow) {
