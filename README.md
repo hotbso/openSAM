@@ -140,11 +140,13 @@ Use of SAM's authoring tool is not necessary. \
 Then copy file "openSAM_Library/zero_config_dgs/sam.xml" into your scenery and you are done.
 
 # Credits
-Jonathan Harris (aka Marginal) (https://github.com/Marginal) for creating Autogate\
-@Papickx + @cxn0026 for providing better textures and day + night lighting \
-@zodiac1214 (aka cfanap) (https://github.com/zodiac1214) for creating the automated build and release system including skunkcrafts support\
-@twinfan (https://github.com/TwinFan) for providing LTAPI\
-@X-Codr (https://www.x-codrdesigns.com/) for performance improvements
+[Jonathan Harris (aka Marginal)](https://github.com/Marginal) for creating Autogate\
+[cxn0026](https://forums.x-plane.org/profile/121130-cxn0026) for explaining how Marshallers and VDGS really use guidance signals\
+[Papickx](https://forums.x-plane.org/profile/823983-papickx/) + @cxn0026 for providing better textures and day + night lighting\
+[zodiac1214 (aka cfanap)](https://github.com/zodiac1214) for creating the automated build and release system including skunkcrafts support\
+[TwinFan](https://github.com/TwinFan) for providing LTAPI\
+[X-Codr](https://www.x-codrdesigns.com/) for performance improvements\
+[Pierre](https://github.com/pierr3) for reworking the VDGS model and giving it much more precision and details
 
 ## License
 Please observe that this material is covered by various licenses.
