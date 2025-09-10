@@ -35,21 +35,21 @@
 #include "XPLMNavigation.h"
 
 // DGS _A = angles [°] (to centerline), _X, _Z = [m] (to stand)
-static constexpr float kCapA = 15;              // Capture
-static constexpr float kCapZ = 140;	            // (50-80 in Safedock2 flier)
+static constexpr float kCapA = 15;   // Capture
+static constexpr float kCapZ = 140;  // (50-80 in Safedock2 flier)
 
-static constexpr float kAziA = 15;              // provide azimuth guidance
-static constexpr float kAziDispA = 10;          // max value for display
+static constexpr float kAziA = 15;      // provide azimuth guidance
+static constexpr float kAziDispA = 10;  // max value for display
 static constexpr float kAziZ = 90;
 
-static constexpr float kAziCrossover = 6;       // m, switch from azimuth to xtrack guidance
+static constexpr float kAziCrossover = 6;  // m, switch from azimuth to xtrack guidance
 
-static constexpr float kGoodZ_p = 0.2;          // stop position for nw / to stop
-static constexpr float kGoodZ_m = -0.5;         // stop position for nw / beyond stop
+static constexpr float kGoodZ_p = 0.2;   // stop position for nw / to stop
+static constexpr float kGoodZ_m = -0.5;  // stop position for nw / beyond stop
 
-static constexpr float kGoodX = 2.0;            // for mw
+static constexpr float kGoodX = 2.0;  // for mw
 
-static constexpr float kCrZ = 12;      	        // Closing Rate starts here VDGS, Marshaller uses 0.5 * kCrZ
+static constexpr float kCrZ = 12;  // Closing Rate starts here VDGS, Marshaller uses 0.5 * kCrZ
 
 static constexpr int kTurnRight = 1;  // arrow on left side
 static constexpr int kTurnLeft = 2;   // arrow on right side
@@ -57,58 +57,65 @@ static constexpr int kTurnLeft = 2;   // arrow on right side
 static constexpr float kMaxDgs2StandX = 10.0f;  // max offset/distance from DGS to stand
 static constexpr float kMaxDgs2StandZ = 80.0f;
 
-static constexpr float kDgsDist = 20.0f;        // distance from dgs to stand for azimuth computation
+static constexpr float kDgsDist = 20.0f;  // distance from dgs to stand for azimuth computation
 
-static constexpr int kR1Nchar = 6;              // chars in row 1 of the VDGS
+static constexpr int kR1Nchar = 6;  // chars in row 1 of the VDGS
 
 class ScrollTxt {
-    std::string txt_;           // text to scroll
-    int char_pos_;              // next char to enter on the right
-    int dr_scroll_;             // dref value for scroll ctrl
-    char chars_[kR1Nchar]{};    // chars currently visible
+    std::string txt_;         // text to scroll
+    int char_pos_;            // next char to enter on the right
+    int dr_scroll_;           // dref value for scroll ctrl
+    char chars_[kR1Nchar]{};  // chars currently visible
 
-  public:
-    ScrollTxt(const std::string& txt);
+   public:
+    ScrollTxt(const std::string &txt);
     float Tick();
 };
 
 // types
-typedef enum
-{
-    DISABLED=0, INACTIVE, DEPARTURE, BOARDING, ARRIVAL, ENGAGED, TRACK, GOOD, BAD, PARKED, CHOCKS, DONE
+typedef enum {
+    DISABLED = 0,
+    INACTIVE,
+    DEPARTURE,
+    BOARDING,
+    ARRIVAL,
+    ENGAGED,
+    TRACK,
+    GOOD,
+    BAD,
+    PARKED,
+    CHOCKS,
+    DONE
 } state_t;
 
-static const char * const state_str[] = {
-    "DISABLED", "INACTIVE", "DEPARTURE", "BOARDING", "ARRIVAL", "ENGAGED",
-    "TRACK", "GOOD", "BAD", "PARKED", "CHOCKS", "DONE" };
+static const char *const state_str[] = {"DISABLED", "INACTIVE", "DEPARTURE", "BOARDING", "ARRIVAL", "ENGAGED",
+                                        "TRACK",    "GOOD",     "BAD",       "PARKED",   "CHOCKS",  "DONE"};
 static state_t state = DISABLED;
-static float timestamp; // for various states in the state_machine
+static float timestamp;  // for various states in the state_machine
 
 // Datarefs
-static XPLMDataRef percent_lights_dr, sin_wave_dr,
-    zulu_time_minutes_dr, zulu_time_hours_dr,
-    ground_speed_dr;
+static XPLMDataRef percent_lights_dr, sin_wave_dr, zulu_time_minutes_dr, zulu_time_hours_dr, ground_speed_dr;
 
 // Published DataRef values
 static int status, track, lr;
 static float distance;
 
 static Stand *active_stand;
-static float active_stand_ts;   // timestamp of last FindNearestStand()
+static float active_stand_ts;  // timestamp of last FindNearestStand()
 // track the max local z (= closest to stand) of dgs objs for active_stand
 static float assoc_dgs_z_l, assoc_dgs_x_l, assoc_dgs_ts;
-static bool dgs_assoc;          // stand is associated with a dgs
+static bool dgs_assoc;  // stand is associated with a dgs
 
-static std::string arpt_icao;           // departure airport
-static std::string display_name;        // departure stand's 'net' name <= kR1Nchar
-static std::unique_ptr<ScrollTxt> scroll_txt; // on departure stand
+static std::string arpt_icao;                  // departure airport
+static std::string display_name;               // departure stand's 'net' name <= kR1Nchar
+static std::unique_ptr<ScrollTxt> scroll_txt;  // on departure stand
 
 static int is_marshaller;
 static float marshaller_x, marshaller_y, marshaller_z, marshaller_y_0, marshaller_psi;
 static XPLMObjectRef marshaller_obj, stairs_obj;
 static XPLMInstanceRef marshaller_inst, stairs_inst;
 
-static int update_dgs_log_ts;   // throttling of logging
+static int update_dgs_log_ts;  // throttling of logging
 static float sin_wave_prev;
 
 static float time_utc_m0, time_utc_m1, time_utc_h0, time_utc_h1, vdgs_brightness;
@@ -124,24 +131,24 @@ enum _DGS_DREF {
     DGS_DR_TRACK,
     DGS_DR_XTRACK,
     DGS_DR_DISTANCE,
-    DGS_DR_DISTANCE_0,      // if distance < 10: full meters digit
-    DGS_DR_DISTANCE_01,     // first decimal digit
+    DGS_DR_DISTANCE_0,   // if distance < 10: full meters digit
+    DGS_DR_DISTANCE_01,  // first decimal digit
     DGS_DR_ICAO_0,
     DGS_DR_ICAO_1,
     DGS_DR_ICAO_2,
     DGS_DR_ICAO_3,
     DGS_DR_R1_SCROLL,
-    DGS_DR_R1C0,            // top row (=1), char #
+    DGS_DR_R1C0,  // top row (=1), char #
     DGS_DR_R1C1,
     DGS_DR_R1C2,
     DGS_DR_R1C3,
     DGS_DR_R1C4,
     DGS_DR_R1C5,
-    DGS_DR_BOARDING,        // boarding state 0/1
-    DGS_DR_PAXNO_0,         // 3 digits
+    DGS_DR_BOARDING,  // boarding state 0/1
+    DGS_DR_PAXNO_0,   // 3 digits
     DGS_DR_PAXNO_1,
     DGS_DR_PAXNO_2,
-    DGS_DR_NUM              // # of drefs
+    DGS_DR_NUM  // # of drefs
 };
 
 // keep exactly the same order as list above
@@ -182,12 +189,8 @@ enum _SAM1_DREF {
     SAM1_DR_ICAO,
 };
 
-enum _SAM1_STATE {
-    SAM1_TRACK = 1,
-    SAM1_STOP_ZONE,
-    SAM1_IDLE
-};
-static constexpr float SAM1_LATERAL_OFF = 10.0f;   // switches off VDGS
+enum _SAM1_STATE { SAM1_TRACK = 1, SAM1_STOP_ZONE, SAM1_IDLE };
+static constexpr float SAM1_LATERAL_OFF = 10.0f;  // switches off VDGS
 
 // dref values
 static float sam1_status, sam1_lateral, sam1_longitudinal;
@@ -228,7 +231,7 @@ float ScrollTxt::Tick() {
                 chars_[i - 1] = chars_[i];
             chars_[kR1Nchar - 1] = txt_[char_pos_];
         }
-        delay = 0.05f; // scrolling, short delay
+        delay = 0.05f;  // scrolling, short delay
     }
 
     drefs[DGS_DR_R1_SCROLL] = dr_scroll_;
@@ -238,9 +241,7 @@ float ScrollTxt::Tick() {
     return delay;
 }
 
-void
-DgsSetInactive(void)
-{
+void DgsSetInactive(void) {
     LogMsg("dgs set to INACTIVE");
     active_stand = nullptr;
     state = INACTIVE;
@@ -256,10 +257,8 @@ DgsSetInactive(void)
 }
 
 // set mode to arrival
-void
-DgsSetArrival(void)
-{
-    if (! my_plane.on_ground()) {
+void DgsSetArrival(void) {
+    if (!my_plane.on_ground()) {
         LogMsg("can't set active when not on ground");
         return;
     }
@@ -275,8 +274,7 @@ DgsSetArrival(void)
     // find and load airport I'm on now
     XPLMNavRef ref = XPLMFindNavAid(NULL, NULL, &lat, &lon, NULL, xplm_Nav_Airport);
     if (XPLM_NAV_NOT_FOUND != ref) {
-        XPLMGetNavAidInfo(ref, NULL, &lat, &lon, NULL, NULL, NULL, airport_id,
-                NULL, NULL);
+        XPLMGetNavAidInfo(ref, NULL, &lat, &lon, NULL, NULL, NULL, airport_id, NULL, NULL);
         LogMsg("now on airport: %s", airport_id);
     }
 
@@ -284,16 +282,12 @@ DgsSetArrival(void)
     LogMsg("dgs set to ARRIVAL");
 }
 
-
 // xform lat,lon into the active global frame
-void
-Stand::Xform2RefFrame()
-{
+void Stand::Xform2RefFrame() {
     if (ref_gen_ < ::ref_gen) {
-        XPLMWorldToLocal(lat, lon, my_plane.elevation(),
-                         &stand_x, &stand_y, &stand_z);
+        XPLMWorldToLocal(lat, lon, my_plane.elevation(), &stand_x, &stand_y, &stand_z);
         ref_gen_ = ::ref_gen;
-        dgs_assoc = false;      // association is lost
+        dgs_assoc = false;  // association is lost
         assoc_dgs_z_l = -1.0E10;
         assoc_dgs_x_l = 1.0E10;
         assoc_dgs_ts = 1.0E10;
@@ -301,13 +295,11 @@ Stand::Xform2RefFrame()
 }
 
 // xform global coordinates into the stand frame
-void
-Stand::Global2Stand(float x, float z, float& x_l, float& z_l)
-{
+void Stand::Global2Stand(float x, float z, float &x_l, float &z_l) {
     float dx = x - stand_x;
     float dz = z - stand_z;
 
-    x_l =  dx * cos_hdgt + dz * sin_hdgt;
+    x_l = dx * cos_hdgt + dz * sin_hdgt;
     z_l = -dx * sin_hdgt + dz * cos_hdgt;
 }
 
@@ -324,9 +316,7 @@ Stand::Global2Stand(float x, float z, float& x_l, float& z_l)
 // if distance of a new candidate (z) is nearly the same but closer to stand's centerline (x)
 //    consider it nearer even if z is slightly less
 //
-static inline bool
-IsDgsActive(float obj_x, float obj_z, float obj_psi)
-{
+static inline bool IsDgsActive(float obj_x, float obj_z, float obj_psi) {
     if (nullptr == active_stand)
         return false;
 
@@ -334,22 +324,20 @@ IsDgsActive(float obj_x, float obj_z, float obj_psi)
 
     float dgs_x_l, dgs_z_l;
     active_stand->Global2Stand(obj_x, obj_z, dgs_x_l, dgs_z_l);
-    //LogMsg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
+    // LogMsg("dgs_x_l: %0.2f, dgs_z_l: %0.2f", dgs_x_l, dgs_z_l);
 
     if (dgs_assoc && (dgs_z_l < assoc_dgs_z_l - 2.0f || fabsf(dgs_x_l) > assoc_dgs_x_l))
-        return false;   // already have a closer one
+        return false;  // already have a closer one
 
     // must be in a box +- kMaxDgs2StandX, kMaxDgs2StandZ
     // and reasonably aligned with stand (or for SAM1 anti aligned)
-    if (fabsf(dgs_x_l) > kMaxDgs2StandX
-        || dgs_z_l < -kMaxDgs2StandZ || dgs_z_l > -5.0f
-        || BETWEEN(fabsf(RA(active_stand->hdgt - obj_psi)), 10.0f, 170.0f))
+    if (fabsf(dgs_x_l) > kMaxDgs2StandX || dgs_z_l < -kMaxDgs2StandZ || dgs_z_l > -5.0f ||
+        BETWEEN(fabsf(RA(active_stand->hdgt - obj_psi)), 10.0f, 170.0f))
         return false;
 
     // we found one
-    if ((dgs_z_l > assoc_dgs_z_l - 2.0f && fabsf(dgs_x_l) < assoc_dgs_x_l - 1.0f)
-            || (dgs_z_l > assoc_dgs_z_l)) {
-        is_marshaller = 0;   // associated to a new dgs, don't know yet whether it's a marshaller
+    if ((dgs_z_l > assoc_dgs_z_l - 2.0f && fabsf(dgs_x_l) < assoc_dgs_x_l - 1.0f) || (dgs_z_l > assoc_dgs_z_l)) {
+        is_marshaller = 0;  // associated to a new dgs, don't know yet whether it's a marshaller
         assoc_dgs_z_l = dgs_z_l;
         assoc_dgs_x_l = fabsf(dgs_x_l);
         assoc_dgs_ts = now;
@@ -361,9 +349,7 @@ IsDgsActive(float obj_x, float obj_z, float obj_psi)
 }
 
 // Dataref accessor for the global datarefs, *_utc_* + brightness
-static float
-DgsGlobalAcc(void *ref)
-{
+static float DgsGlobalAcc(void *ref) {
     if (ref == nullptr)
         return -1.0f;
 
@@ -376,9 +362,7 @@ DgsGlobalAcc(void *ref)
 // This function is called from draw loops, efficient coding required.
 //
 //
-static float
-DgsActiveAcc(void *ref)
-{
+static float DgsActiveAcc(void *ref) {
     int dr_index = (uint64_t)ref;
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
@@ -389,13 +373,13 @@ DgsActiveAcc(void *ref)
         return 0.0f;
 
     if (DGS_DR_IDENT == dr_index) {
-        if (fabsf(RA(active_stand->hdgt - obj_psi)) > 10.0f)   // no anti alignment for the Marshaller
+        if (fabsf(RA(active_stand->hdgt - obj_psi)) > 10.0f)  // no anti alignment for the Marshaller
             return 0.0;
 
         // if last nearest dgs was found 2 seconds ago
         // this should be the nearest one in this stand's bbox
         if (now > assoc_dgs_ts + 2.0f) {
-            is_marshaller = 1;      // only marshaller queries ident
+            is_marshaller = 1;  // only marshaller queries ident
             marshaller_x = obj_x;
             marshaller_y = XPLMGetDataf(draw_object_y_dr);
             marshaller_z = obj_z;
@@ -412,22 +396,19 @@ DgsActiveAcc(void *ref)
 //
 // This function is called from draw loops, efficient coding required.
 //
-static float
-DgsSam1Acc(void *ref)
-{
+static float DgsSam1Acc(void *ref) {
     int dr_index = (uint64_t)ref;
-    if (!IsDgsActive(XPLMGetDataf(draw_object_x_dr), XPLMGetDataf(draw_object_z_dr),
-                     XPLMGetDataf(draw_object_psi_dr)))
+    if (!IsDgsActive(XPLMGetDataf(draw_object_x_dr), XPLMGetDataf(draw_object_z_dr), XPLMGetDataf(draw_object_psi_dr)))
         switch (dr_index) {
             case SAM1_DR_STATUS:
                 return SAM1_IDLE;
             case SAM1_DR_LATERAL:
-                return SAM1_LATERAL_OFF;           // switch off VDGS
+                return SAM1_LATERAL_OFF;  // switch off VDGS
             case SAM1_DR_LONGITUDINAL:
                 return 0.0f;
         }
 
-    //LogMsg("DgsSam1Acc: %d", dr_index);
+    // LogMsg("DgsSam1Acc: %d", dr_index);
     switch (dr_index) {
         case SAM1_DR_STATUS:
             return sam1_status;
@@ -445,9 +426,7 @@ DgsSam1Acc(void *ref)
 //
 // This function is called from draw loops, efficient coding required.
 //
-static int
-DgsSam1IcaoAcc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs, int n)
-{
+static int DgsSam1IcaoAcc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs, int n) {
     if (values == nullptr)
         return 4;
 
@@ -467,9 +446,7 @@ DgsSam1IcaoAcc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs, int n)
     return n;
 }
 
-static void
-FindNearestStand()
-{
+static void FindNearestStand() {
     double dist = 1.0E10;
     Stand *min_stand = nullptr;
 
@@ -483,18 +460,17 @@ FindNearestStand()
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
-        if (plane_lat < sc->bb_lat_min || plane_lat > sc->bb_lat_max
-            || RA(plane_lon - sc->bb_lon_min) < 0 || RA(plane_lon - sc->bb_lon_max) > 0) {
+        if (plane_lat < sc->bb_lat_min || plane_lat > sc->bb_lat_max || RA(plane_lon - sc->bb_lon_min) < 0 ||
+            RA(plane_lon - sc->bb_lon_max) > 0) {
             continue;
         }
 
         for (auto stand : sc->stands) {
-
             // heading in local system
             float local_hdgt = RA(plane_hdgt - stand->hdgt);
 
             if (fabs(local_hdgt) > 90.0)
-                continue;   // not looking to stand
+                continue;  // not looking to stand
 
             stand->Xform2RefFrame();
 
@@ -506,20 +482,20 @@ FindNearestStand()
             float nw_x = local_x + my_plane.nose_gear_z_ * sin(kD2R * local_hdgt);
 
             float d = len2f(nw_x, nw_z);
-            if (d > kCapZ + 50) // fast exit
+            if (d > kCapZ + 50)  // fast exit
                 continue;
 
-            //LogMsg("stand: %s, z: %2.1f, x: %2.1f", stand->id, nw_z, nw_x);
+            // LogMsg("stand: %s, z: %2.1f, x: %2.1f", stand->id, nw_z, nw_x);
 
             // behind
             if (nw_z < -4.0) {
-                //LogMsg("behind: %s",stand->id);
+                // LogMsg("behind: %s",stand->id);
                 continue;
             }
 
             if (nw_z > 10.0) {
                 float angle = atan(nw_x / nw_z) / kD2R;
-                //LogMsg("angle to plane: %s, %3.1f",stand->id, angle);
+                // LogMsg("angle to plane: %s, %3.1f",stand->id, angle);
 
                 // check whether plane is in a +-60° sector relative to stand
                 if (fabsf(angle) > 60.0)
@@ -528,12 +504,11 @@ FindNearestStand()
                 // drive-by and beyond a +- 60° sector relative to plane's direction
                 float rel_to_stand = RA(-angle - local_hdgt);
 
-                //LogMsg("rel_to_stand: %s, nw_x: %0.1f, local_hdgt %0.1f, rel_to_stand: %0.1f",
-                //      stand->id, nw_x, local_hdgt, rel_to_stand);
+                // LogMsg("rel_to_stand: %s, nw_x: %0.1f, local_hdgt %0.1f, rel_to_stand: %0.1f",
+                //       stand->id, nw_x, local_hdgt, rel_to_stand);
 
-                if ((nw_x > 10.0 && rel_to_stand < -60.0)
-                    || (nw_x < -10.0 && rel_to_stand > 60.0)) {
-                    //LogMsg("drive by %s",stand->id);
+                if ((nw_x > 10.0 && rel_to_stand < -60.0) || (nw_x < -10.0 && rel_to_stand > 60.0)) {
+                    // LogMsg("drive by %s",stand->id);
                     continue;
                 }
             }
@@ -543,7 +518,7 @@ FindNearestStand()
             d = len2f(azi_weight * nw_x, nw_z);
 
             if (d < dist) {
-                //LogMsg("new min: %s, z: %2.1f, x: %2.1f",stand->id, nw_z, nw_x);
+                // LogMsg("new min: %s, z: %2.1f, x: %2.1f",stand->id, nw_z, nw_x);
                 dist = d;
                 min_stand = stand;
             }
@@ -562,9 +537,8 @@ FindNearestStand()
             }
         }
 
-        LogMsg("stand: %s, %f, %f, %f, dist: %f, kDgsDist: %0.2f", min_stand->id,
-                min_stand->lat, min_stand->lon,
-                min_stand->hdgt, dist, kDgsDist);
+        LogMsg("stand: %s, %f, %f, %f, dist: %f, kDgsDist: %0.2f", min_stand->id, min_stand->lat, min_stand->lon,
+               min_stand->hdgt, dist, kDgsDist);
 
         active_stand = min_stand;
         dgs_assoc = false;
@@ -576,9 +550,7 @@ FindNearestStand()
 }
 
 // -> changed
-static bool
-FindDepartureStand()
-{
+static bool FindDepartureStand() {
     bool changed = false;
 
     float plane_lat = my_plane.lat();
@@ -589,7 +561,8 @@ FindDepartureStand()
     float plane_hdgt = my_plane.psi();
 
     // nose wheel
-    float nw_z = plane_z - my_plane.nose_gear_z_ * cosf(kD2R * plane_hdgt);;
+    float nw_z = plane_z - my_plane.nose_gear_z_ * cosf(kD2R * plane_hdgt);
+    ;
     float nw_x = plane_x + my_plane.nose_gear_z_ * sinf(kD2R * plane_hdgt);
 
     Stand *ds = nullptr;
@@ -597,8 +570,8 @@ FindDepartureStand()
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
-        if (plane_lat < sc->bb_lat_min || plane_lat > sc->bb_lat_max
-            || RA(plane_lon - sc->bb_lon_min) < 0 || RA(plane_lon - sc->bb_lon_max) > 0) {
+        if (plane_lat < sc->bb_lat_min || plane_lat > sc->bb_lat_max || RA(plane_lon - sc->bb_lon_min) < 0 ||
+            RA(plane_lon - sc->bb_lon_max) > 0) {
             continue;
         }
 
@@ -610,7 +583,7 @@ FindDepartureStand()
 
             float dx = nw_x - s->stand_x;
             float dz = nw_z - s->stand_z;
-            //LogMsg("stand: %s, z: %2.1f, x: %2.1f", s->id, dz, dx);
+            // LogMsg("stand: %s, z: %2.1f, x: %2.1f", s->id, dz, dx);
             if (fabsf(dx * dx + dz * dz) < 1.0f) {
                 ds = s;
                 min_sc = sc;
@@ -624,7 +597,7 @@ FindDepartureStand()
             // create display name
             // a stand name can be anything between "1" and "Gate A 40 (Class C, Terminal 3)"
             // we try to extract the net name "A 40" in the latter case
-            const std::string& dsn = ds->id;
+            const std::string &dsn = ds->id;
 
             if (dsn.starts_with("Stand"))
                 display_name = dsn.substr(6);
@@ -648,8 +621,7 @@ FindDepartureStand()
             if (display_name.length() > kR1Nchar)
                 display_name.clear();  // give up
             arpt_icao = min_sc->arpt_icao;
-            LogMsg("departure stand is: %s/%s, display_name: '%s'",
-                   arpt_icao.c_str(), ds->id, display_name.c_str());
+            LogMsg("departure stand is: %s/%s, display_name: '%s'", arpt_icao.c_str(), ds->id, display_name.c_str());
         } else {
             LogMsg("No departure stand found");
         }
@@ -665,9 +637,7 @@ FindDepartureStand()
     return changed;
 }
 
-int
-DgsInit()
-{
+int DgsInit() {
     percent_lights_dr = XPLMFindDataRef("sim/graphics/scenery/percent_lights_on");
     sin_wave_dr = XPLMFindDataRef("sim/graphics/animation/sin_wave_2");
     zulu_time_minutes_dr = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_minutes");
@@ -676,42 +646,36 @@ DgsInit()
 
     // create the dgs animation datarefs
     for (int i = 0; i < DGS_DR_NUM; i++)
-        XPLMRegisterDataAccessor(dgs_dlist_dr[i], xplmType_Float, 0, NULL,
-                                 NULL, DgsActiveAcc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                 NULL, NULL, NULL, (void *)(uint64_t)i, NULL);
+        XPLMRegisterDataAccessor(dgs_dlist_dr[i], xplmType_Float, 0, NULL, NULL, DgsActiveAcc, NULL, NULL, NULL, NULL,
+                                 NULL, NULL, NULL, NULL, NULL, (void *)(uint64_t)i, NULL);
 
     // these are served globally
-    XPLMRegisterDataAccessor("opensam/dgs/time_utc_m0", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc,
-                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &time_utc_m0, 0);
-    XPLMRegisterDataAccessor("opensam/dgs/time_utc_m1", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc,
-                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &time_utc_m1, 0);
-    XPLMRegisterDataAccessor("opensam/dgs/time_utc_h0", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc,
-                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &time_utc_h0, 0);
-    XPLMRegisterDataAccessor("opensam/dgs/time_utc_h1", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc,
-                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &time_utc_h1, 0);
-    XPLMRegisterDataAccessor("opensam/dgs/vdgs_brightness", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc,
-                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, &vdgs_brightness, 0);
+    XPLMRegisterDataAccessor("opensam/dgs/time_utc_m0", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL, &time_utc_m0, 0);
+    XPLMRegisterDataAccessor("opensam/dgs/time_utc_m1", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL, &time_utc_m1, 0);
+    XPLMRegisterDataAccessor("opensam/dgs/time_utc_h0", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL, &time_utc_h0, 0);
+    XPLMRegisterDataAccessor("opensam/dgs/time_utc_h1", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL, &time_utc_h1, 0);
+    XPLMRegisterDataAccessor("opensam/dgs/vdgs_brightness", xplmType_Float, 0, NULL, NULL, DgsGlobalAcc, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, &vdgs_brightness, 0);
 
-    XPLMRegisterDataAccessor("sam/vdgs/status", xplmType_Float, 0, NULL,
-                             NULL, DgsSam1Acc, NULL, NULL, NULL, NULL, NULL, NULL,
-                             NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
+    XPLMRegisterDataAccessor("sam/vdgs/status", xplmType_Float, 0, NULL, NULL, DgsSam1Acc, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
 
-    XPLMRegisterDataAccessor("sam/docking/lateral", xplmType_Float, 0, NULL,
-                             NULL, DgsSam1Acc, NULL, NULL, NULL, NULL, NULL, NULL,
-                             NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_LATERAL, NULL);
+    XPLMRegisterDataAccessor("sam/docking/lateral", xplmType_Float, 0, NULL, NULL, DgsSam1Acc, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_LATERAL, NULL);
 
-    XPLMRegisterDataAccessor("sam/docking/longitudinal", xplmType_Float, 0, NULL,
-                             NULL, DgsSam1Acc, NULL, NULL, NULL, NULL, NULL, NULL,
-                             NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_LONGITUDINAL, NULL);
+    XPLMRegisterDataAccessor("sam/docking/longitudinal", xplmType_Float, 0, NULL, NULL, DgsSam1Acc, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_LONGITUDINAL, NULL);
 
-    XPLMRegisterDataAccessor("sam/docking/icao", xplmType_IntArray, 0, NULL, NULL,
-                             NULL, NULL, NULL, NULL, DgsSam1IcaoAcc, NULL,
-                             NULL, NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_ICAO, NULL);
+    XPLMRegisterDataAccessor("sam/docking/icao", xplmType_IntArray, 0, NULL, NULL, NULL, NULL, NULL, NULL,
+                             DgsSam1IcaoAcc, NULL, NULL, NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_ICAO, NULL);
 
     // some custom VDGS use "sam/docking/status", e.g. Gaya LOWW
-    XPLMRegisterDataAccessor("sam/docking/status", xplmType_Float, 0, NULL,
-                             NULL, DgsSam1Acc, NULL, NULL, NULL, NULL, NULL, NULL,
-                             NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
+    XPLMRegisterDataAccessor("sam/docking/status", xplmType_Float, 0, NULL, NULL, DgsSam1Acc, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, (void *)(uint64_t)SAM1_DR_STATUS, NULL);
 
     marshaller_obj = XPLMLoadObject("Resources/plugins/openSAM/objects/Marshaller.obj");
     if (nullptr == marshaller_obj) {
@@ -729,11 +693,9 @@ DgsInit()
     return 1;
 }
 
-float
-DgsStateMachine()
-{
+float DgsStateMachine() {
     // update global dataref values
-    static constexpr float min_brightness = 0.025;   // relativ to 1
+    static constexpr float min_brightness = 0.025;  // relativ to 1
     vdgs_brightness = min_brightness + (1 - min_brightness) * powf(1 - XPLMGetDataf(percent_lights_dr), 1.5);
     int zm = XPLMGetDatai(zulu_time_minutes_dr);
     int zh = XPLMGetDatai(zulu_time_hours_dr);
@@ -774,7 +736,7 @@ DgsStateMachine()
             state = DEPARTURE;
             if (state != prev_state)
                 LogMsg("New state %s", state_str[state]);
-                // FALLTHROUGH
+            // FALLTHROUGH
         }
 
         if (state == INACTIVE)
@@ -782,7 +744,7 @@ DgsStateMachine()
 
         // cdm data may come in late during boarding
         if (state == DEPARTURE || state == BOARDING) {
-           // although LoadIfNewer is cheap throttling it is even cheaper
+            // although LoadIfNewer is cheap throttling it is even cheaper
             if (now > ofp_ts + 5.0f) {
                 ofp_ts = now;
                 ofp = Ofp::LoadIfNewer(ofp_seqno);  // fetch ofp
@@ -791,14 +753,12 @@ DgsStateMachine()
                     std::string ofp_str = ofp->GenDepartureStr();
                     LogMsg("ofp_str: '%s'", ofp_str.c_str());
                     if (display_name.empty())
-                        scroll_txt = make_unique<ScrollTxt>(arpt_icao + "   "
-                                                            + ofp_str + "   ");
+                        scroll_txt = make_unique<ScrollTxt>(arpt_icao + "   " + ofp_str + "   ");
                     else
-                        scroll_txt = make_unique<ScrollTxt>(arpt_icao + " STAND " + display_name + "   "
-                                                            + ofp_str + "   ");
+                        scroll_txt =
+                            make_unique<ScrollTxt>(arpt_icao + " STAND " + display_name + "   " + ofp_str + "   ");
                 }
             }
-
         }
 
         if (state == DEPARTURE) {
@@ -813,8 +773,8 @@ DgsStateMachine()
 
         if (state == BOARDING) {
             int pax_no = my_plane.pax_no();
-            //LogMsg("boarding pax_no: %d", pax_no);
-            int pn[3]{ -1, -1, -1};
+            // LogMsg("boarding pax_no: %d", pax_no);
+            int pn[3]{-1, -1, -1};
             for (int i = 0; i < 3; i++) {
                 pn[i] = pax_no % 10;
                 pax_no /= 10;
@@ -895,121 +855,117 @@ DgsStateMachine()
             if (beacon_on) {
                 if ((distance <= kCapZ) && (fabsf(azimuth_nw) <= kCapA))
                     new_state = TRACK;
-            } else { // not beacon_on
+            } else {  // not beacon_on
                 new_state = DONE;
             }
             break;
 
         case TRACK: {
-                if (!beacon_on) {       // don't get stuck in TRACK
-                    new_state = DONE;
-                    break;
-                }
+            if (!beacon_on) {  // don't get stuck in TRACK
+                new_state = DONE;
+                break;
+            }
 
-                if (locgood) {
-                    new_state = GOOD;
-                    break;
-                }
+            if (locgood) {
+                new_state = GOOD;
+                break;
+            }
 
-                if (nw_z < kGoodZ_m) {
-                    new_state = BAD;
-                    break;
-                }
+            if (nw_z < kGoodZ_m) {
+                new_state = BAD;
+                break;
+            }
 
-                if ((distance > kCapZ) || (fabsf(azimuth_nw) > kCapA)) {
-                    new_state = ENGAGED;    // moving away from current gate
-                    break;
-                }
+            if ((distance > kCapZ) || (fabsf(azimuth_nw) > kCapA)) {
+                new_state = ENGAGED;  // moving away from current gate
+                break;
+            }
 
-                status = 1;	// plane id
-                if (distance > kAziZ || fabsf(azimuth_nw) > kAziA) {
-                    track = 1;	// lead-in only
-                    break;
-                }
+            status = 1;  // plane id
+            if (distance > kAziZ || fabsf(azimuth_nw) > kAziA) {
+                track = 1;  // lead-in only
+                break;
+            }
 
-                // compute distance and guidance commands
+            // compute distance and guidance commands
 
-                // xform xtrack distance to values required by the OBJ
-                xtrack = std::clamp(ref_x, -4.0f, 4.0f);     // in m, 4 is hardcoded in the OBJ
-                xtrack = std::roundf(xtrack * 2.0f) / 2.0f;  // round to 0.5 increments
+            // xform xtrack distance to values required by the OBJ
+            xtrack = std::clamp(ref_x, -4.0f, 4.0f);     // in m, 4 is hardcoded in the OBJ
+            xtrack = std::roundf(xtrack * 2.0f) / 2.0f;  // round to 0.5 increments
 
-                // compute left/right command
-                if (ref_z > kAziCrossover) {
-                    // far, aim to an intermediate point between ref point and stand
-                    float req_hdgt = atanf(-ref_x / (0.3f * ref_z)) / kD2R;  // required hdgt
-                    float d_hdgt = req_hdgt - local_hdgt;  // degrees to turn
-                    if (d_hdgt < -1.5f)
-                        lr = kTurnLeft;
-                    else if (d_hdgt > 1.5f)
-                        lr = kTurnRight;
-                    if (now > update_dgs_log_ts + 2.0f)
-                        LogMsg(
-                            "req_hdgt: %0.1f, local_hdgt: %0.1f, d_hdgt: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), "
-                            "ref: (%0.1f, %0.1f), "
-                            "x: %0.1f, ",
-                            req_hdgt, local_hdgt, d_hdgt, mw_x, mw_z, nw_x, nw_z, ref_x, ref_z, local_x);
+            // compute left/right command
+            if (ref_z > kAziCrossover) {
+                // far, aim to an intermediate point between ref point and stand
+                float req_hdgt = atanf(-ref_x / (0.3f * ref_z)) / kD2R;  // required hdgt
+                float d_hdgt = req_hdgt - local_hdgt;                    // degrees to turn
+                if (d_hdgt < -1.5f)
+                    lr = kTurnLeft;
+                else if (d_hdgt > 1.5f)
+                    lr = kTurnRight;
+                if (now > update_dgs_log_ts + 2.0f)
+                    LogMsg(
+                        "req_hdgt: %0.1f, local_hdgt: %0.1f, d_hdgt: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), "
+                        "ref: (%0.1f, %0.1f), "
+                        "x: %0.1f, ",
+                        req_hdgt, local_hdgt, d_hdgt, mw_x, mw_z, nw_x, nw_z, ref_x, ref_z, local_x);
 
-                } else {
-                    // close, use xtrack
-                    if (ref_x < -0.25f)
-                        lr = kTurnRight;
-                    else if (ref_x > 0.25f)
-                        lr = kTurnLeft;
-                }
+            } else {
+                // close, use xtrack
+                if (ref_x < -0.25f)
+                    lr = kTurnRight;
+                else if (ref_x > 0.25f)
+                    lr = kTurnLeft;
+            }
 
-                // decide whether to show the SLOW indication
-                // depends on distance and ground speed
-                float gs = XPLMGetDataf(ground_speed_dr);
-                slow = (distance > 20.0f && gs > 4.0f)
-                       || (10.0f < distance && distance <= 20.0f && gs > 3.0f)
-                       || (distance <= 10.0f && gs > 2.0f);
+            // decide whether to show the SLOW indication
+            // depends on distance and ground speed
+            float gs = XPLMGetDataf(ground_speed_dr);
+            slow = (distance > 20.0f && gs > 4.0f) || (10.0f < distance && distance <= 20.0f && gs > 3.0f) ||
+                   (distance <= 10.0f && gs > 2.0f);
 
+            if (distance <= kCrZ / 2) {
+                track = 3;
+                loop_delay = 0.03;
+            } else  // azimuth only
+                track = 2;
 
-                if (distance <= kCrZ/2) {
-                    track = 3;
-                    loop_delay = 0.03;
-                } else // azimuth only
-                    track = 2;
+            // For the Marshaller sync change of straight ahead / turn commands with arm position
+            if (is_marshaller) {
+                // catch the phase ~180° point -> the Marshaller's arm is straight
+                float sin_wave = XPLMGetDataf(sin_wave_dr);
+                bool phase180 = (sin_wave_prev > 0.0) && (sin_wave <= 0.0);
+                sin_wave_prev = sin_wave;
 
-                // For the Marshaller sync change of straight ahead / turn commands with arm position
-                if (is_marshaller) {
-                    // catch the phase ~180° point -> the Marshaller's arm is straight
-                    float sin_wave = XPLMGetDataf(sin_wave_dr);
-                    bool phase180 = (sin_wave_prev > 0.0) && (sin_wave <= 0.0);
-                    sin_wave_prev = sin_wave;
-
-                    if (! phase180) {
-                        lr = lr_prev;
-                        // sync transition with Marshaller's arm movement
-                        if (track == 3 && track_prev == 2) {
-                            track = track_prev;
-                            distance = distance_prev;
-                        }
+                if (!phase180) {
+                    lr = lr_prev;
+                    // sync transition with Marshaller's arm movement
+                    if (track == 3 && track_prev == 2) {
+                        track = track_prev;
+                        distance = distance_prev;
                     }
                 }
             }
-            break;
+        } break;
 
         case GOOD: {
-                // @stop position*/
-                status = 2; lr = 3;
+            // @stop position*/
+            status = 2;
+            lr = 3;
 
-                int parkbrake_set = my_plane.parkbrake_set();
-                if (!locgood)
-                    new_state = TRACK;
-                else if (parkbrake_set || !beacon_on)
-                    new_state = PARKED;
-            }
-            break;
+            int parkbrake_set = my_plane.parkbrake_set();
+            if (!locgood)
+                new_state = TRACK;
+            else if (parkbrake_set || !beacon_on)
+                new_state = PARKED;
+        } break;
 
         case BAD:
-            if (!beacon_on
-                && (now > timestamp + 5.0f)) {
+            if (!beacon_on && (now > timestamp + 5.0f)) {
                 DgsSetInactive();
                 return loop_delay;
             }
 
-            if (nw_z >= kGoodZ_m)   // moving backwards
+            if (nw_z >= kGoodZ_m)  // moving backwards
                 new_state = TRACK;
             else {
                 // Too far
@@ -1022,13 +978,13 @@ DgsStateMachine()
             status = 3;
             lr = 0;
             // wait for beacon off
-            if (! beacon_on) {
+            if (!beacon_on) {
                 new_state = DONE;
-                if (!my_plane.dont_connect_jetway_) { // check whether it's a ToLiss, then set chocks
+                if (!my_plane.dont_connect_jetway_) {  // check whether it's a ToLiss, then set chocks
                     XPLMDataRef tls_chocks = XPLMFindDataRef("AirbusFBW/Chocks");
                     if (tls_chocks) {
                         XPLMSetDatai(tls_chocks, 1);
-                        if (! is_marshaller)
+                        if (!is_marshaller)
                             new_state = CHOCKS;
                     }
                 }
@@ -1043,7 +999,7 @@ DgsStateMachine()
 
         case DONE:
             if (now > timestamp + 3.0f) {
-                if (!my_plane.dont_connect_jetway_)   // wait some seconds for the jw handler to catch up
+                if (!my_plane.dont_connect_jetway_)  // wait some seconds for the jw handler to catch up
                     my_plane.request_dock();
 
                 DgsSetInactive();
@@ -1078,13 +1034,13 @@ DgsStateMachine()
             d_0 = distance;
             if (d_0 < 3) {
                 int d = (distance - d_0) * 10.0f;
-                d &= ~1;    // make it even = 0.2m increments
+                d &= ~1;  // make it even = 0.2m increments
                 d_01 = d;
             }
         }
 
-        if (! is_marshaller)
-            distance = ((float)((int)((distance)*2))) / 2;    // multiple of 0.5m
+        if (!is_marshaller)
+            distance = ((float)((int)((distance) * 2))) / 2;  // multiple of 0.5m
 
         memset(drefs, 0, sizeof(drefs));
         drefs[DGS_DR_STATUS] = status;
@@ -1101,7 +1057,7 @@ DgsStateMachine()
             drefs[DGS_DR_ICAO_2] = 'O';
             drefs[DGS_DR_ICAO_3] = 'W';
         } else {
-            const char* icao = my_plane.icao().c_str();
+            const char *icao = my_plane.icao().c_str();
             for (int i = 0; i < 4; i++)
                 drefs[DGS_DR_ICAO_0 + i] = icao[i];
         }
@@ -1148,8 +1104,8 @@ DgsStateMachine()
             drawinfo.pitch = drawinfo.roll = 0.0;
 
             if (nullptr == marshaller_inst) {
-                LogMsg("place marshaller at %0.2f, %0.2f, %0.2f, hdg: %0.1f°",
-                        marshaller_x, marshaller_y, marshaller_z, marshaller_psi);
+                LogMsg("place marshaller at %0.2f, %0.2f, %0.2f, hdg: %0.1f°", marshaller_x, marshaller_y, marshaller_z,
+                       marshaller_psi);
 
                 marshaller_inst = XPLMCreateInstance(marshaller_obj, dgs_dlist_dr);
                 if (marshaller_inst == nullptr) {
@@ -1160,13 +1116,13 @@ DgsStateMachine()
 
                 // now check whether it's Marshaller_high
 
-                if (xplm_ProbeHitTerrain == XPLMProbeTerrainXYZ(probe_ref, marshaller_x, marshaller_y, marshaller_z,
-                                                               &probeinfo)) {
-                    marshaller_y_0 = probeinfo.locationY;   // ground 0
+                if (xplm_ProbeHitTerrain ==
+                    XPLMProbeTerrainXYZ(probe_ref, marshaller_x, marshaller_y, marshaller_z, &probeinfo)) {
+                    marshaller_y_0 = probeinfo.locationY;  // ground 0
 
                     if (marshaller_y - marshaller_y_0 > 2.0f) {
                         LogMsg("Marshaller_high detected, place stairs");
-                        static const char * null[] = {nullptr};
+                        static const char *null[] = {nullptr};
                         stairs_inst = XPLMCreateInstance(stairs_obj, null);
                         if (stairs_inst == nullptr) {
                             LogMsg("error creating stairs instance");
@@ -1194,11 +1150,11 @@ DgsStateMachine()
         // don't flood the log
         if (now > update_dgs_log_ts + 2.0f) {
             update_dgs_log_ts = now;
-            LogMsg("stand: %s, state: %s, assoc: %d, is_marshaller: %d, track: %d, lr: %d, distance: %0.2f, xtrack: %0.1f",
-                   active_stand->id, state_str[state], dgs_assoc,
-                   is_marshaller, track, lr, distance, xtrack);
-            LogMsg("sam1: status %0.0f, lateral: %0.1f, longitudinal: %0.1f",
-                    sam1_status, sam1_lateral, sam1_longitudinal);
+            LogMsg(
+                "stand: %s, state: %s, assoc: %d, is_marshaller: %d, track: %d, lr: %d, distance: %0.2f, xtrack: %0.1f",
+                active_stand->id, state_str[state], dgs_assoc, is_marshaller, track, lr, distance, xtrack);
+            LogMsg("sam1: status %0.0f, lateral: %0.1f, longitudinal: %0.1f", sam1_status, sam1_lateral,
+                   sam1_longitudinal);
         }
     }
 
