@@ -18366,7 +18366,7 @@ IDX 16501
 IDX 16500
 
 # base obj
-ATTR_LOD	0	200
+ATTR_LOD 0 350
 ANIM_begin
     ANIM_trans	   0.0000    3.000    0.0000	   0.0000    3.000    0.0000	0 0	no_ref
 	ATTR_shiny_rat	0.5
@@ -23847,7 +23847,7 @@ ANIM_end
 
 # continue base obj
 ANIM_end
-ATTR_LOD	200	800
+ATTR_LOD 350 800
 ANIM_begin
     ANIM_trans	   0.0000    3.000    0.0000	   0.0000    3.000    0.0000	0 0	no_ref
 	TRIS	1203 36

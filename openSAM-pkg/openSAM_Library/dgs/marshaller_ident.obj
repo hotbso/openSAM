@@ -13,7 +13,7 @@ IDX 0
 IDX 1
 IDX 2
 
-ATTR_LOD 0.0 150.0
+ATTR_LOD 0.0 300.0
 ANIM_begin
 ANIM_hide 0.000000 10.000000 opensam/dgs/ident
 TRIS 0 3

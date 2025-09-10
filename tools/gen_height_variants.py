@@ -1,6 +1,13 @@
 
 import shutil, sys, os
 
+# X-Planes starts to query drefs *somewhere* in the LOD range and not immediately when the camera
+# comes nearer than the upper bound of a LOD range. As a consequence openSAM lights up VDGS much later
+# than AutoDGS. To mimic the behavior of AutoDGS we increase the near LOD to 350m.
+# In addition VDGS in openSAM are often much farer away from the stand than in AutoDGS.
+
+new_near_lod = "350"
+
 AGP = """A
 1000
 AG_POINT
@@ -41,7 +48,7 @@ def gen_variant(master, v_name, height, turn_180 = False):
 
     vlines = []
 
-    first_lod = True
+    n_lod = 0
     n_no_opensam = 0
     for l in lines:
         if False:
@@ -55,13 +62,17 @@ def gen_variant(master, v_name, height, turn_180 = False):
                 continue
 
         l = l.replace("AutoDGS", "opensam")
-        if "LOD" in l and not first_lod:
-            vlines.append("ANIM_end\n")
+        if l.startswith("ATTR_LOD"):
+            words = l.split()
+            n_lod += 1
+            if n_lod == 1:
+                prev_far_lod = new_near_lod
+                vlines.append(f"ATTR_LOD 0 {new_near_lod}\n")
+            else:
+                vlines.append("ANIM_end\n")
+                vlines.append(f"ATTR_LOD {prev_far_lod} {words[2]}\n")
+                prev_far_lod = words[2]
 
-        vlines.append(l)
-
-        if "LOD" in l:
-            first_lod = False
             vlines.append("ANIM_begin\n")
             if turn_180 and not l.startswith("#"):
                 vlines.append("    ANIM_rotate 0 1 0 180 180 0 1 no_ref\n")
@@ -70,6 +81,8 @@ def gen_variant(master, v_name, height, turn_180 = False):
                 continue
             else:
                 vlines.append(f"    ANIM_trans	   0.0000    {dh:0.3f}    0.0000	   0.0000    {dh:0.3f}    0.0000	0 0	no_ref\n")
+        else:
+            vlines.append(l)
 
     vlines.append("\nANIM_end\n")   # close last LOD
     open(v_name, "w").writelines(vlines)
