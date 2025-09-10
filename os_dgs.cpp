@@ -21,8 +21,10 @@
 //
 
 #include <cstddef>
+#include <cmath>
 #include <cstring>
 #include <cassert>
+#include <algorithm>
 
 #include "openSAM.h"
 #include "os_dgs.h"
@@ -40,12 +42,17 @@ static constexpr float kAziA = 15;              // provide azimuth guidance
 static constexpr float kAziDispA = 10;          // max value for display
 static constexpr float kAziZ = 90;
 
+static constexpr float kAziCrossover = 6;       // m, switch from azimuth to xtrack guidance
+
 static constexpr float kGoodZ_p = 0.2;          // stop position for nw / to stop
 static constexpr float kGoodZ_m = -0.5;         // stop position for nw / beyond stop
 
 static constexpr float kGoodX = 2.0;            // for mw
 
 static constexpr float kCrZ = 12;      	        // Closing Rate starts here VDGS, Marshaller uses 0.5 * kCrZ
+
+static constexpr int kTurnRight = 1;  // arrow on left side
+static constexpr int kTurnLeft = 2;   // arrow on right side
 
 static constexpr float kMaxDgs2StandX = 10.0f;  // max offset/distance from DGS to stand
 static constexpr float kMaxDgs2StandZ = 80.0f;
@@ -84,7 +91,7 @@ static XPLMDataRef percent_lights_dr, sin_wave_dr,
 
 // Published DataRef values
 static int status, track, lr;
-static float azimuth, distance;
+static float distance;
 
 static Stand *active_stand;
 static float active_stand_ts;   // timestamp of last FindNearestStand()
@@ -101,7 +108,7 @@ static float marshaller_x, marshaller_y, marshaller_z, marshaller_y_0, marshalle
 static XPLMObjectRef marshaller_obj, stairs_obj;
 static XPLMInstanceRef marshaller_inst, stairs_inst;
 
-static int update_stand_log_ts;   // throttling of logging
+static int update_dgs_log_ts;   // throttling of logging
 static float sin_wave_prev;
 
 static float time_utc_m0, time_utc_m1, time_utc_h0, time_utc_h1, vdgs_brightness;
@@ -862,33 +869,25 @@ DgsStateMachine()
 
     // ref pos on logitudinal axis of acf blending from mw to nw as we come closer
     // should be nw if dist is below 6 m
-    float a = clampf((nw_z - 6.0f) / 20.0f, 0.0f, 1.0f);
+    float a = std::clamp((nw_z - kAziCrossover) / 20.0, 0.0, 1.0);
     float plane_ref_z = (1.0f - a) * my_plane.nose_gear_z_ + a * my_plane.main_gear_z_;
     float ref_z = local_z - plane_ref_z;
     float ref_x = local_x + plane_ref_z * sin(kD2R * local_hdgt);
 
-    if (fabs(ref_x) > 0.5f && ref_z > 0)
-        azimuth = atanf(ref_x / (ref_z + 0.5f * kDgsDist)) / kD2R;
-    else
-        azimuth = 0.0;
+    float xtrack = 0.0;  // xtrack for VDGS, set later if needed
 
     float azimuth_nw;
     if (nw_z > 0)
-        azimuth_nw = atanf(nw_x / (nw_z + 0.5f * kDgsDist)) / kD2R;
+        azimuth_nw = atanf(nw_x / (nw_z + 5.0f)) / kD2R;
     else
         azimuth_nw = 0.0;
 
-    int locgood = (fabsf(mw_x) <= kGoodX && kGoodZ_m <= nw_z && nw_z <= kGoodZ_p);
-    int beacon_on = my_plane.beacon_on();
+    bool locgood = (fabsf(mw_x) <= kGoodX && kGoodZ_m <= nw_z && nw_z <= kGoodZ_p);
+    bool beacon_on = my_plane.beacon_on();
 
     status = lr = track = 0;
     distance = nw_z;
     bool slow = false;
-
-    // catch the phase ~180° point -> the Marshaller's arm is straight
-    float sin_wave = XPLMGetDataf(sin_wave_dr);
-    int phase180 = (sin_wave_prev > 0.0) && (sin_wave <= 0.0);
-    sin_wave_prev = sin_wave;
 
     // set drefs according to *current* state
     switch (state) {
@@ -924,34 +923,47 @@ DgsStateMachine()
 
                 status = 1;	// plane id
                 if (distance > kAziZ || fabsf(azimuth_nw) > kAziA) {
-                    track=1;	// lead-in only
+                    track = 1;	// lead-in only
                     break;
                 }
 
                 // compute distance and guidance commands
-                azimuth = clampf(azimuth, -kAziA, kAziA);
-                float req_hdgt = -3.5f * azimuth;        // to track back to centerline
-                float d_hdgt = req_hdgt - local_hdgt;   // degrees to turn
+
+                // xform xtrack distance to values required by the OBJ
+                xtrack = std::clamp(ref_x, -4.0f, 4.0f);     // in m, 4 is hardcoded in the OBJ
+                xtrack = std::roundf(xtrack * 2.0f) / 2.0f;  // round to 0.5 increments
+
+                // compute left/right command
+                if (ref_z > kAziCrossover) {
+                    // far, aim to an intermediate point between ref point and stand
+                    float req_hdgt = atanf(-ref_x / (0.3f * ref_z)) / kD2R;  // required hdgt
+                    float d_hdgt = req_hdgt - local_hdgt;  // degrees to turn
+                    if (d_hdgt < -1.5f)
+                        lr = kTurnLeft;
+                    else if (d_hdgt > 1.5f)
+                        lr = kTurnRight;
+                    if (now > update_dgs_log_ts + 2.0f)
+                        LogMsg(
+                            "req_hdgt: %0.1f, local_hdgt: %0.1f, d_hdgt: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), "
+                            "ref: (%0.1f, %0.1f), "
+                            "x: %0.1f, ",
+                            req_hdgt, local_hdgt, d_hdgt, mw_x, mw_z, nw_x, nw_z, ref_x, ref_z, local_x);
+
+                } else {
+                    // close, use xtrack
+                    if (ref_x < -0.25f)
+                        lr = kTurnRight;
+                    else if (ref_x > 0.25f)
+                        lr = kTurnLeft;
+                }
+
+                // decide whether to show the SLOW indication
+                // depends on distance and ground speed
                 float gs = XPLMGetDataf(ground_speed_dr);
                 slow = (distance > 20.0f && gs > 4.0f)
                        || (10.0f < distance && distance <= 20.0f && gs > 3.0f)
                        || (distance <= 10.0f && gs > 2.0f);
 
-                if (now > update_stand_log_ts + 2.0f)
-                    LogMsg("is_marshaller: %d, azimuth: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), ref: (%0.1f, %0.1f), "
-                           "x: %0.1f, local_hdgt: %0.1f, d_hdgt: %0.1f",
-                           is_marshaller, azimuth, mw_x, mw_z, nw_x, nw_z,
-                           ref_x, ref_z,
-                           local_x, local_hdgt, d_hdgt);
-
-                if (d_hdgt < -1.5)
-                    lr = 2;
-                else if (d_hdgt > 1.5)
-                    lr = 1;
-
-                // xform azimuth to values required by OBJ
-                azimuth = clampf(azimuth, -kAziDispA, kAziDispA) * 4.0 / kAziDispA;
-                azimuth=((float)((int)(azimuth * 2))) / 2;  // round to 0.5 increments
 
                 if (distance <= kCrZ/2) {
                     track = 3;
@@ -959,13 +971,20 @@ DgsStateMachine()
                 } else // azimuth only
                     track = 2;
 
-                if (! phase180) { // no wild oscillation
-                    lr = lr_prev;
+                // For the Marshaller sync change of straight ahead / turn commands with arm position
+                if (is_marshaller) {
+                    // catch the phase ~180° point -> the Marshaller's arm is straight
+                    float sin_wave = XPLMGetDataf(sin_wave_dr);
+                    bool phase180 = (sin_wave_prev > 0.0) && (sin_wave <= 0.0);
+                    sin_wave_prev = sin_wave;
 
-                    // sync transition with Marshaller's arm movement
-                    if (is_marshaller && track == 3 && track_prev == 2) {
-                        track = track_prev;
-                        distance = distance_prev;
+                    if (! phase180) {
+                        lr = lr_prev;
+                        // sync transition with Marshaller's arm movement
+                        if (track == 3 && track_prev == 2) {
+                            track = track_prev;
+                            distance = distance_prev;
+                        }
                     }
                 }
             }
@@ -1047,10 +1066,10 @@ DgsStateMachine()
         // xform drefs into required constraints for the OBJs
         if (track == 0 || track == 1) {
             distance = 0;
-            azimuth = 0.0;
+            xtrack = 0.0;
         }
 
-        distance = clampf(distance, kGoodZ_m, kCrZ);
+        distance = std::clamp(distance, kGoodZ_m, kCrZ);
         int d_0 = 0;
         int d_01 = 0;
         // according to Safegate_SDK_UG_Pilots_v1.10_s.pdf
@@ -1073,7 +1092,7 @@ DgsStateMachine()
         drefs[DGS_DR_DISTANCE] = distance;
         drefs[DGS_DR_DISTANCE_0] = d_0;
         drefs[DGS_DR_DISTANCE_01] = d_01;
-        drefs[DGS_DR_XTRACK] = azimuth;
+        drefs[DGS_DR_XTRACK] = xtrack;
         drefs[DGS_DR_LR] = lr;
 
         if (slow) {
@@ -1173,11 +1192,11 @@ DgsStateMachine()
         }
 
         // don't flood the log
-        if (now > update_stand_log_ts + 2.0f) {
-            update_stand_log_ts = now;
-            LogMsg("stand: %s, state: %s, assoc: %d, status: %d, track: %d, lr: %d, distance: %0.2f, azimuth: %0.1f",
+        if (now > update_dgs_log_ts + 2.0f) {
+            update_dgs_log_ts = now;
+            LogMsg("stand: %s, state: %s, assoc: %d, is_marshaller: %d, track: %d, lr: %d, distance: %0.2f, xtrack: %0.1f",
                    active_stand->id, state_str[state], dgs_assoc,
-                   status, track, lr, distance, azimuth);
+                   is_marshaller, track, lr, distance, xtrack);
             LogMsg("sam1: status %0.0f, lateral: %0.1f, longitudinal: %0.1f",
                     sam1_status, sam1_lateral, sam1_longitudinal);
         }
