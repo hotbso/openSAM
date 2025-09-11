@@ -117,21 +117,23 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     }
 
     n_door_ = 0;
-    try {
-        // first an optional translation to icao code
-        try {
-            icao_ = acf_generic_type_map.at(type_code);
-        } catch(const std::out_of_range& ex) {
-            icao_ = type_code;
-        }
+    // first an optional translation to icao code
+    auto it = acf_generic_type_map.find(type_code);
+    if (it != acf_generic_type_map.end()) {
+        icao_ = it->second;
+    } else {
+        icao_ = type_code;
+    }
 
-        door_info_[0] = csl_door_info_map.at(icao_ + '1');
+    auto door_it = csl_door_info_map.find(icao_ + '1');
+    if (door_it != csl_door_info_map.end()) {
+        door_info_[0] = door_it->second;
         n_door_++;
 
         // lateral adjustment
         constexpr float z_adjust = 1.0f;      // backwards
         x_ = x + -sinf(kD2R * psi) * z_adjust;
-        z_ = z + cosf(kD2R * psi) * z_adjust;
+        z_ = z +  cosf(kD2R * psi) * z_adjust;
 
         //get y for ground level
         if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
@@ -143,19 +145,23 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
 
         LogMsg("pid=%d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
                 id_, icao_.c_str(), door_info_[0].x, door_info_[0].y, door_info_[0].z);
-    } catch(const std::out_of_range& ex) {
+    } else {
         LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, type_code.c_str());
         state_ = DISABLED;
         return;
     }
 
     // door 2 +3 are optional
-    try {
-        door_info_[1] = csl_door_info_map.at(icao_ + '2');
+    auto it2 = csl_door_info_map.find(icao_ + '2');
+    if (it2 != csl_door_info_map.end()) {
+        door_info_[1] = it2->second;
         n_door_++;
-        door_info_[2] = csl_door_info_map.at(icao_ + '3');
+    }
+    auto it3 = csl_door_info_map.find(icao_ + '3');
+    if (it3 != csl_door_info_map.end()) {
+        door_info_[2] = it3->second;
         n_door_++;
-    } catch(const std::out_of_range& ex) {}
+    }
 
     state_ = IDLE;
 }
@@ -299,21 +305,20 @@ float MpAdapter_tgxp::update()
         std::string flight_id{fid_ptr}, acf_type{type_ptr};
         dref_planes[flight_id] = true;
 
-        try {
-            auto & pr = mp_planes_.at(flight_id);
-            MpPlane_tgxp* mp_plane = static_cast<MpPlane_tgxp*>(pr.get());
-            mp_plane->update(flight_phase == FP_Startup); // we take that as beacon on switch
-        } catch(const std::out_of_range& ex) {
-            if (flight_phase == FP_Parked) {    // new creation only in parked state
+        auto it = mp_planes_.find(flight_id);
+        if (it != mp_planes_.end()) {
+            MpPlane_tgxp* mp_plane = static_cast<MpPlane_tgxp*>(it->second.get());
+            mp_plane->update(flight_phase == FP_Startup);  // we take that as beacon on switch
+        } else {
+            if (flight_phase == FP_Parked) {  // new creation only in parked state
                 if (--spawn_remain < 0)
                     break;
-                mp_planes_.emplace(flight_id,
-                                   new MpPlane_tgxp(i, flight_id, acf_type,
-                                                    x_val_[i], y_val_[i], z_val_[i], psi_val_[i]));
+                mp_planes_.emplace(
+                    flight_id, new MpPlane_tgxp(i, flight_id, acf_type, x_val_[i], y_val_[i], z_val_[i], psi_val_[i]));
             }
         }
-        //LogMsg("TGXP: %d, %d, %s, %s %0.2f, %0.2f, %0.2f",
-        //        i, flight_phase, flight_id.c_str(), acf_type.c_str(), x_val_[i], y_val_[i], z_val_[i]);
+        // LogMsg("TGXP: %d, %d, %s, %s %0.2f, %0.2f, %0.2f",
+        //         i, flight_phase, flight_id.c_str(), acf_type.c_str(), x_val_[i], y_val_[i], z_val_[i]);
     }
 
     // loop over mp_planes and delete the ones that are no longer in drefs
@@ -321,9 +326,7 @@ float MpAdapter_tgxp::update()
         const std::string& key = mp.first;
         Plane& plane = *(mp.second);
 
-        try {
-            dref_planes.at(key);
-        } catch(const std::out_of_range& ex) {
+        if (dref_planes.find(key) == dref_planes.end()) {
             LogMsg("pid=%d not longer exists, deleted", plane.id_);
             mp_planes_.erase(key);
         }

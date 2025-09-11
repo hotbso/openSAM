@@ -66,13 +66,14 @@ MpPlane_xPilot::MpPlane_xPilot(int slot, const std::string& flight_id, const std
     LogMsg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao_.c_str());
 
     n_door_ = 0;
-    try {
-        door_info_[0] = csl_door_info_map.at(icao_ + '1');
+    // Use iterator to check and assign door_info_[0]
+    auto it = csl_door_info_map.find(icao_ + '1');
+    if (it != csl_door_info_map.end()) {
+        door_info_[0] = it->second;
         n_door_++;
         LogMsg("pid=%d, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
                 id_, door_info_[0].x, door_info_[0].y, door_info_[0].z);
-    }
-    catch(const std::out_of_range& ex) {
+    } else {
         LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
         state_ = DISABLED;
         return;
@@ -197,11 +198,11 @@ float MpAdapter_xPilot::update()
         std::string key = flight_id + '/' + icao;
         dref_planes[key] = true;
 
-        try {
-            auto & pr = mp_planes_.at(key);
-            MpPlane_xPilot* mp_plane = static_cast<MpPlane_xPilot*>(pr.get());
+        auto it = mp_planes_.find(key);
+        if (it != mp_planes_.end()) {
+            MpPlane_xPilot* mp_plane = static_cast<MpPlane_xPilot*>(it->second.get());
             mp_plane->update(x_val_[i], y_val_[i], z_val_[i], psi_val_[i], throttle_val_[i], lights_val_[i]);
-        } catch(const std::out_of_range& ex) {
+        } else {
             MpPlane_xPilot* mp_plane = new MpPlane_xPilot(i, flight_id, icao);
             mp_plane->update(x_val_[i], y_val_[i], z_val_[i], psi_val_[i], throttle_val_[i], lights_val_[i]);
             mp_planes_.emplace(key, mp_plane);
@@ -213,9 +214,7 @@ float MpAdapter_xPilot::update()
         const std::string& key = mp.first;
         Plane& plane = *(mp.second);
 
-        try {
-            dref_planes.at(key);
-        } catch(const std::out_of_range& ex) {
+        if (dref_planes.find(key) == dref_planes.end()) {
             LogMsg("pid=%d not longer exists, deleted", plane.id_);
             mp_planes_.erase(key);
         }

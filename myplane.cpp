@@ -261,13 +261,13 @@ MyPlane::plane_loaded()
 
     // check for a second door, seems to be not available by dataref
     // data in the acf file is often bogus, so check our own config file first
-    try {
-        door_info_[1] = door_info_map.at(icao_ + '2');
+    auto it = door_info_map.find(icao_ + '2');
+    if (it != door_info_map.end()) {
+        door_info_[1] = it->second;
         n_door_++;
         LogMsg("found door 2 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
                 door_info_[1].x, door_info_[1].y, door_info_[1].z);
-    }
-    catch(const std::out_of_range& ex) {
+    } else {
         LogMsg("door 2 is not defined in door_info_map");
     }
 
