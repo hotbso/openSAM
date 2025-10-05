@@ -198,7 +198,7 @@ StartElement(void *user_data, const XML_Char *name, const XML_Char **attr) {
         SamJw *sam_jw = new SamJw;
         GetJwAttrs(attr, sam_jw);
 
-        if (sam_jw->id > (int)lib_jw.size())
+        if (sam_jw->id >= (int)lib_jw.size())
             lib_jw.resize(sam_jw->id + 20);
         if (lib_jw[sam_jw->id])
             LogMsg("duplicate jetway id detected: %d", sam_jw->id);
@@ -229,7 +229,7 @@ StartElement(void *user_data, const XML_Char *name, const XML_Char **attr) {
         }
 
         if (LookupDrf(drf->name) >= 0) {
-            LogMsg("duplicate definition for dataref '%s', ingnored", drf->name);
+            LogMsg("duplicate definition for dataref '%s', ignored", drf->name);
             ctx->cur_dataref = NULL;
             return;
         }
