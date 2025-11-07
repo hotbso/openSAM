@@ -262,7 +262,7 @@ flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
     now = XPLMGetDataf(total_running_time_sec_dr);
 
     bool on_ground_prev = my_plane.on_ground();
-    my_plane.update();
+    my_plane.Update();
     bool on_ground = my_plane.on_ground();
 
     // check for transition

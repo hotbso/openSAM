@@ -335,13 +335,11 @@ MyPlane::plane_loaded()
     pax_no_ = 0;
 }
 
-void
-MyPlane::update()
-{
+void MyPlane::Update() {
     x_ = XPLMGetDataf(plane_x_dr_);
     y_ = XPLMGetDataf(plane_y_dr_);
     z_ = XPLMGetDataf(plane_z_dr_);
-    psi_=XPLMGetDataf(plane_true_psi_dr_);
+    psi_ = XPLMGetDataf(plane_true_psi_dr_);
 
     // on ground detection
     int og = (XPLMGetDataf(gear_fnrml_dr_) != 0.0);
@@ -371,7 +369,7 @@ MyPlane::update()
 
         int beacon = XPLMGetDatai(beacon_dr_);
         if (beacon) {
-            if (! beacon_on_pending_) {
+            if (!beacon_on_pending_) {
                 beacon_on_ts_ = ::now;
                 beacon_on_pending_ = true;
             } else if (now > beacon_on_ts_ + 3.0)
@@ -382,14 +380,14 @@ MyPlane::update()
                 beacon_on_pending_ = false;
             } else if (now > beacon_off_ts_ + 3.0)
                 beacon_on_ = false;
-       }
+        }
     }
 
     parkbrake_set_ = (XPLMGetDataf(parkbrake_dr_) > 0.5f);
     elevation_ = XPLMGetDataf(plane_elevation_dr_);
-    if (! pax_no_dr_probed_) {
+    if (!pax_no_dr_probed_) {
         pax_no_dr_probed_ = true;
-        pax_no_dr_ = XPLMFindDataRef("AirbusFBW/NoPax"); // currently only ToLiss
+        pax_no_dr_ = XPLMFindDataRef("AirbusFBW/NoPax");  // currently only ToLiss
         if (pax_no_dr_) {
             LogMsg("ToLiss detected");
             int pax_no = XPLMGetDataf(pax_no_dr_) + 0.5f;

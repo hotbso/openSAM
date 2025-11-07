@@ -152,7 +152,7 @@ class MyPlane : public Plane {
     void reset_beacon();
 
     // update internal state
-    void update();
+    void Update();
 
     void memorize_parked_pos() override ; // for teleportation detection
     bool check_teleportation() override;
