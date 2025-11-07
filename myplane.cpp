@@ -390,8 +390,12 @@ MyPlane::update()
     if (! pax_no_dr_probed_) {
         pax_no_dr_probed_ = true;
         pax_no_dr_ = XPLMFindDataRef("AirbusFBW/NoPax"); // currently only ToLiss
-        if (pax_no_dr_)
+        if (pax_no_dr_) {
             LogMsg("ToLiss detected");
+            int pax_no = XPLMGetDataf(pax_no_dr_) + 0.5f;
+            if (pax_no > 0)  // warn on common user error
+                LogMsg("WARNING: plane is already boarded with initial # of pax: %d", pax_no);
+        }
     }
 
     if (pax_no_dr_)
