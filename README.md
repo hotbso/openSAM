@@ -21,17 +21,15 @@ Requires the simbrief_hub plugin (https://github.com/hotbso/simbrief_hub)
 ![Image](images/MP-TGXP.jpg) 
 
 ## Download
-Download the latest (non-beta-)release here: https://github.com/hotbso/openSAM/releases/latest
+Download the latest (non-beta-)release here: https://github.com/hotbso/openSAM/releases/latest .\
+You can see all releases including betas here: https://github.com/hotbso/openSAM/releases .
 
-You can see all releases including betas here: https://github.com/hotbso/openSAM/releases
+After you've installed it once Skunkcrafts Updater will take care. Be sure you select the right channel PROD or BETA. If you use BETA make sure you have fully understood how Skunkcrafts channels work.
 
-After you've installed it once skunkcrafts updater will take care. Be sure you select the right channel PROD or BETA.
+Download link for [Skunkcrafts updater](https://forums.x-plane.org/index.php?/forums/topic/292710-skunkcrafts-updater-standalone-client/) .
 
-Download link for skunkcrafts updater:
-
-https://forums.x-plane.org/index.php?/forums/topic/292710-skunkcrafts-updater-standalone-client/
-
-Support Discord: https://discord.gg/BtDvKcUSEP
+Support is on Discord only: https://discord.gg/BtDvKcUSEP .
+PMs, github issues etc won't be accepted. 
 
 ## Installation
 - Remove the SAM plugin (but keep the embedded SAM_Library somewhere)
