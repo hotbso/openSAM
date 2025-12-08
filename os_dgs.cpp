@@ -696,7 +696,7 @@ int DgsInit() {
 float DgsStateMachine() {
     // update global dataref values
     static constexpr float min_brightness = 0.025;  // relative to 1
-    vdgs_brightness = min_brightness + (1.0f - min_brightness) * std::pow(1.0f - XPLMGetDataf(percent_lights_dr), 1.7f);
+    vdgs_brightness = min_brightness + (1.0f - min_brightness) * std::pow(1.0f - XPLMGetDataf(percent_lights_dr), 6.0f);
     int zm = XPLMGetDatai(zulu_time_minutes_dr);
     int zh = XPLMGetDatai(zulu_time_hours_dr);
     time_utc_m0 = zm % 10;
