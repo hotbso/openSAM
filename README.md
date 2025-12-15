@@ -43,6 +43,11 @@ Some sceneries (e.g. for Zero Dollar Payware, Taimodels) require the original SA
 - If not already done link or copy the SAM_library into "Custom Scenery"
 - Make sure openSAM_Library is above SAM_Library in scenery_packs.ini
 
+*Sources of SAM_Library (if you really need it)*\
+See the first line of this post: https://forum.aerosoft.com/index.php?/topic/167270-sam3-now-available/ .\
+Other options are *ORBX Central* or *Aerosoft One* (Check under Library/Dependencies/Optional).\
+Note (again) that the library is embedded in the SAM plugin. Don't install the SAM plugin when using openSAM. Just copy the library out of the plugin folder into "Custom Sceneries".
+
 ## Usage
 The openSAM plugin defines commands:
 - "Dock jetway"   -> openSAM/dock_jwy
