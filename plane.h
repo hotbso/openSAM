@@ -157,7 +157,7 @@ class MyPlane : public Plane {
     void memorize_parked_pos() override ; // for teleportation detection
     bool check_teleportation() override;
 
-    // these 3 are called with prior update() call -> direct read from drefs
+    // these 3 are called without prior update() call -> direct read from drefs
     float lat() { return XPLMGetDataf(plane_lat_dr_); }
     float lon() { return XPLMGetDataf(plane_lon_dr_); }
     float y_agl() { return XPLMGetDataf(plane_y_agl_dr_); }
