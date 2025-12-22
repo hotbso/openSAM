@@ -139,6 +139,8 @@ XPLMProbeInfo_t probeinfo;
 XPLMProbeRef probe_ref;
 XPLMMenuID anim_menu;
 
+static bool error_disabled;
+
 static void
 save_pref()
 {
@@ -253,59 +255,67 @@ cmd_toggle_mp_cb([[maybe_unused]]XPLMCommandRef cmdr,
 }
 
 static float
-flight_loop_cb([[maybe_unused]] float inElapsedSinceLastCall,
+FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
                [[maybe_unused]] float inElapsedTimeSinceLastFlightLoop, [[maybe_unused]] int inCounter,
                [[maybe_unused]] void *inRefcon)
 {
     static float jw_next_ts, dgs_next_ts, anim_next_ts, mp_update_next_ts;
 
-    now = XPLMGetDataf(total_running_time_sec_dr);
+    if (error_disabled)
+        return 0;
+    try {
+        now = XPLMGetDataf(total_running_time_sec_dr);
 
-    bool on_ground_prev = my_plane.on_ground();
-    my_plane.Update();
-    bool on_ground = my_plane.on_ground();
+        bool on_ground_prev = my_plane.on_ground();
+        my_plane.Update();
+        bool on_ground = my_plane.on_ground();
 
-    // check for transition
-    if (on_ground != on_ground_prev) {
-        if (on_ground)
-            DgsSetArrival();
-        else
-            DgsSetInactive();
-    }
-
-    float jw_loop_delay = jw_next_ts - now;
-    float dgs_loop_delay = dgs_next_ts - now;
-    float anim_loop_delay = anim_next_ts - now;
-    float mp_update_delay = mp_update_next_ts - now;
-
-    float my_y_agl = my_plane.y_agl();
-    if (my_y_agl < kMultiPlayerHeightLimit
-        && mp_adapter && mp_update_delay <= 0.0f)
-        mp_update_next_ts = now + mp_adapter->update();
-
-    if (! my_plane.is_helicopter_) {
-        if (jw_loop_delay <= 0.0f) {
-            jw_loop_delay = my_plane.jw_state_machine();
-            if (my_y_agl < kMultiPlayerHeightLimit && mp_adapter)
-                jw_loop_delay = std::min(jw_loop_delay,
-                                         mp_adapter->jw_state_machine());
-
-
-            jw_next_ts = now + jw_loop_delay;
+        // check for transition
+        if (on_ground != on_ground_prev) {
+            if (on_ground)
+                DgsSetArrival();
+            else
+                DgsSetInactive();
         }
 
-        if (dgs_loop_delay <= 0.0f) {
-            dgs_loop_delay = DgsStateMachine();
-            dgs_next_ts = now + dgs_loop_delay;
-        }
-    }
+        float jw_loop_delay = jw_next_ts - now;
+        float dgs_loop_delay = dgs_next_ts - now;
+        float anim_loop_delay = anim_next_ts - now;
+        float mp_update_delay = mp_update_next_ts - now;
 
-    if (anim_loop_delay <= 0.0f) {
-        anim_loop_delay = AnimStateMachine();
-        anim_next_ts = now + anim_loop_delay;
+        float my_y_agl = my_plane.y_agl();
+        if (my_y_agl < kMultiPlayerHeightLimit
+            && mp_adapter && mp_update_delay <= 0.0f)
+            mp_update_next_ts = now + mp_adapter->update();
+
+        if (! my_plane.is_helicopter_) {
+            if (jw_loop_delay <= 0.0f) {
+                jw_loop_delay = my_plane.jw_state_machine();
+                if (my_y_agl < kMultiPlayerHeightLimit && mp_adapter)
+                    jw_loop_delay = std::min(jw_loop_delay,
+                                            mp_adapter->jw_state_machine());
+
+
+                jw_next_ts = now + jw_loop_delay;
+            }
+
+            if (dgs_loop_delay <= 0.0f) {
+                dgs_loop_delay = DgsStateMachine();
+                dgs_next_ts = now + dgs_loop_delay;
+            }
+        }
+
+        if (anim_loop_delay <= 0.0f) {
+            anim_loop_delay = AnimStateMachine();
+            anim_next_ts = now + anim_loop_delay;
+        }
+        //LogMsg("jw_loop_delay: %0.2f", jw_loop_delay);
+        return std::min(anim_loop_delay, std::min(jw_loop_delay, dgs_loop_delay));
+    } catch (const OsEx& e) {
+        LogMsg("FlightLoopCb caught exception: %s, openSAM disabled", e.what());
+        error_disabled = true;
+        return 0;
     }
-    //LogMsg("jw_loop_delay: %0.2f", jw_loop_delay);
-    return std::min(anim_loop_delay, std::min(jw_loop_delay, dgs_loop_delay));
 }
 
 // set season according to date
@@ -617,7 +627,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     set_menu();
 
     // ... and off we go
-    XPLMRegisterFlightLoopCallback(flight_loop_cb, 2.0, NULL);
+    XPLMRegisterFlightLoopCallback(FlightLoopCb, 2.0, NULL);
     return 1;
 
 #if 0
@@ -660,7 +670,7 @@ XPluginDisable(void)
 PLUGIN_API int
 XPluginEnable(void)
 {
-    if (init_fail)  // once and for all
+    if (init_fail || error_disabled)  // once and for all
         return 0;
 
     probe_ref = XPLMCreateProbe(xplm_ProbeY);

@@ -44,12 +44,14 @@ const char * const Plane::state_str_[] = {
 
 Plane::~Plane()
 {
+    LogMsg("pid=%02d, Plane destructor, state: %s, active_jws: %d", id_, state_str_[state_], (int)active_jws_.size());
     if (IDLE <= state_) {
-        LogMsg("pid=%d, Plane destructor", id_);
         for (auto & ajw : active_jws_)
             ajw.reset();
         active_jws_.resize(0);
     }
+
+    LogMsg("pid=%02d, Plane destructor finished", id_);
 }
 
 // auto select active jetways
@@ -197,7 +199,7 @@ Plane::jw_state_machine()
 
             // mp planes always dock directly
             if (dock_requested() || toggle_requested()) {
-                LogMsg("pid=%d, docking requested", id_);
+                LogMsg("pid=%02d, docking requested", id_);
                 float start_ts = now;
                 for (auto & ajw : active_jws_) {
                     // staggered start for docking low to high
@@ -291,7 +293,7 @@ Plane::jw_state_machine()
 
     if (new_state != state_) {
         state_change_ts_ = now;
-        LogMsg("pid=%d, jw state transition, %s -> %s, beacon: %d", id_,
+        LogMsg("pid=%02d, jw state transition, %s -> %s, beacon: %d", id_,
                 state_str_[state_], state_str_[new_state], beacon_on_);
         state_ = new_state;
 

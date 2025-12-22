@@ -63,7 +63,7 @@ MpPlane_xPilot::MpPlane_xPilot(int slot, const std::string& flight_id, const std
 
     on_ground_ = true;  // otherwise we were not here
 
-    LogMsg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao_.c_str());
+    LogMsg("pid=%02d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao_.c_str());
 
     n_door_ = 0;
     // Use iterator to check and assign door_info_[0]
@@ -71,10 +71,10 @@ MpPlane_xPilot::MpPlane_xPilot(int slot, const std::string& flight_id, const std
     if (it != csl_door_info_map.end()) {
         door_info_[0] = it->second;
         n_door_++;
-        LogMsg("pid=%d, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
+        LogMsg("pid=%02d, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
                 id_, door_info_[0].x, door_info_[0].y, door_info_[0].z);
     } else {
-        LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
+        LogMsg("pid=%02d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
         state_ = DISABLED;
         return;
     }
@@ -215,7 +215,7 @@ float MpAdapter_xPilot::update()
         Plane& plane = *(mp.second);
 
         if (dref_planes.find(key) == dref_planes.end()) {
-            LogMsg("pid=%d not longer exists, deleted", plane.id_);
+            LogMsg("pid=%02d key: %s not longer exists, deleted", plane.id_, key.c_str());
             mp_planes_.erase(key);
         }
     }
