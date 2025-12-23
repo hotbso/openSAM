@@ -28,7 +28,7 @@
 
 
 bool
-JwCtrl::sound_dev_init()
+JwCtrl::SoundDevInit()
 {
     return true;
 };
@@ -41,7 +41,7 @@ alert_complete(void *ref, [[maybe_unused]] FMOD_RESULT status)
 }
 
 void
-JwCtrl::alert_on()
+JwCtrl::AlertOn()
 {
     if (alert_chn_)
         return;
@@ -50,13 +50,13 @@ JwCtrl::alert_on()
                                       xplm_AudioExteriorUnprocessed,
                                       alert_complete, this);
 
-    alert_setpos();
+    AlertSetpos();
     XPLMSetAudioFadeDistance(alert_chn_, 20.0f, 150.0f );
     XPLMSetAudioVolume(alert_chn_, 1.3f);
 }
 
 void
-JwCtrl::alert_off()
+JwCtrl::AlertOff()
 {
     if (alert_chn_)
         XPLMStopAudio(alert_chn_);
@@ -64,7 +64,7 @@ JwCtrl::alert_off()
 }
 
 void
-JwCtrl::alert_setpos()
+JwCtrl::AlertSetpos()
 {
     static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
     FMOD_VECTOR pos;

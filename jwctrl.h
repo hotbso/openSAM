@@ -1,24 +1,24 @@
-/*
-    openSAM: open source SAM emulator for X Plane
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2025  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
 
-    Copyright (C) 2024  Holger Teutsch
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-    USA
-
-*/
 #ifndef _JWCTRL_H
 #define _JWCTRL_H
 
@@ -42,7 +42,7 @@ class Plane;
 class JwCtrl {
   private:
     static Sound alert_;
-    static bool sound_dev_init();
+    static bool SoundDevInit();
 
   public:
     enum JwCtrlState {
@@ -78,52 +78,52 @@ class JwCtrl {
 
     FMOD_CHANNEL *alert_chn_;
 
-    void setup_for_door(Plane& plane, const DoorInfo& door_info);
+    void SetupForDoor(Plane& plane, const DoorInfo& door_info);
 
     // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 are optional
-    void xz_to_sam_dr(float cabin_x, float cabin_z,
+    void XzToSamDref(float cabin_x, float cabin_z,
                       float& rot1, float& extent, float *rot2, float *rot3);
 
     //
     // animation
     //
   private:
-    void rotate_1_extend();
+    void Rotate1Extend();
 
     // rotation 2/3 to angle, return true when done
-    bool rotate_2(float rot2, float dt);
-    bool rotate_3(float rot3, float dt);
+    bool Rotate2(float rot2, float dt);
+    bool Rotate3(float rot3, float dt);
 
-    bool rotate_wheel_base(float dt);
+    bool RotateWheelBase(float dt);
 
-    void animate_wheels(float ds);
+    void AnimateWheels(float ds);
 
     // sound stuff
-    void alert_on();
-    void alert_off();
-    void alert_setpos();
+    void AlertOn();
+    void AlertOff();
+    void AlertSetpos();
 
   public:
     // find nearest jetways, order by z (= door number, hopefully)
-    static int find_nearest_jws(Plane& plane, std::vector<JwCtrl>& nearest_jws);
+    static int FindNearestJetway(Plane& plane, std::vector<JwCtrl>& nearest_jws);
 
     // check whether extended nearest njw would crash into parked njw2
-    bool collision_check(const JwCtrl &njw2);
+    bool CollisionCheck(const JwCtrl &njw2);
 
     // setup for operation
-    void setup_dock_undock(float start_time, bool with_sound);
+    void SetupDockUndock(float start_time, bool with_sound);
 
     // drive jetway, return true when done
-    bool dock_drive();
-    bool undock_drive();
+    bool DockDrive();
+    bool UndockDrive();
 
-    void reset();
+    void Reset();
 
     friend bool operator<(const JwCtrl&, const JwCtrl&);
 
     // static initialization hooks, call once
-    static void sound_init();       // inits device and loads wav
-    static void init();             // registers dref accessors
+    static void SoundInit();       // inits device and loads wav
+    static void Init();             // registers dref accessors
 };
 
 // from read_wav.cpp

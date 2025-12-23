@@ -187,7 +187,7 @@ MyPlane::auto_mode_set(bool auto_mode)
 
     if (state_ == DOCKING || state_ == UNDOCKING) {
         for (auto & ajw : active_jws_)
-            ajw.reset();    // an animation might be ongoing
+            ajw.Reset();    // an animation might be ongoing
         state_ = IDLE;
         return;
     }

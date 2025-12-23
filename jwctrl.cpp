@@ -1,24 +1,23 @@
-/*
-    openSAM: open source SAM emulator for X Plane
-
-    Copyright (C) 2025  Holger Teutsch
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-    USA
-
-*/
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2025  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
 
 #include <cstdlib>
 #include <cmath>
@@ -43,16 +42,12 @@ static constexpr float kAlignDist = 1.0;     // m abeam door
 
 Sound JwCtrl::alert_;
 
-
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be nullptr
-void
-JwCtrl::xz_to_sam_dr(float cabin_x, float cabin_z,
-                     float& rot1, float& extent, float *rot2, float *rot3)
-{
+void JwCtrl::XzToSamDref(float cabin_x, float cabin_z, float& rot1, float& extent, float* rot2, float* rot3) {
     float dist = len2f(cabin_x - x_, cabin_z - z_);
 
-    float rot1_d = atan2(cabin_z - z_, cabin_x - x_) / kD2R;   // door frame
-    rot1 =  RA(rot1_d + 90.0f - psi_);
+    float rot1_d = atan2(cabin_z - z_, cabin_x - x_) / kD2R;  // door frame
+    rot1 = RA(rot1_d + 90.0f - psi_);
     extent = dist - jw_->cabinPos;
 
     // angle 0° door frame  -> hdgt -> jw_ frame -> diff to rot1
@@ -69,9 +64,7 @@ JwCtrl::xz_to_sam_dr(float cabin_x, float cabin_z,
 //
 // fill in geometry data related to specific door
 //
-void
-JwCtrl::setup_for_door(Plane& plane, const DoorInfo& door_info)
-{
+void JwCtrl::SetupForDoor(Plane& plane, const DoorInfo& door_info) {
     // rotate into plane local frame
     float dx = jw_->x - plane.x();
     float dz = jw_->z - plane.z();
@@ -88,7 +81,7 @@ JwCtrl::setup_for_door(Plane& plane, const DoorInfo& door_info)
     x_ -= door_info.x;
     z_ -= door_info.z;
 
-    float rot1_d = RA((jw_->initialRot1 + psi_) - 90.0f);    // door frame
+    float rot1_d = RA((jw_->initialRot1 + psi_) - 90.0f);  // door frame
     cabin_x_ = x_ + (jw_->extent + jw_->cabinPos) * cosf(rot1_d * kD2R);
     cabin_z_ = z_ + (jw_->extent + jw_->cabinPos) * sinf(rot1_d * kD2R);
 
@@ -96,7 +89,7 @@ JwCtrl::setup_for_door(Plane& plane, const DoorInfo& door_info)
     // tgt z = 0.0
     y_ = (jw_->y + jw_->height) - (plane.y() + door_info.y);
 
-    xz_to_sam_dr(door_x_, 0.0f, door_rot1_, door_extent_, &door_rot2_, &door_rot3_);
+    XzToSamDref(door_x_, 0.0f, door_rot1_, door_extent_, &door_rot2_, &door_rot3_);
 
     float r = jw_->initialExtent + jw_->cabinPos;
     parked_x_ = x_ + r * cosf(rot1_d * kD2R);
@@ -108,9 +101,7 @@ JwCtrl::setup_for_door(Plane& plane, const DoorInfo& door_info)
 }
 
 // a fuzzy comparator for jetway by door number
-bool
-operator<(const JwCtrl& a, const JwCtrl& b)
-{
+bool operator<(const JwCtrl& a, const JwCtrl& b) {
     // height goes first
     if (a.jw_->height < b.jw_->height - 1.0f)
         return true;
@@ -136,10 +127,8 @@ operator<(const JwCtrl& a, const JwCtrl& b)
 }
 
 // filter list of jetways jws[]for candidates and add them to nearest_jws[]
-static void
-filter_candidates(Plane& plane, std::vector<JwCtrl>& nearest_jws,
-                  std::vector<SamJw*> &jws, const DoorInfo& door_info)
-{
+static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std::vector<SamJw*>& jws,
+                             const DoorInfo& door_info) {
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
     // So we find the nearest jetways on the left and do some heuristics
 
@@ -152,27 +141,28 @@ filter_candidates(Plane& plane, std::vector<JwCtrl>& nearest_jws,
             continue;
         }
 
-        //LogMsg("pid=%02d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
-        //        plane.id_, jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
+        // LogMsg("pid=%02d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
+        //         plane.id_, jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
 
         // set up a tentative JwCtrl ...
         JwCtrl njw{};
         njw.jw_ = jw;
-        njw.setup_for_door(plane, door_info);
+        njw.SetupForDoor(plane, door_info);
 
         // ... and send it through the filters ...
-        if (njw.x_ > 1.0f || BETWEEN(RA(njw.psi_ + jw->initialRot1), -130.0f, 20.0f) ||   // on the right side or pointing away
-            njw.x_ < -80.0f || fabsf(njw.z_) > 80.0f) {             // or far away
-            if (fabsf(njw.x_) < 120.0f && fabsf(njw.z_) < 120.0f)   // don't pollute the log with jws VERY far away
+        if (njw.x_ > 1.0f ||
+            BETWEEN(RA(njw.psi_ + jw->initialRot1), -130.0f, 20.0f) ||  // on the right side or pointing away
+            njw.x_ < -80.0f || fabsf(njw.z_) > 80.0f) {                 // or far away
+            if (fabsf(njw.x_) < 120.0f && fabsf(njw.z_) < 120.0f)       // don't pollute the log with jws VERY far away
                 LogMsg("pid=%02d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initialRot1): %0.1f",
-                        plane.id_, jw->name, njw.x_, njw.z_, njw.psi_ + jw->initialRot1);
+                       plane.id_, jw->name, njw.x_, njw.z_, njw.psi_ + jw->initialRot1);
             continue;
         }
 
-        if (!(BETWEEN(njw.door_rot1_, jw->minRot1, jw->maxRot1) && BETWEEN(njw.door_rot2_, jw->minRot2, jw->maxRot2)
-            && BETWEEN(njw.door_extent_, jw->minExtent, jw->maxExtent))) {
-            LogMsg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f",
-                     jw->name, jw->door, njw.door_rot1_, njw.door_rot2_, njw.door_rot3_, njw.door_extent_);
+        if (!(BETWEEN(njw.door_rot1_, jw->minRot1, jw->maxRot1) && BETWEEN(njw.door_rot2_, jw->minRot2, jw->maxRot2) &&
+              BETWEEN(njw.door_extent_, jw->minExtent, jw->maxExtent))) {
+            LogMsg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f", jw->name, jw->door,
+                   njw.door_rot1_, njw.door_rot2_, njw.door_rot3_, njw.door_extent_);
             LogMsg("  does not fulfil min max criteria in sam.xml");
             float extra_extent = njw.door_extent_ - jw->maxExtent;
             if (extra_extent < 10.0f) {
@@ -183,10 +173,11 @@ filter_candidates(Plane& plane, std::vector<JwCtrl>& nearest_jws,
         }
 
         // ... survived, add to list
-        LogMsg("--> pid=%02d, candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
-                "rot1: %0.1f, extent: %.1f",
-                plane.id_, jw->name, jw->library_id, jw->door,
-                njw.x_, njw.z_, njw.y_, njw.psi_, njw.door_rot1_, njw.door_extent_);
+        LogMsg(
+            "--> pid=%02d, candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
+            "rot1: %0.1f, extent: %.1f",
+            plane.id_, jw->name, jw->library_id, jw->door, njw.x_, njw.z_, njw.y_, njw.psi_, njw.door_rot1_,
+            njw.door_extent_);
 
         nearest_jws.push_back(njw);
     }
@@ -194,9 +185,7 @@ filter_candidates(Plane& plane, std::vector<JwCtrl>& nearest_jws,
 
 // find nearest jetways, order by z (= door number, hopefully)
 // static member, called by Plane
-int
-JwCtrl::find_nearest_jws(Plane& plane, std::vector<JwCtrl>& nearest_jws)
-{
+int JwCtrl::FindNearestJetway(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     int n_door = plane.n_door_;
     if (n_door == 0) {
         LogMsg("acf has no doors!");
@@ -225,57 +214,53 @@ JwCtrl::find_nearest_jws(Plane& plane, std::vector<JwCtrl>& nearest_jws)
 
     // custom jws
     for (auto sc : sceneries)
-        filter_candidates(plane, nearest_jws, sc->sam_jws, avg_di);
+        FilterCandidates(plane, nearest_jws, sc->sam_jws, avg_di);
 
     // and zero config jetways
-    filter_candidates(plane, nearest_jws, zc_jws, avg_di);
+    FilterCandidates(plane, nearest_jws, zc_jws, avg_di);
 
     // sort for door assignment
     std::sort(nearest_jws.begin(), nearest_jws.end());
 
     // fake names for zc jetways
     int i{0};
-    for (auto & njw : nearest_jws) {
-        SamJw *jw = njw.jw_;
+    for (auto& njw : nearest_jws) {
+        SamJw* jw = njw.jw_;
         if (jw->is_zc_jw) {
-            Stand *stand = jw->stand;
+            Stand* stand = jw->stand;
             if (stand) {
                 // stand->id can be eveything from "A11" to "A11 - Terminal 1 (cat C)"
                 char buf[sizeof(stand->id)];
                 strcpy(buf, stand->id);
                 // truncate at ' ' or after 10 chars max
-                char *cptr = strchr(buf, ' ');
+                char* cptr = strchr(buf, ' ');
                 if (cptr)
                     *cptr = '\0';
                 int len = strlen(buf);
                 if (len > 10)
                     buf[10] = '\0';
-                snprintf(jw->name, sizeof(jw->name) -1, "%s_%c", buf, i + 'A');
+                snprintf(jw->name, sizeof(jw->name) - 1, "%s_%c", buf, i + 'A');
             } else
-                snprintf(jw->name, sizeof(jw->name) -1, "zc_%c", i + 'A');
+                snprintf(jw->name, sizeof(jw->name) - 1, "zc_%c", i + 'A');
 
             i++;
         }
     }
 
     // lock all nearest_jws
-    for (auto & njw : nearest_jws)
+    for (auto& njw : nearest_jws)
         njw.jw_->locked = true;
 
     return nearest_jws.size();
 }
 
 // det of 2 column vectors x,y
-static inline float
-det(float x1, float x2, float y1, float y2)
-{
+static inline float det(float x1, float x2, float y1, float y2) {
     return x1 * y2 - x2 * y1;
 }
 
 // check whether extended nearest njw would crash into parked njw2
-bool
-JwCtrl::collision_check(const JwCtrl &njw2)
-{
+bool JwCtrl::CollisionCheck(const JwCtrl& njw2) {
     // S = start, E = extended, P = parked; all (x, z) vectors
     // we solve
     //  S1 + s * (E1 - S1) = S2 + t * (P2 - S2)
@@ -285,7 +270,7 @@ JwCtrl::collision_check(const JwCtrl &njw2)
 
     // x, z in the door frame
     float A1 = door_x_ - x_;
-    float A2 =         - z_;   // door_z is 0 in the door frame
+    float A2 =         -z_;  // door_z is 0 in the door frame
 
     float B1 = -(njw2.parked_x_ - njw2.x_);
     float B2 = -(njw2.parked_z_ - njw2.z_);
@@ -309,11 +294,8 @@ JwCtrl::collision_check(const JwCtrl &njw2)
     return false;
 }
 
-
 // all the animation methods
-bool
-JwCtrl::rotate_wheel_base(float dt)
-{
+bool JwCtrl::RotateWheelBase(float dt) {
     float delta_rot = RA(wb_rot_ - jw_->wheelrotatec);
 
     // optimize rotation
@@ -322,22 +304,21 @@ JwCtrl::rotate_wheel_base(float dt)
     else if (delta_rot < -90.0f)
         delta_rot += 180.0f;
 
-    //LogMsg("wb_rot_: %0.2f, delta_rot: %0.2f, wheelrotatec: %0.2f",
-    //        wb_rot_, delta_rot, jw_->wheelrotatec);
-
+    // LogMsg("wb_rot_: %0.2f, delta_rot: %0.2f, wheelrotatec: %0.2f",
+    //         wb_rot_, delta_rot, jw_->wheelrotatec);
 
     // wheel base rotation
     bool done = true;
     float d_rot;
     if (fabsf(delta_rot) > 2.0f) {
         d_rot = dt * kTurnSpeed;
-        //LogMsg("turning wheel base by %0.2f°", d_rot);
+        // LogMsg("turning wheel base by %0.2f°", d_rot);
         if (delta_rot < 0.0f)
             d_rot = -d_rot;
 
         jw_->wheelrotatec += d_rot;
 
-        done = false;    // must wait
+        done = false;  // must wait
     } else {
         d_rot = delta_rot;
         jw_->wheelrotatec += delta_rot;
@@ -351,17 +332,13 @@ JwCtrl::rotate_wheel_base(float dt)
 }
 
 // rotation1 + extend
-void
-JwCtrl::rotate_1_extend()
-{
-    xz_to_sam_dr(cabin_x_, cabin_z_, jw_->rotate1, jw_->extent, nullptr, nullptr);
+void JwCtrl::Rotate1Extend() {
+    XzToSamDref(cabin_x_, cabin_z_, jw_->rotate1, jw_->extent, nullptr, nullptr);
     jw_->SetWheels();
 }
 
 // rotation 3
-bool
-JwCtrl::rotate_3(float rot3, float dt)
-{
+bool JwCtrl::Rotate3(float rot3, float dt) {
     if (fabsf(jw_->rotate3 - rot3) > 0.1) {
         float d_rot3 = (dt * kHeightSpeed / (jw_->cabinPos + jw_->extent)) / kD2R;  // strictly it's atan
         if (jw_->rotate3 >= rot3)
@@ -380,9 +357,7 @@ JwCtrl::rotate_3(float rot3, float dt)
 }
 
 // rotation 2
-bool
-JwCtrl::rotate_2(float rot2, float dt)
-{
+bool JwCtrl::Rotate2(float rot2, float dt) {
     if (fabsf(jw_->rotate2 - rot2) > 0.5) {
         float d_rot2 = dt * kTurnSpeed;
         if (jw_->rotate2 >= rot2)
@@ -397,12 +372,10 @@ JwCtrl::rotate_2(float rot2, float dt)
 }
 
 // animate wheels for straight driving
-void
-JwCtrl::animate_wheels(float ds)
-{
+void JwCtrl::AnimateWheels(float ds) {
     if (fabsf(RA(wb_rot_ - jw_->wheelrotatec)) > 90.0f)
         ds = -ds;
-    //LogMsg("wb_rot_: %0.2f, wheelrotatec: %0.2f, ds: 0.3f", wb_rot_, jw_->wheelrotatec, ds);
+    // LogMsg("wb_rot_: %0.2f, wheelrotatec: %0.2f, ds: 0.3f", wb_rot_, jw_->wheelrotatec, ds);
 
     float da_ds = (ds / jw_->wheelDiameter) / kD2R;
 
@@ -412,9 +385,7 @@ JwCtrl::animate_wheels(float ds)
 
 // drive jetway to the door
 // return 1 when done
-bool
-JwCtrl::dock_drive()
-{
+bool JwCtrl::DockDrive() {
     if (state_ == DOCKED)
         return true;
 
@@ -430,22 +401,22 @@ JwCtrl::dock_drive()
         jw_->rotate3 = door_rot3_;
         jw_->extent = door_extent_;
         jw_->warnlight = 0;
-        alert_off();
-        return true;   // -> done
+        AlertOff();
+        return true;  // -> done
     }
 
     float dt = now - last_step_ts_;
     last_step_ts_ = now;
 
-    float rot1_d = RA((jw_->rotate1 + psi_) - 90.0f);    // door frame
+    float rot1_d = RA((jw_->rotate1 + psi_) - 90.0f);  // door frame
 
-    //float wheel_x = x_ + (jw_->extent + jw_->wheelPos) * cosf(rot1_d * kD2R);
-    //float wheel_z = z_ + (jw_->extent + jw_->wheelPos) * sinf(rot1_d * kD2R);
+    // float wheel_x = x_ + (jw_->extent + jw_->wheelPos) * cosf(rot1_d * kD2R);
+    // float wheel_z = z_ + (jw_->extent + jw_->wheelPos) * sinf(rot1_d * kD2R);
 
     if (state_ == TO_AP) {
         if (wait_wb_rot_) {
-            //LogMsg("TO_AP: waiting for wb rotation");
-            if (! rotate_wheel_base(dt))
+            // LogMsg("TO_AP: waiting for wb rotation");
+            if (!RotateWheelBase(dt))
                 return false;
             wait_wb_rot_ = false;
         }
@@ -453,8 +424,8 @@ JwCtrl::dock_drive()
         float tgt_x = ap_x_;
 
         float eps = std::max(2.0f * dt * kDriveSpeed, 0.1f);
-        //LogMsg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x_), fabs(cabin_z_));
-        if (fabs(tgt_x - cabin_x_) < eps && fabs(cabin_z_) < eps)  {
+        // LogMsg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x_), fabs(cabin_z_));
+        if (fabs(tgt_x - cabin_x_) < eps && fabs(cabin_z_) < eps) {
             state_ = AT_AP;
             LogMsg("align point reached reached");
             return false;
@@ -478,10 +449,10 @@ JwCtrl::dock_drive()
         cabin_x_ += cos(drive_angle * kD2R) * ds;
         cabin_z_ += sin(drive_angle * kD2R) * ds;
 
-        //LogMsg("to ap: rot1_d: %.2f, cabin_x_: %0.3f, cabin_z_: %0.3f, drive_angle: %0.2f, wb_rot_: %0.2f",
-        //        rot1_d, cabin_x_, cabin_z_, drive_angle, wb_rot_);
+        // LogMsg("to ap: rot1_d: %.2f, cabin_x_: %0.3f, cabin_z_: %0.3f, drive_angle: %0.2f, wb_rot_: %0.2f",
+        //         rot1_d, cabin_x_, cabin_z_, drive_angle, wb_rot_);
 
-        if (! rotate_wheel_base(dt)) {
+        if (!RotateWheelBase(dt)) {
             wait_wb_rot_ = true;
             return false;
         }
@@ -491,39 +462,39 @@ JwCtrl::dock_drive()
         float tgt_rot2 = door_rot2_;
         if (cabin_x_ < (tgt_x - 1.0f) || cabin_z_ < -2.0f) {
             float angle_to_door = atan2f(-cabin_z_, door_x_ - cabin_x_) / kD2R;
-            tgt_rot2 = RA(angle_to_door + 90.0f - psi_ - jw_->rotate1); // point to door
+            tgt_rot2 = RA(angle_to_door + 90.0f - psi_ - jw_->rotate1);  // point to door
         }
-        //LogMsg("jw_->rotate2: %0.1f, tgt_rot2: %0.1f, tgt_rot2: %0.1f", jw_->rotate2, tgt_rot2, tgt_rot2);
+        // LogMsg("jw_->rotate2: %0.1f, tgt_rot2: %0.1f, tgt_rot2: %0.1f", jw_->rotate2, tgt_rot2, tgt_rot2);
 
-        rotate_2(tgt_rot2, dt);
-        rotate_1_extend();
-        rotate_3(door_rot3_, dt);
-        animate_wheels(ds);
+        Rotate2(tgt_rot2, dt);
+        Rotate1Extend();
+        Rotate3(door_rot3_, dt);
+        AnimateWheels(ds);
     }
 
     if (state_ == AT_AP) {
         // use the time to rotate the wheel base towards the door
         wb_rot_ = RA(-rot1_d);
-        rotate_wheel_base(dt);
+        RotateWheelBase(dt);
 
         // rotation 2 + 3 must be at target now
-        if (rotate_2(door_rot2_, dt) && rotate_3(door_rot3_, dt))
+        if (Rotate2(door_rot2_, dt) && Rotate3(door_rot3_, dt))
             state_ = TO_DOOR;
     }
 
     if (state_ == TO_DOOR) {
         if (wait_wb_rot_) {
             // LogMsg("TO_AP: waiting for wb rotation");
-            if (! rotate_wheel_base(dt))
+            if (!RotateWheelBase(dt))
                 return false;
             wait_wb_rot_ = false;
         }
 
         double tgt_x = door_x_;
 
-        cabin_x_ = std::min(cabin_x_, tgt_x); // don't drive beyond the target point
+        cabin_x_ = std::min(cabin_x_, tgt_x);  // don't drive beyond the target point
 
-        //LogMsg("to door: rot1_d: %.2f, cabin_x_: %0.3f, cabin_z_: %0.3f", rot1_d, cabin_x_, cabin_z_);
+        // LogMsg("to door: rot1_d: %.2f, cabin_x_: %0.3f, cabin_z_: %0.3f", rot1_d, cabin_x_, cabin_z_);
 
         // ramp down speed when approaching the plane
         float drive_speed = kDriveSpeed;
@@ -533,38 +504,35 @@ JwCtrl::dock_drive()
         float ds = dt * drive_speed;
 
         cabin_x_ += ds;
-        //LogMsg("cabin_x_: %0.3f, cabin_z_: %0.3f", cabin_x_, cabin_z_);
+        // LogMsg("cabin_x_: %0.3f, cabin_z_: %0.3f", cabin_x_, cabin_z_);
 
         wb_rot_ = RA(-rot1_d);
-        if (! rotate_wheel_base(dt)) {
+        if (!RotateWheelBase(dt)) {
             wait_wb_rot_ = true;
             return false;
         }
         wait_wb_rot_ = false;
 
-        rotate_1_extend();
-        animate_wheels(ds);
+        Rotate1Extend();
+        AnimateWheels(ds);
 
         float eps = std::max(2.0f * dt * kDriveSpeed, 0.05f);
-        //LogMsg("eps: %0.3f, d_x: %0.3f", eps, fabs(tgt_x - cabin_x_));
+        // LogMsg("eps: %0.3f, d_x: %0.3f", eps, fabs(tgt_x - cabin_x_));
         if (fabs(tgt_x - cabin_x_) < eps) {
             state_ = DOCKED;
             LogMsg("door reached");
             jw_->warnlight = 0;
-            alert_off();
-            return true;   // done
+            AlertOff();
+            return true;  // done
         }
     }
 
-    alert_setpos();
+    AlertSetpos();
     return false;
 }
 
-
 // drive jetway to parked position
-bool
-JwCtrl::undock_drive()
-{
+bool JwCtrl::UndockDrive() {
     if (state_ == PARKED)
         return true;
 
@@ -573,25 +541,25 @@ JwCtrl::undock_drive()
 
     // guard against a hung animation
     if (now > timeout_) {
-        LogMsg("undock_drive() timeout!");
+        LogMsg("UndockDrive() timeout!");
         state_ = PARKED;
         jw_->Reset();
-        alert_off();
-        return true;   // -> done
+        AlertOff();
+        return true;  // -> done
     }
 
     float dt = now - last_step_ts_;
     last_step_ts_ = now;
 
-    float rot1_d = RA((jw_->rotate1 + psi_) - 90.0f);    // door frame
+    float rot1_d = RA((jw_->rotate1 + psi_) - 90.0f);  // door frame
 
-    //float wheel_x = x + (jw_->extent + jw_->wheelPos) * cosf(rot1_d * kD2R);
-    //float wheel_z = z + (jw_->extent + jw_->wheelPos) * sinf(rot1_d * kD2R);
+    // float wheel_x = x + (jw_->extent + jw_->wheelPos) * cosf(rot1_d * kD2R);
+    // float wheel_z = z + (jw_->extent + jw_->wheelPos) * sinf(rot1_d * kD2R);
 
     if (state_ == TO_AP) {
         if (wait_wb_rot_) {
-            //LogMsg("TO_AP: waiting for wb rotation");
-            if (! rotate_wheel_base(dt)) {
+            // LogMsg("TO_AP: waiting for wb rotation");
+            if (!RotateWheelBase(dt)) {
                 return false;
             }
             wait_wb_rot_ = false;
@@ -600,8 +568,8 @@ JwCtrl::undock_drive()
         float tgt_x = ap_x_;
 
         float eps = std::max(2.0f * dt * kDriveSpeed, 0.1f);
-        //LogMsg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x_), fabs(cabin_z_));
-        if (fabs(tgt_x - cabin_x_) < eps && fabs(cabin_z_) < eps)  {
+        // LogMsg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x_), fabs(cabin_z_));
+        if (fabs(tgt_x - cabin_x_) < eps && fabs(cabin_z_) < eps) {
             state_ = AT_AP;
             LogMsg("align point reached reached");
             return false;
@@ -612,18 +580,19 @@ JwCtrl::undock_drive()
 
         cabin_x_ += cos(drive_angle * kD2R) * ds;
         cabin_z_ += sin(drive_angle * kD2R) * ds;
-        //LogMsg("to ap: rot1_d: %.2f, cabin_x_: %0.3f, cabin_z_: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f, drive_angle: %0.2f",
-        //        rot1_d, cabin_x_, cabin_z_, wheel_x, wheel_z, drive_angle);
+        // LogMsg("to ap: rot1_d: %.2f, cabin_x_: %0.3f, cabin_z_: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f, drive_angle:
+        // %0.2f",
+        //         rot1_d, cabin_x_, cabin_z_, wheel_x, wheel_z, drive_angle);
 
         wb_rot_ = RA(drive_angle - rot1_d);
-        if (! rotate_wheel_base(dt)) {
+        if (!RotateWheelBase(dt)) {
             wait_wb_rot_ = true;
             return false;
         }
         wait_wb_rot_ = false;
 
-        rotate_1_extend();
-        animate_wheels(ds);
+        Rotate1Extend();
+        AnimateWheels(ds);
     }
 
     if (state_ == AT_AP) {
@@ -634,7 +603,7 @@ JwCtrl::undock_drive()
     if (state_ == TO_PARK) {
         if (wait_wb_rot_) {
             // LogMsg("TO_AP: waiting for wb rotation");
-            if (! rotate_wheel_base(dt)) {
+            if (!RotateWheelBase(dt)) {
                 return false;
             }
             wait_wb_rot_ = false;
@@ -643,8 +612,8 @@ JwCtrl::undock_drive()
         float tgt_x = parked_x_;
         float tgt_z = parked_z_;
 
-        //LogMsg("to park: rot1_d: %.2f, cabin_x_: %0.3f, cabin_z_: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f",
-        //        rot1_d, cabin_x_, cabin_z_, wheel_x, wheel_z);
+        // LogMsg("to park: rot1_d: %.2f, cabin_x_: %0.3f, cabin_z_: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f",
+        //         rot1_d, cabin_x_, cabin_z_, wheel_x, wheel_z);
 
         double ds = dt * kDriveSpeed;
         double drive_angle = atan2(tgt_z - cabin_z_, tgt_x - cabin_x_) / kD2R;
@@ -660,73 +629,66 @@ JwCtrl::undock_drive()
 
         cabin_x_ += cos(drive_angle * kD2R) * ds;
         cabin_z_ += sin(drive_angle * kD2R) * ds;
-        //LogMsg("to parked: rot1_d: %.2f, cabin_x_: %0.3f, cabin_z_: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f, drive_angle: %0.2f",
-        //       rot1_d, cabin_x_, cabin_z_, wheel_x, wheel_z, drive_angle);
+        // LogMsg("to parked: rot1_d: %.2f, cabin_x_: %0.3f, cabin_z_: %0.3f, wheel_x: %0.3f, wheel_z: %0.3f,
+        // drive_angle: %0.2f",
+        //        rot1_d, cabin_x_, cabin_z_, wheel_x, wheel_z, drive_angle);
 
-        if (! rotate_wheel_base(dt)) {
+        if (!RotateWheelBase(dt)) {
             wait_wb_rot_ = true;
             return false;
         }
         wait_wb_rot_ = false;
 
-        rotate_2(jw_->initialRot2, dt);
-        rotate_3(jw_->initialRot3, dt);
-        rotate_1_extend();
-        animate_wheels(ds);
+        Rotate2(jw_->initialRot2, dt);
+        Rotate3(jw_->initialRot3, dt);
+        Rotate1Extend();
+        AnimateWheels(ds);
 
         float eps = std::max(2.0f * dt * kDriveSpeed, 0.1f);
-        //LogMsg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x_), fabs(tgt_z - cabin_z_));
-        if (fabs(tgt_x - cabin_x_) < eps && fabs(tgt_z -cabin_z_) < eps)  {
+        // LogMsg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x_), fabs(tgt_z - cabin_z_));
+        if (fabs(tgt_x - cabin_x_) < eps && fabs(tgt_z - cabin_z_) < eps) {
             state_ = PARKED;
             jw_->warnlight = 0;
-            alert_off();
+            AlertOff();
             LogMsg("park position reached");
             jw_->locked = false;
-            return true;   // done
+            return true;  // done
         }
     }
 
-    alert_setpos();
+    AlertSetpos();
     return false;
 }
 
-void
-JwCtrl::setup_dock_undock(float start_time, bool with_sound)
-{
+void JwCtrl::SetupDockUndock(float start_time, bool with_sound) {
     state_ = TO_AP;
     start_ts_ = start_time;
     last_step_ts_ = start_ts_;
     timeout_ = start_ts_ + kAnimTimeout;
     if (with_sound)
-        alert_on();
+        AlertOn();
     jw_->warnlight = 1;
 }
 
-void
-JwCtrl::reset()
-{
-    alert_off(); jw_->Reset();
+void JwCtrl::Reset() {
+    AlertOff();
+    jw_->Reset();
 }
 
 // static
-void
-JwCtrl::sound_init()
-{
+void JwCtrl::SoundInit() {
     // load alert sound
     read_wav(base_dir + "sound/alert.wav", alert_);
     if (alert_.data)
-        LogMsg("alert sound loaded, channels: %d, bit_rate: %d, size: %d",
-                alert_.num_channels, alert_.sample_rate, alert_.size);
+        LogMsg("alert sound loaded, channels: %d, bit_rate: %d, size: %d", alert_.num_channels, alert_.sample_rate,
+               alert_.size);
     else
         throw OsEx("Could not load sound");
 
-    if (!sound_dev_init())
+    if (!SoundDevInit())
         throw OsEx("Could not init sound");
 }
 
 // static
-void
-JwCtrl::init()
-{
+void JwCtrl::Init() {
 }
-

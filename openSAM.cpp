@@ -519,7 +519,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
         sam_library_installed = scp.SAM_Library_path.size() > 0;
         CollectSamXml(scp);
         LogMsg("%d sceneries with sam jetways found", (int)sceneries.size());
-        JwCtrl::sound_init();
+        JwCtrl::SoundInit();
     } catch (const OsEx& ex) {
         LogMsg("fatal error: '%s', bye!", ex.what());
         return 0;   // bye
@@ -557,7 +557,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     MyPlane::init();
     my_plane.auto_mode_set(pref_auto_mode);
     JwInit();
-    JwCtrl::init();
+    JwCtrl::Init();
     DgsInit();
     AnimInit();
 

@@ -55,7 +55,7 @@ static const float GAIN_INTERNAL = 0.5f;	/* Quieter in internal views */
     } }
 
 bool
-JwCtrl::sound_dev_init()
+JwCtrl::SoundDevInit()
 {
     if (NULL == alcGetCurrentContext()) {
         LogMsg("cannot open XP11's openAL context");
@@ -91,17 +91,17 @@ JwCtrl::sound_dev_init()
     return true;
 }
 void
-JwCtrl::alert_on()
+JwCtrl::AlertOn()
 {
     if (0 == snd_src)
         return;
 
-    alert_setpos();
+    AlertSetpos();
     alSourcePlay(snd_src);
 }
 
 void
-JwCtrl::alert_off()
+JwCtrl::AlertOff()
 {
     if (0 == snd_src)
         return;
@@ -110,7 +110,7 @@ JwCtrl::alert_off()
 }
 
 void
-JwCtrl::alert_setpos()
+JwCtrl::AlertSetpos()
 {
     if (0 == snd_src)
         return;

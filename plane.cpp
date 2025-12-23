@@ -47,7 +47,7 @@ Plane::~Plane()
     LogMsg("pid=%02d, Plane destructor, state: %s, active_jws: %d", id_, state_str_[state_], (int)active_jws_.size());
     if (IDLE <= state_) {
         for (auto & ajw : active_jws_)
-            ajw.reset();
+            ajw.Reset();
         active_jws_.resize(0);
     }
 
@@ -76,7 +76,7 @@ Plane::select_jws()
 
         // skip over collisions
         for (unsigned j = i_jw + 1; j < nearest_jws_.size(); j++)
-            if (nearest_jws_[i_jw].collision_check(nearest_jws_[j]))
+            if (nearest_jws_[i_jw].CollisionCheck(nearest_jws_[j]))
                 goto skip;
 
         nearest_jws_[i_jw].door_ = i_door;
@@ -115,7 +115,7 @@ Plane::jw_state_machine()
         state_change_ts_ = now;
 
         for (auto & ajw : active_jws_)
-            ajw.reset();
+            ajw.Reset();
 
         nearest_jws_.resize(0);
         active_jws_.resize(0);
@@ -128,7 +128,7 @@ Plane::jw_state_machine()
         case IDLE:
             if (prev_state_ != IDLE) {
                  for (auto & ajw : active_jws_)
-                    ajw.reset();
+                    ajw.Reset();
 
                 active_jws_.resize(0);
                 nearest_jws_.resize(0);
@@ -148,7 +148,7 @@ Plane::jw_state_machine()
             break;
 
         case PARKED:
-            if (JwCtrl::find_nearest_jws(*this, nearest_jws_))
+            if (JwCtrl::FindNearestJetway(*this, nearest_jws_))
                 new_state = SELECT_JWS;
             else
                 new_state = CANT_DOCK;
@@ -176,7 +176,7 @@ Plane::jw_state_machine()
             if (active_jws_.size()) {
                 for (auto & ajw : active_jws_) {
                     LogMsg("pid=%d, setting up active jw for door: %d", id_, ajw.door_);
-                    ajw.setup_for_door(*this, door_info_[ajw.door_]);
+                    ajw.SetupForDoor(*this, door_info_[ajw.door_]);
 
                     if (ajw.door_ == 0) // slightly slant towards the nose cone for door LF1
                         ajw.door_rot2_ += 3.0f;
@@ -203,7 +203,7 @@ Plane::jw_state_machine()
                 float start_ts = now;
                 for (auto & ajw : active_jws_) {
                     // staggered start for docking low to high
-                    ajw.setup_dock_undock(start_ts, with_alert_sound());
+                    ajw.SetupDockUndock(start_ts, with_alert_sound());
                     start_ts += 5.0f;
                 }
 
@@ -221,7 +221,7 @@ Plane::jw_state_machine()
         case DOCKING:
             n_done = 0;
             for (auto & ajw : active_jws_) {
-                if (ajw.dock_drive())
+                if (ajw.DockDrive())
                     n_done++;
             }
 
@@ -255,7 +255,7 @@ Plane::jw_state_machine()
                 for (auto & ajw : active_jws_) {
                     // staggered start for undocking high to low
                     start_ts -= 5.0f;
-                    ajw.setup_dock_undock(start_ts, with_alert_sound());
+                    ajw.SetupDockUndock(start_ts, with_alert_sound());
                 }
 
                 if (call_pre_post_dock_cmd()) {
@@ -271,7 +271,7 @@ Plane::jw_state_machine()
         case UNDOCKING:
             n_done = 0;
             for (auto & ajw : active_jws_) {
-                if (ajw.undock_drive())
+                if (ajw.UndockDrive())
                     n_done++;
             }
 
@@ -300,7 +300,7 @@ Plane::jw_state_machine()
         // from anywhere to idle nullifies all selections
         if (state_ == IDLE) {
             for (auto & ajw : active_jws_)
-                ajw.reset();
+                ajw.Reset();
             active_jws_.resize(0);
             nearest_jws_.resize(0);
         }
