@@ -43,6 +43,7 @@ static constexpr float kAlignDist = 1.0;     // m abeam door
 Sound JwCtrl::alert_;
 
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be nullptr
+// Simplified math for small rot3 <= 5°!
 void JwCtrl::XzToSamDref(float cabin_x, float cabin_z, float& rot1, float& extent, float* rot2, float* rot3) {
     float dist = len2f(cabin_x - x_, cabin_z - z_);
 
@@ -57,7 +58,7 @@ void JwCtrl::XzToSamDref(float cabin_x, float cabin_z, float& rot1, float& exten
 
     if (rot3) {
         float net_length = dist + jw_->cabinLength * cosf(r2 * kD2R);
-        *rot3 = -atan2f(y_, net_length) / kD2R;
+        *rot3 = -asinf(y_ / net_length) / kD2R;
     }
 }
 
@@ -91,6 +92,7 @@ void JwCtrl::SetupForDoor(Plane& plane, const DoorInfo& door_info) {
 
     XzToSamDref(door_x_, 0.0f, door_rot1_, door_extent_, &door_rot2_, &door_rot3_);
 
+    // parked position
     float r = jw_->initialExtent + jw_->cabinPos;
     parked_x_ = x_ + r * cosf(rot1_d * kD2R);
     parked_z_ = z_ + r * sinf(rot1_d * kD2R);
