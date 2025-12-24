@@ -110,11 +110,12 @@ may not match up with your installed scenery. Your mileage will vary.
 
 TGXP gives the visually most pleasing rendition.
 
-## The problem of a second door
-Up to now there is no reliable way to determine the position of a second door.
-Therefore door positions must be maintained in the config file "acf_door_position.txt".
+## The problem of door positions
+Door positions are often bogus and a docked jetway may not fit well to the door. This is in particular true for the position of a second door.
+openSAM picks up the position of door 1 from X-Plane datarefs (they end up there from the .acf file).\
+If these do not match well for a specific aircraft type you can override them in a config file ```openSAM/acf_door_position.txt```.
 
-To find the position proceed as follows:
+To find the (or a better) position proceed as follows:
 
 Locate the "openSAM: plane loaded" line in Log.txt.
 
@@ -134,7 +135,7 @@ In WED just place the appropriate assets from 'openSAM' in the library pane into
 SAM_Library is not required.
 Then copy file "openSAM_Library/zero_config_dgs/sam.xml" into your scenery and you are done.
 
-## Zero configuration SAM library jetways" for scenery creators
+## Zero configuration "SAM library jetways" for scenery creators
 In case XP12 default jetways are not sufficient SAM library jetways can be used with zero configuration. \
 SAM_Library in required. \
 Just place them with proper initial orientation of the tunnel in WED. At runtime the cabin will point
