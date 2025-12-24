@@ -204,40 +204,38 @@ MyPlane::auto_mode_set(bool auto_mode)
     }
 }
 
-void
-MyPlane::plane_loaded()
-{
+void MyPlane::PlaneLoaded() {
     on_ground_ = 1;
     on_ground_ts_ = 0.0f;
 
     icao_.resize(4);
     XPLMGetDatab(acf_icao_dr_, icao_.data(), 0, 4);
 
-    for (int i=0; i < 4; i++)
+    for (int i = 0; i < 4; i++)
         icao_[i] = (isupper((uint8_t)icao_[i]) || isdigit((uint8_t)icao_[i])) ? icao_[i] : ' ';
 
     float plane_cg_y = kF2M * XPLMGetDataf(acf_cg_y_dr_);
     float plane_cg_z = kF2M * XPLMGetDataf(acf_cg_z_dr_);
 
     float gear_z[2];
-    if (2 == XPLMGetDatavf(acf_gear_z_dr_, gear_z, 0, 2)) {      // nose + main wheel
+    if (2 == XPLMGetDatavf(acf_gear_z_dr_, gear_z, 0, 2)) {  // nose + main wheel
         nose_gear_z_ = -gear_z[0];
         main_gear_z_ = -gear_z[1];
     } else
-        nose_gear_z_ = main_gear_z_ = plane_cg_z_;         // fall back to CG
+        nose_gear_z_ = main_gear_z_ = plane_cg_z_;  // fall back to CG
 
     is_helicopter_ = XPLMGetDatai(is_helicopter_dr_);
 
     use_engines_on_ = dont_connect_jetway_ = false;
 
-    LogMsg("plane loaded: %s, is_helicopter: %d",
-            icao_.c_str(), is_helicopter_);
+    LogMsg("plane loaded: %s, is_helicopter: %d", icao_.c_str(), is_helicopter_);
 
     if (is_helicopter_)
         return;
 
     // check whether acf is listed in exception files
-    std::string line; line.reserve(200);
+    std::string line;
+    line.reserve(200);
     if (find_icao_in_file(icao_, base_dir + "acf_use_engine_running.txt")) {
         use_engines_on_ = true;
         LogMsg("found");
@@ -248,25 +246,31 @@ MyPlane::plane_loaded()
         LogMsg("found");
     }
 
-    door_info_[0].x = XPLMGetDataf(acf_door_x_dr_);
-    door_info_[0].y = XPLMGetDataf(acf_door_y_dr_);
-    door_info_[0].z = XPLMGetDataf(acf_door_z_dr_);
+    // check whether door info is overridden in the config file
+    auto it = door_info_map.find(icao_ + '1');
+    if (it != door_info_map.end()) {
+        door_info_[0] = it->second;
+        LogMsg("using pos for door 1 from door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[0].x,
+               door_info_[0].y, door_info_[0].z);
+    } else {
+        door_info_[0].x = XPLMGetDataf(acf_door_x_dr_);
+        door_info_[0].y = XPLMGetDataf(acf_door_y_dr_);
+        door_info_[0].z = XPLMGetDataf(acf_door_z_dr_);
+    }
 
     n_door_ = 1;
 
-    LogMsg("plane loaded: %s, plane_cg_y: %1.2f, plane_cg_z: %1.2f, "
-            "door 1: x: %1.2f, y: %1.2f, z: %1.2f",
-            icao_.c_str(), plane_cg_y, plane_cg_z,
-            door_info_[0].x, door_info_[0].y, door_info_[0].z);
+    LogMsg("plane loaded: %s, plane_cg_y: %1.2f, plane_cg_z: %1.2f, door 1: x: %1.2f, y: %1.2f, z: %1.2f",
+           icao_.c_str(), plane_cg_y, plane_cg_z, door_info_[0].x, door_info_[0].y, door_info_[0].z);
 
     // check for a second door, seems to be not available by dataref
     // data in the acf file is often bogus, so check our own config file first
-    auto it = door_info_map.find(icao_ + '2');
+    it = door_info_map.find(icao_ + '2');
     if (it != door_info_map.end()) {
         door_info_[1] = it->second;
         n_door_++;
-        LogMsg("found door 2 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
-                door_info_[1].x, door_info_[1].y, door_info_[1].z);
+        LogMsg("found door 2 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[1].x, door_info_[1].y,
+               door_info_[1].z);
     } else {
         LogMsg("door 2 is not defined in door_info_map");
     }
@@ -279,7 +283,7 @@ MyPlane::plane_loaded()
         XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, acf_file, acf_path);
         LogMsg("acf path: '%s'", acf_path);
 
-        FILE *acf = fopen(acf_path, "r");
+        FILE* acf = fopen(acf_path, "r");
         if (acf) {
             char line[200];
             int got = 0;
@@ -288,7 +292,7 @@ MyPlane::plane_loaded()
             while (fgets(line, sizeof(line), acf)) {
                 if (line == strstr(line, "P acf/_has_board_2 ")) {
                     if (1 != sscanf(line + 19, "%d", &has_door2))
-                    break;
+                        break;
                 }
 
                 if (line == strstr(line, "P acf/_board_2/0 ")) {
@@ -314,8 +318,8 @@ MyPlane::plane_loaded()
 
                 if (has_door2 && got == 3) {
                     n_door_ = 2;
-                    LogMsg("found door 2 in acf file: x: %0.2f, y: %0.2f, z: %0.2f",
-                            door_info_[1].x, door_info_[1].y, door_info_[1].z);
+                    LogMsg("found door 2 in acf file: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[1].x, door_info_[1].y,
+                           door_info_[1].z);
                     break;
                 }
             }
@@ -326,9 +330,9 @@ MyPlane::plane_loaded()
 
     // SAM dgs don't like letters in pos 1-3
     if (icao_ == "A20N")
-        icao_ ="A320";
+        icao_ = "A320";
     else if (icao_ == "A21N")
-        icao_ ="A321";
+        icao_ = "A321";
 
     pax_no_dr_probed_ = false;
     pax_no_dr_ = nullptr;

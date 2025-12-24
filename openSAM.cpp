@@ -418,28 +418,28 @@ cmd_xp12_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase
     return 1;       // pass on to XP12, likely there is no XP12 jw here 8-)
 }
 
-static void
-load_door_info(const std::string& fn, std::unordered_map<std::string, DoorInfo>& di_map)
-{
+static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, DoorInfo>& di_map) {
     std::ifstream f(fn);
     if (!f.is_open())
         throw OsEx("Error loading " + fn);
 
-    LogMsg("Building door_info_map from %s",  fn.c_str());
+    LogMsg("Building door_info_map from %s", fn.c_str());
 
     std::string line;
+    line.reserve(100);
+
     while (std::getline(f, line)) {
         size_t i = line.find('\r');
         if (i != std::string::npos)
             line.resize(i);
 
+        if (line.empty() || line[0] == '#')
+            continue;
+
         char icao[5];
         int d;
         float x, y, z;
         if (5 == sscanf(line.c_str(), "%4s %d %f %f %f", icao, &d, &x, &y, &z)) {
-            if (icao[0] == '#')
-                continue;
-
             if (d < 1 || d > kMaxDoor) {
                 LogMsg("invalid entry: '%s'", line.c_str());
                 continue;
@@ -511,8 +511,8 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     // collect all config and *.xml files
     try {
-        load_door_info(base_dir + "acf_door_position.txt", door_info_map);
-        load_door_info(base_dir + "csl_door_position.txt", csl_door_info_map);
+        LoadDoorInfo(base_dir + "acf_door_position.txt", door_info_map);
+        LoadDoorInfo(base_dir + "csl_door_position.txt", csl_door_info_map);
         load_acf_generic_type(base_dir + "acf_generic_type.txt");
 
         SceneryPacks scp(xp_dir);
@@ -699,7 +699,7 @@ XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, long in_msg, void *
 
     // my plane loaded
     if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
-        my_plane.plane_loaded();
+        my_plane.PlaneLoaded();
         return;
     }
 }
