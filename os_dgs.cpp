@@ -94,7 +94,7 @@ static state_t state = DISABLED;
 static float timestamp;  // for various states in the state_machine
 
 // Datarefs
-static XPLMDataRef percent_lights_dr, sin_wave_dr, zulu_time_minutes_dr, zulu_time_hours_dr, ground_speed_dr;
+static XPLMDataRef percent_lights_dr, ev100_dr, sin_wave_dr, zulu_time_minutes_dr, zulu_time_hours_dr, ground_speed_dr;
 
 // Published DataRef values
 static int status, track, lr;
@@ -694,9 +694,38 @@ int DgsInit() {
 }
 
 float DgsStateMachine() {
+    static bool first = true;
+    if (first) {
+        first = false;
+        // private datarefs are usually defined late
+        ev100_dr = XPLMFindDataRef("sim/private/controls/photometric/ev100");
+        if (ev100_dr)
+            LogMsg("ev100 dataref mapped");
+    }
+
     // update global dataref values
+
+    // brightness for VDGS
     static constexpr float min_brightness = 0.025;  // relative to 1
-    vdgs_brightness = min_brightness + (1.0f - min_brightness) * std::pow(1.0f - XPLMGetDataf(percent_lights_dr), 6.0f);
+
+    if (ev100_dr) {
+        // if ev100 is available, we use it to set brightness
+        static constexpr float kMinEv100 = 6.0f;
+        static constexpr float kMaxEv100 = 11.0f;
+        float ev100 = XPLMGetDataf(ev100_dr);
+        ev100 = std::clamp(ev100, kMinEv100, kMaxEv100);
+        const float f = (ev100 - kMinEv100) / (kMaxEv100 - kMinEv100);
+        // ev100 is logarithmic and vdgs_brightness linear, so we use exp here
+        const float exp_f = (std::exp(f) - 1.0f) / (std::exp(1.0f) - 1.0f);
+        vdgs_brightness = min_brightness + (1.0f - min_brightness) * exp_f;
+        // LogMsg("ev100: %0.2f, vdgs_brightness: %0.3f", ev100, vdgs_brightness);
+    } else {
+        // fallback: use percent_lights_on
+        vdgs_brightness =
+            min_brightness + (1.0f - min_brightness) * std::pow(1.0f - XPLMGetDataf(percent_lights_dr), 6.0f);
+    }
+
+    // UTC time digits
     int zm = XPLMGetDatai(zulu_time_minutes_dr);
     int zh = XPLMGetDatai(zulu_time_hours_dr);
     time_utc_m0 = zm % 10;
