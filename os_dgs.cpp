@@ -39,7 +39,6 @@ static constexpr float kCapA = 15;   // Capture
 static constexpr float kCapZ = 140;  // (50-80 in Safedock2 flier)
 
 static constexpr float kAziA = 15;      // provide azimuth guidance
-static constexpr float kAziDispA = 10;  // max value for display
 static constexpr float kAziZ = 90;
 
 static constexpr float kAziCrossover = 6;  // m, switch from azimuth to xtrack guidance
