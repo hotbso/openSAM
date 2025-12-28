@@ -134,9 +134,12 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
     // So we find the nearest jetways on the left and do some heuristics
 
+    int invisible_jws = 0;
     for (auto jw : jws) {
-        if (jw->obj_ref_gen < ref_gen)  // not visible -> not dockable
+        if (jw->obj_ref_gen < ref_gen) { // not visible -> not dockable
+            invisible_jws++;
             continue;
+        }
 
         if (jw->locked) {
             LogMsg("pid=%02d, %s is locked", plane.id_, jw->name);
@@ -183,6 +186,9 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
 
         nearest_jws.push_back(njw);
     }
+
+    if (invisible_jws > 0)
+        LogMsg("skipped %d invisible of %d total jetways", invisible_jws, static_cast<int>(jws.size()));
 }
 
 // find nearest jetways, order by z (= door number, hopefully)
