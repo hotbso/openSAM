@@ -137,11 +137,9 @@ extern XPLMProbeRef probe_ref;
 
 extern void ToggleUI(void);
 
-#define BETWEEN(x ,a ,b) ((a) <= (x) && (x) <= (b))
+#define BETWEEN(x, a, b) ((a) <= (x) && (x) <= (b))
 
-static inline
-float RA(float angle)
-{
+static inline float RA(float angle) {
     angle = fmodf(angle, 360.0f);
     if (angle > 180.0f)
         return angle - 360.0f;
@@ -152,18 +150,15 @@ float RA(float angle)
     return angle;
 }
 
-static inline float
-clampf(float x, float min, float max)
-{
-    if (x < min) return min;
-    if (x > max) return max;
+static inline float clampf(float x, float min, float max) {
+    if (x < min)
+        return min;
+    if (x > max)
+        return max;
     return x;
 }
 
 /* norm-2 length */
-static inline float
-len2f(float x, float y)
-{
+static inline float len2f(float x, float y) {
     return sqrtf(x * x + y * y);
 }
-

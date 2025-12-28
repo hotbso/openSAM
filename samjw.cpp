@@ -66,9 +66,7 @@ static std::array<SamJw*, (1 << kHashBits)>jw_cache;
 //
 // fill in values for a library jetway
 //
-void
-SamJw::FillLibraryValues(int id)
-{
+void SamJw::FillLibraryValues(int id) {
     if (library_id)
         return;
 
@@ -78,7 +76,7 @@ SamJw::FillLibraryValues(int id)
     }
 
     library_id = id;
-    const SamJw *ljw = lib_jw[id];
+    const SamJw* ljw = lib_jw[id];
     if (ljw == nullptr) {
         LogMsg("Unconfigured library jw for '%s', id: %d", name, id);
         return;
@@ -113,18 +111,16 @@ SamJw::FillLibraryValues(int id)
 //
 // find the stand the jetway belongs to
 //
-Stand*
-SamJw::FindStand()
-{
+Stand* SamJw::FindStand() {
     float dist = 1.0E10;
-    Stand *min_stand = nullptr;
+    Stand* min_stand = nullptr;
 
     float plane_lat = my_plane.lat();
     float plane_lon = my_plane.lon();
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
-        if (! sc->in_bbox(plane_lat, plane_lon))
+        if (!sc->in_bbox(plane_lat, plane_lon))
             continue;
 
         for (auto s : sc->stands) {
@@ -132,13 +128,13 @@ SamJw::FindStand()
 
             float local_x, local_z;
             s->Global2Stand(x, z, local_x, local_z);
-            if (local_x > 2.0f)     // on the right
+            if (local_x > 2.0f)  // on the right
                 continue;
 
             float d = len2f(local_x, local_z);
 
             if (d < dist) {
-                //LogMsg("new min: %s, z: %2.1f, x: %2.1f",stand->id, local_z, local_x);
+                // LogMsg("new min: %s, z: %2.1f, x: %2.1f",stand->id, local_z, local_x);
                 dist = d;
                 min_stand = s;
             }
@@ -152,16 +148,13 @@ SamJw::FindStand()
 //
 // configure a zc library jetway
 //
-static SamJw*
-ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
-{
+static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi) {
     // library jetways may be in view from very far away when stand information is not
     // yet available. We won't see details anyway.
-    if (len2f(obj_x - my_plane.x(), obj_z - my_plane.z()) > 0.5f * kFarSkip
-        || fabsf(obj_y - my_plane.y()) > 1000.0f)
+    if (len2f(obj_x - my_plane.x(), obj_z - my_plane.z()) > 0.5f * kFarSkip || fabsf(obj_y - my_plane.y()) > 1000.0f)
         return nullptr;
 
-    SamJw *jw = new SamJw();
+    SamJw* jw = new SamJw();
     jw->obj_ref_gen = ref_gen;
     jw->x = obj_x;
     jw->z = obj_z;
@@ -171,15 +164,15 @@ ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
     strcpy(jw->name, "zc_");
     jw->FillLibraryValues(id);
 
-    Stand *stand = jw->FindStand();
+    Stand* stand = jw->FindStand();
     if (stand) {
         // delta = cabin points perpendicular to stand
         float delta = RA((stand->hdgt + 90.0f) - jw->psi);
         // randomize
         float delta_r = (0.2f + 0.8f * (0.01f * (rand() % 100))) * delta;
         jw->initialRot2 = delta_r;
-        LogMsg("jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, initialRot2: %0.1f",
-                jw->psi, stand->hdgt, delta, jw->initialRot2);
+        LogMsg("jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, initialRot2: %0.1f", jw->psi, stand->hdgt, delta,
+               jw->initialRot2);
     } else
         jw->initialRot2 = 5.0f;
 
@@ -194,14 +187,12 @@ ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi)
     zc_jws.push_back(jw);
 
     LogMsg("added to zc table stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
-            stand ? stand->id : "<NULL>", jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
+           stand ? stand->id : "<NULL>", jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
     return jw;
 }
 
 // check for shift of reference frame
-void
-CheckRefFrameShift()
-{
+void CheckRefFrameShift() {
     // check for shift of reference frame
     float lat_r = XPLMGetDataf(lat_ref_dr);
     float lon_r = XPLMGetDataf(lon_ref_dr);
@@ -218,9 +209,9 @@ CheckRefFrameShift()
         // from a different frame = stale data
         LogMsg("zc_jws deleted");
         for (auto jw : zc_jws)
-            delete(jw);
+            delete (jw);
 
-        zc_jws.resize(0);           // keep the allocation
+        zc_jws.resize(0);  // keep the allocation
         zc_ref_gen = ref_gen;
     }
 }
@@ -235,9 +226,7 @@ CheckRefFrameShift()
 // sam/jetways/rotate1     -> ( 0, DR_ROTATE1)
 // sam/jetways/15/rotate2  -> (15, DR_ROTATE2)
 //
-static float
-JwAnimAcc(void *ref)
-{
+static float JwAnimAcc(void* ref) {
     stat_acc_called++;
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
@@ -250,7 +239,7 @@ JwAnimAcc(void *ref)
     dr_code_t drc = (dr_code_t)(ctx & 0xffffffff);
     int id = ctx >> 32;
 
-    SamJw *jw = nullptr;
+    SamJw* jw = nullptr;
 
     // We cache jetway pointers in a "1-way associative cache" 8-) .
     // The tag is jw->(x, y, z).
@@ -259,7 +248,7 @@ JwAnimAcc(void *ref)
     // hence we merge in the z coordinate as high bit.
     // Results in a hit rate of ~99% for SFD KLAX.
     unsigned ci_lo = (int)(obj_x * 2.0f) & ((1 << (kHashBits - 1)) - 1);
-    unsigned ci_hi = (int)(obj_z) << (kHashBits -1);
+    unsigned ci_hi = (int)(obj_z) << (kHashBits - 1);
     unsigned cache_idx = (ci_hi | ci_lo) & ((1 << kHashBits) - 1);
     SamJw* cjw = jw_cache[cache_idx];
     if (cjw && cjw->x == obj_x && cjw->y == obj_y && cjw->z == obj_z) {
@@ -275,7 +264,7 @@ JwAnimAcc(void *ref)
 
         for (auto sc : sceneries) {
             // cheap check against bounding box
-            if (! sc->in_bbox(lat, lon)) {
+            if (!sc->in_bbox(lat, lon)) {
                 stat_sc_far_skip++;
                 continue;
             }
@@ -290,11 +279,11 @@ JwAnimAcc(void *ref)
                     // this stuff runs once when a jw in a scenery comes in sight
                     // so it should not be too costly
                     //
-                    double  x, y ,z;
+                    double x, y, z;
                     XPLMWorldToLocal(tjw->latitude, tjw->longitude, 0.0, &x, &y, &z);
                     if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
                         LogMsg("terrain probe 1 failed, jw: '%s', lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
-                                tjw->name, tjw->latitude, tjw->longitude, x, y, z);
+                               tjw->name, tjw->latitude, tjw->longitude, x, y, z);
                         LogMsg("jw: '%s' marked BAD", tjw->name);
                         tjw->bad = true;
                         return 0.0f;
@@ -302,9 +291,9 @@ JwAnimAcc(void *ref)
 
                     // xform back to world to get an approximation for the elevation
                     double lat, lon, elevation;
-                    XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ,
-                                     &lat, &lon, &elevation);
-                    //LogMsg("elevation: %0.2f", elevation);
+                    XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, &lat, &lon,
+                                     &elevation);
+                    // LogMsg("elevation: %0.2f", elevation);
 
                     // and again to local with SAM's lat/lon and the approx elevation
                     XPLMWorldToLocal(tjw->latitude, tjw->longitude, elevation, &x, &y, &z);
@@ -337,7 +326,7 @@ JwAnimAcc(void *ref)
 
                     stat_jw_match++;
                     jw_cache[cache_idx] = jw = tjw;
-                    goto have_jw;   // of nested loops
+                    goto have_jw;  // of nested loops
                 }
 
                 stat_near_skip++;
@@ -356,14 +345,14 @@ JwAnimAcc(void *ref)
             stat_near_skip++;
         }
 
-        if (nullptr == jw && BETWEEN(id, 1, max_lib_jw_id))   // unconfigured library jetway
+        if (nullptr == jw && BETWEEN(id, 1, max_lib_jw_id))  // unconfigured library jetway
             jw = ConfigureZcJw(id, obj_x, obj_z, obj_y, obj_psi);
 
-        if (nullptr == jw)    // still unconfigured -> bad luck
+        if (nullptr == jw)  // still unconfigured -> bad luck
             return 0.0f;
     }
 
-   have_jw:
+have_jw:
     switch (drc) {
         case DR_ROTATE1:
             // a one shot event on first access
@@ -405,9 +394,7 @@ JwAnimAcc(void *ref)
 }
 
 // static method, reset all jetways
-void
-SamJw::ResetAll()
-{
+void SamJw::ResetAll() {
     for (auto sc : sceneries)
         for (auto jw : sc->sam_jws)
             jw->Reset();
@@ -416,9 +403,7 @@ SamJw::ResetAll()
         jw->Reset();
 }
 
-void
-JwInit()
-{
+void JwInit() {
     zc_jws.reserve(150);
 
     // create the jetway animation datarefs
@@ -426,22 +411,18 @@ JwInit()
         char name[100];
         name[99] = '\0';
         snprintf(name, sizeof(name) - 1, "sam/jetway/%s", dr_name_jw[drc]);
-        XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL,
-                                 NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                 NULL, NULL, NULL, (void *)(uint64_t)drc, NULL);
+        XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL, NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, NULL, NULL, (void*)(uint64_t)drc, NULL);
 
         for (int i = 1; i < (int)lib_jw.size(); i++) {
             if (lib_jw[i] == nullptr)
                 continue;
             snprintf(name, sizeof(name) - 1, "sam/jetway/%02d/%s", i, dr_name_jw[drc]);
-            uint64_t ctx = (uint64_t)i << 32|(uint64_t)drc;
-            XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL,
-                                     NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                     NULL, NULL, NULL, (void *)ctx, NULL);
+            uint64_t ctx = (uint64_t)i << 32 | (uint64_t)drc;
+            XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL, NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
+                                     NULL, NULL, NULL, (void*)ctx, NULL);
         }
-
     }
-
 
     SamJw::ResetAll();
     srand(time(NULL));
