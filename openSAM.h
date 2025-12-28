@@ -150,14 +150,6 @@ static inline float RA(float angle) {
     return angle;
 }
 
-static inline float clampf(float x, float min, float max) {
-    if (x < min)
-        return min;
-    if (x > max)
-        return max;
-    return x;
-}
-
 /* norm-2 length */
 static inline float len2f(float x, float y) {
     return sqrtf(x * x + y * y);
