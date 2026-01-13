@@ -82,7 +82,7 @@ Plane::select_jws()
         nearest_jws_[i_jw].door_ = i_door;
         nearest_jws_[i_jw].selected_ = true;
         active_jws_.push_back(nearest_jws_[i_jw]);
-        LogMsg("active jetway for door %d: %s", i_door, active_jws_.back().jw_->name);
+        LogMsg("active jetway for door %d: %s", i_door, active_jws_.back().jw_->name.c_str());
         i_door++;
         if (i_door >= n_door_)
             break;

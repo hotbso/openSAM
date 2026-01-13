@@ -142,12 +142,12 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
         }
 
         if (jw->locked) {
-            LogMsg("pid=%02d, %s is locked", plane.id_, jw->name);
+            LogMsg("pid=%02d, %s is locked", plane.id_, jw->name.c_str());
             continue;
         }
 
         // LogMsg("pid=%02d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
-        //         plane.id_, jw->name, jw->door, jw->x, jw->z, jw->y, jw->psi);
+        //         plane.id_, jw->name.c_str(), jw->door, jw->x, jw->z, jw->y, jw->psi);
 
         // set up a tentative JwCtrl ...
         JwCtrl njw{};
@@ -160,13 +160,13 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
             njw.x_ < -80.0f || fabsf(njw.z_) > 80.0f) {                 // or far away
             if (fabsf(njw.x_) < 120.0f && fabsf(njw.z_) < 120.0f)       // don't pollute the log with jws VERY far away
                 LogMsg("pid=%02d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initialRot1): %0.1f",
-                       plane.id_, jw->name, njw.x_, njw.z_, njw.psi_ + jw->initialRot1);
+                       plane.id_, jw->name.c_str(), njw.x_, njw.z_, njw.psi_ + jw->initialRot1);
             continue;
         }
 
         if (!(BETWEEN(njw.door_rot1_, jw->minRot1, jw->maxRot1) && BETWEEN(njw.door_rot2_, jw->minRot2, jw->maxRot2) &&
               BETWEEN(njw.door_extent_, jw->minExtent, jw->maxExtent))) {
-            LogMsg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f", jw->name, jw->door,
+            LogMsg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f", jw->name.c_str(), jw->door,
                    njw.door_rot1_, njw.door_rot2_, njw.door_rot3_, njw.door_extent_);
             LogMsg("  does not fulfil min max criteria in sam.xml");
             float extra_extent = njw.door_extent_ - jw->maxExtent;
@@ -181,7 +181,7 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
         LogMsg(
             "--> pid=%02d, candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
             "rot1: %0.1f, extent: %.1f",
-            plane.id_, jw->name, jw->library_id, jw->door, njw.x_, njw.z_, njw.y_, njw.psi_, njw.door_rot1_,
+            plane.id_, jw->name.c_str(), jw->library_id, jw->door, njw.x_, njw.z_, njw.y_, njw.psi_, njw.door_rot1_,
             njw.door_extent_);
 
         nearest_jws.push_back(njw);
@@ -245,18 +245,16 @@ int JwCtrl::FindNearestJetway(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
             Stand* stand = jw->stand;
             if (stand) {
                 // stand->id can be eveything from "A11" to "A11 - Terminal 1 (cat C)"
-                char buf[sizeof(stand->id)];
-                strcpy(buf, stand->id);
+                jw->name = stand->id;
                 // truncate at ' ' or after 10 chars max
-                char* cptr = strchr(buf, ' ');
-                if (cptr)
-                    *cptr = '\0';
-                int len = strlen(buf);
-                if (len > 10)
-                    buf[10] = '\0';
-                snprintf(jw->name, sizeof(jw->name) - 1, "%s_%c", buf, i + 'A');
+                size_t pos = jw->name.find(' ');
+                if (pos != std::string::npos)
+                    jw->name = jw->name.substr(0, pos);
+                if (jw->name.length() > 10)
+                    jw->name = jw->name.substr(0, 10);
+                jw->name = jw->name + "_" + std::to_string(i);
             } else
-                snprintf(jw->name, sizeof(jw->name) - 1, "zc_%c", i + 'A');
+                jw->name = "zc_" + std::to_string(i);
 
             i++;
         }
@@ -299,7 +297,7 @@ bool JwCtrl::CollisionCheck(const JwCtrl& njw2) {
 
     float s = det(C1, C2, B1, B2) / d;
     float t = det(A1, A2, C1, C2) / d;
-    LogMsg("collision check between jw %s and %s, s = %0.2f, t = %0.2f", jw_->name, njw2.jw_->name, s, t);
+    LogMsg("collision check between jw %s and %s, s = %0.2f, t = %0.2f", jw_->name.c_str(), njw2.jw_->name.c_str(), s, t);
 
     if (BETWEEN(t, 0.0f, 1.0f) && BETWEEN(s, 0.0f, 1.0f)) {
         LogMsg("collision detected");

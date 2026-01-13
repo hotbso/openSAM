@@ -54,7 +54,7 @@ main(int argc, char **argv) {
 
     for (auto drf : sam_drfs) {
         printf("%s, auto_play: %d, randomize_phase: %d, augment_wind_speed: %d\n",
-               drf->name, drf->autoplay, drf->randomize_phase, drf->augment_wind_speed);
+               drf->name.c_str(), drf->autoplay, drf->randomize_phase, drf->augment_wind_speed);
 
         for (int j = 0; j < drf->n_tv; j++)
             printf("   t: %6.2f, v: %6.2f\n", drf->t[j], drf->v[j]);
@@ -64,22 +64,22 @@ main(int argc, char **argv) {
 
     for (auto sc : sceneries) {
         printf("%s: %d jetways, %d stands collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n",
-               sc->name, (int)sc->sam_jws.size(), (int)sc->stands.size(),
+               sc->name.c_str(), (int)sc->sam_jws.size(), (int)sc->stands.size(),
                sc->bb_lat_min, sc->bb_lon_min, sc->bb_lat_max, sc->bb_lon_max);
 
         puts("\nObjects");
         for (auto obj : sc->sam_objs)
-            printf("%s %5.6f %5.6f %5.6f %5.6f\n", obj->id, obj->latitude, obj->longitude,
+            printf("'%s' %5.6f %5.6f %5.6f %5.6f\n", obj->id.c_str(), obj->latitude, obj->longitude,
                    obj->elevation, obj->heading);
 
         puts("\nAnimations");
         for (auto anim : sc->sam_anims)
-            printf("'%s' '%s', obj: '%s', drf: '%s'\n", anim->label, anim->title,
-                   sc->sam_objs[anim->obj_idx]->id, sam_drfs[anim->drf_idx]->name);
+            printf("'%s' '%s', obj: '%s', drf: '%s'\n", anim->label.c_str(), anim->title.c_str(),
+                   sc->sam_objs[anim->obj_idx]->id.c_str(), sam_drfs[anim->drf_idx]->name.c_str());
 
         puts("\nJetways");
         for (auto jw : sc->sam_jws) {
-            printf("%s %5.6f %5.6f door: %d\n", jw->name, jw->latitude, jw->longitude, jw->door);
+            printf("%s %5.6f %5.6f door: %d\n", jw->name.c_str(), jw->latitude, jw->longitude, jw->door);
         }
         puts("\n");
     }
@@ -89,16 +89,16 @@ main(int argc, char **argv) {
         SamJw *jw = lib_jw[i];
         if (jw == nullptr)
             continue;
-        printf("%d; %s height: %0.2f, cabinPos: %0.2f\n", jw->id, jw->name, jw->height, jw->cabinPos);
+        printf("%d; %s height: %0.2f, cabinPos: %0.2f\n", jw->id, jw->name.c_str(), jw->height, jw->cabinPos);
     }
 
     printf("Max id: %d\n\n", max_lib_jw_id);
 
     puts("Ramps");
     for (auto sc : sceneries) {
-        printf("%s\n", sc->name);
+        printf("%s\n", sc->name.c_str());
         for (auto stand : sc->stands) {
-            printf("%-40s %5.6f, %5.6f %6.2f\n", stand->id,
+            printf("%-40s %5.6f, %5.6f %6.2f\n", stand->id.c_str(),
                     stand->lat, stand->lon, stand->hdgt);
         }
         puts("\n");

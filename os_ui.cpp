@@ -73,7 +73,7 @@ MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id,
                 for (unsigned j = 0; j < my_plane.nearest_jws_.size(); j++) {
                     int state = (uint64_t)XPGetWidgetProperty(jw_btn[i][j], xpProperty_ButtonState, NULL);
                     if (state) {
-                        LogMsg("active jw for door %d is %s", i, my_plane.nearest_jws_[j].jw_->name);
+                        LogMsg("active jw for door %d is %s", i, my_plane.nearest_jws_[j].jw_->name.c_str());
                         my_plane.nearest_jws_[j].selected_ = true;
                         my_plane.nearest_jws_[j].door_ = i;
                         my_plane.active_jws_.push_back(my_plane.nearest_jws_[j]);
@@ -121,7 +121,7 @@ MyPlane::ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id,
 
         int new_state = (int)(uint64_t)param2;
         LogMsg("button door: %d, jw: %d pressed, name: %s, new_state: %d", idoor, ijw,
-                my_plane.nearest_jws_[ijw].jw_->name, new_state);
+                my_plane.nearest_jws_[ijw].jw_->name.c_str(), new_state);
 
         // unselect all other buttons for the selected door
         for (unsigned j = 0; j < my_plane.nearest_jws_.size(); j++)
@@ -161,7 +161,7 @@ MyPlane::update_ui(bool only_if_visible)
             for (unsigned j = 0; j < nearest_jws_.size(); j++) {
                 JwCtrl& njw = nearest_jws_[j];
                 XPWidgetID btn = jw_btn[i][j];
-                XPSetWidgetDescriptor(btn, njw.jw_->name);
+                XPSetWidgetDescriptor(btn, njw.jw_->name.c_str());
                 XPSetWidgetProperty(btn, xpProperty_ButtonState, 0);
                 XPShowWidget(btn);
             }

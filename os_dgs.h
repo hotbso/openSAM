@@ -28,7 +28,7 @@ struct Stand {
     double stand_x, stand_y, stand_z;
     float cos_hdgt, sin_hdgt;
 
-    char id[40];
+    std::string id;
 
     // xform lat,lon to reference frame
     void Xform2RefFrame();

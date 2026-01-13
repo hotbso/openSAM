@@ -536,7 +536,7 @@ static void FindNearestStand() {
             }
         }
 
-        LogMsg("stand: %s, %f, %f, %f, dist: %f, kDgsDist: %0.2f", min_stand->id, min_stand->lat, min_stand->lon,
+        LogMsg("stand: %s, %f, %f, %f, dist: %f, kDgsDist: %0.2f", min_stand->id.c_str(), min_stand->lat, min_stand->lon,
                min_stand->hdgt, dist, kDgsDist);
 
         active_stand = min_stand;
@@ -620,7 +620,7 @@ static bool FindDepartureStand() {
             if (display_name.length() > kR1Nchar)
                 display_name.clear();  // give up
             arpt_icao = min_sc->arpt_icao;
-            LogMsg("departure stand is: %s/%s, display_name: '%s'", arpt_icao.c_str(), ds->id, display_name.c_str());
+            LogMsg("departure stand is: %s/%s, display_name: '%s'", arpt_icao.c_str(), ds->id.c_str(), display_name.c_str());
         } else {
             LogMsg("No departure stand found");
         }
@@ -1180,7 +1180,7 @@ float DgsStateMachine() {
             update_dgs_log_ts = now;
             LogMsg(
                 "stand: %s, state: %s, assoc: %d, is_marshaller: %d, track: %d, lr: %d, distance: %0.2f, xtrack: %0.1f",
-                active_stand->id, state_str[state], dgs_assoc, is_marshaller, track, lr, distance, xtrack);
+                active_stand->id.c_str(), state_str[state], dgs_assoc, is_marshaller, track, lr, distance, xtrack);
             LogMsg("sam1: status %0.0f, lateral: %0.1f, longitudinal: %0.1f", sam1_status, sam1_lateral,
                    sam1_longitudinal);
         }

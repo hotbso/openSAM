@@ -164,7 +164,7 @@ AnimMenuCb([[maybe_unused]] void *menu_ref, void *item_ref)
     unsigned int idx = (uint64_t)item_ref;
     SamAnim *anim = menu_sc->sam_anims[idx];
 
-    LogMsg("AnimMenuCb: label: %s, menu_item: %d", anim->label, anim->menu_item);
+    LogMsg("AnimMenuCb: label: %s, menu_item: %d", anim->label.c_str(), anim->menu_item);
     now = XPLMGetDataf(total_running_time_sec_dr);
 
     bool reverse;
@@ -191,7 +191,7 @@ AnimMenuCb([[maybe_unused]] void *menu_ref, void *item_ref)
 static void
 BuildMenu(Scenery* sc)
 {
-    LogMsg("build menu for scenery %s", sc->name);
+    LogMsg("build menu for scenery %s", sc->name.c_str());
     XPLMClearAllMenuItems(anim_menu);
 
     for (unsigned i = 0; i < sc->sam_anims.size(); i++) {
@@ -199,10 +199,10 @@ BuildMenu(Scenery* sc)
         XPLMMenuCheck chk = (anim->state == ANIM_OFF || anim->state == ANIM_ON_2_OFF) ?
                                 xplm_Menu_Unchecked : xplm_Menu_Checked;
 
-        char menu_line[70];
-        snprintf(menu_line, sizeof(menu_line) - 1, "%s %s", anim->label, anim->title);
-        LogMsg("%s", menu_line);
-        anim->menu_item = XPLMAppendMenuItem(anim_menu, menu_line, (void *)(uint64_t)i, 0);
+        std::string menu_line;
+        menu_line = anim->label + " " + anim->title;
+        LogMsg("%s", menu_line.c_str());
+        anim->menu_item = XPLMAppendMenuItem(anim_menu, menu_line.c_str(), (void *)(uint64_t)i, 0);
         XPLMCheckMenuItem(anim_menu, anim->menu_item, chk);
     }
 }
@@ -237,11 +237,11 @@ AnimInit()
     for (unsigned i = 0; i < sam_drfs.size(); i++) {
         const SamDrf *drf = sam_drfs[i];
         if (drf->autoplay)
-            XPLMRegisterDataAccessor(drf->name, xplmType_Float, 0, NULL,
+            XPLMRegisterDataAccessor(drf->name.c_str(), xplmType_Float, 0, NULL,
                                      NULL, AutoDrfAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                      NULL, NULL, NULL, (void *)drf, NULL);
         else
-            XPLMRegisterDataAccessor(drf->name, xplmType_Float, 0, NULL,
+            XPLMRegisterDataAccessor(drf->name.c_str(), xplmType_Float, 0, NULL,
                                      NULL, AnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                      NULL, NULL, NULL, (void *)(uint64_t)i, NULL);
     }

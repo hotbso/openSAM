@@ -24,7 +24,7 @@
 
 #define DRF_MAX_ANIM 10
 struct SamDrf {
-    char name[60];
+    std::string name;
 
     int n_tv;
     std::vector<float> t;
@@ -35,7 +35,7 @@ struct SamDrf {
 };
 
 struct SamObj {
-    char id[30];
+    std::string id;
     float latitude, longitude, elevation, heading;
 
     // local x,y,z computed from the xml's lat/lon
@@ -52,8 +52,8 @@ typedef enum _ANIM_STATE  {
 
 class SamAnim {
   public:
-    char label[40];
-    char title[40];
+    std::string label;
+    std::string title;
 
     int drf_idx;        // index into sam_drfs
     int obj_idx;        // index into sc->sam_objs

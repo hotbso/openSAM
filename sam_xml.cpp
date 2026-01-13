@@ -88,7 +88,7 @@ static const char* LookupAttr(const XML_Char** attr, const char* name) {
     {                                                 \
         const char* val = LookupAttr(attr, #n);       \
         if (val)                                      \
-            strncpy(ptr->n, val, sizeof(ptr->n) - 1); \
+            ptr->n = val; \
     }
 
 #define GET_BOOL_ATTR(ptr, n)                         \
@@ -137,17 +137,17 @@ static void GetJwAttrs(const XML_Char** attr, SamJw* sam_jw) {
     }
 }
 
-static int LookupDrf(const char* name) {
+static int LookupDrf(const std::string& name) {
     for (unsigned int i = 0; i < sam_drfs.size(); i++)
-        if (0 == strcmp(sam_drfs[i]->name, name))
+        if (sam_drfs[i]->name == name)
             return i;
 
     return -1;
 }
 
-static int LookupObj(const Scenery* sc, const char* id) {
+static int LookupObj(const Scenery* sc, const std::string& id) {
     for (unsigned int i = 0; i < sc->sam_objs.size(); i++)
-        if (0 == strcmp(sc->sam_objs[i]->id, id))
+        if (sc->sam_objs[i]->id == id)
             return i;
 
     return -1;
@@ -221,7 +221,7 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
         }
 
         if (LookupDrf(drf->name) >= 0) {
-            LogMsg("duplicate definition for dataref '%s', ignored", drf->name);
+            LogMsg("duplicate definition for dataref '%s', ignored", drf->name.c_str());
             ctx->cur_dataref = NULL;
             return;
         }
@@ -331,7 +331,7 @@ static void XMLCALL EndElement(void* user_data, const XML_Char* name) {
             drf->v.shrink_to_fit();
             drf->s.shrink_to_fit();
             if (drf->n_tv < 2)  // sanity check
-                LogMsg("too few animation entries for %s", drf->name);
+                LogMsg("too few animation entries for %s", drf->name.c_str());
         }
     }
 
@@ -415,8 +415,8 @@ static bool ParseAptDat(const std::string& fn, Scenery* sc) {
             int len;
             int n = sscanf(line.c_str(), "%f %f %f %*s %*s %n", &stand->lat, &stand->lon, &stand->hdgt, &len);
             if (3 == n) {
-                strncpy(stand->id, line.c_str() + len, sizeof(stand->id) - 1);
-                // LogMsg("%d %d, %f %f %f '%s'", n, len, stand->lat, stand->lon, stand->hdgt, stand->id);
+                stand->id = line.substr(len);
+                // LogMsg("%d %d, %f %f %f '%s'", n, len, stand->lat, stand->lon, stand->hdgt, stand->id.c_str());
 
                 stand->hdgt = RA(stand->hdgt);
                 stand->sin_hdgt = sinf(kD2R * stand->hdgt);

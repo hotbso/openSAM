@@ -71,19 +71,18 @@ void SamJw::FillLibraryValues(int id) {
         return;
 
     if (!BETWEEN(id, 1, max_lib_jw_id)) {
-        LogMsg("sanity check failed for jw: '%s', id: %d", name, id);
+        LogMsg("sanity check failed for jw: '%s', id: %d", name.c_str(), id);
         return;
     }
 
     library_id = id;
     const SamJw* ljw = lib_jw[id];
     if (ljw == nullptr) {
-        LogMsg("Unconfigured library jw for '%s', id: %d", name, id);
+        LogMsg("Unconfigured library jw for '%s', id: %d", name.c_str(), id);
         return;
     }
 
-    LogMsg("filling in library data for '%s', id: %d", name, id);
-
+    LogMsg("filling in library data for '%s', id: %d", name.c_str(), id);
     height = ljw->height;
     wheelPos = ljw->wheelPos;
     cabinPos = ljw->cabinPos;
@@ -161,7 +160,7 @@ static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float
     jw->y = obj_y;
     jw->psi = obj_psi;
     jw->is_zc_jw = 1;
-    strcpy(jw->name, "zc_");
+    jw->name = "zc_";
     jw->FillLibraryValues(id);
 
     Stand* stand = jw->FindStand();
@@ -187,7 +186,7 @@ static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float
     zc_jws.push_back(jw);
 
     LogMsg("added to zc table stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
-           stand ? stand->id : "<NULL>", jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
+           stand ? stand->id.c_str() : "<NULL>", jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
     return jw;
 }
 
@@ -283,8 +282,8 @@ static float JwAnimAcc(void* ref) {
                     XPLMWorldToLocal(tjw->latitude, tjw->longitude, 0.0, &x, &y, &z);
                     if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
                         LogMsg("terrain probe 1 failed, jw: '%s', lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
-                               tjw->name, tjw->latitude, tjw->longitude, x, y, z);
-                        LogMsg("jw: '%s' marked BAD", tjw->name);
+                               tjw->name.c_str(), tjw->latitude, tjw->longitude, x, y, z);
+                        LogMsg("jw: '%s' marked BAD", tjw->name.c_str());
                         tjw->bad = true;
                         return 0.0f;
                     }

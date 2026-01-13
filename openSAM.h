@@ -60,7 +60,7 @@ struct Scenery {
     Scenery(const Scenery&) = delete;
     Scenery& operator=(const Scenery&) = delete;
 
-    char name[52];
+    std::string name;
     std::string arpt_icao;
 
     std::vector<SamJw*> sam_jws;

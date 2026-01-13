@@ -22,6 +22,9 @@
 #ifndef _SAMJW_H_
 #define _SAMJW_H_
 
+#include <string>
+#include <vector>
+
 static constexpr float kFarSkip = 5000;     // (m) don't consider jetways farther away
 
 struct SamJw  {
@@ -47,8 +50,8 @@ struct SamJw  {
 
     // these are from sam.xml
     int id;                         // only used for library jetway sets
-    char name[40];
-    char sound[40];
+    std::string name;
+    std::string sound;
 
     float latitude, longitude, heading, height, wheelPos, cabinPos, cabinLength,
           wheelDiameter, wheelDistance,
