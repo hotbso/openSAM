@@ -76,7 +76,7 @@ void SamJw::FillLibraryValues(int id) {
     }
 
     library_id = id;
-    const SamJw* ljw = lib_jw[id];
+    const SamLibJw* ljw = lib_jw[id];
     if (ljw == nullptr) {
         LogMsg("Unconfigured library jw for '%s', id: %d", name.c_str(), id);
         return;

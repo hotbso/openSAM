@@ -27,8 +27,8 @@
 
 static constexpr float kFarSkip = 5000;     // (m) don't consider jetways farther away
 
+// Context of an instantiated jetway, either in sam.xml or zero config per WED within the scenery
 struct SamJw  {
-  public:
     bool bad;       // marked bad, e.g. terrain probe failed
     int is_zc_jw;   // is a zero config jw
     Stand* stand;   // back pointer to stand for zc jetways
@@ -49,7 +49,6 @@ struct SamJw  {
           warnlight;
 
     // these are from sam.xml
-    int id;                         // only used for library jetway sets
     std::string name;
     std::string sound;
 
@@ -81,10 +80,20 @@ struct SamJw  {
     static void ResetAll();
 };
 
-extern std::vector<SamJw *>zc_jws;
+// geometry information of a library jetway from libraryjetways.xml
+struct SamLibJw {
+    int id;
+    std::string name;
+    float height, wheelPos, cabinPos, cabinLength, wheelDiameter, wheelDistance, minRot1, maxRot1, minRot2, maxRot2,
+        minRot3, maxRot3, minExtent, maxExtent, minWheels, maxWheels, initialRot1, initialRot2, initialRot3,
+        initialExtent;
+};
 
-// library jetways, SAM3 and openSAM
-extern std::vector<SamJw*> lib_jw;
+extern std::vector<SamJw*>
+    zc_jws;
+
+// library jetways from all loaded libraryjetways.xml files
+extern std::vector<SamLibJw*> lib_jw;
 extern int max_lib_jw_id;           // highest id found
 
 extern void JwInit(void);

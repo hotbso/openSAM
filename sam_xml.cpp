@@ -55,7 +55,7 @@ struct ExpatCtx {
 
 std::vector<Scenery *> sceneries;
 
-std::vector<SamJw*> lib_jw;
+std::vector<SamLibJw*> lib_jw;
 int max_lib_jw_id;
 
 std::vector<SamDrf*> sam_drfs;
@@ -100,7 +100,6 @@ static const char* LookupAttr(const XML_Char** attr, const char* name) {
 static void GetJwAttrs(const XML_Char** attr, SamJw* sam_jw) {
     *sam_jw = (SamJw){};
 
-    GET_INT_ATTR(sam_jw, id)
     GET_STR_ATTR(sam_jw, name)
     GET_FLOAT_ATTR(sam_jw, latitude)
     GET_FLOAT_ATTR(sam_jw, longitude)
@@ -135,6 +134,29 @@ static void GetJwAttrs(const XML_Char** attr, SamJw* sam_jw) {
         else if (0 == strcmp(val, "LU1"))
             sam_jw->door = 2;
     }
+}
+
+static void GetLibJwAttrs(const XML_Char** attr, SamLibJw* sam_lib_jw) {
+    *sam_lib_jw = (SamLibJw){};
+
+    GET_INT_ATTR(sam_lib_jw, id)
+    GET_STR_ATTR(sam_lib_jw, name)
+    GET_FLOAT_ATTR(sam_lib_jw, height)
+    GET_FLOAT_ATTR(sam_lib_jw, wheelPos)
+    GET_FLOAT_ATTR(sam_lib_jw, cabinPos)
+    GET_FLOAT_ATTR(sam_lib_jw, cabinLength)
+    GET_FLOAT_ATTR(sam_lib_jw, wheelDiameter)
+    GET_FLOAT_ATTR(sam_lib_jw, wheelDistance)
+    GET_FLOAT_ATTR(sam_lib_jw, minRot1)
+    GET_FLOAT_ATTR(sam_lib_jw, maxRot1)
+    GET_FLOAT_ATTR(sam_lib_jw, minRot2)
+    GET_FLOAT_ATTR(sam_lib_jw, maxRot2)
+    GET_FLOAT_ATTR(sam_lib_jw, minRot3)
+    GET_FLOAT_ATTR(sam_lib_jw, maxRot3)
+    GET_FLOAT_ATTR(sam_lib_jw, minExtent)
+    GET_FLOAT_ATTR(sam_lib_jw, maxExtent)
+    GET_FLOAT_ATTR(sam_lib_jw, minWheels)
+    GET_FLOAT_ATTR(sam_lib_jw, maxWheels)
 }
 
 static int LookupDrf(const std::string& name) {
@@ -187,15 +209,15 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
     }
 
     if (ctx->in_sets && (0 == strcmp(name, "set"))) {
-        SamJw* sam_jw = new SamJw;
-        GetJwAttrs(attr, sam_jw);
+        SamLibJw* sam_lib_jw = new SamLibJw;
+        GetLibJwAttrs(attr, sam_lib_jw);
 
-        if (sam_jw->id >= (int)lib_jw.size())
-            lib_jw.resize(sam_jw->id + 20);
-        if (lib_jw[sam_jw->id])
-            LogMsg("duplicate jetway id detected: %d", sam_jw->id);
-        lib_jw[sam_jw->id] = sam_jw;
-        max_lib_jw_id = std::max(max_lib_jw_id, sam_jw->id);
+        if (sam_lib_jw->id >= (int)lib_jw.size())
+            lib_jw.resize(sam_lib_jw->id + 20);
+        if (lib_jw[sam_lib_jw->id])
+            LogMsg("duplicate jetway id detected: %d", sam_lib_jw->id);
+        lib_jw[sam_lib_jw->id] = sam_lib_jw;
+        max_lib_jw_id = std::max(max_lib_jw_id, sam_lib_jw->id);
         return;
     }
 
