@@ -80,7 +80,7 @@ struct SamJw  {
     static void ResetAll();
 };
 
-// geometry information of a library jetway from libraryjetways.xml
+// Geometry information of a library jetway from all collected libraryjetways.xml
 struct SamLibJw {
     int id;
     std::string name;
@@ -89,8 +89,7 @@ struct SamLibJw {
         initialExtent;
 };
 
-extern std::vector<SamJw*>
-    zc_jws;
+extern std::vector<SamJw*> zc_jws;
 
 // library jetways from all loaded libraryjetways.xml files
 extern std::vector<SamLibJw*> lib_jw;

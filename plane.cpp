@@ -169,7 +169,7 @@ Plane::jw_state_machine()
                 }
             } else if (prev_state_ != state_) {
                 lock_ui(false);     // allow jw selection in the ui (if the plane supports it)
-                update_ui(true);
+                UpdateUI(true);
             }
 
             // or wait for GUI selection
@@ -306,7 +306,7 @@ Plane::jw_state_machine()
         }
 
         lock_ui(true);
-        update_ui(true);
+        UpdateUI(true);
 
         state_machine_next_ts_ = 0.0f;
         return -1;  // see you on next frame

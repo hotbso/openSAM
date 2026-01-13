@@ -105,7 +105,7 @@ class Plane {
     virtual bool check_teleportation() { return false; }
 
     // UI support functions called from jw_state_machine()
-    virtual void update_ui([[maybe_unused]] bool only_if_visible) {}
+    virtual void UpdateUI([[maybe_unused]] bool only_if_visible) {}
     virtual void lock_ui([[maybe_unused]] bool yes_no) {}
 };
 
@@ -166,9 +166,9 @@ class MyPlane : public Plane {
     int pax_no() const { return pax_no_; }
 
     // UI support
-    void update_ui(bool only_if_visible) override;
+    void UpdateUI(bool only_if_visible) override;
     void lock_ui(bool yes_no) override { ui_unlocked_ = !yes_no; }
-    static int ui_widget_cb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_t param2);
+    static int UIWidgetCb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_t param2);
 
     bool with_alert_sound() override { return true; }
 
