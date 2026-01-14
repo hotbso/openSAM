@@ -264,7 +264,7 @@ void DgsSetArrival(void) {
 
     // can be teleportation
     DgsSetInactive();
-    my_plane.reset_beacon();
+    my_plane.ResetBeacon();
 
     float lat = my_plane.lat();
     float lon = my_plane.lon();
@@ -1028,7 +1028,7 @@ float DgsStateMachine() {
         case DONE:
             if (now > timestamp + 3.0f) {
                 if (!my_plane.dont_connect_jetway_)  // wait some seconds for the jw handler to catch up
-                    my_plane.request_dock();
+                    my_plane.RequestDock();
 
                 DgsSetInactive();
                 return loop_delay;

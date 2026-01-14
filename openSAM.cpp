@@ -290,10 +290,10 @@ FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
 
         if (! my_plane.is_helicopter_) {
             if (jw_loop_delay <= 0.0f) {
-                jw_loop_delay = my_plane.jw_state_machine();
+                jw_loop_delay = my_plane.JwStateMachine();
                 if (my_y_agl < kMultiPlayerHeightLimit && mp_adapter)
                     jw_loop_delay = std::min(jw_loop_delay,
-                                            mp_adapter->jw_state_machine());
+                                            mp_adapter->JwStateMachine());
 
 
                 jw_next_ts = now + jw_loop_delay;
@@ -395,11 +395,11 @@ cmd_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, voi
     LogMsg("cmd_dock_jw_cb called");
 
     if (ref == NULL)
-        my_plane.request_dock();
+        my_plane.RequestDock();
     else if (ref == (void *)1)
-        my_plane.request_undock();
+        my_plane.RequestUndock();
     else if (ref == (void *)2)
-        my_plane.request_toggle();
+        my_plane.RequestToggle();
 
     return 0;
 }
@@ -414,7 +414,7 @@ cmd_xp12_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase
 
     LogMsg("cmd_xp12_dock_jw_cb called");
 
-    my_plane.request_toggle();
+    my_plane.RequestToggle();
     return 1;       // pass on to XP12, likely there is no XP12 jw here 8-)
 }
 
@@ -699,7 +699,7 @@ XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, long in_msg, void *
 
     // my plane loaded
     if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
-        my_plane.PlaneLoaded();
+        my_plane.PlaneLoadedCb();
         return;
     }
 }

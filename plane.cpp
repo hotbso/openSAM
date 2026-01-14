@@ -1,24 +1,23 @@
-/*
-    openSAM: open source SAM emulator for X Plane
-
-    Copyright (C) 2025  Holger Teutsch
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-    USA
-
-*/
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
 
 #include <cstdlib>
 #include <cmath>
@@ -56,7 +55,7 @@ Plane::~Plane()
 
 // auto select active jetways
 void
-Plane::select_jws()
+Plane::SelectJws()
 {
     if (n_door_ == 0)
         return;
@@ -92,12 +91,12 @@ Plane::select_jws()
     }
 
     if (active_jws_.size() == 0)
-        LogMsg("Oh no, no active jetways left in select_jws()!");
+        LogMsg("Oh no, no active jetways left in SelectJws()!");
 }
 
 // the state machine called from the flight loop
 float
-Plane::jw_state_machine()
+Plane::JwStateMachine()
 {
     if (state_ == DISABLED) {
         state_machine_next_ts_ = ::now + 2.0f;
@@ -109,7 +108,7 @@ Plane::jw_state_machine()
 
     State new_state{state_};
 
-    if (state_ > IDLE && check_teleportation()) {
+    if (state_ > IDLE && CheckTeleportation()) {
         LogMsg("teleportation detected!");
         state_ = new_state = IDLE;
         state_change_ts_ = now;
@@ -136,7 +135,7 @@ Plane::jw_state_machine()
 
             if (on_ground_ && !beacon_on_) {
                 // memorize position teleportation detection
-                memorize_parked_pos();
+                MemorizeParkedPos();
 
                 // reset stale command invocations
                 dock_requested();
@@ -162,13 +161,13 @@ Plane::jw_state_machine()
             }
 
             if (auto_mode()) {
-                select_jws();
+                SelectJws();
                 if (active_jws_.size() == 0) {       // e.g. collisions
                     new_state = CANT_DOCK;
                     break;
                 }
             } else if (prev_state_ != state_) {
-                lock_ui(false);     // allow jw selection in the ui (if the plane supports it)
+                LockUI(false);     // allow jw selection in the ui (if the plane supports it)
                 UpdateUI(true);
             }
 
@@ -305,7 +304,7 @@ Plane::jw_state_machine()
             nearest_jws_.resize(0);
         }
 
-        lock_ui(true);
+        LockUI(true);
         UpdateUI(true);
 
         state_machine_next_ts_ = 0.0f;

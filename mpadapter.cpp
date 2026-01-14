@@ -56,9 +56,9 @@ std::unique_ptr<MpAdapter> MpAdapter_factory()
 }
 
 float
-MpAdapter::jw_state_machine() {
+MpAdapter::JwStateMachine() {
     float jw_loop_delay = 10.0;
     for (auto & p : mp_planes_)
-        jw_loop_delay = std::min(p.second->jw_state_machine(), jw_loop_delay);
+        jw_loop_delay = std::min(p.second->JwStateMachine(), jw_loop_delay);
     return jw_loop_delay;
 }

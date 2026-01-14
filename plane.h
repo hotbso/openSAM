@@ -1,24 +1,24 @@
-/*
-    openSAM: open source SAM emulator for X Plane
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
 
-    Copyright (C) 2025  Holger Teutsch
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-    USA
-
-*/
 #ifndef _PLANE_H_
 #define _PLANE_H_
 
@@ -36,14 +36,13 @@ static constexpr float kMpMaxDist = 2000;   // (m) max dist we consider MP plane
 // Generic class that provides all plane related values for jetway animation.
 //
 class Plane {
-  public:
-    enum State { DISABLED=0, IDLE, PARKED, SELECT_JWS, CAN_DOCK,
-                 DOCKING, DOCKED, UNDOCKING, CANT_DOCK };
+   public:
+    enum State { DISABLED = 0, IDLE, PARKED, SELECT_JWS, CAN_DOCK, DOCKING, DOCKED, UNDOCKING, CANT_DOCK };
 
-    static const char * const state_str_[];
+    static const char* const state_str_[];
 
-  protected:
-    float state_machine_next_ts_{0};    // ts for the next run of the state machine
+   protected:
+    float state_machine_next_ts_{0};  // ts for the next run of the state machine
     State state_{DISABLED}, prev_state_{DISABLED};
     float state_change_ts_{0};
 
@@ -55,8 +54,8 @@ class Plane {
     std::vector<JwCtrl> nearest_jws_;
     static int id_base_;
 
-  public:
-    const int id_;    // id for logging
+   public:
+    const int id_;  // id for logging
 
     // readonly use!
     unsigned n_door_{0};
@@ -69,44 +68,79 @@ class Plane {
 
     virtual ~Plane();
 
-    virtual void memorize_parked_pos() {} // for teleportation detection
-
     // general state
-    State state() { return state_; }
-    std::string& icao() { return icao_; }
+    State state() {
+        return state_;
+    }
+    std::string& icao() {
+        return icao_;
+    }
 
     // position
-    float x() const { return x_; }
-    float y() const { return y_; }
-    float z() const { return z_; }
-    float psi() const { return psi_; }
+    float x() const {
+        return x_;
+    }
+    float y() const {
+        return y_;
+    }
+    float z() const {
+        return z_;
+    }
+    float psi() const {
+        return psi_;
+    }
 
     // detailed state
-    bool on_ground() const{ return on_ground_; }
-    bool beacon_on() const { return beacon_on_; }
-    bool parkbrake_set() const { return parkbrake_set_; }
-    bool engines_on() const { return engines_on_; }
+    bool on_ground() const {
+        return on_ground_;
+    }
+    bool beacon_on() const {
+        return beacon_on_;
+    }
+    bool parkbrake_set() const {
+        return parkbrake_set_;
+    }
+    bool engines_on() const {
+        return engines_on_;
+    }
 
     // cmd support
     virtual bool auto_mode() const = 0;
-    virtual bool dock_requested() { return false; }
-    virtual bool undock_requested() { return false; }
-    virtual bool toggle_requested() { return false; }
-    virtual bool call_pre_post_dock_cmd() { return false; }
-
-    // auto select jetways + sound
-    void select_jws();
+    virtual bool dock_requested() {
+        return false;
+    }
+    virtual bool undock_requested() {
+        return false;
+    }
+    virtual bool toggle_requested() {
+        return false;
+    }
+    virtual bool call_pre_post_dock_cmd() {
+        return false;
+    }
 
     // in general no sound on (mass-) docking
-    virtual bool with_alert_sound() { return (state_ == DOCKED); }
+    virtual bool with_alert_sound() {
+        return (state_ == DOCKED);
+    }
+
+    virtual void MemorizeParkedPos() {
+    }  // for teleportation detection
+    virtual bool CheckTeleportation() {
+        return false;
+    }
+
+    // auto select jetways
+    void SelectJws();
 
     // hook into flight loop
-    float jw_state_machine();
-    virtual bool check_teleportation() { return false; }
+    float JwStateMachine();
 
-    // UI support functions called from jw_state_machine()
-    virtual void UpdateUI([[maybe_unused]] bool only_if_visible) {}
-    virtual void lock_ui([[maybe_unused]] bool yes_no) {}
+    // UI support functions called from JwStateMachine()
+    virtual void UpdateUI([[maybe_unused]] bool only_if_visible) {
+    }
+    virtual void LockUI([[maybe_unused]] bool yes_no) {
+    }
 };
 
 //
@@ -147,15 +181,15 @@ class MyPlane : public Plane {
     MyPlane();
     ~MyPlane() {}
 
-    void PlaneLoaded();        // called from XPLM_MSG_PLANE_LOADED handler
+    void PlaneLoadedCb();        // called from XPLM_MSG_PLANE_LOADED handler
 
-    void reset_beacon();
+    void ResetBeacon();
 
     // update internal state
     void Update();
 
-    void memorize_parked_pos() override ; // for teleportation detection
-    bool check_teleportation() override;
+    void MemorizeParkedPos() override ; // for teleportation detection
+    bool CheckTeleportation() override;
 
     // these 3 are called without prior update() call -> direct read from drefs
     float lat() { return XPLMGetDataf(plane_lat_dr_); }
@@ -167,7 +201,7 @@ class MyPlane : public Plane {
 
     // UI support
     void UpdateUI(bool only_if_visible) override;
-    void lock_ui(bool yes_no) override { ui_unlocked_ = !yes_no; }
+    void LockUI(bool yes_no) override { ui_unlocked_ = !yes_no; }
     static int UIWidgetCb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_t param2);
 
     bool with_alert_sound() override { return true; }
@@ -177,9 +211,9 @@ class MyPlane : public Plane {
     bool auto_mode() const override { return auto_mode_; }
     bool call_pre_post_dock_cmd() override { return true; }
 
-    void request_dock();
-    void request_undock();
-    void request_toggle();
+    void RequestDock();
+    void RequestUndock();
+    void RequestToggle();
 
     bool dock_requested() override;
     bool undock_requested() override;

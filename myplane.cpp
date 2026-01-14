@@ -128,26 +128,26 @@ MyPlane::MyPlane()
     pax_no_dr_ = nullptr;
 
     icao_ = "0000";
-    reset_beacon();
+    ResetBeacon();
     ui_unlocked_ = false;
     state_ = IDLE;
 }
 
 void
-MyPlane::request_dock() {
+MyPlane::RequestDock() {
     if (state_ == CAN_DOCK)
         dock_requested_ = true;
 }
 
 void
-MyPlane::request_undock()
+MyPlane::RequestUndock()
 {
     if (state_ == DOCKED)
         undock_requested_ = true;
 }
 
 void
-MyPlane::request_toggle()
+MyPlane::RequestToggle()
 {
     if (state_ == CAN_DOCK || state_ == DOCKED)
         toggle_requested_ = true;
@@ -204,7 +204,7 @@ MyPlane::auto_mode_set(bool auto_mode)
     }
 }
 
-void MyPlane::PlaneLoaded() {
+void MyPlane::PlaneLoadedCb() {
     on_ground_ = 1;
     on_ground_ts_ = 0.0f;
 
@@ -405,7 +405,7 @@ void MyPlane::Update() {
 }
 
 void
-MyPlane::memorize_parked_pos()
+MyPlane::MemorizeParkedPos()
 {
     parked_x_ = x_;
     parked_z_ = z_;
@@ -436,7 +436,7 @@ MyPlane::memorize_parked_pos()
 }
 
 bool
-MyPlane::check_teleportation()
+MyPlane::CheckTeleportation()
 {
 	if (! on_ground())
 		return false;
@@ -451,7 +451,7 @@ MyPlane::check_teleportation()
 }
 
 void
-MyPlane::reset_beacon()
+MyPlane::ResetBeacon()
 {
     beacon_on_pending_ = 0;
     beacon_off_ts_ = beacon_on_ts_ = -10.0f;

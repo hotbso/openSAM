@@ -39,7 +39,7 @@ class MpAdapter {
     virtual const char* personality() const = 0;
 
     virtual float update() = 0;     // update status of MP planes
-    float jw_state_machine();       // return delay to next call
+    float JwStateMachine();       // return delay to next call
 };
 
 // hopefully will detect which plugin is active and returns the appropriate service
