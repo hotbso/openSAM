@@ -1,24 +1,23 @@
-/*
-    openSAM: open source SAM emulator for X Plane
-
-    Copyright (C) 2024  Holger Teutsch
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-    USA
-
-*/
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
 
 #include <cstddef>
 
@@ -26,46 +25,36 @@
 #include "samjw.h"
 #include "jwctrl.h"
 
-
-bool
-JwCtrl::SoundDevInit()
-{
+bool JwCtrl::SoundDevInit() {
     return true;
 };
 
-static void
-alert_complete(void *ref, [[maybe_unused]] FMOD_RESULT status)
-{
-    JwCtrl *ajw = (JwCtrl *)ref;
+static void AlertComplete(void* ref, [[maybe_unused]] FMOD_RESULT status) {
+    JwCtrl* ajw = (JwCtrl*)ref;
     ajw->alert_chn_ = NULL;
 }
 
-void
-JwCtrl::AlertOn()
-{
+void JwCtrl::AlertOn() {
     if (alert_chn_)
         return;
-    alert_chn_ = XPLMPlayPCMOnBus(alert_.data, alert_.size, FMOD_SOUND_FORMAT_PCM16,
-                                      alert_.sample_rate, alert_.num_channels, 1,
-                                      xplm_AudioExteriorUnprocessed,
-                                      alert_complete, this);
+    alert_chn_ = XPLMPlayPCMOnBus(alert_.data, alert_.size, FMOD_SOUND_FORMAT_PCM16, alert_.sample_rate,
+                                  alert_.num_channels, 1, xplm_AudioExteriorUnprocessed, AlertComplete, this);
 
     AlertSetpos();
-    XPLMSetAudioFadeDistance(alert_chn_, 20.0f, 150.0f );
+    XPLMSetAudioFadeDistance(alert_chn_, 20.0f, 150.0f);
     XPLMSetAudioVolume(alert_chn_, 1.3f);
 }
 
-void
-JwCtrl::AlertOff()
-{
+void JwCtrl::AlertOff() {
     if (alert_chn_)
         XPLMStopAudio(alert_chn_);
     alert_chn_ = NULL;
 }
 
-void
-JwCtrl::AlertSetpos()
-{
+void JwCtrl::AlertSetpos() {
+    if (alert_chn_ == nullptr)
+        return;
+
     static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
     FMOD_VECTOR pos;
 
