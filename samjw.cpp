@@ -66,11 +66,11 @@ static std::array<SamJw*, (1 << kHashBits)>jw_cache;
 //
 // fill in values for a library jetway
 //
-void SamJw::FillLibraryValues(int id) {
+void SamJw::FillLibraryValues(unsigned int id) {
     if (library_id)
         return;
 
-    if (!BETWEEN(id, 1, max_lib_jw_id)) {
+    if (id == 0 || id >= lib_jw.size()) {
         LogMsg("sanity check failed for jw: '%s', id: %d", name.c_str(), id);
         return;
     }
@@ -159,7 +159,7 @@ static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float
     jw->z = obj_z;
     jw->y = obj_y;
     jw->psi = obj_psi;
-    jw->is_zc_jw = 1;
+    jw->is_zc_jw = true;
     jw->name = "zc_";
     jw->FillLibraryValues(id);
 
@@ -236,7 +236,7 @@ static float JwAnimAcc(void* ref) {
 
     uint64_t ctx = (uint64_t)ref;
     dr_code_t drc = (dr_code_t)(ctx & 0xffffffff);
-    int id = ctx >> 32;
+    unsigned int id = ctx >> 32;
 
     SamJw* jw = nullptr;
 
@@ -344,7 +344,7 @@ static float JwAnimAcc(void* ref) {
             stat_near_skip++;
         }
 
-        if (nullptr == jw && BETWEEN(id, 1, max_lib_jw_id))  // unconfigured library jetway
+        if (nullptr == jw && 0 < id && id < lib_jw.size())  // unconfigured library jetway
             jw = ConfigureZcJw(id, obj_x, obj_z, obj_y, obj_psi);
 
         if (nullptr == jw)  // still unconfigured -> bad luck
@@ -413,10 +413,8 @@ void JwInit() {
         XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL, NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, (void*)(uint64_t)drc, NULL);
 
-        for (int i = 1; i < (int)lib_jw.size(); i++) {
-            if (lib_jw[i] == nullptr)
-                continue;
-            snprintf(name, sizeof(name) - 1, "sam/jetway/%02d/%s", i, dr_name_jw[drc]);
+        for (unsigned int i = 1; i < lib_jw.size(); i++) {
+            snprintf(name, sizeof(name) - 1, "sam/jetway/%s/%s", lib_jw[i]->id.c_str(), dr_name_jw[drc]);
             uint64_t ctx = (uint64_t)i << 32 | (uint64_t)drc;
             XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL, NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                      NULL, NULL, NULL, (void*)ctx, NULL);

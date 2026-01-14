@@ -28,36 +28,33 @@
 static constexpr float kFarSkip = 5000;     // (m) don't consider jetways farther away
 
 // Context of an instantiated jetway, either in sam.xml or zero config per WED within the scenery
-struct SamJw  {
-    bool bad;       // marked bad, e.g. terrain probe failed
-    int is_zc_jw;   // is a zero config jw
-    Stand* stand;   // back pointer to stand for zc jetways
-    bool locked;	// locked by a plane
+struct SamJw {
+    bool bad{};       // marked bad, e.g. terrain probe failed
+    bool is_zc_jw{};  // is a zero config jw
+    bool locked{};    // locked by a plane
+    Stand* stand{};   // back pointer to stand for zc jetways
 
     // local x,z computed from the xml's lat/lon
+    unsigned int xml_ref_gen{};  // only valid if this matches the generation of the ref frame
     float xml_x, xml_y, xml_z;
-    unsigned int xml_ref_gen;   // only valid if this matches the generation of the ref frame
 
     // values from the actually drawn object
+    unsigned int obj_ref_gen{};  // only valid if this matches the generation of the ref frame
     float x, y, z, psi;
-    unsigned int obj_ref_gen;
-    int library_id;
+
+    unsigned int library_id{};  // id of the library jetway this one is configured from, 0 = none
 
     // values fed to the datarefs
-    float rotate1, rotate2, rotate3, extent, wheels,
-          wheelrotatec, wheelrotater, wheelrotatel,
-          warnlight;
+    float rotate1, rotate2, rotate3, extent, wheels, wheelrotatec{}, wheelrotater{}, wheelrotatel{}, warnlight;
 
-    // these are from sam.xml
+    // geometry values from sam.xml or filled in from library jetway
     std::string name;
     std::string sound;
 
-    float latitude, longitude, heading, height, wheelPos, cabinPos, cabinLength,
-          wheelDiameter, wheelDistance,
-          minRot1, maxRot1, minRot2, maxRot2, minRot3, maxRot3,
-          minExtent, maxExtent, minWheels, maxWheels,
-          initialRot1, initialRot2, initialRot3, initialExtent;
-    int door; // 0 = LF1 or default, 1 = LF2
+    float latitude{}, longitude{}, heading{}, height{}, wheelPos{}, cabinPos{}, cabinLength{}, wheelDiameter{},
+        wheelDistance{}, minRot1{}, maxRot1{}, minRot2{}, maxRot2{}, minRot3{}, maxRot3{}, minExtent{}, maxExtent{},
+        minWheels{}, maxWheels{}, initialRot1{}, initialRot2{}, initialRot3{}, initialExtent{};
+    int door{};  // 0 = LF1 or default, 1 = LF2
 
     // set wheels height
     void SetWheels() {
@@ -74,26 +71,26 @@ struct SamJw  {
         warnlight = 0;
     }
 
-    void FillLibraryValues(int id);
+    void FillLibraryValues(unsigned int id);
     Stand* FindStand();
 
-    static void ResetAll();
+    static void ResetAll(); // called from various places
 };
 
-// Geometry information of a library jetway from all collected libraryjetways.xml
+// Geometry information of a library jetway
 struct SamLibJw {
-    int id;
+    std::string id;
     std::string name;
-    float height, wheelPos, cabinPos, cabinLength, wheelDiameter, wheelDistance, minRot1, maxRot1, minRot2, maxRot2,
-        minRot3, maxRot3, minExtent, maxExtent, minWheels, maxWheels, initialRot1, initialRot2, initialRot3,
-        initialExtent;
+    float height{}, wheelPos{}, cabinPos{}, cabinLength{}, wheelDiameter{}, wheelDistance{}, minRot1{}, maxRot1{}, minRot2{}, maxRot2{},
+        minRot3{}, maxRot3{}, minExtent{}, maxExtent{}, minWheels{}, maxWheels{}, initialRot1{}, initialRot2{}, initialRot3{},
+        initialExtent{};
 };
 
+// currently active zero config jetways
 extern std::vector<SamJw*> zc_jws;
 
-// library jetways from all loaded libraryjetways.xml files
+// library jetways information from all collected libraryjetways.xml files
 extern std::vector<SamLibJw*> lib_jw;
-extern int max_lib_jw_id;           // highest id found
 
 extern void JwInit(void);
 void CheckRefFrameShift();

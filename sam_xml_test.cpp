@@ -85,16 +85,12 @@ main(int argc, char **argv) {
     }
 
     puts("Library jetways");
-    for (int i = 1; i < (int)lib_jw.size(); i++) {
+    for (unsigned int i = 1; i < lib_jw.size(); i++) {
         SamLibJw *ljw = lib_jw[i];
-        if (ljw == nullptr)
-            continue;
-        printf("%d; '%s', height: %0.2f, cabinPos: %0.2f\n", ljw->id, ljw->name.c_str(), ljw->height, ljw->cabinPos);
+        printf("'%s'; '%s', height: %0.2f, cabinPos: %0.2f\n", ljw->id.c_str(), ljw->name.c_str(), ljw->height, ljw->cabinPos);
     }
 
-    printf("Max id: %d\n\n", max_lib_jw_id);
-
-    puts("Ramps");
+    puts("\nRamps");
     for (auto sc : sceneries) {
         printf("%s\n", sc->name.c_str());
         for (auto stand : sc->stands) {

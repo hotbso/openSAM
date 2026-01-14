@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
 
 #include <expat.h>
 
@@ -43,21 +44,25 @@
 // context for element handlers
 struct ExpatCtx {
     XML_Parser parser;
-    bool in_jetways;
-    bool in_sets;
-    bool in_datarefs, in_dataref;
-    bool in_objects;
-    bool in_gui;
-
     Scenery* sc;
-    SamDrf *cur_dataref;
+
+    bool in_jetways{};
+    bool in_sets{};
+    bool in_datarefs{}, in_dataref{};
+    bool in_objects{};
+    bool in_gui{};
+    SamDrf* cur_dataref{};
+
+    std::unordered_map<std::string, SamLibJw*>& lib_jw_map;
+
+    ExpatCtx(XML_Parser parser, Scenery* sc, std::unordered_map<std::string, SamLibJw*>& lib_jw_map)
+        : parser(parser), sc(sc), lib_jw_map(lib_jw_map) {
+    }
 };
 
-std::vector<Scenery *> sceneries;
+std::vector<Scenery*> sceneries;
 
 std::vector<SamLibJw*> lib_jw;
-int max_lib_jw_id;
-
 std::vector<SamDrf*> sam_drfs;
 
 static const int BUFSIZE = 4096;
@@ -139,7 +144,7 @@ static void GetJwAttrs(const XML_Char** attr, SamJw* sam_jw) {
 static void GetLibJwAttrs(const XML_Char** attr, SamLibJw* sam_lib_jw) {
     *sam_lib_jw = (SamLibJw){};
 
-    GET_INT_ATTR(sam_lib_jw, id)
+    GET_STR_ATTR(sam_lib_jw, id)
     GET_STR_ATTR(sam_lib_jw, name)
     GET_FLOAT_ATTR(sam_lib_jw, height)
     GET_FLOAT_ATTR(sam_lib_jw, wheelPos)
@@ -212,12 +217,19 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
         SamLibJw* sam_lib_jw = new SamLibJw;
         GetLibJwAttrs(attr, sam_lib_jw);
 
-        if (sam_lib_jw->id >= (int)lib_jw.size())
-            lib_jw.resize(sam_lib_jw->id + 20);
-        if (lib_jw[sam_lib_jw->id])
-            LogMsg("duplicate jetway id detected: %d", sam_lib_jw->id);
-        lib_jw[sam_lib_jw->id] = sam_lib_jw;
-        max_lib_jw_id = std::max(max_lib_jw_id, sam_lib_jw->id);
+        if (sam_lib_jw->id.empty()) {
+            LogMsg("library jetway with missing id ignored");
+            delete (sam_lib_jw);
+            return;
+        }
+
+        if (ctx->lib_jw_map.find(sam_lib_jw->id) != ctx->lib_jw_map.end()) {
+            LogMsg("duplicate library jetway id detected: '%s', ignored", sam_lib_jw->id.c_str());
+            delete (sam_lib_jw);
+            return;
+        }
+
+        ctx->lib_jw_map[sam_lib_jw->id] = sam_lib_jw;
         return;
     }
 
@@ -364,7 +376,7 @@ static void XMLCALL EndElement(void* user_data, const XML_Char* name) {
         ctx->in_gui = false;
 }
 
-static bool ParseSamXml(const std::string& fn, Scenery* sc = nullptr) {
+static bool ParseSamXml(const std::string& fn, std::unordered_map<std::string, SamLibJw*>& lib_jw_map, Scenery* sc = nullptr) {
     bool rc = false;
     int fd = open(fn.c_str(), O_RDONLY | O_BINARY);
     if (fd < 0)
@@ -375,33 +387,32 @@ static bool ParseSamXml(const std::string& fn, Scenery* sc = nullptr) {
     if (NULL == parser)
         goto out;
 
-    ExpatCtx ctx;
-    ctx = {};
-    ctx.parser = parser;
-    ctx.sc = sc;
+    {
+        ExpatCtx ctx(parser, sc, lib_jw_map);
 
-    XML_SetUserData(parser, &ctx);
-    XML_SetElementHandler(parser, StartElement, EndElement);
+        XML_SetUserData(parser, &ctx);
+        XML_SetElementHandler(parser, StartElement, EndElement);
 
-    for (;;) {
-        void* buf = XML_GetBuffer(parser, BUFSIZE);
-        int len = read(fd, buf, BUFSIZE);
-        if (len < 0) {
-            LogMsg("error reading sam.xml: %s", strerror(errno));
-            goto out;
+        for (;;) {
+            void* buf = XML_GetBuffer(parser, BUFSIZE);
+            int len = read(fd, buf, BUFSIZE);
+            if (len < 0) {
+                LogMsg("error reading sam.xml: %s", strerror(errno));
+                goto out;
+            }
+
+            if (XML_ParseBuffer(parser, len, len == 0) == XML_STATUS_ERROR) {
+                LogMsg("Parse error at line %lu: %s", XML_GetCurrentLineNumber(parser),
+                       XML_ErrorString(XML_GetErrorCode(parser)));
+                goto out;
+            }
+
+            if (len == 0)
+                break;
         }
 
-        if (XML_ParseBuffer(parser, len, len == 0) == XML_STATUS_ERROR) {
-            LogMsg("Parse error at line %lu: %s", XML_GetCurrentLineNumber(parser),
-                   XML_ErrorString(XML_GetErrorCode(parser)));
-            goto out;
-        }
-
-        if (len == 0)
-            break;
+        rc = true;
     }
-
-    rc = true;
 
 out:
     close(fd);
@@ -514,22 +525,22 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
 
 // collect sam.xml from all sceneries
 void CollectSamXml(const SceneryPacks& scp) {
-    lib_jw.reserve(50);
+    std::unordered_map<std::string, SamLibJw*> lib_jw_map;
 
     // drefs from openSAM_Library must come first
-    if (scp.openSAM_Library_path.size() == 0 || !ParseSamXml(scp.openSAM_Library_path + "sam.xml"))
+    if (scp.openSAM_Library_path.size() == 0 || !ParseSamXml(scp.openSAM_Library_path + "sam.xml", lib_jw_map))
         throw OsEx("openSAM_Library is not installed or inaccessible!");
 
     if (scp.SAM_Library_path.size() > 0) {
-        if (!ParseSamXml(scp.SAM_Library_path + "libraryjetways.xml"))
+        if (!ParseSamXml(scp.SAM_Library_path + "libraryjetways.xml", lib_jw_map))
             LogMsg("Warning: SAM_Library is installed but 'SAM_Library/libraryjetways.xml' could not be processed");
     }
 
     for (auto& sc_path : scp.sc_paths) {
-        ParseSamXml(sc_path + "libraryjetways.xml");  // always try libraryjetways.xml
+        ParseSamXml(sc_path + "libraryjetways.xml", lib_jw_map);  // always try libraryjetways.xml
 
         Scenery* sc = new Scenery();
-        if (!ParseSamXml(sc_path + "sam.xml", sc)) {
+        if (!ParseSamXml(sc_path + "sam.xml", lib_jw_map, sc)) {
             delete (sc);
             continue;
         }
@@ -582,5 +593,13 @@ void CollectSamXml(const SceneryPacks& scp) {
 
     sceneries.shrink_to_fit();
     sam_drfs.shrink_to_fit();
-    lib_jw.resize(max_lib_jw_id + 1);
+
+    // transfer collected library jetways to vector for fast access by dref acessors
+    lib_jw.reserve(lib_jw_map.size());
+    lib_jw.push_back(nullptr);  // must start at 1 due to logic in the dref accessors
+
+    for (const auto& [id_str, sam_lib_jw] : lib_jw_map)
+        lib_jw.push_back(sam_lib_jw);
+
+    lib_jw.shrink_to_fit();
 }
