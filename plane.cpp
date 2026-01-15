@@ -193,11 +193,12 @@ float Plane::JwStateMachine() {
             // mp planes always dock directly
             if (dock_requested() || toggle_requested()) {
                 LogMsg("pid=%02d, docking requested", id_);
-                float start_ts = now;
+
+                float start_ts = now + active_jws_.size() * 5.0f;
                 for (auto& ajw : active_jws_) {
-                    // staggered start for docking low to high
+                    // staggered start for docking high to low
+                    start_ts -= 5.0f;
                     ajw.SetupDockUndock(start_ts, with_alert_sound());
-                    start_ts += 5.0f;
                 }
 
                 new_state = DOCKING;
