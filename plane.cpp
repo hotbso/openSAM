@@ -35,17 +35,15 @@
 
 int Plane::id_base_;
 
-static const float kAnimInterval = -1;   // s for debugging or -1 for frame loop
+static const float kAnimInterval = -1;  // s for debugging or -1 for frame loop
 
-const char * const Plane::state_str_[] = {
-    "DISABLED", "IDLE", "PARKED", "SELECT_JWS", "CAN_DOCK",
-    "DOCKING", "DOCKED", "UNDOCKING", "CANT_DOCK" };
+const char* const Plane::state_str_[] = {"DISABLED", "IDLE",   "PARKED",    "SELECT_JWS", "CAN_DOCK",
+                                         "DOCKING",  "DOCKED", "UNDOCKING", "CANT_DOCK"};
 
-Plane::~Plane()
-{
+Plane::~Plane() {
     LogMsg("pid=%02d, Plane destructor, state: %s, active_jws: %d", id_, state_str_[state_], (int)active_jws_.size());
     if (IDLE <= state_) {
-        for (auto & ajw : active_jws_)
+        for (auto& ajw : active_jws_)
             ajw.Reset();
         active_jws_.resize(0);
     }
@@ -54,14 +52,12 @@ Plane::~Plane()
 }
 
 // auto select active jetways
-void
-Plane::SelectJws()
-{
+void Plane::SelectJws() {
     if (n_door_ == 0)
         return;
 
     bool have_hard_match = false;
-    for (auto & njw : nearest_jws_)
+    for (auto& njw : nearest_jws_)
         if (!njw.soft_match_) {
             have_hard_match = true;
             break;
@@ -86,7 +82,7 @@ Plane::SelectJws()
         if (i_door >= n_door_)
             break;
 
-      skip:
+    skip:
         i_jw++;
     }
 
@@ -95,15 +91,13 @@ Plane::SelectJws()
 }
 
 // the state machine called from the flight loop
-float
-Plane::JwStateMachine()
-{
+float Plane::JwStateMachine() {
     if (state_ == DISABLED) {
         state_machine_next_ts_ = ::now + 2.0f;
         return 2.0f;
     }
 
-    if (state_machine_next_ts_ > ::now)         // action is not due
+    if (state_machine_next_ts_ > ::now)  // action is not due
         return state_machine_next_ts_ - ::now;
 
     State new_state{state_};
@@ -113,7 +107,7 @@ Plane::JwStateMachine()
         state_ = new_state = IDLE;
         state_change_ts_ = now;
 
-        for (auto & ajw : active_jws_)
+        for (auto& ajw : active_jws_)
             ajw.Reset();
 
         nearest_jws_.resize(0);
@@ -126,7 +120,7 @@ Plane::JwStateMachine()
     switch (state_) {
         case IDLE:
             if (prev_state_ != IDLE) {
-                 for (auto & ajw : active_jws_)
+                for (auto& ajw : active_jws_)
                     ajw.Reset();
 
                 active_jws_.resize(0);
@@ -162,28 +156,28 @@ Plane::JwStateMachine()
 
             if (auto_mode()) {
                 SelectJws();
-                if (active_jws_.size() == 0) {       // e.g. collisions
+                if (active_jws_.size() == 0) {  // e.g. collisions
                     new_state = CANT_DOCK;
                     break;
                 }
             } else if (prev_state_ != state_) {
-                LockUI(false);     // allow jw selection in the ui (if the plane supports it)
+                LockUI(false);  // allow jw selection in the ui (if the plane supports it)
                 UpdateUI(true);
             }
 
             // or wait for GUI selection
             if (active_jws_.size()) {
-                for (auto & ajw : active_jws_) {
+                for (auto& ajw : active_jws_) {
                     LogMsg("pid=%d, setting up active jw for door: %d", id_, ajw.door_);
                     ajw.SetupForDoor(*this, door_info_[ajw.door_]);
 
-                    if (ajw.door_ == 0) // slightly slant towards the nose cone for door LF1
+                    if (ajw.door_ == 0)  // slightly slant towards the nose cone for door LF1
                         ajw.door_rot2_ += 3.0f;
                 }
 
                 // unlock jws that were not selected as active jw
-                for (auto & njw : nearest_jws_)
-                    if (! njw.selected_)
+                for (auto& njw : nearest_jws_)
+                    if (!njw.selected_)
                         njw.jw_->locked = false;
 
                 new_state = CAN_DOCK;
@@ -200,7 +194,7 @@ Plane::JwStateMachine()
             if (dock_requested() || toggle_requested()) {
                 LogMsg("pid=%02d, docking requested", id_);
                 float start_ts = now;
-                for (auto & ajw : active_jws_) {
+                for (auto& ajw : active_jws_) {
                     // staggered start for docking low to high
                     ajw.SetupDockUndock(start_ts, with_alert_sound());
                     start_ts += 5.0f;
@@ -219,7 +213,7 @@ Plane::JwStateMachine()
 
         case DOCKING:
             n_done = 0;
-            for (auto & ajw : active_jws_) {
+            for (auto& ajw : active_jws_) {
                 if (ajw.DockDrive())
                     n_done++;
             }
@@ -231,8 +225,7 @@ Plane::JwStateMachine()
                         XPLMCommandOnce(cmdr);
                 }
                 new_state = DOCKED;
-            }
-            else {
+            } else {
                 state_machine_next_ts_ = 0.0f;
                 return kAnimInterval;
             }
@@ -251,7 +244,7 @@ Plane::JwStateMachine()
                 LogMsg("undocking requested");
 
                 float start_ts = now + active_jws_.size() * 5.0f;
-                for (auto & ajw : active_jws_) {
+                for (auto& ajw : active_jws_) {
                     // staggered start for undocking high to low
                     start_ts -= 5.0f;
                     ajw.SetupDockUndock(start_ts, with_alert_sound());
@@ -269,13 +262,13 @@ Plane::JwStateMachine()
 
         case UNDOCKING:
             n_done = 0;
-            for (auto & ajw : active_jws_) {
+            for (auto& ajw : active_jws_) {
                 if (ajw.UndockDrive())
                     n_done++;
             }
 
             if (n_done == active_jws_.size())
-               new_state = IDLE;
+                new_state = IDLE;
             else {
                 state_machine_next_ts_ = 0.0f;
                 return kAnimInterval;
@@ -292,13 +285,13 @@ Plane::JwStateMachine()
 
     if (new_state != state_) {
         state_change_ts_ = now;
-        LogMsg("pid=%02d, jw state transition, %s -> %s, beacon: %d", id_,
-                state_str_[state_], state_str_[new_state], beacon_on_);
+        LogMsg("pid=%02d, jw state transition, %s -> %s, beacon: %d", id_, state_str_[state_], state_str_[new_state],
+               beacon_on_);
         state_ = new_state;
 
         // from anywhere to idle nullifies all selections
         if (state_ == IDLE) {
-            for (auto & ajw : active_jws_)
+            for (auto& ajw : active_jws_)
                 ajw.Reset();
             active_jws_.resize(0);
             nearest_jws_.resize(0);
@@ -314,4 +307,3 @@ Plane::JwStateMachine()
     state_machine_next_ts_ = ::now + 0.5f;
     return 0.5f;
 }
-
