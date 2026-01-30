@@ -1,7 +1,7 @@
 //
 //    openSAM: open source SAM emulator for X Plane
 //
-//    Copyright (C) 2024, 2025  Holger Teutsch
+//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -101,28 +101,23 @@ static const char* toggle_mp_support_txt = "Toggle Multiplayer Support";
 
 static int auto_season;
 static int airport_loaded;
-static int nh;     // on northern hemisphere
-static int season; // 0-3
-static const char *dr_name[] = {"sam/season/winter", "sam/season/spring",
-            "sam/season/summer", "sam/season/autumn"};
+static int nh;      // on northern hemisphere
+static int season;  // 0-3
+static const char* dr_name[] = {"sam/season/winter", "sam/season/spring", "sam/season/summer", "sam/season/autumn"};
 static int sam_library_installed;
 
 static XPLMDataRef date_day_dr;
 
-XPLMDataRef lat_ref_dr, lon_ref_dr,
-    draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr,
-    gear_fnrml_dr,
-    total_running_time_sec_dr,
-    vr_enabled_dr;
-
+XPLMDataRef lat_ref_dr, lon_ref_dr, draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr,
+    gear_fnrml_dr, total_running_time_sec_dr, vr_enabled_dr;
 
 float lat_ref{-1000}, lon_ref{-1000};
 unsigned int ref_gen{1};
 
 static int pref_auto_mode;
 
-float now;            // current timestamp
-std::string base_dir; // base directory of openSAM
+float now;             // current timestamp
+std::string base_dir;  // base directory of openSAM
 
 static std::unique_ptr<MpAdapter> mp_adapter;
 
@@ -130,10 +125,8 @@ std::unordered_map<std::string, DoorInfo> door_info_map;
 std::unordered_map<std::string, DoorInfo> csl_door_info_map;
 std::unordered_map<std::string, std::string> acf_generic_type_map;
 
-unsigned long long stat_sc_far_skip, stat_near_skip,
-    stat_acc_called, stat_jw_match, stat_dgs_acc,
-    stat_anim_acc_called, stat_auto_drf_called,
-    stat_jw_cache_hit;
+unsigned long long stat_sc_far_skip, stat_near_skip, stat_acc_called, stat_jw_match, stat_dgs_acc, stat_anim_acc_called,
+    stat_auto_drf_called, stat_jw_cache_hit;
 
 XPLMProbeInfo_t probeinfo;
 XPLMProbeRef probe_ref;
@@ -141,10 +134,8 @@ XPLMMenuID anim_menu;
 
 static bool error_disabled;
 
-static void
-save_pref()
-{
-    FILE *f = fopen(pref_path.c_str(), "w");
+static void SavePrefs() {
+    FILE* f = fopen(pref_path.c_str(), "w");
     if (NULL == f)
         return;
     pref_auto_mode = my_plane.auto_mode();
@@ -157,22 +148,19 @@ save_pref()
     LogMsg("Saving pref auto_season: %d, season: %d, auto_select_jws: %d", auto_season, s, pref_auto_mode);
 }
 
-static void
-load_pref()
-{
+static void LoadPrefs() {
     // set some reasonable default values in case there is no pref file
     nh = 1;
     auto_season = 1;
     season = 1;
     pref_auto_mode = 1;
 
-    FILE *f  = fopen(pref_path.c_str(), "r");
+    FILE* f = fopen(pref_path.c_str(), "r");
     if (NULL == f)
         return;
 
-    [[maybe_unused]]int n = fscanf(f, "%i,%i,%i", &auto_season, &season, &pref_auto_mode);
-    LogMsg("From pref: auto_season: %d, seasons: %d, auto_select_jws: %d",
-            auto_season,  season, pref_auto_mode);
+    [[maybe_unused]] int n = fscanf(f, "%i,%i,%i", &auto_season, &season, &pref_auto_mode);
+    LogMsg("From pref: auto_season: %d, seasons: %d, auto_select_jws: %d", auto_season, season, pref_auto_mode);
 
     fclose(f);
 
@@ -182,29 +170,21 @@ load_pref()
     }
 }
 
-
 // Accessor for the "opensam/SAM_Library_installed" dataref
-static int
-sam_lib_installed_acc([[maybe_unused]]void *ref)
-{
+static int SamLibInstalledAcc([[maybe_unused]] void* ref) {
     return sam_library_installed;
 }
 
 // Accessor for the "sam/season/*" datarefs
-static int
-read_season_acc(void *ref)
-{
+static int ReadSeasonAcc(void* ref) {
     int s = (long long)ref;
     int val = (s == season);
 
-    //LogMsg("accessor %s called, returns %d", dr_name[s], val);
+    // LogMsg("accessor %s called, returns %d", dr_name[s], val);
     return val;
 }
 
-static int
-cmd_activate_cb([[maybe_unused]] XPLMCommandRef cmdr,
-                XPLMCommandPhase phase, [[maybe_unused]] void *ref)
-{
+static int CmdActivateCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, [[maybe_unused]] void* ref) {
     if (xplm_CommandBegin != phase)
         return 0;
 
@@ -213,10 +193,7 @@ cmd_activate_cb([[maybe_unused]] XPLMCommandRef cmdr,
     return 0;
 }
 
-static int
-cmd_toggle_ui_cb([[maybe_unused]] XPLMCommandRef cmdr,
-                 XPLMCommandPhase phase, [[maybe_unused]] void *ref)
-{
+static int CmdToggleUICb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, [[maybe_unused]] void* ref) {
     if (xplm_CommandBegin != phase)
         return 0;
 
@@ -226,10 +203,7 @@ cmd_toggle_ui_cb([[maybe_unused]] XPLMCommandRef cmdr,
 }
 
 // multiplayer activation
-static int
-cmd_toggle_mp_cb([[maybe_unused]]XPLMCommandRef cmdr,
-                  XPLMCommandPhase phase, [[maybe_unused]] void *ref)
-{
+static int CmdToggleMpCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, [[maybe_unused]] void* ref) {
     if (xplm_CommandBegin != phase)
         return 0;
 
@@ -249,16 +223,13 @@ cmd_toggle_mp_cb([[maybe_unused]]XPLMCommandRef cmdr,
     } else
         XPLMSetMenuItemName(os_menu, toggle_mp_item, toggle_mp_support_txt, 0);
 
-    XPLMCheckMenuItem(os_menu, toggle_mp_item,
-                      mp_adapter ? xplm_Menu_Checked : xplm_Menu_Unchecked);
+    XPLMCheckMenuItem(os_menu, toggle_mp_item, mp_adapter ? xplm_Menu_Checked : xplm_Menu_Unchecked);
     return 0;
 }
 
-static float
-FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
-               [[maybe_unused]] float inElapsedTimeSinceLastFlightLoop, [[maybe_unused]] int inCounter,
-               [[maybe_unused]] void *inRefcon)
-{
+static float FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
+                          [[maybe_unused]] float inElapsedTimeSinceLastFlightLoop, [[maybe_unused]] int inCounter,
+                          [[maybe_unused]] void* inRefcon) {
     static float jw_next_ts, dgs_next_ts, anim_next_ts, mp_update_next_ts;
 
     if (error_disabled)
@@ -284,17 +255,14 @@ FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
         float mp_update_delay = mp_update_next_ts - now;
 
         float my_y_agl = my_plane.y_agl();
-        if (my_y_agl < kMultiPlayerHeightLimit
-            && mp_adapter && mp_update_delay <= 0.0f)
+        if (my_y_agl < kMultiPlayerHeightLimit && mp_adapter && mp_update_delay <= 0.0f)
             mp_update_next_ts = now + mp_adapter->update();
 
-        if (! my_plane.is_helicopter_) {
+        if (!my_plane.is_helicopter_) {
             if (jw_loop_delay <= 0.0f) {
                 jw_loop_delay = my_plane.JwStateMachine();
                 if (my_y_agl < kMultiPlayerHeightLimit && mp_adapter)
-                    jw_loop_delay = std::min(jw_loop_delay,
-                                            mp_adapter->JwStateMachine());
-
+                    jw_loop_delay = std::min(jw_loop_delay, mp_adapter->JwStateMachine());
 
                 jw_next_ts = now + jw_loop_delay;
             }
@@ -309,7 +277,7 @@ FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
             anim_loop_delay = AnimStateMachine();
             anim_next_ts = now + anim_loop_delay;
         }
-        //LogMsg("jw_loop_delay: %0.2f", jw_loop_delay);
+        // LogMsg("jw_loop_delay: %0.2f", jw_loop_delay);
         return std::min(anim_loop_delay, std::min(jw_loop_delay, dgs_loop_delay));
     } catch (const OsEx& e) {
         LogMsg("FlightLoopCb caught exception: %s, openSAM disabled", e.what());
@@ -319,10 +287,8 @@ FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
 }
 
 // set season according to date
-static void
-set_season_auto()
-{
-    if (! auto_season)
+static void SetSeasonAuto() {
+    if (!auto_season)
         return;
 
     int day = XPLMGetDatai(date_day_dr);
@@ -356,11 +322,8 @@ set_season_auto()
 }
 
 // emulate a kind of radio buttons
-static void
-set_menu()
-{
-    XPLMCheckMenuItem(seasons_menu, auto_item,
-                      auto_season ? xplm_Menu_Checked : xplm_Menu_Unchecked);
+static void SetMenu() {
+    XPLMCheckMenuItem(seasons_menu, auto_item, auto_season ? xplm_Menu_Checked : xplm_Menu_Unchecked);
 
     XPLMCheckMenuItem(seasons_menu, season_item[season], xplm_Menu_Checked);
     for (int i = 0; i < 4; i++)
@@ -368,27 +331,23 @@ set_menu()
             XPLMCheckMenuItem(seasons_menu, season_item[i], xplm_Menu_Unchecked);
 }
 
-static void
-menu_cb([[maybe_unused]] void *menu_ref, void *item_ref)
-{
+static void menu_cb([[maybe_unused]] void* menu_ref, void* item_ref) {
     int entry = (long long)item_ref;
 
     if (entry == 4) {
         auto_season = !auto_season;
-        set_season_auto();
+        SetSeasonAuto();
     } else {
         season = entry;
-        auto_season = 0;    // selecting a season always goes to manual mode
+        auto_season = 0;  // selecting a season always goes to manual mode
     }
 
-    set_menu();
-    save_pref();
+    SetMenu();
+    SavePrefs();
 }
 
 // dock/undock command
-static int
-cmd_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, void *ref)
-{
+static int CmdDockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, void* ref) {
     if (xplm_CommandBegin != phase)
         return 0;
 
@@ -396,26 +355,24 @@ cmd_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, voi
 
     if (ref == NULL)
         my_plane.RequestDock();
-    else if (ref == (void *)1)
+    else if (ref == (void*)1)
         my_plane.RequestUndock();
-    else if (ref == (void *)2)
+    else if (ref == (void*)2)
         my_plane.RequestToggle();
 
     return 0;
 }
 
 // intercept XP12's standard cmd
-static int
-cmd_xp12_dock_jw_cb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase,
-                    [[maybe_unused]] void *ref)
-{
+static int CmdXp12DockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase,
+                               [[maybe_unused]] void* ref) {
     if (xplm_CommandBegin != phase)
         return 1;
 
     LogMsg("cmd_xp12_dock_jw_cb called");
 
     my_plane.RequestToggle();
-    return 1;       // pass on to XP12, likely there is no XP12 jw here 8-)
+    return 1;  // pass on to XP12, likely there is no XP12 jw here 8-)
 }
 
 static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, DoorInfo>& di_map) {
@@ -454,14 +411,12 @@ static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, 
     LogMsg("%d mappings loaded", (int)di_map.size());
 }
 
-static void
-load_acf_generic_type(const std::string& fn)
-{
+static void LoadAcfGenericType(const std::string& fn) {
     std::ifstream f(fn);
     if (!f.is_open())
         throw OsEx("Error loading " + fn);
 
-    LogMsg("Building acf_generic_type_map from %s",  fn.c_str());
+    LogMsg("Building acf_generic_type_map from %s", fn.c_str());
 
     std::string line;
     while (std::getline(f, line)) {
@@ -475,7 +430,7 @@ load_acf_generic_type(const std::string& fn)
             if (code[0] == '#')
                 continue;
 
-           acf_generic_type_map[std::string(code)] = std::string(icao);
+            acf_generic_type_map[std::string(code)] = std::string(icao);
         }
     }
 
@@ -483,9 +438,7 @@ load_acf_generic_type(const std::string& fn)
 }
 
 // =========================== plugin entry points ===============================================
-PLUGIN_API int
-XPluginStart(char *out_name, char *out_sig, char *out_desc)
-{
+PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     LogMsg("Startup " VERSION);
 
     probeinfo.structSize = sizeof(XPLMProbeInfo_t);
@@ -498,7 +451,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     XPLMEnableFeature("XPLM_USE_NATIVE_WIDGET_WINDOWS", 1);
 
     char buffer[2048];
-	XPLMGetSystemPath(buffer);
+    XPLMGetSystemPath(buffer);
     xp_dir = std::string(buffer);
 
     // set pref path
@@ -513,7 +466,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     try {
         LoadDoorInfo(base_dir + "acf_door_position.txt", door_info_map);
         LoadDoorInfo(base_dir + "csl_door_position.txt", csl_door_info_map);
-        load_acf_generic_type(base_dir + "acf_generic_type.txt");
+        LoadAcfGenericType(base_dir + "acf_generic_type.txt");
 
         SceneryPacks scp(xp_dir);
         sam_library_installed = scp.SAM_Library_path.size() > 0;
@@ -522,7 +475,7 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
         JwCtrl::SoundInit();
     } catch (const OsEx& ex) {
         LogMsg("fatal error: '%s', bye!", ex.what());
-        return 0;   // bye
+        return 0;  // bye
     }
 
     date_day_dr = XPLMFindDataRef("sim/time/local_date_days");
@@ -538,21 +491,19 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     total_running_time_sec_dr = XPLMFindDataRef("sim/time/total_running_time_sec");
     vr_enabled_dr = XPLMFindDataRef("sim/graphics/VR/enabled");
 
-    load_pref();
+    LoadPrefs();
 
     // If commands or dataref accessors are already registered it's to late to
     // fail XPluginStart as the dll is unloaded and X-Plane crashes.
     // So from here on we are doomed to succeed.
 
-    XPLMRegisterDataAccessor("opensam/SAM_Library_installed", xplmType_Int, 0, sam_lib_installed_acc,
-                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                             NULL, NULL, NULL, NULL, NULL);
+    XPLMRegisterDataAccessor("opensam/SAM_Library_installed", xplmType_Int, 0, SamLibInstalledAcc, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
     // create the seasons datarefs
     for (int i = 0; i < 4; i++)
-        XPLMRegisterDataAccessor(dr_name[i], xplmType_Int, 0, read_season_acc,
-                                 NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                 NULL, NULL, NULL, (void *)(long long)i, NULL);
+        XPLMRegisterDataAccessor(dr_name[i], xplmType_Int, 0, ReadSeasonAcc, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, NULL, NULL, NULL, (void*)(long long)i, NULL);
 
     MyPlane::init();
     my_plane.auto_mode_set(pref_auto_mode);
@@ -563,33 +514,31 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 
     // own commands
     XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Manually activate searching for DGS");
-    XPLMRegisterCommandHandler(activate_cmdr, cmd_activate_cb, 0, NULL);
+    XPLMRegisterCommandHandler(activate_cmdr, CmdActivateCb, 0, NULL);
 
     XPLMCommandRef toggle_ui_cmdr = XPLMCreateCommand("openSAM/ToggleUI", "Toggle UI");
-    XPLMRegisterCommandHandler(toggle_ui_cmdr, cmd_toggle_ui_cb, 0, NULL);
+    XPLMRegisterCommandHandler(toggle_ui_cmdr, CmdToggleUICb, 0, NULL);
 
     XPLMCommandRef dock_cmdr = XPLMCreateCommand("openSAM/dock_jwy", "Dock jetway");
-    XPLMRegisterCommandHandler(dock_cmdr, cmd_dock_jw_cb, 0, (void *)0);
+    XPLMRegisterCommandHandler(dock_cmdr, CmdDockJwCb, 0, (void*)0);
 
     XPLMCommandRef undock_cmdr = XPLMCreateCommand("openSAM/undock_jwy", "Undock jetway");
-    XPLMRegisterCommandHandler(undock_cmdr, cmd_dock_jw_cb, 0, (void *)1);
+    XPLMRegisterCommandHandler(undock_cmdr, CmdDockJwCb, 0, (void*)1);
 
     XPLMCommandRef toggle_cmdr = XPLMCreateCommand("openSAM/toggle_jwy", "Toggle jetway");
-    XPLMRegisterCommandHandler(toggle_cmdr, cmd_dock_jw_cb, 0, (void *)2);
+    XPLMRegisterCommandHandler(toggle_cmdr, CmdDockJwCb, 0, (void*)2);
 
     XPLMCommandRef toggle_mp_cmdr = XPLMCreateCommand("openSAM/toggle_multiplayer", "Toggle Multiplayer Support");
-    XPLMRegisterCommandHandler(toggle_mp_cmdr, cmd_toggle_mp_cb, 0, NULL);
+    XPLMRegisterCommandHandler(toggle_mp_cmdr, CmdToggleMpCb, 0, NULL);
 
     // augment XP12's standard cmd
     XPLMCommandRef xp12_toggle_cmdr = XPLMFindCommand("sim/ground_ops/jetway");
     if (xp12_toggle_cmdr)
-        XPLMRegisterCommandHandler(xp12_toggle_cmdr, cmd_xp12_dock_jw_cb, 1, NULL);
+        XPLMRegisterCommandHandler(xp12_toggle_cmdr, CmdXp12DockJwCb, 1, NULL);
 
     // build menues
     XPLMMenuID menu = XPLMFindPluginsMenu();
-    os_menu = XPLMCreateMenu("openSAM", menu,
-                              XPLMAppendMenuItem(menu, "openSAM", NULL, 0),
-                              NULL, NULL);
+    os_menu = XPLMCreateMenu("openSAM", menu, XPLMAppendMenuItem(menu, "openSAM", NULL, 0), NULL, NULL);
     // openSAM
     XPLMAppendMenuItemWithCommand(os_menu, "Dock Jetway", dock_cmdr);
     XPLMAppendMenuItemWithCommand(os_menu, "Undock Jetway", undock_cmdr);
@@ -614,17 +563,17 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
     int seasons_menu_item = XPLMAppendMenuItem(os_menu, "Seasons", NULL, 0);
     seasons_menu = XPLMCreateMenu("Seasons", os_menu, seasons_menu_item, menu_cb, NULL);
 
-    auto_item = XPLMAppendMenuItem(seasons_menu, "Automatic", (void *)4, 0);
+    auto_item = XPLMAppendMenuItem(seasons_menu, "Automatic", (void*)4, 0);
 
     XPLMAppendMenuSeparator(seasons_menu);
 
-    season_item[0] = XPLMAppendMenuItem(seasons_menu, "Winter", (void *)0, 0);
-    season_item[1] = XPLMAppendMenuItem(seasons_menu, "Spring", (void *)1, 0);
-    season_item[2] = XPLMAppendMenuItem(seasons_menu, "Summer", (void *)2, 0);
-    season_item[3] = XPLMAppendMenuItem(seasons_menu, "Autumn", (void *)3, 0);
+    season_item[0] = XPLMAppendMenuItem(seasons_menu, "Winter", (void*)0, 0);
+    season_item[1] = XPLMAppendMenuItem(seasons_menu, "Spring", (void*)1, 0);
+    season_item[2] = XPLMAppendMenuItem(seasons_menu, "Summer", (void*)2, 0);
+    season_item[3] = XPLMAppendMenuItem(seasons_menu, "Autumn", (void*)3, 0);
     // ---------------------
 
-    set_menu();
+    SetMenu();
 
     // ... and off we go
     XPLMRegisterFlightLoopCallback(FlightLoopCb, 2.0, NULL);
@@ -639,23 +588,17 @@ XPluginStart(char *out_name, char *out_sig, char *out_desc)
 #endif
 }
 
-
-PLUGIN_API void
-XPluginStop(void)
-{
+PLUGIN_API void XPluginStop(void) {
     LogMsg("plugin stopped");
 }
 
-
-PLUGIN_API void
-XPluginDisable(void)
-{
+PLUGIN_API void XPluginDisable(void) {
     if (probe_ref) {
         XPLMDestroyProbe(probe_ref);
         probe_ref = NULL;
     }
 
-    save_pref();
+    SavePrefs();
     LogMsg("acc called:           %9llu", stat_acc_called);
     LogMsg("scenery far skip:     %9llu", stat_sc_far_skip);
     LogMsg("near skip:            %9llu", stat_near_skip);
@@ -664,12 +607,10 @@ XPluginDisable(void)
     LogMsg("dgs acc called:       %9llu", stat_dgs_acc);
     LogMsg("stat_anim_acc_called: %9llu", stat_anim_acc_called);
     LogMsg("stat_auto_drf_called: %9llu", stat_auto_drf_called);
+    LogMsg("plugin disabled");
 }
 
-
-PLUGIN_API int
-XPluginEnable(void)
-{
+PLUGIN_API int XPluginEnable(void) {
     if (init_fail || error_disabled)  // once and for all
         return 0;
 
@@ -678,22 +619,20 @@ XPluginEnable(void)
         LogMsg("Can't create terrain probe");
         return 0;
     }
-    stat_sc_far_skip = stat_near_skip = stat_acc_called
-        = stat_jw_match = stat_dgs_acc = stat_anim_acc_called = stat_auto_drf_called
-        = stat_jw_cache_hit = 0;
+    stat_sc_far_skip = stat_near_skip = stat_acc_called = stat_jw_match = stat_dgs_acc = stat_anim_acc_called =
+        stat_auto_drf_called = stat_jw_cache_hit = 0;
+
+    LogMsg("plugin enabled");
     return 1;
 }
 
-PLUGIN_API void
-XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, long in_msg, void *in_param)
-{
+PLUGIN_API void XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, long in_msg, void* in_param) {
     // Everything before XPLM_MSG_AIRPORT_LOADED has bogus datarefs.
     //   Anyway it's too late for the current scenery.
-    if ((in_msg == XPLM_MSG_AIRPORT_LOADED) ||
-        (airport_loaded && (in_msg == XPLM_MSG_SCENERY_LOADED))) {
+    if ((in_msg == XPLM_MSG_AIRPORT_LOADED) || (airport_loaded && (in_msg == XPLM_MSG_SCENERY_LOADED))) {
         airport_loaded = 1;
         nh = (my_plane.lat() >= 0.0);
-        set_season_auto();
+        SetSeasonAuto();
         return;
     }
 
