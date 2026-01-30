@@ -226,6 +226,9 @@ void CheckRefFrameShift() {
 // sam/jetways/15/rotate2  -> (15, DR_ROTATE2)
 //
 static float JwAnimAcc(void* ref) {
+    if (!sim_running)
+        return 0.0f;
+
     stat_acc_called++;
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);

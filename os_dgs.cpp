@@ -362,6 +362,9 @@ static float DgsGlobalAcc(void *ref) {
 //
 //
 static float DgsActiveAcc(void *ref) {
+    if (!sim_running)
+        return 0.0f;
+
     int dr_index = (uint64_t)ref;
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
@@ -396,6 +399,9 @@ static float DgsActiveAcc(void *ref) {
 // This function is called from draw loops, efficient coding required.
 //
 static float DgsSam1Acc(void *ref) {
+    if (!sim_running)
+        return 0.0f;
+
     int dr_index = (uint64_t)ref;
     if (!IsDgsActive(XPLMGetDataf(draw_object_x_dr), XPLMGetDataf(draw_object_z_dr), XPLMGetDataf(draw_object_psi_dr)))
         switch (dr_index) {
@@ -426,6 +432,9 @@ static float DgsSam1Acc(void *ref) {
 // This function is called from draw loops, efficient coding required.
 //
 static int DgsSam1IcaoAcc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs, int n) {
+    if (!sim_running)
+        return 0;
+
     if (values == nullptr)
         return 4;
 

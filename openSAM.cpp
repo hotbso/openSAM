@@ -134,6 +134,9 @@ XPLMMenuID anim_menu;
 
 static bool error_disabled;
 
+// inihibit all dataref accessors that call SDK functions until the sim is considered 'running'
+bool sim_running;
+
 static void SavePrefs() {
     FILE* f = fopen(pref_path.c_str(), "w");
     if (NULL == f)
@@ -505,8 +508,8 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         XPLMRegisterDataAccessor(dr_name[i], xplmType_Int, 0, ReadSeasonAcc, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, NULL, (void*)(long long)i, NULL);
 
-    MyPlane::init();
-    my_plane.auto_mode_set(pref_auto_mode);
+    my_plane.Init();
+    my_plane.AutoModeSet(pref_auto_mode);
     JwInit();
     JwCtrl::Init();
     DgsInit();
@@ -590,6 +593,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
 PLUGIN_API void XPluginStop(void) {
     LogMsg("plugin stopped");
+    sim_running = false;    // inhibit dataref accessors
 }
 
 PLUGIN_API void XPluginDisable(void) {
@@ -639,6 +643,7 @@ PLUGIN_API void XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, lon
     // my plane loaded
     if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
         my_plane.PlaneLoadedCb();
+        sim_running = true;
         return;
     }
 }

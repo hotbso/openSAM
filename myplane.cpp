@@ -42,6 +42,9 @@ MyPlane my_plane;
 // ref == 0: opensam/jetway/number
 // ref == 1: opensam/jetway/status
 int MyPlane::JwStatusAcc(void* ref) {
+    if (!sim_running)
+        return 0;
+
     // opensam/jetway/number
     if (ref == 0)
         return my_plane.active_jws_.size();
@@ -64,6 +67,9 @@ int MyPlane::JwStatusAcc(void* ref) {
 //  1 = docked
 //
 int MyPlane::JwDoorStatusAcc([[maybe_unused]] XPLMDataRef ref, int* values, int ofs, int n) {
+    if (!sim_running)
+        return 0;
+
     if (values == nullptr)
         return kMaxDoor;
 
@@ -92,11 +98,27 @@ static XPLMDataRef plane_x_dr_, plane_y_dr_, plane_z_dr_, plane_elevation_dr_, p
 
 static bool FindIcaoInFile(const std::string& acf_icao, const std::string& fn);
 
+// constructor is called too early, no SDK calls here
 MyPlane::MyPlane() {
-    LogMsg("constructing MyPlane");
-    plane_x_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_x");
-    assert(plane_x_dr_ != nullptr);  // verify that XPLM is initialized
+    assert(id_ == 0);  // verify that there is only one instance
 
+    icao_ = "0000";
+    ResetBeacon();
+    ui_unlocked_ = false;
+    state_ = IDLE;
+}
+
+// initialize MyPlane instance from XPLMPluginStart
+// register dref accessors
+void MyPlane::Init() {
+    static bool init_done{false};
+    if (init_done)
+        return;
+
+    LogMsg("initing MyPlane::");
+
+    plane_x_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_x");
+    assert(plane_x_dr_ != nullptr);
     plane_y_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_y");
     plane_z_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_z");
     plane_lat_dr_ = XPLMFindDataRef("sim/flightmodel/position/latitude");
@@ -118,10 +140,15 @@ MyPlane::MyPlane() {
     acf_door_z_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_z");
     pax_no_dr_ = nullptr;
 
-    icao_ = "0000";
-    ResetBeacon();
-    ui_unlocked_ = false;
-    state_ = IDLE;
+    XPLMRegisterDataAccessor("opensam/jetway/number", xplmType_Int, 0, JwStatusAcc, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+    XPLMRegisterDataAccessor("opensam/jetway/status", xplmType_Int, 0, JwStatusAcc, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL, (void*)1, NULL);
+
+    XPLMRegisterDataAccessor("opensam/jetway/door/status", xplmType_IntArray, 0, NULL, NULL, NULL, NULL, NULL, NULL,
+                             JwDoorStatusAcc, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+    init_done = true;
 }
 
 void MyPlane::RequestDock() {
@@ -157,7 +184,7 @@ bool MyPlane::toggle_requested() {
     return res;
 }
 
-void MyPlane::auto_mode_set(bool auto_mode) {
+void MyPlane::AutoModeSet(bool auto_mode) {
     if (auto_mode_ == auto_mode)
         return;
 
@@ -183,8 +210,11 @@ void MyPlane::auto_mode_set(bool auto_mode) {
 }
 
 void MyPlane::PlaneLoadedCb() {
+    // reinit all that stuff as this may be a different plane now
     on_ground_ = 1;
     on_ground_ts_ = 0.0f;
+    n_door_ = 0;
+    use_engines_on_ = dont_connect_jetway_ = false;
 
     icao_.resize(4);
     XPLMGetDatab(acf_icao_dr_, icao_.data(), 0, 4);
@@ -203,8 +233,6 @@ void MyPlane::PlaneLoadedCb() {
         nose_gear_z_ = main_gear_z_ = plane_cg_z_;  // fall back to CG
 
     is_helicopter_ = XPLMGetDatai(is_helicopter_dr_);
-
-    use_engines_on_ = dont_connect_jetway_ = false;
 
     LogMsg("plane loaded: %s, is_helicopter: %d", icao_.c_str(), is_helicopter_);
 
@@ -417,23 +445,6 @@ bool MyPlane::CheckTeleportation() {
 void MyPlane::ResetBeacon() {
     beacon_on_pending_ = 0;
     beacon_off_ts_ = beacon_on_ts_ = -10.0f;
-}
-
-// static
-void MyPlane::init() {
-    static bool init_done{false};
-    if (init_done)
-        return;
-
-    XPLMRegisterDataAccessor("opensam/jetway/number", xplmType_Int, 0, JwStatusAcc, NULL, NULL, NULL, NULL, NULL,
-                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-
-    XPLMRegisterDataAccessor("opensam/jetway/status", xplmType_Int, 0, JwStatusAcc, NULL, NULL, NULL, NULL, NULL,
-                             NULL, NULL, NULL, NULL, NULL, NULL, (void*)1, NULL);
-
-    XPLMRegisterDataAccessor("opensam/jetway/door/status", xplmType_IntArray, 0, NULL, NULL, NULL, NULL, NULL, NULL,
-                             JwDoorStatusAcc, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-    init_done = true;
 }
 
 static bool FindIcaoInFile(const std::string& acf_icao, const std::string& fn) {

@@ -93,7 +93,7 @@ int MyPlane::UIWidgetCb(XPWidgetMessage msg, XPWidgetID widget_id, [[maybe_unuse
         bool auto_mode = (bool)(uint64_t)param2;
         LogMsg("auto_mode now: %d", auto_mode);
 
-        my_plane.auto_mode_set(auto_mode);  // start over with new setting
+        my_plane.AutoModeSet(auto_mode);  // start over with new setting
         return 1;
     }
 

@@ -66,7 +66,7 @@ class Plane {
         active_jws_.reserve(kMaxDoor);
     }
 
-    virtual ~Plane();
+    virtual ~Plane() = 0;
 
     // general state
     State state() {
@@ -146,14 +146,14 @@ class Plane {
 //
 // Derived class that represents the XP-pilot's plane.
 // Clearly there is exactly one instance of this class.
-// It is accessible through "MyPlane* my_plane" .
+// It is accessible through "MyPlane& my_plane" .
 //
 class MyPlane : public Plane {
     XPLMDataRef plane_lat_dr_, plane_lon_dr_, plane_y_agl_dr_;
     XPLMDataRef pax_no_dr_;
     bool pax_no_dr_probed_;
 
-    bool use_engines_on_;   // instead of beacon, e.g. Zibo
+    bool use_engines_on_;  // instead of beacon, e.g. Zibo
 
     // helpers for debouncing
     int beacon_on_pending_;
@@ -165,51 +165,70 @@ class MyPlane : public Plane {
     unsigned parked_ngen_;
 
     bool auto_mode_, dock_requested_, undock_requested_, toggle_requested_;
-    bool ui_unlocked_{false}; // the ui is unlocked for jw_selection
+    bool ui_unlocked_{false};  // the ui is unlocked for jw_selection
 
     float elevation_;
     int pax_no_;
 
-  public:
-    static void init();         // call once
-
+   public:
     // readonly use!
-    bool dont_connect_jetway_;                       // after beacon off, e.g. Zibo
+    bool dont_connect_jetway_;  // after beacon off, e.g. Zibo
     bool is_helicopter_;
-    float nose_gear_z_, main_gear_z_, plane_cg_z_;   // z value of plane's gears and cg
+    float nose_gear_z_, main_gear_z_, plane_cg_z_;  // z value of plane's gears and cg
 
-    MyPlane();
-    ~MyPlane() {}
+    MyPlane();             // don't call SDK functions here
+    void Init();         // call from XPluginStart to initialize my_plane and register dref accessors
 
-    void PlaneLoadedCb();        // called from XPLM_MSG_PLANE_LOADED handler
+    ~MyPlane() override {
+    }
+
+    void PlaneLoadedCb();  // called from XPLM_MSG_PLANE_LOADED handler
 
     void ResetBeacon();
 
     // update internal state
     void Update();
 
-    void MemorizeParkedPos() override ; // for teleportation detection
+    void MemorizeParkedPos() override;  // for teleportation detection
     bool CheckTeleportation() override;
 
     // these 3 are called without prior update() call -> direct read from drefs
-    float lat() { return XPLMGetDataf(plane_lat_dr_); }
-    float lon() { return XPLMGetDataf(plane_lon_dr_); }
-    float y_agl() { return XPLMGetDataf(plane_y_agl_dr_); }
+    float lat() {
+        return XPLMGetDataf(plane_lat_dr_);
+    }
+    float lon() {
+        return XPLMGetDataf(plane_lon_dr_);
+    }
+    float y_agl() {
+        return XPLMGetDataf(plane_y_agl_dr_);
+    }
 
-    float elevation() const { return elevation_; }
-    int pax_no() const { return pax_no_; }
+    float elevation() const {
+        return elevation_;
+    }
+    int pax_no() const {
+        return pax_no_;
+    }
 
     // UI support
     void UpdateUI(bool only_if_visible) override;
-    void LockUI(bool yes_no) override { ui_unlocked_ = !yes_no; }
+    void LockUI(bool yes_no) override {
+        ui_unlocked_ = !yes_no;
+    }
     static int UIWidgetCb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_t param2);
 
-    bool with_alert_sound() override { return true; }
+    bool with_alert_sound() override {
+        return true;
+    }
 
     // cmd support
-    void auto_mode_set(bool auto_mode);
-    bool auto_mode() const override { return auto_mode_; }
-    bool call_pre_post_dock_cmd() override { return true; }
+    void AutoModeSet(bool auto_mode);
+    bool auto_mode() const override {
+        return auto_mode_;
+    }
+    bool call_pre_post_dock_cmd() override {
+        return true;
+    }
 
     void RequestDock();
     void RequestUndock();
@@ -220,9 +239,8 @@ class MyPlane : public Plane {
     bool toggle_requested() override;
 
     // dataref accessors
-    static int JwStatusAcc(void *ref);
-    static int JwDoorStatusAcc(XPLMDataRef ref, int *values, int ofs, int n);
-
+    static int JwStatusAcc(void* ref);
+    static int JwDoorStatusAcc(XPLMDataRef ref, int* values, int ofs, int n);
 };
 
 extern MyPlane my_plane;
