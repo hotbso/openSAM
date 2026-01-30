@@ -1,24 +1,23 @@
-/*
-    openSAM: open source SAM emulator for X Plane
-
-    Copyright (C) 2025  Holger Teutsch
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-    USA
-
-*/
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2025, 2026  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
 
 #include <cstdlib>
 #include <cstring>
@@ -31,35 +30,30 @@
 
 constexpr int kSpawnPerRun = 10;    // new Planes per update run
 
-static XPLMDataRef
-    flight_phase_dr,
-    traffic_type_dr,
-    acf_type_dr, flight_id_dr,     // identity
-    x_dr, y_dr, z_dr, psi_dr;      // position
+static XPLMDataRef flight_phase_dr, traffic_type_dr, acf_type_dr, flight_id_dr,  // identity
+    x_dr, y_dr, z_dr, psi_dr;                                                    // position
 
-enum FlightPhase
-{
-	FP_Unknown = -1,
-	FP_Cruise = 0,
-	FP_Approach,			// Positioning from cruise to the runway.
-	FP_Final,				// Gear down on final approach.
-	FP_TaxiIn,				// Any ground movement after touchdown.
-	FP_Shutdown,			// Short period of spooling down engines/electrics.
-	FP_Parked,				// Long period parked.
-	FP_Startup,				// Short period of spooling up engines/electrics.
-	FP_TaxiOut,				// Any ground movement from the gate to the runway.
-	FP_Depart,				// Initial ground roll and first part of climb.
-	FP_GoAround,			// Unplanned transition from approach to cruise.
-	FP_Climbout,			// Remainder of climb, gear up.
-	FP_Braking,				// Short period from touchdown to when fast-taxi speed is reached.
+enum FlightPhase {
+    FP_Unknown = -1,
+    FP_Cruise = 0,
+    FP_Approach,  // Positioning from cruise to the runway.
+    FP_Final,     // Gear down on final approach.
+    FP_TaxiIn,    // Any ground movement after touchdown.
+    FP_Shutdown,  // Short period of spooling down engines/electrics.
+    FP_Parked,    // Long period parked.
+    FP_Startup,   // Short period of spooling up engines/electrics.
+    FP_TaxiOut,   // Any ground movement from the gate to the runway.
+    FP_Depart,    // Initial ground roll and first part of climb.
+    FP_GoAround,  // Unplanned transition from approach to cruise.
+    FP_Climbout,  // Remainder of climb, gear up.
+    FP_Braking,   // Short period from touchdown to when fast-taxi speed is reached.
 };
 
-enum TrafficType
-{
-	PT_Airline = 0,
-	PT_Cargo,
-	PT_GA,
-	PT_Military,
+enum TrafficType {
+    PT_Airline = 0,
+    PT_Cargo,
+    PT_GA,
+    PT_Military,
 };
 
 class MpPlane_tgxp : public Plane {
@@ -68,21 +62,24 @@ class MpPlane_tgxp : public Plane {
 
     float scan_mp_planes();
 
-  public:
-    MpPlane_tgxp(int slot, const std::string& flight_id, const std::string& icao,
-                 float x, float y, float z, float psi);
-    ~MpPlane_tgxp() override {}
+   public:
+    MpPlane_tgxp(int slot, const std::string& flight_id, const std::string& icao, float x, float y, float z, float psi);
+    ~MpPlane_tgxp() override {
+    }
 
     void update(bool beacon);
 
-    bool auto_mode() const override { return true; }
-    bool dock_requested() override { return true; }
+    bool auto_mode() const override {
+        return true;
+    }
+    bool dock_requested() override {
+        return true;
+    }
 };
 
-
-MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::string& acf_type,
-                           float x, float y, float z, float psi) : slot_(slot)
-{
+MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::string& acf_type, float x, float y,
+                           float z, float psi)
+    : slot_(slot) {
     flight_id_ = flight_id;
 
     on_ground_ = true;  // otherwise we were not here
@@ -131,11 +128,11 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
         n_door_++;
 
         // lateral adjustment
-        constexpr float z_adjust = 1.0f;      // backwards
+        constexpr float z_adjust = 1.0f;  // backwards
         x_ = x + -sinf(kD2R * psi) * z_adjust;
-        z_ = z +  cosf(kD2R * psi) * z_adjust;
+        z_ = z + cosf(kD2R * psi) * z_adjust;
 
-        //get y for ground level
+        // get y for ground level
         if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
             LogMsg("terrain probe failed???");
         }
@@ -143,8 +140,8 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
 
         psi_ = psi;
 
-        LogMsg("pid=%d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f",
-                id_, icao_.c_str(), door_info_[0].x, door_info_[0].y, door_info_[0].z);
+        LogMsg("pid=%d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, icao_.c_str(),
+               door_info_[0].x, door_info_[0].y, door_info_[0].z);
     } else {
         LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, type_code.c_str());
         state_ = DISABLED;
@@ -166,9 +163,7 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     state_ = IDLE;
 }
 
-void
-MpPlane_tgxp::update(bool beacon)
-{
+void MpPlane_tgxp::update(bool beacon) {
     if (state_ == DISABLED)
         return;
 
@@ -180,23 +175,19 @@ MpPlane_tgxp::update(bool beacon)
     if (!beacon_on_ && state_ == CANT_DOCK && now > state_change_ts_ + 60.0f)
         state_ = PARKED;
 
-    LogMsg("MP update: pid=%02d, slot: %02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, state: %s",
-            id_, slot_, icao_.c_str(), flight_id_.c_str(), beacon_on_, parkbrake_set_,
-            state_str_[state_]);
-
+    LogMsg("MP update: pid=%02d, slot: %02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, state: %s", id_, slot_,
+           icao_.c_str(), flight_id_.c_str(), beacon_on_, parkbrake_set_, state_str_[state_]);
 }
 
 //==============  MpAdapter_tgxp ========================================
-bool MpAdapter_tgxp::probe()
-{
+bool MpAdapter_tgxp::probe() {
     if (flight_phase_dr == nullptr)
         flight_phase_dr = XPLMFindDataRef("trafficglobal/ai/flight_phase");
 
     return (flight_phase_dr && (XPLMGetDatavi(flight_phase_dr, NULL, 0, 0) > 0));
 }
 
-MpAdapter_tgxp::MpAdapter_tgxp()
-{
+MpAdapter_tgxp::MpAdapter_tgxp() {
     LogMsg("MpAdapter_tgxp constructor");
     static bool init_done{false};
 
@@ -213,40 +204,38 @@ MpAdapter_tgxp::MpAdapter_tgxp()
     }
 }
 
-MpAdapter_tgxp::~MpAdapter_tgxp()
-{
+MpAdapter_tgxp::~MpAdapter_tgxp() {
     LogMsg("MpAdapter_tgxp destructor");
 }
 
-#define LOAD_DR(type, name) { \
-    [[maybe_unused]]int l = XPLMGetDatav ## type ( name ## _dr,  name ## _val_.get(), 0, n_planes); \
-    assert(l == n_planes); \
-}
+#define LOAD_DR(type, name)                                                                     \
+    {                                                                                           \
+        [[maybe_unused]] int l = XPLMGetDatav##type(name##_dr, name##_val_.get(), 0, n_planes); \
+        assert(l == n_planes);                                                                  \
+    }
 
 // static
-float MpAdapter_tgxp::update()
-{
+float MpAdapter_tgxp::update() {
     int n_planes = XPLMGetDatavi(flight_phase_dr, NULL, 0, 0);
     LogMsg("MpPlane_tgxp drefs #: %d", n_planes);
 
     if (n_planes > vector_size_) {
         vector_size_ = std::max(n_planes + 50, 200);
         LogMsg("allocated vector_size_ %d", vector_size_);
-        flight_phase_val_ = std::make_unique_for_overwrite<int []>(vector_size_);
-        traffic_type_val_ = std::make_unique_for_overwrite<int []>(vector_size_);
-        x_val_ = std::make_unique_for_overwrite<float []>(vector_size_);
-        y_val_ = std::make_unique_for_overwrite<float []>(vector_size_);
-        z_val_ = std::make_unique_for_overwrite<float []>(vector_size_);
-        psi_val_ = std::make_unique_for_overwrite<float []>(vector_size_);
+        flight_phase_val_ = std::make_unique_for_overwrite<int[]>(vector_size_);
+        traffic_type_val_ = std::make_unique_for_overwrite<int[]>(vector_size_);
+        x_val_ = std::make_unique_for_overwrite<float[]>(vector_size_);
+        y_val_ = std::make_unique_for_overwrite<float[]>(vector_size_);
+        z_val_ = std::make_unique_for_overwrite<float[]>(vector_size_);
+        psi_val_ = std::make_unique_for_overwrite<float[]>(vector_size_);
     }
 
-    int s = std::max(XPLMGetDatab(acf_type_dr, nullptr, 0, 0),
-                     XPLMGetDatab(flight_id_dr, nullptr, 0, 0));
+    int s = std::max(XPLMGetDatab(acf_type_dr, nullptr, 0, 0), XPLMGetDatab(flight_id_dr, nullptr, 0, 0));
     if (s > byte_area_size_) {
         byte_area_size_ = s + 512;
         LogMsg("allocated byte_area_size_ %d", byte_area_size_);
-        acf_type_val_ = std::make_unique_for_overwrite<char []>(byte_area_size_);
-        flight_id_val_ = std::make_unique_for_overwrite<char []>(byte_area_size_);
+        acf_type_val_ = std::make_unique_for_overwrite<char[]>(byte_area_size_);
+        flight_id_val_ = std::make_unique_for_overwrite<char[]>(byte_area_size_);
     }
 
     LOAD_DR(i, flight_phase);
@@ -256,13 +245,13 @@ float MpAdapter_tgxp::update()
     LOAD_DR(f, z);
     LOAD_DR(f, psi);
 
-    char *acf_type_ptr = acf_type_val_.get();
+    char* acf_type_ptr = acf_type_val_.get();
     int acf_type_len = XPLMGetDatab(acf_type_dr, acf_type_ptr, 0, byte_area_size_);
     LogMsg("acf_type_len: %d", acf_type_len);
     if (acf_type_len > 0)
         acf_type_ptr[acf_type_len - 1] = '\0';
 
-    char *flight_id_ptr = flight_id_val_.get();
+    char* flight_id_ptr = flight_id_val_.get();
     int flight_id_len = XPLMGetDatab(flight_id_dr, flight_id_ptr, 0, byte_area_size_);
     LogMsg("flight_id_len: %d", flight_id_len);
     if (flight_id_len > 0)
@@ -273,15 +262,15 @@ float MpAdapter_tgxp::update()
 
     int spawn_remain = kSpawnPerRun;
     for (int i = 0; i < n_planes; i++) {
-        if (flight_id_len <=0 || acf_type_len <= 0) {
+        if (flight_id_len <= 0 || acf_type_len <= 0) {
             LogMsg("ERROR: not enough values in byte arrays");
             break;
         }
 
         // process byte areas
         // save pointers and advance
-        const char *fid_ptr = flight_id_ptr;
-        const char *type_ptr = acf_type_ptr;
+        const char* fid_ptr = flight_id_ptr;
+        const char* type_ptr = acf_type_ptr;
 
         int len = strlen(flight_id_ptr) + 1;
         flight_id_len -= len;
@@ -297,8 +286,8 @@ float MpAdapter_tgxp::update()
         // FP_Parked for docking, FP_Startup for undocking (=beacon on in openSAM logic)
         // and close enough
         FlightPhase flight_phase = (FlightPhase)flight_phase_val_[i];
-        if (!(flight_phase == FP_Parked || flight_phase == FP_Startup)
-            || len2f(x_val_[i] - my_plane.x(), z_val_[i] - my_plane.z()) > kMpMaxDist)
+        if (!(flight_phase == FP_Parked || flight_phase == FP_Startup) ||
+            len2f(x_val_[i] - my_plane.x(), z_val_[i] - my_plane.z()) > kMpMaxDist)
             continue;
 
         // flight_id
@@ -322,7 +311,7 @@ float MpAdapter_tgxp::update()
     }
 
     // loop over mp_planes and delete the ones that are no longer in drefs
-    for (auto & mp : mp_planes_) {
+    for (auto& mp : mp_planes_) {
         const std::string& key = mp.first;
         Plane& plane = *(mp.second);
 

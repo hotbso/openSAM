@@ -29,9 +29,9 @@
 static constexpr float kSam2ObjMax = 2.5;   // m, max delta between coords in sam.xml and object
 static constexpr float kSam2ObjHdgMax = 5;  // °, likewise for heading
 
-static Scenery* cur_sc;           // the current scenery determined by dref access
-static float cur_sc_ts = -100.0f; // timestamp of selection of cur_sc
-static Scenery* menu_sc;          // the scenery the menu is built of
+static Scenery* cur_sc;            // the current scenery determined by dref access
+static float cur_sc_ts = -100.0f;  // timestamp of selection of cur_sc
+static Scenery* menu_sc;           // the scenery the menu is built of
 
 //
 // Accessor for the "sam/..." custom animation datarefs
@@ -40,9 +40,7 @@ static Scenery* menu_sc;          // the scenery the menu is built of
 //
 // ref is uint64_t is the index into the global dref table
 //
-static float
-AnimAcc(void *ref)
-{
+static float AnimAcc(void* ref) {
     stat_anim_acc_called++;
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
@@ -67,13 +65,13 @@ AnimAcc(void *ref)
             if (drf_idx != anim->drf_idx)
                 continue;
 
-            SamObj *obj = sc->sam_objs[anim->obj_idx];
+            SamObj* obj = sc->sam_objs[anim->obj_idx];
 
             if (fabsf(RA(obj->heading - obj_psi)) > kSam2ObjHdgMax)
                 continue;
 
             if (obj->xml_ref_gen < ref_gen) {
-                double  x, y ,z;
+                double x, y, z;
                 XPLMWorldToLocal(obj->latitude, obj->longitude, obj->elevation, &x, &y, &z);
 
                 obj->xml_x = x;
@@ -87,8 +85,8 @@ AnimAcc(void *ref)
                 continue;
             }
 
-            SamDrf *drf = sam_drfs[drf_idx];
-            //LogMsg("acc %s called, %s %s", drf->name, anim->label, anim->title);
+            SamDrf* drf = sam_drfs[drf_idx];
+            // LogMsg("acc %s called, %s %s", drf->name, anim->label, anim->title);
 
             if (now > cur_sc_ts + 20.0f) {  // avoid high freq flicker
                 cur_sc = sc;
@@ -100,7 +98,7 @@ AnimAcc(void *ref)
                 float dt = now - anim->start_ts;
 
                 if (anim->state == ANIM_ON_2_OFF)
-                    dt = drf->t[drf->n_tv - 1] - dt;     // downwards
+                    dt = drf->t[drf->n_tv - 1] - dt;  // downwards
 
                 if (dt < 0.0f)
                     anim->state = ANIM_OFF;
@@ -109,7 +107,7 @@ AnimAcc(void *ref)
                 else {
                     for (int j = 1; j < drf->n_tv; j++)
                         if (dt < drf->t[j])
-                            return drf->v[j-1] + drf->s[j] * (dt - drf->t[j-1]);
+                            return drf->v[j - 1] + drf->s[j] * (dt - drf->t[j - 1]);
                 }
             }
 
@@ -130,12 +128,10 @@ AnimAcc(void *ref)
 //
 // ref is a ptr to the dref
 //
-static float
-AutoDrfAcc(void *ref)
-{
+static float AutoDrfAcc(void* ref) {
     stat_auto_drf_called++;
 
-    const SamDrf *drf = (const SamDrf *)ref;
+    const SamDrf* drf = (const SamDrf*)ref;
 
     float t = XPLMGetDataf(total_running_time_sec_dr);
 
@@ -150,19 +146,17 @@ AutoDrfAcc(void *ref)
 
     for (int j = 1; j < drf->n_tv; j++)
         if (dt < drf->t[j])
-            return drf->v[j-1] + drf->s[j] * (dt - drf->t[j-1]);
+            return drf->v[j - 1] + drf->s[j] * (dt - drf->t[j - 1]);
 
     return 0.0f;  // should never be reached
 }
 
-void
-AnimMenuCb([[maybe_unused]] void *menu_ref, void *item_ref)
-{
-    if (NULL == menu_sc)    // just in case
+void AnimMenuCb([[maybe_unused]] void* menu_ref, void* item_ref) {
+    if (NULL == menu_sc)  // just in case
         return;
 
     unsigned int idx = (uint64_t)item_ref;
-    SamAnim *anim = menu_sc->sam_anims[idx];
+    SamAnim* anim = menu_sc->sam_anims[idx];
 
     LogMsg("AnimMenuCb: label: %s, menu_item: %d", anim->label.c_str(), anim->menu_item);
     now = XPLMGetDataf(total_running_time_sec_dr);
@@ -180,38 +174,34 @@ AnimMenuCb([[maybe_unused]] void *menu_ref, void *item_ref)
     }
 
     if (reverse) {
-       SamDrf *drf = sam_drfs[anim->drf_idx];
-       float t_rel = now - anim->start_ts;
-       float dt = drf->t[drf->n_tv - 1] - t_rel;
-       anim->start_ts = now - dt;
+        SamDrf* drf = sam_drfs[anim->drf_idx];
+        float t_rel = now - anim->start_ts;
+        float dt = drf->t[drf->n_tv - 1] - t_rel;
+        anim->start_ts = now - dt;
     } else
         anim->start_ts = now;
 }
 
-static void
-BuildMenu(Scenery* sc)
-{
+static void BuildMenu(Scenery* sc) {
     LogMsg("build menu for scenery %s", sc->name.c_str());
     XPLMClearAllMenuItems(anim_menu);
 
     for (unsigned i = 0; i < sc->sam_anims.size(); i++) {
-        SamAnim *anim = sc->sam_anims[i];
-        XPLMMenuCheck chk = (anim->state == ANIM_OFF || anim->state == ANIM_ON_2_OFF) ?
-                                xplm_Menu_Unchecked : xplm_Menu_Checked;
+        SamAnim* anim = sc->sam_anims[i];
+        XPLMMenuCheck chk =
+            (anim->state == ANIM_OFF || anim->state == ANIM_ON_2_OFF) ? xplm_Menu_Unchecked : xplm_Menu_Checked;
 
         std::string menu_line;
         menu_line = anim->label + " " + anim->title;
         LogMsg("%s", menu_line.c_str());
-        anim->menu_item = XPLMAppendMenuItem(anim_menu, menu_line.c_str(), (void *)(uint64_t)i, 0);
+        anim->menu_item = XPLMAppendMenuItem(anim_menu, menu_line.c_str(), (void*)(uint64_t)i, 0);
         XPLMCheckMenuItem(anim_menu, anim->menu_item, chk);
     }
 }
 
 // not much state here, just regularly check for a current scenery
 // and maintain the menu
-float
-AnimStateMachine(void)
-{
+float AnimStateMachine(void) {
     // check whether we have recently seen a scenery
     if (cur_sc && now > cur_sc_ts + 180.0f) {
         LogMsg("have not seen a custom animated scenery recently");
@@ -231,21 +221,16 @@ AnimStateMachine(void)
     return 5.0f;
 }
 
-bool
-AnimInit()
-{
+bool AnimInit() {
     for (unsigned i = 0; i < sam_drfs.size(); i++) {
-        const SamDrf *drf = sam_drfs[i];
+        const SamDrf* drf = sam_drfs[i];
         if (drf->autoplay)
-            XPLMRegisterDataAccessor(drf->name.c_str(), xplmType_Float, 0, NULL,
-                                     NULL, AutoDrfAcc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                     NULL, NULL, NULL, (void *)drf, NULL);
+            XPLMRegisterDataAccessor(drf->name.c_str(), xplmType_Float, 0, NULL, NULL, AutoDrfAcc, NULL, NULL, NULL,
+                                     NULL, NULL, NULL, NULL, NULL, NULL, (void*)drf, NULL);
         else
-            XPLMRegisterDataAccessor(drf->name.c_str(), xplmType_Float, 0, NULL,
-                                     NULL, AnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
-                                     NULL, NULL, NULL, (void *)(uint64_t)i, NULL);
+            XPLMRegisterDataAccessor(drf->name.c_str(), xplmType_Float, 0, NULL, NULL, AnimAcc, NULL, NULL, NULL, NULL,
+                                     NULL, NULL, NULL, NULL, NULL, (void*)(uint64_t)i, NULL);
     }
 
     return true;
 }
-

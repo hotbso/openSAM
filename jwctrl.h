@@ -126,6 +126,6 @@ class JwCtrl {
     static void Init();             // registers dref accessors
 };
 
-// from read_wav.cpp
-extern void read_wav(const std::string& fname, Sound& sound);
+// from ReadWav.cpp
+extern void ReadWav(const std::string& fname, Sound& sound);
 #endif

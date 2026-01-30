@@ -1,24 +1,23 @@
-/*
-    openSAM: open source SAM emulator for X Plane
-
-    Copyright (C) 2025  Holger Teutsch
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
-    USA
-
-*/
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
 
 #include <cstdlib>
 #include <cstring>
@@ -42,9 +41,7 @@ MyPlane my_plane;
 //
 // ref == 0: opensam/jetway/number
 // ref == 1: opensam/jetway/status
-int
-MyPlane::jw_status_acc(void *ref)
-{
+int MyPlane::JwStatusAcc(void* ref) {
     // opensam/jetway/number
     if (ref == 0)
         return my_plane.active_jws_.size();
@@ -66,9 +63,7 @@ MyPlane::jw_status_acc(void *ref)
 //  0 = not docked
 //  1 = docked
 //
-int
-MyPlane::jw_door_status_acc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs, int n)
-{
+int MyPlane::JwDoorStatusAcc([[maybe_unused]] XPLMDataRef ref, int* values, int ofs, int n) {
     if (values == nullptr)
         return kMaxDoor;
 
@@ -81,7 +76,7 @@ MyPlane::jw_door_status_acc([[maybe_unused]] XPLMDataRef ref, int *values, int o
         values[i] = 0;
     }
 
-    for (auto & ajw : my_plane.active_jws_)
+    for (auto& ajw : my_plane.active_jws_)
         if (ajw.state_ == JwCtrl::DOCKED) {
             int i = ajw.door_ - ofs;
             if (0 <= i && i < n)
@@ -91,33 +86,29 @@ MyPlane::jw_door_status_acc([[maybe_unused]] XPLMDataRef ref, int *values, int o
     return n;
 }
 
-static XPLMDataRef plane_x_dr_, plane_y_dr_, plane_z_dr_,
-    plane_elevation_dr_, plane_true_psi_dr_,
-    beacon_dr_, eng_running_dr_, parkbrake_dr_, gear_fnrml_dr_,
-    is_helicopter_dr_,
-    acf_icao_dr_, acf_cg_y_dr_, acf_cg_z_dr_, acf_gear_z_dr_,
-    acf_door_x_dr_, acf_door_y_dr_, acf_door_z_dr_;
+static XPLMDataRef plane_x_dr_, plane_y_dr_, plane_z_dr_, plane_elevation_dr_, plane_true_psi_dr_, beacon_dr_,
+    eng_running_dr_, parkbrake_dr_, gear_fnrml_dr_, is_helicopter_dr_, acf_icao_dr_, acf_cg_y_dr_, acf_cg_z_dr_,
+    acf_gear_z_dr_, acf_door_x_dr_, acf_door_y_dr_, acf_door_z_dr_;
 
-static bool find_icao_in_file(const std::string& acf_icao, const std::string& fn);
+static bool FindIcaoInFile(const std::string& acf_icao, const std::string& fn);
 
-MyPlane::MyPlane()
-{
+MyPlane::MyPlane() {
     LogMsg("constructing MyPlane");
     plane_x_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_x");
-    assert(plane_x_dr_ != nullptr); // verify that XPLM is initialized
+    assert(plane_x_dr_ != nullptr);  // verify that XPLM is initialized
 
     plane_y_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_y");
     plane_z_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_z");
     plane_lat_dr_ = XPLMFindDataRef("sim/flightmodel/position/latitude");
     plane_lon_dr_ = XPLMFindDataRef("sim/flightmodel/position/longitude");
-    plane_elevation_dr_= XPLMFindDataRef("sim/flightmodel/position/elevation");
+    plane_elevation_dr_ = XPLMFindDataRef("sim/flightmodel/position/elevation");
     plane_true_psi_dr_ = XPLMFindDataRef("sim/flightmodel2/position/true_psi");
     plane_y_agl_dr_ = XPLMFindDataRef("sim/flightmodel2/position/y_agl");
     eng_running_dr_ = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running");
     beacon_dr_ = XPLMFindDataRef("sim/cockpit2/switches/beacon_on");
     parkbrake_dr_ = XPLMFindDataRef("sim/flightmodel/controls/parkbrake");
     gear_fnrml_dr_ = XPLMFindDataRef("sim/flightmodel/forces/fnrml_gear");
-    is_helicopter_dr_  = XPLMFindDataRef("sim/aircraft2/metadata/is_helicopter");
+    is_helicopter_dr_ = XPLMFindDataRef("sim/aircraft2/metadata/is_helicopter");
     acf_icao_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
     acf_cg_y_dr_ = XPLMFindDataRef("sim/aircraft/weight/acf_cgY_original");
     acf_cg_z_dr_ = XPLMFindDataRef("sim/aircraft/weight/acf_cgZ_original");
@@ -133,61 +124,48 @@ MyPlane::MyPlane()
     state_ = IDLE;
 }
 
-void
-MyPlane::RequestDock() {
+void MyPlane::RequestDock() {
     if (state_ == CAN_DOCK)
         dock_requested_ = true;
 }
 
-void
-MyPlane::RequestUndock()
-{
+void MyPlane::RequestUndock() {
     if (state_ == DOCKED)
         undock_requested_ = true;
 }
 
-void
-MyPlane::RequestToggle()
-{
+void MyPlane::RequestToggle() {
     if (state_ == CAN_DOCK || state_ == DOCKED)
         toggle_requested_ = true;
 }
 
-bool
-MyPlane::dock_requested()
-{
+bool MyPlane::dock_requested() {
     bool res{dock_requested_};
     dock_requested_ = false;
     return res;
 }
 
-bool
-MyPlane::undock_requested()
-{
+bool MyPlane::undock_requested() {
     bool res{undock_requested_};
     undock_requested_ = false;
     return res;
 }
 
-bool
-MyPlane::toggle_requested()
-{
+bool MyPlane::toggle_requested() {
     bool res{toggle_requested_};
     toggle_requested_ = false;
     return res;
 }
 
-void
-MyPlane::auto_mode_set(bool auto_mode)
-{
+void MyPlane::auto_mode_set(bool auto_mode) {
     if (auto_mode_ == auto_mode)
         return;
 
     auto_mode_ = auto_mode;
 
     if (state_ == DOCKING || state_ == UNDOCKING) {
-        for (auto & ajw : active_jws_)
-            ajw.Reset();    // an animation might be ongoing
+        for (auto& ajw : active_jws_)
+            ajw.Reset();  // an animation might be ongoing
         state_ = IDLE;
         return;
     }
@@ -196,7 +174,7 @@ MyPlane::auto_mode_set(bool auto_mode)
         return;
 
     if (!auto_mode && state_ == CAN_DOCK) {
-        for (auto & ajw : active_jws_)
+        for (auto& ajw : active_jws_)
             ajw.jw_->locked = false;
         active_jws_.resize(0);
         state_ = PARKED;
@@ -236,12 +214,12 @@ void MyPlane::PlaneLoadedCb() {
     // check whether acf is listed in exception files
     std::string line;
     line.reserve(200);
-    if (find_icao_in_file(icao_, base_dir + "acf_use_engine_running.txt")) {
+    if (FindIcaoInFile(icao_, base_dir + "acf_use_engine_running.txt")) {
         use_engines_on_ = true;
         LogMsg("found");
     }
 
-    if (find_icao_in_file(icao_, base_dir + "acf_dont_connect_jetway.txt")) {
+    if (FindIcaoInFile(icao_, base_dir + "acf_dont_connect_jetway.txt")) {
         dont_connect_jetway_ = true;
         LogMsg("found");
     }
@@ -404,9 +382,7 @@ void MyPlane::Update() {
         pax_no_ = XPLMGetDataf(pax_no_dr_) + 0.5f;
 }
 
-void
-MyPlane::MemorizeParkedPos()
-{
+void MyPlane::MemorizeParkedPos() {
     parked_x_ = x_;
     parked_z_ = z_;
     parked_ngen_ = ::ref_gen;
@@ -418,8 +394,7 @@ MyPlane::MemorizeParkedPos()
     XPLMNavRef ref = XPLMFindNavAid(NULL, NULL, &lat, &lon, NULL, xplm_Nav_Airport);
     if (XPLM_NAV_NOT_FOUND != ref) {
         char airport_id[50];
-        XPLMGetNavAidInfo(ref, NULL, NULL, NULL, NULL, NULL, NULL, airport_id,
-                NULL, NULL);
+        XPLMGetNavAidInfo(ref, NULL, NULL, NULL, NULL, NULL, NULL, airport_id, NULL, NULL);
         LogMsg("parked on airport: %s, lat,lon: %0.5f,%0.5f", airport_id, lat, lon);
     }
 
@@ -430,58 +405,47 @@ MyPlane::MemorizeParkedPos()
 
     LogMsg("A321 detected, checking door config");
     if (auto door_dr = XPLMFindDataRef("AirbusFBW/A321ExitConfig")) {
-        n_door_ = XPLMGetDatai(door_dr) == 0 ? 2 : 1;   // 0 = CLASSIC = 2 doors
+        n_door_ = XPLMGetDatai(door_dr) == 0 ? 2 : 1;  // 0 = CLASSIC = 2 doors
         LogMsg("n_door from dataref: %d", n_door_);
     }
 }
 
-bool
-MyPlane::CheckTeleportation()
-{
-	if (! on_ground())
-		return false;
+bool MyPlane::CheckTeleportation() {
+    if (!on_ground())
+        return false;
 
     if (parked_ngen_ != ::ref_gen || fabsf(parked_x_ - x_) > 1.0f || fabsf(parked_z_ - z_) > 1.0f) {
-        LogMsg("parked_ngen: %d, ngen: %d, parked_x: %0.3f, x: %0.3f, parked_z: %0.3f, z: %0.3f",
-                parked_ngen_, ::ref_gen, parked_x_, x_, parked_z_, z_);
+        LogMsg("parked_ngen: %d, ngen: %d, parked_x: %0.3f, x: %0.3f, parked_z: %0.3f, z: %0.3f", parked_ngen_,
+               ::ref_gen, parked_x_, x_, parked_z_, z_);
         return true;
     }
 
     return false;
 }
 
-void
-MyPlane::ResetBeacon()
-{
+void MyPlane::ResetBeacon() {
     beacon_on_pending_ = 0;
     beacon_off_ts_ = beacon_on_ts_ = -10.0f;
 }
 
 // static
-void
-MyPlane::init()
-{
+void MyPlane::init() {
     static bool init_done{false};
     if (init_done)
         return;
 
-    XPLMRegisterDataAccessor("opensam/jetway/number", xplmType_Int, 0, jw_status_acc,
-                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                             NULL, NULL, NULL, NULL, NULL);
+    XPLMRegisterDataAccessor("opensam/jetway/number", xplmType_Int, 0, JwStatusAcc, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
-    XPLMRegisterDataAccessor("opensam/jetway/status", xplmType_Int, 0, jw_status_acc,
-                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                             NULL, NULL, NULL, (void *)1, NULL);
+    XPLMRegisterDataAccessor("opensam/jetway/status", xplmType_Int, 0, JwStatusAcc, NULL, NULL, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL, (void*)1, NULL);
 
-    XPLMRegisterDataAccessor("opensam/jetway/door/status", xplmType_IntArray, 0, NULL, NULL,
-                             NULL, NULL, NULL, NULL, jw_door_status_acc, NULL,
-                             NULL, NULL, NULL, NULL, NULL, NULL);
+    XPLMRegisterDataAccessor("opensam/jetway/door/status", xplmType_IntArray, 0, NULL, NULL, NULL, NULL, NULL, NULL,
+                             JwDoorStatusAcc, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
     init_done = true;
 }
 
-static bool
-find_icao_in_file(const std::string& acf_icao, const std::string& fn)
-{
+static bool FindIcaoInFile(const std::string& acf_icao, const std::string& fn) {
     std::ifstream f(fn);
     if (f.is_open()) {
         LogMsg("check whether acf '%s' is in file %s", acf_icao.c_str(), fn.c_str());
@@ -495,7 +459,7 @@ find_icao_in_file(const std::string& acf_icao, const std::string& fn)
             if (line.find(acf_icao) == 0) {
                 LogMsg("found acf %s in %s", acf_icao.c_str(), fn.c_str());
                 return true;
-           }
+            }
         }
     }
 

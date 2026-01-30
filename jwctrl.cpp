@@ -32,7 +32,7 @@
 #include "os_dgs.h"
 
 // from os_read_wav.c
-extern void read_wav(const std::string& fname, Sound& sound);
+extern void ReadWav(const std::string& fname, Sound& sound);
 
 static constexpr float kDriveSpeed = 1.0;    // m/s
 static constexpr float kTurnSpeed = 10.0;    // °/s
@@ -691,7 +691,7 @@ void JwCtrl::Reset() {
 // static
 void JwCtrl::SoundInit() {
     // load alert sound
-    read_wav(base_dir + "sound/alert.wav", alert_);
+    ReadWav(base_dir + "sound/alert.wav", alert_);
     if (alert_.data)
         LogMsg("alert sound loaded, channels: %d, bit_rate: %d, size: %d", alert_.num_channels, alert_.sample_rate,
                alert_.size);

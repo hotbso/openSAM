@@ -220,8 +220,8 @@ class MyPlane : public Plane {
     bool toggle_requested() override;
 
     // dataref accessors
-    static int jw_status_acc(void *ref);
-    static int jw_door_status_acc(XPLMDataRef ref, int *values, int ofs, int n);
+    static int JwStatusAcc(void *ref);
+    static int JwDoorStatusAcc(XPLMDataRef ref, int *values, int ofs, int n);
 
 };
 
