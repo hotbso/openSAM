@@ -26,26 +26,26 @@
 #include "openSAM.h"
 #include "jwctrl.h"
 
-typedef struct WAV_FORMAT {
+struct WAV_FORMAT {
     short format;
     short num_channels;
     int sample_rate;
     int byte_rate;
     short block_align;
     short bits_per_sample;
-} WAV_FORMAT;
+};
 
-typedef struct CHUNK_HEADER {
+struct CHUNK_HEADER {
     char id[4];
     unsigned int size;
-} CHUNK_HEADER;
+};
 
-typedef struct WAV_HEADER {
+struct WAV_HEADER {
     CHUNK_HEADER riffheader;
     char wav[4];
     CHUNK_HEADER fmtheader;
     WAV_FORMAT fmt;
-} WAV_HEADER;
+};
 
 //
 // A super simple wav file reader. I don't know and don't care whether it reads any other
