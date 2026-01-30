@@ -212,17 +212,8 @@ void MyPlane::PlaneLoadedCb() {
         return;
 
     // check whether acf is listed in exception files
-    std::string line;
-    line.reserve(200);
-    if (FindIcaoInFile(icao_, base_dir + "acf_use_engine_running.txt")) {
-        use_engines_on_ = true;
-        LogMsg("found");
-    }
-
-    if (FindIcaoInFile(icao_, base_dir + "acf_dont_connect_jetway.txt")) {
-        dont_connect_jetway_ = true;
-        LogMsg("found");
-    }
+    use_engines_on_ = FindIcaoInFile(icao_, base_dir + "acf_use_engine_running.txt");
+    dont_connect_jetway_ = FindIcaoInFile(icao_, base_dir + "acf_dont_connect_jetway.txt");
 
     // check whether door info is overridden in the config file
     auto it = door_info_map.find(icao_ + '1');
@@ -451,16 +442,21 @@ static bool FindIcaoInFile(const std::string& acf_icao, const std::string& fn) {
         LogMsg("check whether acf '%s' is in file %s", acf_icao.c_str(), fn.c_str());
 
         std::string line;
+        line.reserve(50);
         while (std::getline(f, line)) {
-            size_t i = line.find('\r');
-            if (i != std::string::npos)
-                line.resize(i);
+            if (line.empty())
+                continue;
 
-            if (line.find(acf_icao) == 0) {
-                LogMsg("found acf %s in %s", acf_icao.c_str(), fn.c_str());
+            if (line.back() == '\r')
+                line.pop_back();
+
+            if (line == acf_icao) {
+                LogMsg("found");
                 return true;
             }
         }
+
+        LogMsg("not found");
     }
 
     return false;
