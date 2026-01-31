@@ -439,7 +439,7 @@ static bool ParseAptDat(const std::string& fn, Scenery* sc) {
             continue;
         }
 
-        if (line.find("1300 ") == 0) {
+        if (line.starts_with("1300 ")) {
             if (line.back() == '\r')
                 line.pop_back();
             // LogMsg("%s", line);
@@ -479,11 +479,13 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
     std::string line;
 
     while (std::getline(scpi, line)) {
-        size_t i;
-        if ((i = line.find('\r')) != std::string::npos)
-            line.resize(i);
+        if (line.empty())
+            continue;
 
-        if (line.find("SCENERY_PACK ") != 0 || line.find("*GLOBAL_AIRPORTS*") != std::string::npos)
+        if (line.back() == '\r')
+            line.pop_back();
+
+        if (!line.starts_with("SCENERY_PACK ") || line.find("*GLOBAL_AIRPORTS*") != std::string::npos)
             continue;
 
         // autoortho pretends every file exists but
@@ -519,7 +521,7 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
 
     scpi.close();
     sc_paths.shrink_to_fit();
-    if (openSAM_Library_path.size() == 0)
+    if (openSAM_Library_path.empty())
         throw OsEx("openSAM_Library is not installed!");
 }
 
@@ -528,10 +530,10 @@ void CollectSamXml(const SceneryPacks& scp) {
     std::unordered_map<std::string, SamLibJw*> lib_jw_map;
 
     // drefs from openSAM_Library must come first
-    if (scp.openSAM_Library_path.size() == 0 || !ParseSamXml(scp.openSAM_Library_path + "sam.xml", lib_jw_map))
+    if (scp.openSAM_Library_path.empty() || !ParseSamXml(scp.openSAM_Library_path + "sam.xml", lib_jw_map))
         throw OsEx("openSAM_Library is not installed or inaccessible!");
 
-    if (scp.SAM_Library_path.size() > 0) {
+    if (!scp.SAM_Library_path.empty()) {
         if (!ParseSamXml(scp.SAM_Library_path + "libraryjetways.xml", lib_jw_map))
             LogMsg("Warning: SAM_Library is installed but 'SAM_Library/libraryjetways.xml' could not be processed");
     }
@@ -549,7 +551,7 @@ void CollectSamXml(const SceneryPacks& scp) {
         ParseAptDat(sc_path + "Earth nav data/apt.dat", sc);
 
         // don't save empty sceneries
-        if (sc->sam_jws.size() == 0 && sc->stands.size() == 0 && sc->sam_anims.size() == 0) {
+        if (sc->sam_jws.empty() && sc->stands.empty() && sc->sam_anims.empty()) {
             delete (sc);
             continue;
         }
