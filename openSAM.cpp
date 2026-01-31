@@ -593,7 +593,6 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
 PLUGIN_API void XPluginStop(void) {
     LogMsg("plugin stopped");
-    sim_running = false;    // inhibit dataref accessors
 }
 
 PLUGIN_API void XPluginDisable(void) {

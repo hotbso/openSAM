@@ -362,14 +362,14 @@ static float DgsGlobalAcc(void *ref) {
 //
 //
 static float DgsActiveAcc(void *ref) {
-    if (!sim_running)
-        return 0.0f;
-
-    int dr_index = (uint64_t)ref;
-
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
     float obj_psi = XPLMGetDataf(draw_object_psi_dr);
+
+    if (obj_x == 0.0f && obj_z == 0.0f && obj_psi == 0.0f)
+        return 0.0f;  // likely uninitialized, datareftool poll etc.
+
+    int dr_index = (uint64_t)ref;
 
     if (!IsDgsActive(obj_x, obj_z, obj_psi))
         return 0.0f;
@@ -399,11 +399,15 @@ static float DgsActiveAcc(void *ref) {
 // This function is called from draw loops, efficient coding required.
 //
 static float DgsSam1Acc(void *ref) {
-    if (!sim_running)
-        return 0.0f;
+    float obj_x = XPLMGetDataf(draw_object_x_dr);
+    float obj_z = XPLMGetDataf(draw_object_z_dr);
+    float obj_psi = XPLMGetDataf(draw_object_psi_dr);
+
+    if (obj_x == 0.0f && obj_z == 0.0f && obj_psi == 0.0f)
+        return 0.0f;  // likely uninitialized, datareftool poll etc.
 
     int dr_index = (uint64_t)ref;
-    if (!IsDgsActive(XPLMGetDataf(draw_object_x_dr), XPLMGetDataf(draw_object_z_dr), XPLMGetDataf(draw_object_psi_dr)))
+    if (!IsDgsActive(obj_x, obj_z, obj_psi))
         switch (dr_index) {
             case SAM1_DR_STATUS:
                 return SAM1_IDLE;
@@ -432,9 +436,6 @@ static float DgsSam1Acc(void *ref) {
 // This function is called from draw loops, efficient coding required.
 //
 static int DgsSam1IcaoAcc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs, int n) {
-    if (!sim_running)
-        return 0;
-
     if (values == nullptr)
         return 4;
 

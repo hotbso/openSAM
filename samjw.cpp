@@ -226,14 +226,14 @@ void CheckRefFrameShift() {
 // sam/jetways/15/rotate2  -> (15, DR_ROTATE2)
 //
 static float JwAnimAcc(void* ref) {
-    if (!sim_running)
-        return 0.0f;
-
-    stat_acc_called++;
-
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
     float obj_y = XPLMGetDataf(draw_object_y_dr);
+
+    if (obj_x == 0.0f && obj_y == 0.0f && obj_z == 0.0f)
+        return 0.0f;  // likely uninitialized, datareftool poll etc.
+
+    stat_acc_called++;
 
     CheckRefFrameShift();
 

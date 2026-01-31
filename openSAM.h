@@ -133,9 +133,6 @@ extern XPLMMenuID anim_menu;
 extern XPLMProbeInfo_t probeinfo;
 extern XPLMProbeRef probe_ref;
 
-// inihibit all dataref accessors that call SDK functions until the sim is considered 'running'
-extern bool sim_running;
-
 // functions
 
 extern void ToggleUI(void);

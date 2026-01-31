@@ -42,9 +42,6 @@ MyPlane my_plane;
 // ref == 0: opensam/jetway/number
 // ref == 1: opensam/jetway/status
 int MyPlane::JwStatusAcc(void* ref) {
-    if (!sim_running)
-        return 0;
-
     // opensam/jetway/number
     if (ref == 0)
         return my_plane.active_jws_.size();
@@ -67,9 +64,6 @@ int MyPlane::JwStatusAcc(void* ref) {
 //  1 = docked
 //
 int MyPlane::JwDoorStatusAcc([[maybe_unused]] XPLMDataRef ref, int* values, int ofs, int n) {
-    if (!sim_running)
-        return 0;
-
     if (values == nullptr)
         return kMaxDoor;
 

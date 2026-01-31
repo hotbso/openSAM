@@ -41,14 +41,14 @@ static Scenery* menu_sc;           // the scenery the menu is built of
 // ref is uint64_t is the index into the global dref table
 //
 static float AnimAcc(void* ref) {
-    if (!sim_running)
-        return 0.0;
-
-    stat_anim_acc_called++;
-
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
     float obj_psi = XPLMGetDataf(draw_object_psi_dr);
+
+    if (obj_x == 0.0f && obj_z == 0.0f && obj_psi == 0.0f)
+        return 0.0f;  // likely uninitialized, datareftool poll etc.
+
+    stat_anim_acc_called++;
 
     // check for shift of reference frame
     float lat_r = XPLMGetDataf(lat_ref_dr);
