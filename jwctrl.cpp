@@ -58,7 +58,9 @@ void JwCtrl::XzToSamDref(float cabin_x, float cabin_z, float& rot1, float& exten
 
     if (rot3) {
         float net_length = dist + jw_->cabinLength * cosf(r2 * kD2R);
-        *rot3 = -asinf(y_ / net_length) / kD2R;
+        float sin_arg = y_ / net_length;
+        sin_arg = std::clamp(sin_arg, -1.0f, 1.0f);  // clamp to valid range for asinf
+        *rot3 = -asinf(sin_arg) / kD2R;
     }
 }
 
@@ -118,14 +120,11 @@ bool operator<(const JwCtrl& a, const JwCtrl& b) {
     if (a.z_ > b.z_ + 0.5f)
         return false;
 
-    // then x, further left (= towards -x) is higher
-    if (a.x_ < b.x_)
-        return false;
-
+    // then x, further left (= towards -x) is higher priority
     if (a.x_ > b.x_)
         return true;
 
-    return true;
+    return false;  // equal elements must return false for strict weak ordering
 }
 
 // filter list of jetways jws[]for candidates and add them to nearest_jws[]
@@ -164,17 +163,20 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
             continue;
         }
 
+        static constexpr float kSoftMatchMaxExtra = 8.0f;  // max extra extent for soft match
+
         if (!(BETWEEN(njw.door_rot1_, jw->minRot1, jw->maxRot1) && BETWEEN(njw.door_rot2_, jw->minRot2, jw->maxRot2) &&
               BETWEEN(njw.door_extent_, jw->minExtent, jw->maxExtent))) {
             LogMsg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f", jw->name.c_str(), jw->door,
                    njw.door_rot1_, njw.door_rot2_, njw.door_rot3_, njw.door_extent_);
             LogMsg("  does not fulfil min max criteria in sam.xml");
             float extra_extent = njw.door_extent_ - jw->maxExtent;
-            if (extra_extent < 10.0f) {
-                LogMsg("  as extra extent of %0.1f m < 10.0 m we take it as a soft match", extra_extent);
+            if (extra_extent > 0.0f && extra_extent < kSoftMatchMaxExtra) {
+                LogMsg("  extra extent %0.1f m < %0.1f m, soft match", extra_extent, kSoftMatchMaxExtra);
                 njw.soft_match_ = 1;
-            } else
+            } else if (extra_extent >= kSoftMatchMaxExtra) {
                 continue;
+            }
         }
 
         // ... survived, add to list
@@ -208,15 +210,17 @@ int JwCtrl::FindNearestJetway(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     // compute the 'average' door location
     DoorInfo avg_di;
     avg_di.x = 0.0f;
+    avg_di.y = 0.0f;
     avg_di.z = 0.0f;
     for (int i = 0; i < n_door; i++) {
         avg_di.x += plane.door_info_[i].x;
+        avg_di.y += plane.door_info_[i].y;
         avg_di.z += plane.door_info_[i].z;
     }
 
     avg_di.x /= n_door;
+    avg_di.y /= n_door;
     avg_di.z /= n_door;
-    avg_di.y = plane.door_info_[0].y;
 
     nearest_jws.resize(0);
 
@@ -301,6 +305,42 @@ bool JwCtrl::CollisionCheck(const JwCtrl& njw2) {
 
     if (BETWEEN(t, 0.0f, 1.0f) && BETWEEN(s, 0.0f, 1.0f)) {
         LogMsg("collision detected");
+        return true;
+    }
+
+    return false;
+}
+
+// check whether two jetways collide when both extend to their doors
+bool JwCtrl::CollisionCheckExtended(const JwCtrl& njw2) const {
+    // S = start, E = extended; all (x, z) vectors
+    // we solve
+    //  S1 + s * (E1 - S1) = S2 + t * (E2 - S2)
+    //  s * (E1 - S1) + t * -(E2 - S2) = S2 - S1
+    //          A                B          C
+    // if the solutions for s, t are in [0,1] there is collision
+
+    // x, z in the door frame
+    float A1 = door_x_ - x_;
+    float A2 = -z_;  // door_z is 0 in the door frame
+
+    float B1 = -(njw2.door_x_ - njw2.x_);
+    float B2 = -(-njw2.z_);  // njw2.door_z is 0
+
+    float C1 = njw2.x_ - x_;
+    float C2 = njw2.z_ - z_;
+
+    float d = det(A1, A2, B1, B2);
+    if (fabsf(d) < 0.2f)
+        return false;  // parallel or near parallel
+
+    float s = det(C1, C2, B1, B2) / d;
+    float t = det(A1, A2, C1, C2) / d;
+    LogMsg("extended collision check between jw %s and %s, s = %0.2f, t = %0.2f", jw_->name.c_str(),
+           njw2.jw_->name.c_str(), s, t);
+
+    if (BETWEEN(s, 0.0f, 1.0f) && BETWEEN(t, 0.0f, 1.0f)) {
+        LogMsg("collision detected (both extended)");
         return true;
     }
 

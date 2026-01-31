@@ -144,10 +144,16 @@ static inline float RA(float angle) {
     if (angle > 180.0f)
         return angle - 360.0f;
 
-    if (angle <= -180.0f)
+    if (angle < -180.0f)
         return angle + 360.0f;
 
     return angle;
+}
+
+/* floating point comparison with tolerance */
+static constexpr float kFloatEps = 1e-5f;
+static inline bool FloatEq(float a, float b) {
+    return fabsf(a - b) < kFloatEps;
 }
 
 /* norm-2 length */

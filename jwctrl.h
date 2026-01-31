@@ -110,6 +110,9 @@ class JwCtrl {
     // check whether extended nearest njw would crash into parked njw2
     bool CollisionCheck(const JwCtrl &njw2);
 
+    // check whether two jetways collide when both extend to their doors
+    bool CollisionCheckExtended(const JwCtrl &njw2) const;
+
     // setup for operation
     void SetupDockUndock(float start_time, bool with_sound);
 

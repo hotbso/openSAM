@@ -69,10 +69,23 @@ void Plane::SelectJws() {
         if (have_hard_match && nearest_jws_[i_jw].soft_match_)
             goto skip;
 
-        // skip over collisions
-        for (unsigned j = i_jw + 1; j < nearest_jws_.size(); j++)
-            if (nearest_jws_[i_jw].CollisionCheck(nearest_jws_[j]))
+        {
+            // validate against the specific door before assigning
+            JwCtrl test_njw = nearest_jws_[i_jw];
+            test_njw.SetupForDoor(*this, door_info_[i_door]);
+            SamJw* jw = test_njw.jw_;
+            if (!(BETWEEN(test_njw.door_rot1_, jw->minRot1, jw->maxRot1) &&
+                  BETWEEN(test_njw.door_rot2_, jw->minRot2, jw->maxRot2) &&
+                  BETWEEN(test_njw.door_extent_, jw->minExtent, jw->maxExtent + 3.0f))) {
+                LogMsg("jw %s rejected for door %d after per-door validation", jw->name.c_str(), i_door);
                 goto skip;
+            }
+
+            // check collision with already selected active jetways using per-door geometry
+            for (const auto& active_jw : active_jws_)
+                if (test_njw.CollisionCheckExtended(active_jw))
+                    goto skip;
+        }
 
         nearest_jws_[i_jw].door_ = i_door;
         nearest_jws_[i_jw].selected_ = true;

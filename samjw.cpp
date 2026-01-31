@@ -253,7 +253,7 @@ static float JwAnimAcc(void* ref) {
     unsigned ci_hi = (int)(obj_z) << (kHashBits - 1);
     unsigned cache_idx = (ci_hi | ci_lo) & ((1 << kHashBits) - 1);
     SamJw* cjw = jw_cache[cache_idx];
-    if (cjw && cjw->x == obj_x && cjw->y == obj_y && cjw->z == obj_z) {
+    if (cjw && FloatEq(cjw->x, obj_x) && FloatEq(cjw->y, obj_y) && FloatEq(cjw->z, obj_z)) {
         stat_jw_cache_hit++;
         jw = cjw;
         goto have_jw;
@@ -338,7 +338,7 @@ static float JwAnimAcc(void* ref) {
         // no match of custom jw
         // check against the zero config table
         for (auto tjw : zc_jws) {
-            if (obj_x == tjw->x && obj_z == tjw->z && obj_y == tjw->y) {
+            if (FloatEq(obj_x, tjw->x) && FloatEq(obj_z, tjw->z) && FloatEq(obj_y, tjw->y)) {
                 stat_jw_match++;
                 jw_cache[cache_idx] = jw = tjw;
                 goto have_jw;
