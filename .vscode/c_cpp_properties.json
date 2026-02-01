@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/../xplib/**",
+                "${workspaceFolder}/../SDK/CHeaders/XPLM",
+                "${workspaceFolder}/../SDK/CHeaders/Widgets"
+            ],
+            "defines": ["XPLM200", "XPLM210", "XPLM300", "XPLM301", "IBM"
+            ],
+            "windowsSdkVersion": "10.0.22621.0",
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "intelliSenseMode": "windows-msvc-x64",
+            "cppStandard": "c++20"
+        }
+    ],
+    "version": 4
+}
