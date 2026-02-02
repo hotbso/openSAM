@@ -221,8 +221,8 @@ int JwCtrl::FindNearestJetway(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     nearest_jws.resize(0);
 
     // custom jws
-    float plane_lat = my_plane.lat();
-    float plane_lon = my_plane.lon();
+    float plane_lat = my_plane->lat();
+    float plane_lon = my_plane->lon();
 
     for (auto sc : sceneries) {
         // cheap check against bounding box

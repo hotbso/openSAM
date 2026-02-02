@@ -287,7 +287,7 @@ float MpAdapter_tgxp::update() {
         // and close enough
         FlightPhase flight_phase = (FlightPhase)flight_phase_val_[i];
         if (!(flight_phase == FP_Parked || flight_phase == FP_Startup) ||
-            len2f(x_val_[i] - my_plane.x(), z_val_[i] - my_plane.z()) > kMpMaxDist)
+            len2f(x_val_[i] - my_plane->x(), z_val_[i] - my_plane->z()) > kMpMaxDist)
             continue;
 
         // flight_id

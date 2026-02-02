@@ -114,8 +114,8 @@ Stand* SamJw::FindStand() {
     float dist = 1.0E10;
     Stand* min_stand = nullptr;
 
-    float plane_lat = my_plane.lat();
-    float plane_lon = my_plane.lon();
+    float plane_lat = my_plane->lat();
+    float plane_lon = my_plane->lon();
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
@@ -150,7 +150,7 @@ Stand* SamJw::FindStand() {
 static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi) {
     // library jetways may be in view from very far away when stand information is not
     // yet available. We won't see details anyway.
-    if (len2f(obj_x - my_plane.x(), obj_z - my_plane.z()) > 0.5f * kFarSkip || fabsf(obj_y - my_plane.y()) > 1000.0f)
+    if (len2f(obj_x - my_plane->x(), obj_z - my_plane->z()) > 0.5f * kFarSkip || fabsf(obj_y - my_plane->y()) > 1000.0f)
         return nullptr;
 
     SamJw* jw = new SamJw();
@@ -261,8 +261,8 @@ static float JwAnimAcc(void* ref) {
     }
 
     {
-        float lat = my_plane.lat();
-        float lon = my_plane.lon();
+        float lat = my_plane->lat();
+        float lon = my_plane->lon();
         float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
         for (auto sc : sceneries) {

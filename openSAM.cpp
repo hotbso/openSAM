@@ -138,7 +138,7 @@ static void SavePrefs() {
     FILE* f = fopen(pref_path.c_str(), "w");
     if (NULL == f)
         return;
-    pref_auto_mode = my_plane.auto_mode();
+    pref_auto_mode = my_plane->auto_mode();
 
     // encode southern hemisphere with negative season
     int s = nh ? season : -season;
@@ -237,9 +237,9 @@ static float FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
     try {
         now = XPLMGetDataf(total_running_time_sec_dr);
 
-        bool on_ground_prev = my_plane.on_ground();
-        my_plane.Update();
-        bool on_ground = my_plane.on_ground();
+        bool on_ground_prev = my_plane->on_ground();
+        my_plane->Update();
+        bool on_ground = my_plane->on_ground();
 
         // check for transition
         if (on_ground != on_ground_prev) {
@@ -254,13 +254,13 @@ static float FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
         float anim_loop_delay = anim_next_ts - now;
         float mp_update_delay = mp_update_next_ts - now;
 
-        float my_y_agl = my_plane.y_agl();
+        float my_y_agl = my_plane->y_agl();
         if (my_y_agl < kMultiPlayerHeightLimit && mp_adapter && mp_update_delay <= 0.0f)
             mp_update_next_ts = now + mp_adapter->update();
 
-        if (!my_plane.is_helicopter_) {
+        if (!my_plane->is_helicopter_) {
             if (jw_loop_delay <= 0.0f) {
-                jw_loop_delay = my_plane.JwStateMachine();
+                jw_loop_delay = my_plane->JwStateMachine();
                 if (my_y_agl < kMultiPlayerHeightLimit && mp_adapter)
                     jw_loop_delay = std::min(jw_loop_delay, mp_adapter->JwStateMachine());
 
@@ -354,11 +354,11 @@ static int CmdDockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase ph
     LogMsg("cmd_dock_jw_cb called");
 
     if (ref == NULL)
-        my_plane.RequestDock();
+        my_plane->RequestDock();
     else if (ref == (void*)1)
-        my_plane.RequestUndock();
+        my_plane->RequestUndock();
     else if (ref == (void*)2)
-        my_plane.RequestToggle();
+        my_plane->RequestToggle();
 
     return 0;
 }
@@ -371,7 +371,7 @@ static int CmdXp12DockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhas
 
     LogMsg("cmd_xp12_dock_jw_cb called");
 
-    my_plane.RequestToggle();
+    my_plane->RequestToggle();
     return 1;  // pass on to XP12, likely there is no XP12 jw here 8-)
 }
 
@@ -506,8 +506,10 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         XPLMRegisterDataAccessor(dr_name[i], xplmType_Int, 0, ReadSeasonAcc, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, NULL, (void*)(long long)i, NULL);
 
-    my_plane.Init();
-    my_plane.AutoModeSet(pref_auto_mode);
+
+    // Create my_plane early. Accessors don't check whether my_plane is initialized.
+    my_plane = std::make_unique<MyPlane>();
+    my_plane->AutoModeSet(pref_auto_mode);
     JwInit();
     JwCtrl::Init();
     DgsInit();
@@ -582,7 +584,10 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 }
 
 PLUGIN_API void XPluginStop(void) {
+    // be a good SDK citizen
+    // destroy everything that might call SDK functions. Even LogMsg() is a wrapper around a SDK call.
     mp_adapter = nullptr;
+    my_plane = nullptr;
     LogMsg("plugin stopped");
 }
 
@@ -625,14 +630,14 @@ PLUGIN_API void XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, lon
     //   Anyway it's too late for the current scenery.
     if ((in_msg == XPLM_MSG_AIRPORT_LOADED) || (airport_loaded && (in_msg == XPLM_MSG_SCENERY_LOADED))) {
         airport_loaded = 1;
-        nh = (my_plane.lat() >= 0.0);
+        nh = (my_plane->lat() >= 0.0);
         SetSeasonAuto();
         return;
     }
 
     // my plane loaded
     if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
-        my_plane.PlaneLoadedCb();
+        my_plane->PlaneLoadedCb();
         sim_running = true;
         return;
     }

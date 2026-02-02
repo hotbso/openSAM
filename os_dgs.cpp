@@ -257,17 +257,17 @@ void DgsSetInactive(void) {
 
 // set mode to arrival
 void DgsSetArrival(void) {
-    if (!my_plane.on_ground()) {
+    if (!my_plane->on_ground()) {
         LogMsg("can't set active when not on ground");
         return;
     }
 
     // can be teleportation
     DgsSetInactive();
-    my_plane.ResetBeacon();
+    my_plane->ResetBeacon();
 
-    float lat = my_plane.lat();
-    float lon = my_plane.lon();
+    float lat = my_plane->lat();
+    float lon = my_plane->lon();
     char airport_id[50];
 
     // find and load airport I'm on now
@@ -284,7 +284,7 @@ void DgsSetArrival(void) {
 // xform lat,lon into the active global frame
 void Stand::Xform2RefFrame() {
     if (ref_gen_ < ::ref_gen) {
-        XPLMWorldToLocal(lat, lon, my_plane.elevation(), &stand_x, &stand_y, &stand_z);
+        XPLMWorldToLocal(lat, lon, my_plane->elevation(), &stand_x, &stand_y, &stand_z);
         ref_gen_ = ::ref_gen;
         dgs_assoc = false;  // association is lost
         assoc_dgs_z_l = -1.0E10;
@@ -443,7 +443,7 @@ static int DgsSam1IcaoAcc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs
         return 0;
 
     n = std::min(n, 4 - ofs);
-    const char *icao = my_plane.icao().c_str();
+    const char *icao = my_plane->icao().c_str();
     for (int i = 0; i < n; i++) {
         char c = icao[ofs + i];
         if (isalpha(c))
@@ -459,13 +459,13 @@ static void FindNearestStand() {
     double dist = 1.0E10;
     Stand *min_stand = nullptr;
 
-    float plane_lat = my_plane.lat();
-    float plane_lon = my_plane.lon();
+    float plane_lat = my_plane->lat();
+    float plane_lon = my_plane->lon();
 
-    float plane_x = my_plane.x();
-    float plane_z = my_plane.z();
+    float plane_x = my_plane->x();
+    float plane_z = my_plane->z();
 
-    float plane_hdgt = my_plane.psi();
+    float plane_hdgt = my_plane->psi();
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
@@ -487,8 +487,8 @@ static void FindNearestStand() {
             stand->Global2Stand(plane_x, plane_z, local_x, local_z);
 
             // nose wheel
-            float nw_z = local_z - my_plane.nose_gear_z_;
-            float nw_x = local_x + my_plane.nose_gear_z_ * sin(kD2R * local_hdgt);
+            float nw_z = local_z - my_plane->nose_gear_z_;
+            float nw_x = local_x + my_plane->nose_gear_z_ * sin(kD2R * local_hdgt);
 
             float d = len2f(nw_x, nw_z);
             if (d > kCapZ + 50)  // fast exit
@@ -562,17 +562,17 @@ static void FindNearestStand() {
 static bool FindDepartureStand() {
     bool changed = false;
 
-    float plane_lat = my_plane.lat();
-    float plane_lon = my_plane.lon();
+    float plane_lat = my_plane->lat();
+    float plane_lon = my_plane->lon();
 
-    float plane_x = my_plane.x();
-    float plane_z = my_plane.z();
-    float plane_hdgt = my_plane.psi();
+    float plane_x = my_plane->x();
+    float plane_z = my_plane->z();
+    float plane_hdgt = my_plane->psi();
 
     // nose wheel
-    float nw_z = plane_z - my_plane.nose_gear_z_ * cosf(kD2R * plane_hdgt);
+    float nw_z = plane_z - my_plane->nose_gear_z_ * cosf(kD2R * plane_hdgt);
     ;
-    float nw_x = plane_x + my_plane.nose_gear_z_ * sinf(kD2R * plane_hdgt);
+    float nw_x = plane_x + my_plane->nose_gear_z_ * sinf(kD2R * plane_hdgt);
 
     Stand *ds = nullptr;
     Scenery *min_sc = nullptr;
@@ -747,7 +747,7 @@ float DgsStateMachine() {
     // DEPARTURE and friends ...
     if (INACTIVE <= state && state <= BOARDING) {
         // on beacon or engine or teleportation -> INACTIVE
-        if (my_plane.beacon_on() || my_plane.engines_on()) {
+        if (my_plane->beacon_on() || my_plane->engines_on()) {
             active_stand = nullptr;
             state = INACTIVE;
             return 2.0f;
@@ -770,7 +770,7 @@ float DgsStateMachine() {
         // FALLTHROUGH
         assert(active_stand != nullptr);
 
-        if (my_plane.pax_no() <= 0) {
+        if (my_plane->pax_no() <= 0) {
             state = DEPARTURE;
             if (state != prev_state)
                 LogMsg("New state %s", state_str[state]);
@@ -800,7 +800,7 @@ float DgsStateMachine() {
         }
 
         if (state == DEPARTURE) {
-            if (my_plane.pax_no() > 0) {
+            if (my_plane->pax_no() > 0) {
                 state = BOARDING;
                 LogMsg("New state %s", state_str[state]);
                 // FALLTHROUGH
@@ -810,7 +810,7 @@ float DgsStateMachine() {
         }
 
         if (state == BOARDING) {
-            int pax_no = my_plane.pax_no();
+            int pax_no = my_plane->pax_no();
             // LogMsg("boarding pax_no: %d", pax_no);
             int pn[3]{-1, -1, -1};
             for (int i = 0; i < 3; i++) {
@@ -852,23 +852,23 @@ float DgsStateMachine() {
     // xform plane pos into stand local coordinate system
 
     float local_x, local_z;
-    active_stand->Global2Stand(my_plane.x(), my_plane.z(), local_x, local_z);
+    active_stand->Global2Stand(my_plane->x(), my_plane->z(), local_x, local_z);
 
     // relative reading to stand +/- 180
-    float local_hdgt = RA(my_plane.psi() - active_stand->hdgt);
+    float local_hdgt = RA(my_plane->psi() - active_stand->hdgt);
 
     // nose wheel
-    float nw_z = local_z - my_plane.nose_gear_z_;
-    float nw_x = local_x + my_plane.nose_gear_z_ * sinf(kD2R * local_hdgt);
+    float nw_z = local_z - my_plane->nose_gear_z_;
+    float nw_x = local_x + my_plane->nose_gear_z_ * sinf(kD2R * local_hdgt);
 
     // main wheel pos on logitudinal axis
-    float mw_z = local_z - my_plane.main_gear_z_;
-    float mw_x = local_x + my_plane.main_gear_z_ * sinf(kD2R * local_hdgt);
+    float mw_z = local_z - my_plane->main_gear_z_;
+    float mw_x = local_x + my_plane->main_gear_z_ * sinf(kD2R * local_hdgt);
 
     // ref pos on logitudinal axis of acf blending from mw to nw as we come closer
     // should be nw if dist is below 6 m
     float a = std::clamp((nw_z - kAziCrossover) / 20.0, 0.0, 1.0);
-    float plane_ref_z = (1.0f - a) * my_plane.nose_gear_z_ + a * my_plane.main_gear_z_;
+    float plane_ref_z = (1.0f - a) * my_plane->nose_gear_z_ + a * my_plane->main_gear_z_;
     float ref_z = local_z - plane_ref_z;
     float ref_x = local_x + plane_ref_z * sin(kD2R * local_hdgt);
 
@@ -881,7 +881,7 @@ float DgsStateMachine() {
         azimuth_nw = 0.0;
 
     bool locgood = (fabsf(mw_x) <= kGoodX && kGoodZ_m <= nw_z && nw_z <= kGoodZ_p);
-    bool beacon_on = my_plane.beacon_on();
+    bool beacon_on = my_plane->beacon_on();
 
     status = lr = track = 0;
     distance = nw_z;
@@ -990,7 +990,7 @@ float DgsStateMachine() {
             status = 2;
             lr = 3;
 
-            int parkbrake_set = my_plane.parkbrake_set();
+            int parkbrake_set = my_plane->parkbrake_set();
             if (!locgood)
                 new_state = TRACK;
             else if (parkbrake_set || !beacon_on)
@@ -1018,7 +1018,7 @@ float DgsStateMachine() {
             // wait for beacon off
             if (!beacon_on) {
                 new_state = DONE;
-                if (!my_plane.dont_connect_jetway_) {  // check whether it's a ToLiss, then set chocks
+                if (!my_plane->dont_connect_jetway_) {  // check whether it's a ToLiss, then set chocks
                     XPLMDataRef tls_chocks = XPLMFindDataRef("AirbusFBW/Chocks");
                     if (tls_chocks) {
                         XPLMSetDatai(tls_chocks, 1);
@@ -1037,8 +1037,8 @@ float DgsStateMachine() {
 
         case DONE:
             if (now > timestamp + 3.0f) {
-                if (!my_plane.dont_connect_jetway_)  // wait some seconds for the jw handler to catch up
-                    my_plane.RequestDock();
+                if (!my_plane->dont_connect_jetway_)  // wait some seconds for the jw handler to catch up
+                    my_plane->RequestDock();
 
                 DgsSetInactive();
                 return loop_delay;
@@ -1095,7 +1095,7 @@ float DgsStateMachine() {
             drefs[DGS_DR_ICAO_2] = 'O';
             drefs[DGS_DR_ICAO_3] = 'W';
         } else {
-            const char *icao = my_plane.icao().c_str();
+            const char *icao = my_plane->icao().c_str();
             for (int i = 0; i < 4; i++)
                 drefs[DGS_DR_ICAO_0 + i] = icao[i];
         }

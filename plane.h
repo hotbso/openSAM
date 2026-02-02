@@ -177,8 +177,6 @@ class MyPlane : public Plane {
     float nose_gear_z_, main_gear_z_, plane_cg_z_;  // z value of plane's gears and cg
 
     MyPlane();             // don't call SDK functions here
-    void Init();         // call from XPluginStart to initialize my_plane and register dref accessors
-
     ~MyPlane() override {
     }
 
@@ -243,5 +241,5 @@ class MyPlane : public Plane {
     static int JwDoorStatusAcc(XPLMDataRef ref, int* values, int ofs, int n);
 };
 
-extern MyPlane my_plane;
+extern std::unique_ptr<MyPlane> my_plane;
 #endif
