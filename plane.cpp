@@ -147,6 +147,11 @@ float Plane::JwStateMachine() {
                 // memorize position teleportation detection
                 MemorizeParkedPos();
 
+                // reset stale command invocations
+                dock_requested();
+                undock_requested();
+                toggle_requested();
+
                 LogMsg("State IDLE->PARKED: plane is on ground and beacon is off");
                 new_state = PARKED;
             }
