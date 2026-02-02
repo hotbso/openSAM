@@ -39,6 +39,7 @@ static constexpr float kTurnSpeed = 10.0;    // °/s
 static constexpr float kHeightSpeed = 0.1;   // m/s
 static constexpr float kAnimTimeout = 50;    // s
 static constexpr float kAlignDist = 1.0;     // m abeam door
+static constexpr float kArrivalEps = 0.05f;  // 5cm fixed threshold for arrival detection
 
 Sound JwCtrl::alert_;
 
@@ -68,17 +69,18 @@ void JwCtrl::XzToSamDref(float cabin_x, float cabin_z, float& rot1, float& exten
 // fill in geometry data related to specific door
 //
 void JwCtrl::SetupForDoor(Plane& plane, const DoorInfo& door_info) {
-    // rotate into plane local frame
-    float dx = jw_->x - plane.x();
-    float dz = jw_->z - plane.z();
-    float plane_psi = plane.psi();
+    // rotate into plane local frame using double precision for initial calculation
+    double dx = static_cast<double>(jw_->x) - static_cast<double>(plane.x());
+    double dz = static_cast<double>(jw_->z) - static_cast<double>(plane.z());
+    double plane_psi = static_cast<double>(plane.psi());
 
-    float sin_psi = sinf(kD2R * plane_psi);
-    float cos_psi = cosf(kD2R * plane_psi);
+    double sin_psi = sin(kD2R * plane_psi);
+    double cos_psi = cos(kD2R * plane_psi);
 
-    x_ =  cos_psi * dx + sin_psi * dz;
-    z_ = -sin_psi * dx + cos_psi * dz;
-    psi_ = RA(jw_->psi - plane_psi);
+    // Calculate in double precision, then convert to float for storage
+    x_ = static_cast<float>(cos_psi * dx + sin_psi * dz);
+    z_ = static_cast<float>(-sin_psi * dx + cos_psi * dz);
+    psi_ = RA(jw_->psi - plane.psi());
 
     // xlate into door local frame
     x_ -= door_info.x;
@@ -134,6 +136,11 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
     // So we find the nearest jetways on the left and do some heuristics
 
     int invisible_jws = 0;
+    int locked_jws = 0;
+    int too_far_jws = 0;
+    int wrong_angle_jws = 0;
+    int out_of_range_jws = 0;
+
     for (auto jw : jws) {
         if (jw->obj_ref_gen < ref_gen) { // not visible -> not dockable
             invisible_jws++;
@@ -141,7 +148,8 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
         }
 
         if (jw->locked) {
-            LogMsg("pid=%02d, %s is locked", plane.id_, jw->name.c_str());
+            locked_jws++;
+            LogMsg("REJECTED %s: jetway is locked (in use by another plane)", jw->name.c_str());
             continue;
         }
 
@@ -154,12 +162,28 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
         njw.SetupForDoor(plane, door_info);
 
         // ... and send it through the filters ...
-        if (njw.x_ > 1.0f ||
-            BETWEEN(RA(njw.psi_ + jw->initialRot1), -130.0f, 20.0f) ||  // on the right side or pointing away
-            njw.x_ < -80.0f || fabsf(njw.z_) > 80.0f) {                 // or far away
-            if (fabsf(njw.x_) < 120.0f && fabsf(njw.z_) < 120.0f)       // don't pollute the log with jws VERY far away
-                LogMsg("pid=%02d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initialRot1): %0.1f",
-                       plane.id_, jw->name.c_str(), njw.x_, njw.z_, njw.psi_ + jw->initialRot1);
+        if (njw.x_ > 1.0f) {
+            too_far_jws++;
+            if (fabsf(njw.x_) < 120.0f && fabsf(njw.z_) < 120.0f)
+                LogMsg("REJECTED %s: jetway on wrong side (x=%.1f > 1.0, should be on left)",
+                       jw->name.c_str(), njw.x_);
+            continue;
+        }
+
+        float rot_check = RA(njw.psi_ + jw->initialRot1);
+        if (BETWEEN(rot_check, -130.0f, 20.0f)) {
+            wrong_angle_jws++;
+            if (fabsf(njw.x_) < 120.0f && fabsf(njw.z_) < 120.0f)
+                LogMsg("REJECTED %s: jetway pointing wrong direction (rot=%.1f, should be outside [-130, 20])",
+                       jw->name.c_str(), rot_check);
+            continue;
+        }
+
+        if (njw.x_ < -80.0f || fabsf(njw.z_) > 80.0f) {
+            too_far_jws++;
+            if (fabsf(njw.x_) < 120.0f && fabsf(njw.z_) < 120.0f)
+                LogMsg("REJECTED %s: jetway too far (x=%.1f, z=%.1f, max distance 80m)",
+                       jw->name.c_str(), njw.x_, njw.z_);
             continue;
         }
 
@@ -167,30 +191,37 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
 
         if (!(BETWEEN(njw.door_rot1_, jw->minRot1, jw->maxRot1) && BETWEEN(njw.door_rot2_, jw->minRot2, jw->maxRot2) &&
               BETWEEN(njw.door_extent_, jw->minExtent, jw->maxExtent))) {
-            LogMsg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f", jw->name.c_str(), jw->door,
-                   njw.door_rot1_, njw.door_rot2_, njw.door_rot3_, njw.door_extent_);
-            LogMsg("  does not fulfil min max criteria in sam.xml");
+            LogMsg("REJECTED %s: out of mechanical range", jw->name.c_str());
+            LogMsg("  rot1=%.1f (range: %.1f to %.1f)", njw.door_rot1_, jw->minRot1, jw->maxRot1);
+            LogMsg("  rot2=%.1f (range: %.1f to %.1f)", njw.door_rot2_, jw->minRot2, jw->maxRot2);
+            LogMsg("  extent=%.1f (range: %.1f to %.1f)", njw.door_extent_, jw->minExtent, jw->maxExtent);
+
             float extra_extent = njw.door_extent_ - jw->maxExtent;
             if (extra_extent > 0.0f && extra_extent < kSoftMatchMaxExtra) {
-                LogMsg("  extra extent %0.1f m < %0.1f m, soft match", extra_extent, kSoftMatchMaxExtra);
+                LogMsg("  -> SOFT MATCH: extra extent %.1fm within tolerance %.1fm", extra_extent, kSoftMatchMaxExtra);
                 njw.soft_match_ = 1;
             } else if (extra_extent >= kSoftMatchMaxExtra) {
+                out_of_range_jws++;
+                continue;
+            } else {
+                out_of_range_jws++;
                 continue;
             }
         }
 
         // ... survived, add to list
-        LogMsg(
-            "--> pid=%02d, candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
-            "rot1: %0.1f, extent: %.1f",
-            plane.id_, jw->name.c_str(), jw->library_id, jw->door, njw.x_, njw.z_, njw.y_, njw.psi_, njw.door_rot1_,
-            njw.door_extent_);
+        LogMsg("ACCEPTED %s: door=%d, x=%.1f, z=%.1f, rot1=%.1f, extent=%.1f",
+               jw->name.c_str(), jw->door, njw.x_, njw.z_, njw.door_rot1_, njw.door_extent_);
 
         nearest_jws.push_back(njw);
     }
 
-    if (invisible_jws > 0)
-        LogMsg("skipped %d invisible of %d total jetways", invisible_jws, static_cast<int>(jws.size()));
+    // Summary statistics
+    if (jws.size() > 0) {
+        LogMsg("Filter summary: total=%d, invisible=%d, locked=%d, too_far=%d, wrong_angle=%d, out_of_range=%d, accepted=%d",
+               (int)jws.size(), invisible_jws, locked_jws, too_far_jws, wrong_angle_jws, out_of_range_jws,
+               (int)nearest_jws.size());
+    }
 }
 
 // find nearest jetways, order by z (= door number, hopefully)
@@ -267,6 +298,20 @@ int JwCtrl::FindNearestJetway(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     // lock all nearest_jws
     for (auto& njw : nearest_jws)
         njw.jw_->locked = true;
+
+    // Summary log
+    if (nearest_jws.size() == 0) {
+        LogMsg("=== JETWAY SEARCH FAILED ===");
+        LogMsg("  Plane ICAO: %s, position: x=%.1f, z=%.1f, psi=%.1f",
+               plane.icao().c_str(), plane.x(), plane.z(), plane.psi());
+        LogMsg("  Doors: %d", n_door);
+        LogMsg("  Sceneries checked: %d", (int)sceneries.size());
+        LogMsg("  Zero-config jetways: %d", (int)zc_jws.size());
+        LogMsg("  Reason: No jetway within range or all filtered out");
+    } else {
+        LogMsg("=== JETWAY SEARCH SUCCESS ===");
+        LogMsg("  Found %d candidate jetway(s)", (int)nearest_jws.size());
+    }
 
     return nearest_jws.size();
 }
@@ -480,7 +525,7 @@ bool JwCtrl::DockDrive() {
         // LogMsg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x_), fabs(cabin_z_));
         if (fabs(tgt_x - cabin_x_) < eps && fabs(cabin_z_) < eps) {
             state_ = AT_AP;
-            LogMsg("align point reached reached");
+            LogMsg("align point reached");
             return false;
         }
 
@@ -569,9 +614,8 @@ bool JwCtrl::DockDrive() {
         Rotate1Extend();
         AnimateWheels(ds);
 
-        float eps = std::max(2.0f * dt * kDriveSpeed, 0.05f);
-        // LogMsg("eps: %0.3f, d_x: %0.3f", eps, fabs(tgt_x - cabin_x_));
-        if (fabs(tgt_x - cabin_x_) < eps) {
+        // Use fixed threshold for final arrival detection
+        if (fabs(tgt_x - cabin_x_) < kArrivalEps) {
             state_ = DOCKED;
             LogMsg("door reached");
             jw_->warnlight = 0;

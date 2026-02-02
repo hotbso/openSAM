@@ -146,18 +146,63 @@ void MyPlane::Init() {
 }
 
 void MyPlane::RequestDock() {
-    if (state_ == CAN_DOCK)
+    if (state_ == CAN_DOCK) {
         dock_requested_ = true;
+        LogMsg("Dock request ACCEPTED");
+    } else {
+        // Log detailed rejection reason
+        switch (state_) {
+            case DISABLED:
+                LogMsg("Dock request REJECTED: plugin is disabled");
+                break;
+            case IDLE:
+                LogMsg("Dock request REJECTED: plane not parked (state=IDLE), beacon_on=%d, on_ground=%d",
+                       beacon_on_, on_ground_);
+                break;
+            case PARKED:
+                LogMsg("Dock request REJECTED: searching for jetways (state=PARKED)");
+                dock_requested_ = true;  // Queue the request
+                LogMsg("Dock request QUEUED: will execute when state becomes CAN_DOCK");
+                break;
+            case SELECT_JWS:
+                LogMsg("Dock request REJECTED: selecting jetways (state=SELECT_JWS)");
+                dock_requested_ = true;  // Queue the request
+                LogMsg("Dock request QUEUED: will execute when state becomes CAN_DOCK");
+                break;
+            case DOCKING:
+                LogMsg("Dock request REJECTED: already docking");
+                break;
+            case DOCKED:
+                LogMsg("Dock request REJECTED: already docked");
+                break;
+            case UNDOCKING:
+                LogMsg("Dock request REJECTED: currently undocking");
+                break;
+            case CANT_DOCK:
+                LogMsg("Dock request REJECTED: no suitable jetway found");
+                break;
+            default:
+                LogMsg("Dock request REJECTED: unknown state %d", state_);
+        }
+    }
 }
 
 void MyPlane::RequestUndock() {
-    if (state_ == DOCKED)
+    if (state_ == DOCKED) {
         undock_requested_ = true;
+        LogMsg("Undock request ACCEPTED");
+    } else {
+        LogMsg("Undock request REJECTED: not docked (state=%s)", state_str_[state_]);
+    }
 }
 
 void MyPlane::RequestToggle() {
-    if (state_ == CAN_DOCK || state_ == DOCKED)
+    if (state_ == CAN_DOCK || state_ == DOCKED) {
         toggle_requested_ = true;
+        LogMsg("Toggle request ACCEPTED (state=%s)", state_str_[state_]);
+    } else {
+        LogMsg("Toggle request REJECTED: not in CAN_DOCK or DOCKED state (state=%s)", state_str_[state_]);
+    }
 }
 
 bool MyPlane::dock_requested() {

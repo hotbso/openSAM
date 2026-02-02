@@ -83,8 +83,11 @@ void Plane::SelectJws() {
 
             // check collision with already selected active jetways using per-door geometry
             for (const auto& active_jw : active_jws_)
-                if (test_njw.CollisionCheckExtended(active_jw))
+                if (test_njw.CollisionCheckExtended(active_jw)) {
+                    LogMsg("REJECTED %s: collision detected with %s",
+                           test_njw.jw_->name.c_str(), active_jw.jw_->name.c_str());
                     goto skip;
+                }
         }
 
         nearest_jws_[i_jw].door_ = i_door;
@@ -144,25 +147,24 @@ float Plane::JwStateMachine() {
                 // memorize position teleportation detection
                 MemorizeParkedPos();
 
-                // reset stale command invocations
-                dock_requested();
-                undock_requested();
-                toggle_requested();
-
+                LogMsg("State IDLE->PARKED: plane is on ground and beacon is off");
                 new_state = PARKED;
             }
             break;
 
         case PARKED:
-            if (JwCtrl::FindNearestJetway(*this, nearest_jws_))
+            if (JwCtrl::FindNearestJetway(*this, nearest_jws_)) {
+                LogMsg("State PARKED->SELECT_JWS: found %d candidate jetway(s)", (int)nearest_jws_.size());
                 new_state = SELECT_JWS;
-            else
+            } else {
+                LogMsg("State PARKED->CANT_DOCK: no suitable jetway found");
                 new_state = CANT_DOCK;
+            }
             break;
 
         case SELECT_JWS:
             if (beacon_on_) {
-                LogMsg("SELECT_JWS and beacon goes on");
+                LogMsg("State SELECT_JWS->IDLE: beacon turned on");
                 new_state = IDLE;
                 break;
             }
@@ -170,6 +172,7 @@ float Plane::JwStateMachine() {
             if (auto_mode()) {
                 SelectJws();
                 if (active_jws_.size() == 0) {  // e.g. collisions
+                    LogMsg("State SELECT_JWS->CANT_DOCK: no jetways selected (possibly due to collisions)");
                     new_state = CANT_DOCK;
                     break;
                 }
@@ -193,13 +196,14 @@ float Plane::JwStateMachine() {
                     if (!njw.selected_)
                         njw.jw_->locked = false;
 
+                LogMsg("State SELECT_JWS->CAN_DOCK: %d jetway(s) ready", (int)active_jws_.size());
                 new_state = CAN_DOCK;
             }
             break;
 
         case CAN_DOCK:
             if (beacon_on_) {
-                LogMsg("CAN_DOCK and beacon goes on");
+                LogMsg("State CAN_DOCK->IDLE: beacon turned on, aborting dock preparation");
                 new_state = IDLE;
             }
 
@@ -214,12 +218,14 @@ float Plane::JwStateMachine() {
                     ajw.SetupDockUndock(start_ts, with_alert_sound());
                 }
 
+                LogMsg("State CAN_DOCK->DOCKING: starting dock animation");
                 new_state = DOCKING;
             }
             break;
 
         case CANT_DOCK:
             if (!on_ground_ || beacon_on_) {
+                LogMsg("State CANT_DOCK->IDLE: %s", !on_ground_ ? "plane left ground" : "beacon turned on");
                 new_state = IDLE;
                 break;
             }
@@ -238,6 +244,7 @@ float Plane::JwStateMachine() {
                     if (cmdr)
                         XPLMCommandOnce(cmdr);
                 }
+                LogMsg("State DOCKING->DOCKED: all jetways docked successfully");
                 new_state = DOCKED;
             } else {
                 state_machine_next_ts_ = 0.0f;
@@ -247,6 +254,7 @@ float Plane::JwStateMachine() {
 
         case DOCKED:
             if (!on_ground_) {
+                LogMsg("State DOCKED->IDLE: plane left ground");
                 new_state = IDLE;
                 break;
             }
@@ -255,7 +263,7 @@ float Plane::JwStateMachine() {
                 LogMsg("pid=%d, DOCKED and beacon goes on", id_);
 
             if (beacon_on_ || undock_requested() || toggle_requested()) {
-                LogMsg("undocking requested");
+                LogMsg("State DOCKED->UNDOCKING: %s", beacon_on_ ? "beacon turned on" : "undock requested");
 
                 float start_ts = now + active_jws_.size() * 5.0f;
                 for (auto& ajw : active_jws_) {
@@ -281,9 +289,10 @@ float Plane::JwStateMachine() {
                     n_done++;
             }
 
-            if (n_done == active_jws_.size())
+            if (n_done == active_jws_.size()) {
+                LogMsg("State UNDOCKING->IDLE: all jetways undocked successfully");
                 new_state = IDLE;
-            else {
+            } else {
                 state_machine_next_ts_ = 0.0f;
                 return kAnimInterval;
             }
