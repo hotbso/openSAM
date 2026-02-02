@@ -41,16 +41,14 @@
 
 //
 // C++ style:
-// This is largely moved over code from C to C++.
-// Whenever something is refactored or added it should be formatted according to
-// Google's style: https://google.github.io/styleguide/cppguide.html
+// This code loosely follows Google's style: https://google.github.io/styleguide/cppguide.html
 //
 //------------------------------------------------------------------------------------
 //
 // On the various coordinate systems and angles:
 //
-// Objects are drawn in a +x east , -z true north, +y up system.
-// Headings (hdgt) are measured from -z (=true north) right turning
+// Objects are drawn in a +x east , -z true north, +y up system (OpenGL standard).
+// Headings (hdgt) are measured from -z (=true north) right turning.
 //
 // Imagine looking from below to the sky you have the more traditional 'math' view
 // +x right, +z up, angles left turning from the +x axis to the +z axis.
@@ -77,11 +75,11 @@
 // The datarefs for jetway animation are:
 //  rotation1       tunnel relative to the placed object
 //  rotation2       cabin relative to the tunnel
-//  rotation3       tunnel relative to horizontal (= x-z plane)
+//  rotation3       tunnel relative to horizontal (= x-z) plane
 //  wheelrotatec    wheel base relative to tunnel around the y-axis
 //  wheelrotater    right wheel
 //  wheelrotatel    left wheel
-//  wheel           delta height in m of tunnel over wheelbase relative to horizontal
+//  wheel           delta height in m of tunnel over wheelbase relative to horizontal plane.
 //
 // Likewise for DGS we xform everything into the stand frame and go from there.
 //
@@ -92,7 +90,6 @@ const char* log_msg_prefix = "opensam: ";
 // no multiplayer processing if y_agl > limit
 constexpr float kMultiPlayerHeightLimit = 1000.0f;
 
-static int init_fail;
 std::string xp_dir;
 static std::string pref_path;
 static XPLMMenuID os_menu, seasons_menu;
@@ -444,7 +441,6 @@ static void LoadAcfGenericType(const std::string& fn) {
 PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     LogMsg("Startup " VERSION);
 
-    probeinfo.structSize = sizeof(XPLMProbeInfo_t);
     strcpy(out_name, "openSAM " VERSION);
     strcpy(out_sig, "openSAM.hotbso");
     strcpy(out_desc, "A plugin that emulates SAM");
@@ -452,6 +448,8 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     // Always use Unix-native paths on the Mac!
     XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
     XPLMEnableFeature("XPLM_USE_NATIVE_WIDGET_WINDOWS", 1);
+
+    probeinfo.structSize = sizeof(XPLMProbeInfo_t);
 
     char buffer[2048];
     XPLMGetSystemPath(buffer);
@@ -496,8 +494,8 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     LoadPrefs();
 
-    // If commands or dataref accessors are already registered it's to late to
-    // fail XPluginStart as the dll is unloaded and X-Plane crashes.
+    // If commands or dataref accessors are already registered it's too late to
+    // fail XPluginStart as the dll gets unloaded and X-Plane crashes.
     // So from here on we are doomed to succeed.
 
     XPLMRegisterDataAccessor("opensam/SAM_Library_installed", xplmType_Int, 0, SamLibInstalledAcc, NULL, NULL, NULL,
@@ -581,17 +579,10 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     // ... and off we go
     XPLMRegisterFlightLoopCallback(FlightLoopCb, 2.0, NULL);
     return 1;
-
-#if 0
-    // keep in case we need it later
-  fail:
-    LogMsg("init failure, can't enable openSAM");
-    init_fail = 1;
-    return 1;
-#endif
 }
 
 PLUGIN_API void XPluginStop(void) {
+    mp_adapter = nullptr;
     LogMsg("plugin stopped");
 }
 
@@ -614,7 +605,7 @@ PLUGIN_API void XPluginDisable(void) {
 }
 
 PLUGIN_API int XPluginEnable(void) {
-    if (init_fail || error_disabled)  // once and for all
+    if (error_disabled)  // once and for all
         return 0;
 
     probe_ref = XPLMCreateProbe(xplm_ProbeY);
