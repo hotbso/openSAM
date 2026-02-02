@@ -279,7 +279,7 @@ static float FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
         }
         // LogMsg("jw_loop_delay: %0.2f", jw_loop_delay);
         return std::min(anim_loop_delay, std::min(jw_loop_delay, dgs_loop_delay));
-    } catch (const OsEx& e) {
+    } catch (const std::exception& e) {
         LogMsg("FlightLoopCb caught exception: %s, openSAM disabled", e.what());
         error_disabled = true;
         return 0;
