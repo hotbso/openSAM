@@ -1,5 +1,13 @@
 # icao codes of planes that should only use door 1 for jetway docking
 # even if a second door is defined in the acf file
-# e.g. planes where the rear door is not suitable for jetway connection
-B738
-B737
+# * matches any characters (0 or more)
+# ? matches any single character
+# e.g. B73*  A32?
+
+A31?
+A32?
+A2*
+B73?
+B3?M
+B75*
+E*

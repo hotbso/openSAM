@@ -489,6 +489,32 @@ void MyPlane::ResetBeacon() {
     beacon_off_ts_ = beacon_on_ts_ = -10.0f;
 }
 
+// Simple wildcard pattern matching, supports '*' as wildcard for any characters
+static bool MatchPattern(const std::string& pattern, const std::string& str) {
+    size_t p = 0, s = 0;
+    size_t star_p = std::string::npos, star_s = 0;
+
+    while (s < str.size()) {
+        if (p < pattern.size() && (pattern[p] == str[s] || pattern[p] == '?')) {
+            p++;
+            s++;
+        } else if (p < pattern.size() && pattern[p] == '*') {
+            star_p = p++;
+            star_s = s;
+        } else if (star_p != std::string::npos) {
+            p = star_p + 1;
+            s = ++star_s;
+        } else {
+            return false;
+        }
+    }
+
+    while (p < pattern.size() && pattern[p] == '*')
+        p++;
+
+    return p == pattern.size();
+}
+
 static bool FindIcaoInFile(const std::string& acf_icao, const std::string& fn) {
     std::ifstream f(fn);
     if (f.is_open()) {
@@ -497,14 +523,14 @@ static bool FindIcaoInFile(const std::string& acf_icao, const std::string& fn) {
         std::string line;
         line.reserve(50);
         while (std::getline(f, line)) {
-            if (line.empty())
+            if (line.empty() || line[0] == '#')
                 continue;
 
             if (line.back() == '\r')
                 line.pop_back();
 
-            if (line == acf_icao) {
-                LogMsg("found");
+            if (MatchPattern(line, acf_icao)) {
+                LogMsg("found (matched pattern '%s')", line.c_str());
                 return true;
             }
         }
