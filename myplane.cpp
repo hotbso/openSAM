@@ -161,13 +161,9 @@ void MyPlane::RequestDock() {
                 break;
             case PARKED:
                 LogMsg("Dock request REJECTED: searching for jetways (state=PARKED)");
-                dock_requested_ = true;  // Queue the request
-                LogMsg("Dock request QUEUED: will execute when state becomes CAN_DOCK");
                 break;
             case SELECT_JWS:
                 LogMsg("Dock request REJECTED: selecting jetways (state=SELECT_JWS)");
-                dock_requested_ = true;  // Queue the request
-                LogMsg("Dock request QUEUED: will execute when state becomes CAN_DOCK");
                 break;
             case DOCKING:
                 LogMsg("Dock request REJECTED: already docking");
