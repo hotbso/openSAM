@@ -122,7 +122,6 @@ MyPlane::MyPlane() {
     acf_door_x_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_x");
     acf_door_y_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_y");
     acf_door_z_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_z");
-    pax_no_dr_ = nullptr;
 
     XPLMRegisterDataAccessor("opensam/jetway/number", xplmType_Int, 0, JwStatusAcc, NULL, NULL, NULL, NULL, NULL,
                              NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -194,7 +193,7 @@ void MyPlane::AutoModeSet(bool auto_mode) {
 
 void MyPlane::PlaneLoadedCb() {
     // reinit all that stuff as this may be a different plane now
-    on_ground_ = 1;
+    on_ground_ = true;
     on_ground_ts_ = 0.0f;
     n_door_ = 0;
     use_engines_on_ = dont_connect_jetway_ = false;
@@ -426,7 +425,7 @@ bool MyPlane::CheckTeleportation() {
 }
 
 void MyPlane::ResetBeacon() {
-    beacon_on_pending_ = 0;
+    beacon_on_pending_ = false;
     beacon_off_ts_ = beacon_on_ts_ = -10.0f;
 }
 

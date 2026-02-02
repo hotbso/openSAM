@@ -146,14 +146,14 @@ class Plane {
 //
 // Derived class that represents the XP-pilot's plane.
 // Clearly there is exactly one instance of this class.
-// It is accessible through "MyPlane& my_plane" .
+// It is accessible through "std::unique_ptr<MyPlane> my_plane" .
 //
 class MyPlane : public Plane {
     XPLMDataRef plane_lat_dr_, plane_lon_dr_, plane_y_agl_dr_;
-    XPLMDataRef pax_no_dr_;
-    bool pax_no_dr_probed_;
+    XPLMDataRef pax_no_dr_{};
+    bool pax_no_dr_probed_{};
 
-    bool use_engines_on_;  // instead of beacon, e.g. Zibo
+    bool use_engines_on_{};  // instead of beacon, e.g. Zibo
 
     // helpers for debouncing
     int beacon_on_pending_;
@@ -162,18 +162,18 @@ class MyPlane : public Plane {
 
     // for teleportation detection
     float parked_x_, parked_z_;
-    unsigned parked_ngen_;
+    unsigned parked_ngen_{};
 
-    bool auto_mode_, dock_requested_, undock_requested_, toggle_requested_;
-    bool ui_unlocked_{false};  // the ui is unlocked for jw_selection
+    bool auto_mode_{}, dock_requested_{}, undock_requested_{}, toggle_requested_{};
+    bool ui_unlocked_{};  // the ui is unlocked for jw_selection
 
-    float elevation_;
-    int pax_no_;
+    float elevation_{};
+    int pax_no_{};
 
    public:
     // readonly use!
-    bool dont_connect_jetway_;  // after beacon off, e.g. Zibo
-    bool is_helicopter_;
+    bool dont_connect_jetway_{};  // after beacon off, e.g. Zibo
+    bool is_helicopter_{};
     float nose_gear_z_, main_gear_z_, plane_cg_z_;  // z value of plane's gears and cg
 
     MyPlane();             // don't call SDK functions here
