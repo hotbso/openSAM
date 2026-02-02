@@ -295,69 +295,76 @@ void MyPlane::PlaneLoadedCb() {
     LogMsg("plane loaded: %s, plane_cg_y: %1.2f, plane_cg_z: %1.2f, door 1: x: %1.2f, y: %1.2f, z: %1.2f",
            icao_.c_str(), plane_cg_y, plane_cg_z, door_info_[0].x, door_info_[0].y, door_info_[0].z);
 
+    // check whether single door mode is forced by config file
+    bool single_door_only = FindIcaoInFile(icao_, base_dir + "acf_single_door.txt");
+
     // check for a second door, seems to be not available by dataref
     // data in the acf file is often bogus, so check our own config file first
-    it = door_info_map.find(icao_ + '2');
-    if (it != door_info_map.end()) {
-        door_info_[1] = it->second;
-        n_door_++;
-        LogMsg("found door 2 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[1].x, door_info_[1].y,
-               door_info_[1].z);
-    } else {
-        LogMsg("door 2 is not defined in door_info_map");
-    }
-
-    // if nothing found in the config file try the acf
-    if (n_door_ == 1) {
-        char acf_path[512];
-        char acf_file[256];
-
-        XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, acf_file, acf_path);
-        LogMsg("acf path: '%s'", acf_path);
-
-        FILE* acf = fopen(acf_path, "r");
-        if (acf) {
-            char line[200];
-            int got = 0;
-            int has_door2 = 0;
-            // we go the simple brute force way
-            while (fgets(line, sizeof(line), acf)) {
-                if (line == strstr(line, "P acf/_has_board_2 ")) {
-                    if (1 != sscanf(line + 19, "%d", &has_door2))
-                        break;
-                }
-
-                if (line == strstr(line, "P acf/_board_2/0 ")) {
-                    if (1 == sscanf(line + 17, "%f", &door_info_[1].x)) {
-                        door_info_[1].x *= kF2M;
-                        got++;
-                    }
-                }
-                if (line == strstr(line, "P acf/_board_2/1 ")) {
-                    float y;
-                    if (1 == sscanf(line + 17, "%f", &y)) {
-                        door_info_[1].y = y * kF2M - plane_cg_y;
-                        got++;
-                    }
-                }
-                if (line == strstr(line, "P acf/_board_2/2 ")) {
-                    float z;
-                    if (1 == sscanf(line + 17, "%f", &z)) {
-                        door_info_[1].z = z * kF2M - plane_cg_z;
-                        got++;
-                    }
-                }
-
-                if (has_door2 && got == 3) {
-                    n_door_ = 2;
-                    LogMsg("found door 2 in acf file: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[1].x, door_info_[1].y,
-                           door_info_[1].z);
-                    break;
-                }
-            }
-
-            fclose(acf);
+    if (!single_door_only) {
+        it = door_info_map.find(icao_ + '2');
+        if (it != door_info_map.end()) {
+            door_info_[1] = it->second;
+            n_door_++;
+            LogMsg("found door 2 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[1].x, door_info_[1].y,
+                   door_info_[1].z);
+        } else {
+            LogMsg("door 2 is not defined in door_info_map");
         }
+
+        // if nothing found in the config file try the acf
+        if (n_door_ == 1) {
+            char acf_path[512];
+            char acf_file[256];
+
+            XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, acf_file, acf_path);
+            LogMsg("acf path: '%s'", acf_path);
+
+            FILE* acf = fopen(acf_path, "r");
+            if (acf) {
+                char line[200];
+                int got = 0;
+                int has_door2 = 0;
+                // we go the simple brute force way
+                while (fgets(line, sizeof(line), acf)) {
+                    if (line == strstr(line, "P acf/_has_board_2 ")) {
+                        if (1 != sscanf(line + 19, "%d", &has_door2))
+                            break;
+                    }
+
+                    if (line == strstr(line, "P acf/_board_2/0 ")) {
+                        if (1 == sscanf(line + 17, "%f", &door_info_[1].x)) {
+                            door_info_[1].x *= kF2M;
+                            got++;
+                        }
+                    }
+                    if (line == strstr(line, "P acf/_board_2/1 ")) {
+                        float y;
+                        if (1 == sscanf(line + 17, "%f", &y)) {
+                            door_info_[1].y = y * kF2M - plane_cg_y;
+                            got++;
+                        }
+                    }
+                    if (line == strstr(line, "P acf/_board_2/2 ")) {
+                        float z;
+                        if (1 == sscanf(line + 17, "%f", &z)) {
+                            door_info_[1].z = z * kF2M - plane_cg_z;
+                            got++;
+                        }
+                    }
+
+                    if (has_door2 && got == 3) {
+                        n_door_ = 2;
+                        LogMsg("found door 2 in acf file: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[1].x,
+                               door_info_[1].y, door_info_[1].z);
+                        break;
+                    }
+                }
+
+                fclose(acf);
+            }
+        }
+    } else {
+        LogMsg("single door mode forced by acf_single_door.txt");
     }
 
     // SAM dgs don't like letters in pos 1-3
