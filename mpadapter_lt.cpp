@@ -132,8 +132,8 @@ MpAdapter_lt::~MpAdapter_lt() {
 
 // static
 float MpAdapter_lt::update() {
-    float my_lat = my_plane.lat();
-    float my_lon = my_plane.lon();
+    float my_lat = my_plane->lat();
+    float my_lon = my_plane->lon();
     float my_cos_lat = cosf(my_lat * kD2R);
 
     lt_connect_.UpdateAcList();

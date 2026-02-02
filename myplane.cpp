@@ -31,7 +31,7 @@
 #include "plane.h"
 #include "samjw.h"
 
-MyPlane my_plane;
+std::unique_ptr<MyPlane> my_plane;
 
 // opensam/jetway/status dataref
 //  0 = no jetway
@@ -44,16 +44,16 @@ MyPlane my_plane;
 int MyPlane::JwStatusAcc(void* ref) {
     // opensam/jetway/number
     if (ref == 0)
-        return my_plane.active_jws_.size();
+        return my_plane->active_jws_.size();
 
     // opensam/jetway/status
-    if (0 == my_plane.active_jws_.size())
+    if (0 == my_plane->active_jws_.size())
         return 0;
 
-    if (Plane::CAN_DOCK == my_plane.state_)
+    if (Plane::CAN_DOCK == my_plane->state_)
         return 1;
 
-    if (Plane::DOCKED == my_plane.state_)
+    if (Plane::DOCKED == my_plane->state_)
         return 2;
 
     return -1;
@@ -76,7 +76,7 @@ int MyPlane::JwDoorStatusAcc([[maybe_unused]] XPLMDataRef ref, int* values, int 
         values[i] = 0;
     }
 
-    for (auto& ajw : my_plane.active_jws_)
+    for (auto& ajw : my_plane->active_jws_)
         if (ajw.state_ == JwCtrl::DOCKED) {
             int i = ajw.door_ - ofs;
             if (0 <= i && i < n)
@@ -92,27 +92,17 @@ static XPLMDataRef plane_x_dr_, plane_y_dr_, plane_z_dr_, plane_elevation_dr_, p
 
 static bool FindIcaoInFile(const std::string& acf_icao, const std::string& fn);
 
-// constructor is called too early, no SDK calls here
 MyPlane::MyPlane() {
+    LogMsg("Constructing MyPlane::");
     assert(id_ == 0);  // verify that there is only one instance
 
     icao_ = "0000";
     ResetBeacon();
     ui_unlocked_ = false;
     state_ = IDLE;
-}
-
-// initialize MyPlane instance from XPLMPluginStart
-// register dref accessors
-void MyPlane::Init() {
-    static bool init_done{false};
-    if (init_done)
-        return;
-
-    LogMsg("initing MyPlane::");
 
     plane_x_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_x");
-    assert(plane_x_dr_ != nullptr);
+    assert(plane_x_dr_ != nullptr); // these are all standard SDK datarefs, just check one
     plane_y_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_y");
     plane_z_dr_ = XPLMFindDataRef("sim/flightmodel/position/local_z");
     plane_lat_dr_ = XPLMFindDataRef("sim/flightmodel/position/latitude");
@@ -132,7 +122,6 @@ void MyPlane::Init() {
     acf_door_x_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_x");
     acf_door_y_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_y");
     acf_door_z_dr_ = XPLMFindDataRef("sim/aircraft/view/acf_door_z");
-    pax_no_dr_ = nullptr;
 
     XPLMRegisterDataAccessor("opensam/jetway/number", xplmType_Int, 0, JwStatusAcc, NULL, NULL, NULL, NULL, NULL,
                              NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -142,7 +131,6 @@ void MyPlane::Init() {
 
     XPLMRegisterDataAccessor("opensam/jetway/door/status", xplmType_IntArray, 0, NULL, NULL, NULL, NULL, NULL, NULL,
                              JwDoorStatusAcc, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-    init_done = true;
 }
 
 void MyPlane::RequestDock() {
@@ -246,7 +234,7 @@ void MyPlane::AutoModeSet(bool auto_mode) {
 
 void MyPlane::PlaneLoadedCb() {
     // reinit all that stuff as this may be a different plane now
-    on_ground_ = 1;
+    on_ground_ = true;
     on_ground_ts_ = 0.0f;
     n_door_ = 0;
     use_engines_on_ = dont_connect_jetway_ = false;
@@ -485,7 +473,7 @@ bool MyPlane::CheckTeleportation() {
 }
 
 void MyPlane::ResetBeacon() {
-    beacon_on_pending_ = 0;
+    beacon_on_pending_ = false;
     beacon_off_ts_ = beacon_on_ts_ = -10.0f;
 }
 

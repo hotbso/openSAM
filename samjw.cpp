@@ -114,8 +114,8 @@ Stand* SamJw::FindStand() {
     float dist = 1.0E10;
     Stand* min_stand = nullptr;
 
-    float plane_lat = my_plane.lat();
-    float plane_lon = my_plane.lon();
+    float plane_lat = my_plane->lat();
+    float plane_lon = my_plane->lon();
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
@@ -150,7 +150,7 @@ Stand* SamJw::FindStand() {
 static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi) {
     // library jetways may be in view from very far away when stand information is not
     // yet available. We won't see details anyway.
-    if (len2f(obj_x - my_plane.x(), obj_z - my_plane.z()) > 0.5f * kFarSkip || fabsf(obj_y - my_plane.y()) > 1000.0f)
+    if (len2f(obj_x - my_plane->x(), obj_z - my_plane->z()) > 0.5f * kFarSkip || fabsf(obj_y - my_plane->y()) > 1000.0f)
         return nullptr;
 
     SamJw* jw = new SamJw();
@@ -219,6 +219,7 @@ void CheckRefFrameShift() {
 // Accessor for the "sam/jetway/..." datarefs
 //
 // This function is called from draw loops, efficient coding required.
+// It's called with a frequency of at least fps * <# of visible jetways> * 9 .
 //
 // ref is uint64_t and has the library id in the high long and the dataref id in low long.
 // e.g.
@@ -246,7 +247,7 @@ static float JwAnimAcc(void* ref) {
     // We cache jetway pointers in a "1-way associative cache" 8-) .
     // The tag is jw->(x, y, z).
     // For the mapping we use the x coordinate in 0.5 m resolution as base.
-    // Unless the airport is extremely large the high bits are mostly the the same
+    // Unless the airport is extremely large the high bits are mostly the same
     // hence we merge in the z coordinate as high bit.
     // Results in a hit rate of ~99% for SFD KLAX.
     unsigned ci_lo = (int)(obj_x * 2.0f) & ((1 << (kHashBits - 1)) - 1);
@@ -260,8 +261,8 @@ static float JwAnimAcc(void* ref) {
     }
 
     {
-        float lat = my_plane.lat();
-        float lon = my_plane.lon();
+        float lat = my_plane->lat();
+        float lon = my_plane->lon();
         float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
         for (auto sc : sceneries) {
@@ -328,7 +329,7 @@ static float JwAnimAcc(void* ref) {
 
                     stat_jw_match++;
                     jw_cache[cache_idx] = jw = tjw;
-                    goto have_jw;  // of nested loops
+                    goto have_jw;  // out of nested loops
                 }
 
                 stat_near_skip++;

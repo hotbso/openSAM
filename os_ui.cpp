@@ -49,42 +49,42 @@ int MyPlane::UIWidgetCb(XPWidgetMessage msg, XPWidgetID widget_id, [[maybe_unuse
         return 1;
     }
 
-    unsigned n_door = my_plane.n_door_;
+    unsigned n_door = my_plane->n_door_;
 
     if (msg == xpMsg_PushButtonPressed && widget_id == dock_btn) {
         LogMsg("Dock pressed");
-        if (!my_plane.auto_mode() && my_plane.ui_unlocked_) {
+        if (!my_plane->auto_mode() && my_plane->ui_unlocked_) {
             // we can be called several times in this callback, so we need
             // some effort to maintain the selected flags
 
             // first clear all selected flags then later set specifically
-            for (auto& njw : my_plane.nearest_jws_)
+            for (auto& njw : my_plane->nearest_jws_)
                 njw.selected_ = false;
 
-            my_plane.active_jws_.resize(0);
+            my_plane->active_jws_.resize(0);
 
             for (unsigned i = 0; i < n_door; i++) {
                 // check for a selected button
-                for (unsigned j = 0; j < my_plane.nearest_jws_.size(); j++) {
+                for (unsigned j = 0; j < my_plane->nearest_jws_.size(); j++) {
                     int state = (uint64_t)XPGetWidgetProperty(jw_btn[i][j], xpProperty_ButtonState, NULL);
                     if (state) {
-                        LogMsg("active jw for door %d is %s", i, my_plane.nearest_jws_[j].jw_->name.c_str());
-                        my_plane.nearest_jws_[j].selected_ = true;
-                        my_plane.nearest_jws_[j].door_ = i;
-                        my_plane.active_jws_.push_back(my_plane.nearest_jws_[j]);
+                        LogMsg("active jw for door %d is %s", i, my_plane->nearest_jws_[j].jw_->name.c_str());
+                        my_plane->nearest_jws_[j].selected_ = true;
+                        my_plane->nearest_jws_[j].door_ = i;
+                        my_plane->active_jws_.push_back(my_plane->nearest_jws_[j]);
                     }
                 }
             }
         }
 
-        my_plane.dock_requested_ = true;
+        my_plane->dock_requested_ = true;
         CloseUI();
         return 1;
     }
 
     if (msg == xpMsg_PushButtonPressed && widget_id == undock_btn) {
         LogMsg("Undock pressed");
-        my_plane.undock_requested_ = true;
+        my_plane->undock_requested_ = true;
         CloseUI();
         return 1;
     }
@@ -93,7 +93,7 @@ int MyPlane::UIWidgetCb(XPWidgetMessage msg, XPWidgetID widget_id, [[maybe_unuse
         bool auto_mode = (bool)(uint64_t)param2;
         LogMsg("auto_mode now: %d", auto_mode);
 
-        my_plane.AutoModeSet(auto_mode);  // start over with new setting
+        my_plane->AutoModeSet(auto_mode);  // start over with new setting
         return 1;
     }
 
@@ -102,7 +102,7 @@ int MyPlane::UIWidgetCb(XPWidgetMessage msg, XPWidgetID widget_id, [[maybe_unuse
         // find index of button
         int idoor = -1, ijw = -1;
         for (unsigned i = 0; i < n_door; i++)
-            for (unsigned j = 0; j < my_plane.nearest_jws_.size(); j++)
+            for (unsigned j = 0; j < my_plane->nearest_jws_.size(); j++)
                 if (jw_btn[i][j] == widget_id) {
                     idoor = i;
                     ijw = j;
@@ -116,10 +116,10 @@ int MyPlane::UIWidgetCb(XPWidgetMessage msg, XPWidgetID widget_id, [[maybe_unuse
 
         int new_state = (int)(uint64_t)param2;
         LogMsg("button door: %d, jw: %d pressed, name: %s, new_state: %d", idoor, ijw,
-               my_plane.nearest_jws_[ijw].jw_->name.c_str(), new_state);
+               my_plane->nearest_jws_[ijw].jw_->name.c_str(), new_state);
 
         // unselect all other buttons for the selected door
-        for (unsigned j = 0; j < my_plane.nearest_jws_.size(); j++)
+        for (unsigned j = 0; j < my_plane->nearest_jws_.size(); j++)
             if ((int)j != ijw)
                 XPSetWidgetProperty(jw_btn[idoor][j], xpProperty_ButtonState, 0);
 
@@ -246,8 +246,8 @@ void ToggleUI(void) {
         return;
     }
 
-    if (!my_plane.is_helicopter_) {
-        my_plane.UpdateUI(0);
+    if (!my_plane->is_helicopter_) {
+        my_plane->UpdateUI(0);
         ui_widget_ctx.Show();
     }
 }

@@ -41,16 +41,14 @@
 
 //
 // C++ style:
-// This is largely moved over code from C to C++.
-// Whenever something is refactored or added it should be formatted according to
-// Google's style: https://google.github.io/styleguide/cppguide.html
+// This code loosely follows Google's style: https://google.github.io/styleguide/cppguide.html
 //
 //------------------------------------------------------------------------------------
 //
 // On the various coordinate systems and angles:
 //
-// Objects are drawn in a +x east , -z true north, +y up system.
-// Headings (hdgt) are measured from -z (=true north) right turning
+// Objects are drawn in a +x east , -z true north, +y up system (OpenGL standard).
+// Headings (hdgt) are measured from -z (=true north) right turning.
 //
 // Imagine looking from below to the sky you have the more traditional 'math' view
 // +x right, +z up, angles left turning from the +x axis to the +z axis.
@@ -77,11 +75,11 @@
 // The datarefs for jetway animation are:
 //  rotation1       tunnel relative to the placed object
 //  rotation2       cabin relative to the tunnel
-//  rotation3       tunnel relative to horizontal (= x-z plane)
+//  rotation3       tunnel relative to horizontal (= x-z) plane
 //  wheelrotatec    wheel base relative to tunnel around the y-axis
 //  wheelrotater    right wheel
 //  wheelrotatel    left wheel
-//  wheel           delta height in m of tunnel over wheelbase relative to horizontal
+//  wheel           delta height in m of tunnel over wheelbase relative to horizontal plane.
 //
 // Likewise for DGS we xform everything into the stand frame and go from there.
 //
@@ -92,7 +90,6 @@ const char* log_msg_prefix = "opensam: ";
 // no multiplayer processing if y_agl > limit
 constexpr float kMultiPlayerHeightLimit = 1000.0f;
 
-static int init_fail;
 std::string xp_dir;
 static std::string pref_path;
 static XPLMMenuID os_menu, seasons_menu;
@@ -141,7 +138,7 @@ static void SavePrefs() {
     FILE* f = fopen(pref_path.c_str(), "w");
     if (NULL == f)
         return;
-    pref_auto_mode = my_plane.auto_mode();
+    pref_auto_mode = my_plane->auto_mode();
 
     // encode southern hemisphere with negative season
     int s = nh ? season : -season;
@@ -240,9 +237,9 @@ static float FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
     try {
         now = XPLMGetDataf(total_running_time_sec_dr);
 
-        bool on_ground_prev = my_plane.on_ground();
-        my_plane.Update();
-        bool on_ground = my_plane.on_ground();
+        bool on_ground_prev = my_plane->on_ground();
+        my_plane->Update();
+        bool on_ground = my_plane->on_ground();
 
         // check for transition
         if (on_ground != on_ground_prev) {
@@ -257,13 +254,13 @@ static float FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
         float anim_loop_delay = anim_next_ts - now;
         float mp_update_delay = mp_update_next_ts - now;
 
-        float my_y_agl = my_plane.y_agl();
+        float my_y_agl = my_plane->y_agl();
         if (my_y_agl < kMultiPlayerHeightLimit && mp_adapter && mp_update_delay <= 0.0f)
             mp_update_next_ts = now + mp_adapter->update();
 
-        if (!my_plane.is_helicopter_) {
+        if (!my_plane->is_helicopter_) {
             if (jw_loop_delay <= 0.0f) {
-                jw_loop_delay = my_plane.JwStateMachine();
+                jw_loop_delay = my_plane->JwStateMachine();
                 if (my_y_agl < kMultiPlayerHeightLimit && mp_adapter)
                     jw_loop_delay = std::min(jw_loop_delay, mp_adapter->JwStateMachine());
 
@@ -282,7 +279,7 @@ static float FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
         }
         // LogMsg("jw_loop_delay: %0.2f", jw_loop_delay);
         return std::min(anim_loop_delay, std::min(jw_loop_delay, dgs_loop_delay));
-    } catch (const OsEx& e) {
+    } catch (const std::exception& e) {
         LogMsg("FlightLoopCb caught exception: %s, openSAM disabled", e.what());
         error_disabled = true;
         return 0;
@@ -357,11 +354,11 @@ static int CmdDockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase ph
     LogMsg("cmd_dock_jw_cb called");
 
     if (ref == NULL)
-        my_plane.RequestDock();
+        my_plane->RequestDock();
     else if (ref == (void*)1)
-        my_plane.RequestUndock();
+        my_plane->RequestUndock();
     else if (ref == (void*)2)
-        my_plane.RequestToggle();
+        my_plane->RequestToggle();
 
     return 0;
 }
@@ -374,7 +371,7 @@ static int CmdXp12DockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhas
 
     LogMsg("cmd_xp12_dock_jw_cb called");
 
-    my_plane.RequestToggle();
+    my_plane->RequestToggle();
     return 1;  // pass on to XP12, likely there is no XP12 jw here 8-)
 }
 
@@ -444,7 +441,6 @@ static void LoadAcfGenericType(const std::string& fn) {
 PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     LogMsg("Startup " VERSION);
 
-    probeinfo.structSize = sizeof(XPLMProbeInfo_t);
     strcpy(out_name, "openSAM " VERSION);
     strcpy(out_sig, "openSAM.hotbso");
     strcpy(out_desc, "A plugin that emulates SAM");
@@ -452,6 +448,8 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     // Always use Unix-native paths on the Mac!
     XPLMEnableFeature("XPLM_USE_NATIVE_PATHS", 1);
     XPLMEnableFeature("XPLM_USE_NATIVE_WIDGET_WINDOWS", 1);
+
+    probeinfo.structSize = sizeof(XPLMProbeInfo_t);
 
     char buffer[2048];
     XPLMGetSystemPath(buffer);
@@ -496,8 +494,8 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     LoadPrefs();
 
-    // If commands or dataref accessors are already registered it's to late to
-    // fail XPluginStart as the dll is unloaded and X-Plane crashes.
+    // If commands or dataref accessors are already registered it's too late to
+    // fail XPluginStart as the dll gets unloaded and X-Plane crashes.
     // So from here on we are doomed to succeed.
 
     XPLMRegisterDataAccessor("opensam/SAM_Library_installed", xplmType_Int, 0, SamLibInstalledAcc, NULL, NULL, NULL,
@@ -508,8 +506,10 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         XPLMRegisterDataAccessor(dr_name[i], xplmType_Int, 0, ReadSeasonAcc, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, NULL, (void*)(long long)i, NULL);
 
-    my_plane.Init();
-    my_plane.AutoModeSet(pref_auto_mode);
+
+    // Create my_plane early. Accessors don't check whether my_plane is initialized.
+    my_plane = std::make_unique<MyPlane>();
+    my_plane->AutoModeSet(pref_auto_mode);
     JwInit();
     JwCtrl::Init();
     DgsInit();
@@ -581,17 +581,13 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     // ... and off we go
     XPLMRegisterFlightLoopCallback(FlightLoopCb, 2.0, NULL);
     return 1;
-
-#if 0
-    // keep in case we need it later
-  fail:
-    LogMsg("init failure, can't enable openSAM");
-    init_fail = 1;
-    return 1;
-#endif
 }
 
 PLUGIN_API void XPluginStop(void) {
+    // be a good SDK citizen
+    // destroy everything that might call SDK functions. Even LogMsg() is a wrapper around a SDK call.
+    mp_adapter = nullptr;
+    my_plane = nullptr;
     LogMsg("plugin stopped");
 }
 
@@ -614,7 +610,7 @@ PLUGIN_API void XPluginDisable(void) {
 }
 
 PLUGIN_API int XPluginEnable(void) {
-    if (init_fail || error_disabled)  // once and for all
+    if (error_disabled)  // once and for all
         return 0;
 
     probe_ref = XPLMCreateProbe(xplm_ProbeY);
@@ -634,14 +630,14 @@ PLUGIN_API void XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, lon
     //   Anyway it's too late for the current scenery.
     if ((in_msg == XPLM_MSG_AIRPORT_LOADED) || (airport_loaded && (in_msg == XPLM_MSG_SCENERY_LOADED))) {
         airport_loaded = 1;
-        nh = (my_plane.lat() >= 0.0);
+        nh = (my_plane->lat() >= 0.0);
         SetSeasonAuto();
         return;
     }
 
     // my plane loaded
     if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
-        my_plane.PlaneLoadedCb();
+        my_plane->PlaneLoadedCb();
         sim_running = true;
         return;
     }

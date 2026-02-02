@@ -124,7 +124,7 @@ extern float now;           // current timestamp
 // detect shifts of the reference frame
 extern float lat_ref, lon_ref;
 // generation # of reference frame
-// init with 1 so jetways never seen by the accessor won't be considered in find_dockable_jws()
+// init with 1 so jetways never seen by the accessor won't be considered in JwCtrl::FindNearestJetway()
 extern unsigned int ref_gen;
 
 extern XPLMMenuID anim_menu;
@@ -139,6 +139,7 @@ extern void ToggleUI(void);
 
 #define BETWEEN(x, a, b) ((a) <= (x) && (x) <= (b))
 
+// normalize angle to a relative angle in (-180,180]
 static inline float RA(float angle) {
     angle = fmodf(angle, 360.0f);
     if (angle > 180.0f)
@@ -156,7 +157,13 @@ static inline bool FloatEq(float a, float b) {
     return fabsf(a - b) < kFloatEps;
 }
 
-/* norm-2 length */
+/* floating point comparison with tolerance */
+static constexpr float kFloatEps = 1e-5f;
+static inline bool FloatEq(float a, float b) {
+    return fabsf(a - b) < kFloatEps;
+}
+
+// norm-2 length
 static inline float len2f(float x, float y) {
     return sqrtf(x * x + y * y);
 }

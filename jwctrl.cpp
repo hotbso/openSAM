@@ -256,8 +256,8 @@ int JwCtrl::FindNearestJetway(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     nearest_jws.resize(0);
 
     // custom jws
-    float plane_lat = my_plane.lat();
-    float plane_lon = my_plane.lon();
+    float plane_lat = my_plane->lat();
+    float plane_lon = my_plane->lon();
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
@@ -279,7 +279,7 @@ int JwCtrl::FindNearestJetway(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
         if (jw->is_zc_jw) {
             Stand* stand = jw->stand;
             if (stand) {
-                // stand->id can be eveything from "A11" to "A11 - Terminal 1 (cat C)"
+                // stand->id can be everything from "A11" to "A11 - Terminal 1 (cat C)"
                 jw->name = stand->id;
                 // truncate at ' ' or after 10 chars max
                 size_t pos = jw->name.find(' ');
