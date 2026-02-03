@@ -11,14 +11,14 @@ It is meant to be a drop in replacement for SAM, i.e. at startup it scans for SA
 ### Jetways
 ![Image](images/EDDM_A340-600.jpg)
 ### DGS
-![Image](images/Marshaller_high.jpg) 
+![Image](images/Marshaller_high.jpg)
 ### Simbrief integration
 Requires the simbrief_hub plugin (https://github.com/hotbso/simbrief_hub)
 ![Image](images/simbrief.jpg)
 ### Custom animations
 ![Image](images/custom-animation.jpg)
 ### Multiplayer support
-![Image](images/MP-TGXP.jpg) 
+![Image](images/MP-TGXP.jpg)
 
 ## Download
 Download the latest (non-beta-)release here: https://github.com/hotbso/openSAM/releases/latest .\
@@ -29,7 +29,7 @@ After you've installed it once Skunkcrafts Updater will take care. Be sure you s
 Download link for [Skunkcrafts updater](https://forums.x-plane.org/index.php?/forums/topic/292710-skunkcrafts-updater-standalone-client/) .
 
 Support is on Discord only: https://discord.gg/BtDvKcUSEP .
-PMs, github issues etc won't be accepted. 
+PMs, github issues etc won't be accepted.
 
 ## Installation
 - Remove the SAM plugin (but keep the embedded SAM_Library somewhere)
@@ -128,20 +128,31 @@ B742 2 -2.93 1.77 -14.40
 
 Please share results so they can be included in future updates.
 
-# Support for Scenery builders
-## Zero configuration Marshaller and VDGS service
-This is for sceneries with no or XP12 default jetways that should be equipped with Marshallers or VDGS.
-In WED just place the appropriate assets from 'openSAM' in the library pane into the scenery.
-SAM_Library is not required.
-Then copy file "openSAM_Library/zero_config_dgs/sam.xml" into your scenery and you are done.
+# Support for Scenery builders with "openSAM Zero Configuration"
+## Zero configuration for Marshallers, VDGS and MisterX jetways
 
-## Zero configuration "SAM library jetways" for scenery creators
-In case XP12 default jetways are not sufficient SAM library jetways can be used with zero configuration. \
-SAM_Library in required. \
-Just place them with proper initial orientation of the tunnel in WED. At runtime the cabin will point
-perpendicular to the stand with slight randown variations. \
-Use of SAM's authoring tool is not necessary. \
-Then copy file "openSAM_Library/zero_config_dgs/sam.xml" into your scenery and you are done.
+openSAM_Library contains a Marshaller, a VDGS (with or without pole) in various heights and MisterX's jetways as SAM library jetways.\
+Just place these assets from the openSAM folder in WED's library view.\
+For jetways use a proper initial orientation of the tunnel. At runtime the cabin will point
+perpendicular to the stand with slight random variations.
+
+Then copy file ```openSAM_Library/dev-tools/sam.xml``` into your scenery and you are done.
+
+## Zero Configuration jetways for own jetway objects
+
+As a scenery designer you can add your own jetway objects as library jetways
+- in a separate XP12 standard library, requires a ```samlibraryjetways.xml```
+- locally in the scenery, direct put the definition in the sam.xml file
+
+```openSAM_Library/dev-tools``` contains example files and an example airport.\
+In case you want to keep your jetway objects unmodified script ```dev-tools/gen_libjw_from_jw.py``` converts your object
+nondestructively into a separate library object by appending _ljw to the base name.
+
+```py gen_libjw_from_jw -jwpath "<somepath>/myjetway.obj -set hotbso_1``` creates a file ```myjetway_ljw.obj```
+in the current directory and uses the specified set name for datarefs.
+
+**Note**: all collected library jetways share a single global namespace. Hence be specific with your set names e.g. include your studio name.
+
 
 # Credits
 [Jonathan Harris (aka Marginal)](https://github.com/Marginal) for creating Autogate\
@@ -150,7 +161,8 @@ Then copy file "openSAM_Library/zero_config_dgs/sam.xml" into your scenery and y
 [zodiac1214 (aka cfanap)](https://github.com/zodiac1214) for creating the automated build and release system including skunkcrafts support\
 [TwinFan](https://github.com/TwinFan) for providing LTAPI\
 [X-Codr](https://www.x-codrdesigns.com/) for performance improvements\
-[Pierre](https://github.com/pierr3) for reworking the VDGS model and giving it much more precision and details
+[Pierre](https://github.com/pierr3) for reworking the VDGS model and giving it much more precision and details\
+[MisterX](https://forums.x-plane.org/profile/125097-misterx6/) for allowing to include his jetways as library jetways in openSAM_Library
 
 ## License
 Please observe that this material is covered by various licenses.
@@ -186,6 +198,9 @@ https://pixabay.com/sound-effects/backing-up-beepwav-14889/
 ///             OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ///             THE SOFTWARE.
 ```
+
+### Jetways by MisterX
+See the license reproduced in ![Image](openSAM-pkg/MisterX-License.jpg) .
 
 ### Contributions by hotbso:
 This is in part a derived work from Autogate so the above mentioned licenses apply accordingly to the components of this project.

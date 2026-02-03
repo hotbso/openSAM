@@ -20,24 +20,37 @@ REGION_DREF opensam/SAM_Library_installed == 0
 REGION default
 
 # openSAM native
-EXPORT   		openSAM/dgs/marshaller.agp			    dgs/marshaller.agp
-EXPORT   		openSAM/dgs/marshaller_high.agp		    dgs/marshaller_high.agp
-EXPORT  		openSAM/dgs/Safedock-T2_2.5m.obj		dgs/Safedock-T2-24_2.5m.obj
-EXPORT  		openSAM/dgs/Safedock-T2_3.0m.obj		dgs/Safedock-T2-24_3.0m.obj
-EXPORT  		openSAM/dgs/Safedock-T2_3.5m.obj		dgs/Safedock-T2-24_3.5m.obj
-EXPORT  		openSAM/dgs/Safedock-T2_4.0m.obj		dgs/Safedock-T2-24_4.0m.obj
-EXPORT  		openSAM/dgs/Safedock-T2_4.5m.obj		dgs/Safedock-T2-24_4.5m.obj
-EXPORT  		openSAM/dgs/Safedock-T2_5.0m.obj		dgs/Safedock-T2-24_5.0m.obj
-EXPORT  		openSAM/dgs/Safedock-T2_5.5m.obj		dgs/Safedock-T2-24_5.5m.obj
-EXPORT  		openSAM/dgs/Safedock-T2_6.0m.obj		dgs/Safedock-T2-24_6.0m.obj
-EXPORT  		openSAM/dgs/Safedock-T2_6.5m.obj		dgs/Safedock-T2-24_6.5m.obj
-EXPORT  		openSAM/dgs/Safedock-T2_7.0m.obj		dgs/Safedock-T2-24_7.0m.obj
-EXPORT  		openSAM/dgs/Safedock-T2_2.5m_pole.obj	dgs/Safedock-T2-24_2.5m_pole.obj
-EXPORT  		openSAM/dgs/Safedock-T2_3.0m_pole.obj	dgs/Safedock-T2-24_3.0m_pole.obj
-EXPORT  		openSAM/dgs/Safedock-T2_3.5m_pole.obj	dgs/Safedock-T2-24_3.5m_pole.obj
-EXPORT  		openSAM/dgs/Safedock-T2_4.0m_pole.obj	dgs/Safedock-T2-24_4.0m_pole.obj
-EXPORT  		openSAM/dgs/Safedock-T2_4.5m_pole.obj	dgs/Safedock-T2-24_4.5m_pole.obj
-EXPORT  		openSAM/dgs/Safedock-T2_5.0m_pole.obj	dgs/Safedock-T2-24_5.0m_pole.obj
+EXPORT  openSAM/dgs/marshaller.agp			    dgs/marshaller.agp
+EXPORT  openSAM/dgs/marshaller_high.agp		    dgs/marshaller_high.agp
+EXPORT  openSAM/dgs/Safedock-T2_2.5m.obj		dgs/Safedock-T2-24_2.5m.obj
+EXPORT  openSAM/dgs/Safedock-T2_3.0m.obj		dgs/Safedock-T2-24_3.0m.obj
+EXPORT  openSAM/dgs/Safedock-T2_3.5m.obj		dgs/Safedock-T2-24_3.5m.obj
+EXPORT  openSAM/dgs/Safedock-T2_4.0m.obj		dgs/Safedock-T2-24_4.0m.obj
+EXPORT  openSAM/dgs/Safedock-T2_4.5m.obj		dgs/Safedock-T2-24_4.5m.obj
+EXPORT  openSAM/dgs/Safedock-T2_5.0m.obj		dgs/Safedock-T2-24_5.0m.obj
+EXPORT  openSAM/dgs/Safedock-T2_5.5m.obj		dgs/Safedock-T2-24_5.5m.obj
+EXPORT  openSAM/dgs/Safedock-T2_6.0m.obj		dgs/Safedock-T2-24_6.0m.obj
+EXPORT  openSAM/dgs/Safedock-T2_6.5m.obj		dgs/Safedock-T2-24_6.5m.obj
+EXPORT  openSAM/dgs/Safedock-T2_7.0m.obj		dgs/Safedock-T2-24_7.0m.obj
+EXPORT  openSAM/dgs/Safedock-T2_2.5m_pole.obj	dgs/Safedock-T2-24_2.5m_pole.obj
+EXPORT  openSAM/dgs/Safedock-T2_3.0m_pole.obj	dgs/Safedock-T2-24_3.0m_pole.obj
+EXPORT  openSAM/dgs/Safedock-T2_3.5m_pole.obj	dgs/Safedock-T2-24_3.5m_pole.obj
+EXPORT  openSAM/dgs/Safedock-T2_4.0m_pole.obj	dgs/Safedock-T2-24_4.0m_pole.obj
+EXPORT  openSAM/dgs/Safedock-T2_4.5m_pole.obj	dgs/Safedock-T2-24_4.5m_pole.obj
+EXPORT  openSAM/dgs/Safedock-T2_5.0m_pole.obj	dgs/Safedock-T2-24_5.0m_pole.obj
+EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Modern_4m.obj	MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Modern_5m.obj	MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
+EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Modern_7m.obj	MisterX/libjw/Jetway_Steel_Modern_7m_ljw.obj
+EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Old_4m.obj	MisterX/libjw/Jetway_Steel_Old_4m_ljw.obj
+EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Old_5m.obj	MisterX/libjw/Jetway_Steel_Old_5m_ljw.obj
+EXPORT	openSAM/MisterX/libjw/Pillar_4m.obj	MisterX/libjw/Pillar_4m.obj
+EXPORT	openSAM/MisterX/libjw/Pillar_5m.obj	MisterX/libjw/Pillar_5m.obj
+EXPORT	openSAM/MisterX/libjw/Pillar_7m.obj	MisterX/libjw/Pillar_7m.obj
+EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_4m.fac	MisterX/libjw/Tunnel_Steel_Modern_4m.fac
+EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_5m.fac	MisterX/libjw/Tunnel_Steel_Modern_5m.fac
+EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_7m.fac	MisterX/libjw/Tunnel_Steel_Modern_7m.fac
+EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_4m.fac	MisterX/libjw/Tunnel_Steel_Old_4m.fac
+EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_5m.fac	MisterX/libjw/Tunnel_Steel_Old_5m.fac
 
 # stuff below should not show up in WED
 DEPRECATED

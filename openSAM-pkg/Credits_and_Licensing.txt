@@ -37,6 +37,9 @@ https://pixabay.com/sound-effects/backing-up-beepwav-14889/
 ///             OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ///             THE SOFTWARE.
 
+### Jetways by MisterX
+See the license reproduced in MisterX-License.jpg
+
 ### Contributions by hotbso:
 This is in part a derived work from Autogate so the above mentioned licenses apply accordingly
 to the components of this project.
