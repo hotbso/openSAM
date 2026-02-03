@@ -63,7 +63,7 @@ int MyPlane::JwStatusAcc(void* ref) {
 //  0 = not docked
 //  1 = docked
 //
-int MyPlane::JwDoorStatusAcc([[maybe_unused]] XPLMDataRef ref, int* values, int ofs, int n) {
+int MyPlane::JwDoorStatusAcc([[maybe_unused]] void* ref, int* values, int ofs, int n) {
     if (values == nullptr)
         return kMaxDoor;
 

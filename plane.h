@@ -238,7 +238,7 @@ class MyPlane : public Plane {
 
     // dataref accessors
     static int JwStatusAcc(void* ref);
-    static int JwDoorStatusAcc(XPLMDataRef ref, int* values, int ofs, int n);
+    static int JwDoorStatusAcc(void* ref, int* values, int ofs, int n);
 };
 
 extern std::unique_ptr<MyPlane> my_plane;
