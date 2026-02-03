@@ -80,12 +80,15 @@ class Plane {
     float x() const {
         return x_;
     }
+
     float y() const {
         return y_;
     }
+
     float z() const {
         return z_;
     }
+
     float psi() const {
         return psi_;
     }
@@ -94,12 +97,15 @@ class Plane {
     bool on_ground() const {
         return on_ground_;
     }
+
     bool beacon_on() const {
         return beacon_on_;
     }
+
     bool parkbrake_set() const {
         return parkbrake_set_;
     }
+
     bool engines_on() const {
         return engines_on_;
     }
@@ -109,12 +115,15 @@ class Plane {
     virtual bool dock_requested() {
         return false;
     }
+
     virtual bool undock_requested() {
         return false;
     }
+
     virtual bool toggle_requested() {
         return false;
     }
+
     virtual bool call_pre_post_dock_cmd() {
         return false;
     }
@@ -126,6 +135,7 @@ class Plane {
 
     virtual void MemorizeParkedPos() {
     }  // for teleportation detection
+
     virtual bool CheckTeleportation() {
         return false;
     }
@@ -139,6 +149,7 @@ class Plane {
     // UI support functions called from JwStateMachine()
     virtual void UpdateUI([[maybe_unused]] bool only_if_visible) {
     }
+
     virtual void LockUI([[maybe_unused]] bool yes_no) {
     }
 };
@@ -176,7 +187,7 @@ class MyPlane : public Plane {
     bool is_helicopter_{};
     float nose_gear_z_, main_gear_z_, plane_cg_z_;  // z value of plane's gears and cg
 
-    MyPlane();             // don't call SDK functions here
+    MyPlane();
     ~MyPlane() override {
     }
 
@@ -194,9 +205,11 @@ class MyPlane : public Plane {
     float lat() {
         return XPLMGetDataf(plane_lat_dr_);
     }
+
     float lon() {
         return XPLMGetDataf(plane_lon_dr_);
     }
+
     float y_agl() {
         return XPLMGetDataf(plane_y_agl_dr_);
     }
@@ -204,6 +217,7 @@ class MyPlane : public Plane {
     float elevation() const {
         return elevation_;
     }
+
     int pax_no() const {
         return pax_no_;
     }
@@ -224,6 +238,7 @@ class MyPlane : public Plane {
     bool auto_mode() const override {
         return auto_mode_;
     }
+
     bool call_pre_post_dock_cmd() override {
         return true;
     }

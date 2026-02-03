@@ -279,7 +279,7 @@ bool JwCtrl::CollisionCheck(const JwCtrl& njw2) {
     //  S1 + s * (E1 - S1) = S2 + t * (P2 - S2)
     //  s * (E1 - S1) + t * -(P2 - S2) = S2 - S1
     //          A                B          C
-    // if the solutions for s, t are in [0,1] there is collision
+    // if the solutions for s, t are in [0,1] there is a collision
 
     // x, z in the door frame
     float A1 = door_x_ - x_;
