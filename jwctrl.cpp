@@ -111,21 +111,32 @@ bool operator<(const JwCtrl& a, const JwCtrl& b) {
     if (a.jw_->height > b.jw_->height + 1.0f)
         return false;
 
-    // then z
-    if (a.z_ < b.z_ - 0.5f)
-        return true;
+    // check quadrants
+    // a in center, b in quadrant -> result for a < b
+    //
+    //  < | >
+    // ---a--- +x
+    //  < | >
+    //    +z
 
-    if (a.z_ > b.z_ + 0.5f)
+    // top right
+    if (b.x_ >= a.x_ && b.z_ < a.z_)
         return false;
 
-    // then x, further left (= towards -x) is higher
-    if (a.x_ < b.x_)
-        return false;
-
-    if (a.x_ > b.x_)
+    // top left
+    if (b.x_ <= a.x_ && b.z_ < a.z_)
         return true;
 
-    return true;
+    // bottom left
+    if (b.x_ <= a.x_ && b.z_ > a.z_)
+        return true;
+
+    // bottom right
+    if (b.x_ >= a.x_ && b.z_ > a.z_)
+        return false;
+
+    // a.z_ == b.z_ case
+    return (a.x_ < b.x_);
 }
 
 // filter list of jetways jws[]for candidates and add them to nearest_jws[]
