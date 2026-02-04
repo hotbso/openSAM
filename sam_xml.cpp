@@ -597,7 +597,7 @@ void CollectSamXml(const SceneryPacks& scp) {
     sam_drfs.shrink_to_fit();
 
     // transfer collected library jetways to vector for fast access by dref acessors
-    lib_jw.reserve(lib_jw_map.size());
+    lib_jw.reserve(lib_jw_map.size() + 1);
     lib_jw.push_back(nullptr);  // must start at 1 due to logic in the dref accessors
 
     for (const auto& [id_str, sam_lib_jw] : lib_jw_map)
