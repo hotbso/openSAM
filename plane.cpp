@@ -86,7 +86,7 @@ void Plane::SelectJws() {
         i_jw++;
     }
 
-    if (active_jws_.size() == 0)
+    if (active_jws_.empty())
         LogMsg("Oh no, no active jetways left in SelectJws()!");
 }
 
@@ -141,11 +141,15 @@ float Plane::JwStateMachine() {
             break;
 
         case PARKED:
-            if (JwCtrl::FindNearestJetways(*this, nearest_jws_))
-                new_state = SELECT_JWS;
-            else
+            if (!JwCtrl::FindNearestJetways(*this, nearest_jws_)) {
                 new_state = CANT_DOCK;
-            break;
+                break;
+            }
+
+            // falling through adds much concurrency to the MP case as unused jetways get unlocked much earlier
+            state_ = SELECT_JWS;
+            LogMsg("pid=%02d, new state: SELECT_JWS", id_);
+            // FALLTHROUGH
 
         case SELECT_JWS:
             if (beacon_on_) {
@@ -156,7 +160,10 @@ float Plane::JwStateMachine() {
 
             if (auto_mode()) {
                 SelectJws();
-                if (active_jws_.size() == 0) {  // e.g. collisions
+                if (active_jws_.empty()) {  // e.g. collisions, locked jws
+                    for (auto& njw : nearest_jws_)
+                        njw.jw_->locked = false;
+
                     new_state = CANT_DOCK;
                     break;
                 }
@@ -168,7 +175,7 @@ float Plane::JwStateMachine() {
             // or wait for GUI selection
             if (active_jws_.size()) {
                 for (auto& ajw : active_jws_) {
-                    LogMsg("pid=%d, setting up active jw for door: %d", id_, ajw.door_);
+                    LogMsg("pid=%02d, setting up active jw for door: %d", id_, ajw.door_);
                     ajw.SetupForDoor(*this, door_info_[ajw.door_]);
 
                     if (ajw.door_ == 0)  // slightly slant towards the nose cone for door LF1
