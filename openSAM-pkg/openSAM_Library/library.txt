@@ -41,21 +41,21 @@ EXPORT  openSAM/dgs/Safedock-T2_5.0m_pole.obj	dgs/Safedock-T2-24_5.0m_pole.obj
 EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Modern_4m.obj	MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
 EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Modern_5m.obj	MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
 EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Modern_7m.obj	MisterX/libjw/Jetway_Steel_Modern_7m_ljw.obj
-EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Old_4m.obj	MisterX/libjw/Jetway_Steel_Old_4m_ljw.obj
-EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Old_5m.obj	MisterX/libjw/Jetway_Steel_Old_5m_ljw.obj
-EXPORT	openSAM/MisterX/libjw/Pillar_4m.obj	MisterX/libjw/Pillar_4m.obj
-EXPORT	openSAM/MisterX/libjw/Pillar_5m.obj	MisterX/libjw/Pillar_5m.obj
-EXPORT	openSAM/MisterX/libjw/Pillar_7m.obj	MisterX/libjw/Pillar_7m.obj
+EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Old_4m.obj	    MisterX/libjw/Jetway_Steel_Old_4m_ljw.obj
+EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Old_5m.obj	    MisterX/libjw/Jetway_Steel_Old_5m_ljw.obj
+EXPORT	openSAM/MisterX/libjw/Pillar_4m.obj	                MisterX/libjw/Pillar_4m.obj
+EXPORT	openSAM/MisterX/libjw/Pillar_5m.obj	                MisterX/libjw/Pillar_5m.obj
+EXPORT	openSAM/MisterX/libjw/Pillar_7m.obj	                MisterX/libjw/Pillar_7m.obj
 EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_4m.fac	MisterX/libjw/Tunnel_Steel_Modern_4m.fac
 EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_5m.fac	MisterX/libjw/Tunnel_Steel_Modern_5m.fac
 EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_7m.fac	MisterX/libjw/Tunnel_Steel_Modern_7m.fac
-EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_4m.fac	MisterX/libjw/Tunnel_Steel_Old_4m.fac
-EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_5m.fac	MisterX/libjw/Tunnel_Steel_Old_5m.fac
+EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_4m.fac	    MisterX/libjw/Tunnel_Steel_Old_4m.fac
+EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_5m.fac	    MisterX/libjw/Tunnel_Steel_Old_5m.fac
 
 # stuff below should not show up in WED
 DEPRECATED
 
-# SAM3 
+# SAM3
 
 # DOCKINGS
 EXPORT   		SAM3_Library/marshaller/marshaller.agp			dgs/marshaller.agp
@@ -207,29 +207,29 @@ EXPORT  SAM3_Library/jetways/Type01_solid_0.0m.obj					blank/blank.obj
 EXPORT  SAM3_Library/jetways/Type01_solid_2.5m.obj					blank/blank.obj
 EXPORT  SAM3_Library/jetways/Type01_solid_3.0m.obj					blank/blank.obj
 EXPORT  SAM3_Library/jetways/Type01_solid_3.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_4.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_4.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_5.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_5.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_solid_6.0m.obj					blank/blank.obj
+EXPORT  SAM3_Library/jetways/Type01_solid_4.0m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM3_Library/jetways/Type01_solid_4.5m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM3_Library/jetways/Type01_solid_5.0m.obj					MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
+EXPORT  SAM3_Library/jetways/Type01_solid_5.5m.obj					MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
+EXPORT  SAM3_Library/jetways/Type01_solid_6.0m.obj					MisterX/libjw/Jetway_Steel_Modern_7m_ljw.obj
 EXPORT  SAM3_Library/jetways/Type01_glas_2.5m.obj					blank/blank.obj
 EXPORT  SAM3_Library/jetways/Type01_glas_3.0m.obj					blank/blank.obj
 EXPORT  SAM3_Library/jetways/Type01_glas_3.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_4.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_4.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_5.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_5.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type01_glas_6.0m.obj					blank/blank.obj
+EXPORT  SAM3_Library/jetways/Type01_glas_4.0m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM3_Library/jetways/Type01_glas_4.5m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM3_Library/jetways/Type01_glas_5.0m.obj					MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
+EXPORT  SAM3_Library/jetways/Type01_glas_5.5m.obj					MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
+EXPORT  SAM3_Library/jetways/Type01_glas_6.0m.obj					MisterX/libjw/Jetway_Steel_Modern_7m_ljw.obj
 EXPORT  SAM3_Library/jetways/Type02_solid_3.0m.obj					blank/blank.obj
 EXPORT  SAM3_Library/jetways/Type02_solid_3.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_solid_4.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_solid_4.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_solid_5.0m.obj					blank/blank.obj
+EXPORT  SAM3_Library/jetways/Type02_solid_4.0m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM3_Library/jetways/Type02_solid_4.5m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM3_Library/jetways/Type02_solid_5.0m.obj					MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
 EXPORT  SAM3_Library/jetways/Type02_glas_3.0m.obj					blank/blank.obj
 EXPORT  SAM3_Library/jetways/Type02_glas_3.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_glas_4.0m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_glas_4.5m.obj					blank/blank.obj
-EXPORT  SAM3_Library/jetways/Type02_glas_5.0m.obj					blank/blank.obj
+EXPORT  SAM3_Library/jetways/Type02_glas_4.0m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM3_Library/jetways/Type02_glas_4.5m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM3_Library/jetways/Type02_glas_5.0m.obj					MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
 
 # BRIDGES
 EXPORT 	SAM3_Library/bridges/Type01_solid.fac						blank/blank.fac
@@ -250,32 +250,32 @@ EXPORT  SAM_Library/jetways/Type01_solid_0.0m.obj					blank/blank.obj
 EXPORT  SAM_Library/jetways/Type01_solid_2.5m.obj					blank/blank.obj
 EXPORT  SAM_Library/jetways/Type01_solid_3.0m.obj					blank/blank.obj
 EXPORT  SAM_Library/jetways/Type01_solid_3.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_4.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_4.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_5.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_5.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_solid_6.0m.obj					blank/blank.obj
+EXPORT  SAM_Library/jetways/Type01_solid_4.0m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM_Library/jetways/Type01_solid_4.5m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM_Library/jetways/Type01_solid_5.0m.obj					MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
+EXPORT  SAM_Library/jetways/Type01_solid_5.5m.obj					MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
+EXPORT  SAM_Library/jetways/Type01_solid_6.0m.obj					MisterX/libjw/Jetway_Steel_Modern_7m_ljw.obj
 # JETWAY Type 01 Glas
 EXPORT  SAM_Library/jetways/Type01_glas_2.5m.obj					blank/blank.obj
 EXPORT  SAM_Library/jetways/Type01_glas_3.0m.obj					blank/blank.obj
 EXPORT  SAM_Library/jetways/Type01_glas_3.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_glas_4.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_glas_4.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_glas_5.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_glas_5.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type01_glas_6.0m.obj					blank/blank.obj
+EXPORT  SAM_Library/jetways/Type01_glas_4.0m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM_Library/jetways/Type01_glas_4.5m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM_Library/jetways/Type01_glas_5.0m.obj					MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
+EXPORT  SAM_Library/jetways/Type01_glas_5.5m.obj					MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
+EXPORT  SAM_Library/jetways/Type01_glas_6.0m.obj					MisterX/libjw/Jetway_Steel_Modern_7m_ljw.obj
 # JETWAY Type 02 Solid
 EXPORT  SAM_Library/jetways/Type02_solid_3.0m.obj					blank/blank.obj
 EXPORT  SAM_Library/jetways/Type02_solid_3.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_solid_4.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_solid_4.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_solid_5.0m.obj					blank/blank.obj
+EXPORT  SAM_Library/jetways/Type02_solid_4.0m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM_Library/jetways/Type02_solid_4.5m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM_Library/jetways/Type02_solid_5.0m.obj					MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
 # JETWAY Type 02 Glas
 EXPORT  SAM_Library/jetways/Type02_glas_3.0m.obj					blank/blank.obj
 EXPORT  SAM_Library/jetways/Type02_glas_3.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_glas_4.0m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_glas_4.5m.obj					blank/blank.obj
-EXPORT  SAM_Library/jetways/Type02_glas_5.0m.obj					blank/blank.obj
+EXPORT  SAM_Library/jetways/Type02_glas_4.0m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM_Library/jetways/Type02_glas_4.5m.obj					MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT  SAM_Library/jetways/Type02_glas_5.0m.obj					MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
 # WIND TURBINES
 EXPORT  SAM_Library/windturbines/windturbine_01.obj					blank/blank.obj
 EXPORT  SAM_Library/windturbines/windturbine_02.obj					blank/blank.obj
