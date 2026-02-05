@@ -125,7 +125,7 @@ extern bool error_disabled; // set this on severe errors to disable openSAM and 
 // detect shifts of the reference frame
 extern float lat_ref, lon_ref;
 // generation # of reference frame
-// init with 1 so jetways never seen by the accessor won't be considered in JwCtrl::FindNearestJetway()
+// init with 1 so jetways never seen by the accessor won't be considered in JwCtrl::FindNearestJetways()
 extern unsigned int ref_gen;
 
 extern XPLMMenuID anim_menu;

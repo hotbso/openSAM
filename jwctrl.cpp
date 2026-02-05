@@ -212,7 +212,7 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
 
 // find nearest jetways, order by z (= door number, hopefully)
 // static member, called by Plane
-int JwCtrl::FindNearestJetway(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
+int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     int n_door = plane.n_door_;
     if (n_door == 0) {
         LogMsg("acf has no doors!");

@@ -39,6 +39,8 @@ class Plane;
 // The jetway controller is the glue between a plane and its doors and sam jetways.
 // It has support functions to find appropriate jetways for a plane and does the animation
 // by updating values for the animation datarefs in the corresponding SamJw class.
+
+// *** This must stay a POD *** (or change the code...)
 class JwCtrl {
   private:
     static Sound alert_;
@@ -105,7 +107,7 @@ class JwCtrl {
 
   public:
     // find nearest jetways, order by z (= door number, hopefully)
-    static int FindNearestJetway(Plane& plane, std::vector<JwCtrl>& nearest_jws);
+    static int FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws);
 
     // check whether extended nearest njw would crash into parked njw2
     bool CollisionCheck(const JwCtrl &njw2);
@@ -125,6 +127,10 @@ class JwCtrl {
     static void SoundInit();       // inits device and loads wav
     static void Init();             // registers dref accessors
 };
+
+static_assert(std::is_trivially_copyable_v<JwCtrl> &&
+              std::is_standard_layout_v<JwCtrl>,
+              "JwCtrl must be Trivial and Standard Layout (POD equivalent)");
 
 // from ReadWav.cpp
 extern void ReadWav(const std::string& fname, Sound& sound);
