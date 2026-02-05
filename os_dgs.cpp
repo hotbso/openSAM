@@ -603,32 +603,11 @@ static bool FindDepartureStand() {
 
     if (ds != active_stand) {
         if (ds) {
-            // create display name
-            // a stand name can be anything between "1" and "Gate A 40 (Class C, Terminal 3)"
-            // we try to extract the net name "A 40" in the latter case
-            const std::string &dsn = ds->id;
-
-            if (dsn.starts_with("Stand"))
-                display_name = dsn.substr(6);
-            else if (dsn.starts_with("Gate"))
-                display_name = dsn.substr(5);
-            else
-                display_name = dsn;
-
-            // delete stuff following and including a "(,;"
-            if (display_name.length() > kR1Nchar) {
-                const auto i = display_name.find_first_of("(,;");
-                if (i != std::string::npos) {
-                    display_name.resize(i);
-                    display_name.erase(display_name.find_last_not_of(" ") + 1);
-                }
-            }
-
-            // trim whitespace
-            display_name.erase(0, display_name.find_first_not_of(" "));
-
+            // create display name, id has already the net name extracted by the airport loader
+            display_name = ds->id;
             if (display_name.length() > kR1Nchar)
                 display_name.clear();  // give up
+
             arpt_icao = min_sc->arpt_icao;
             LogMsg("departure stand is: %s/%s, display_name: '%s'", arpt_icao.c_str(), ds->id.c_str(), display_name.c_str());
         } else {

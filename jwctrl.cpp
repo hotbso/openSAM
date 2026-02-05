@@ -263,12 +263,7 @@ int JwCtrl::FindNearestJetway(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
         if (jw->is_zc_jw) {
             Stand* stand = jw->stand;
             if (stand) {
-                // stand->id can be everything from "A11" to "A11 - Terminal 1 (cat C)"
                 jw->name = stand->id;
-                // truncate at ' ' or after 10 chars max
-                size_t pos = jw->name.find(' ');
-                if (pos != std::string::npos)
-                    jw->name = jw->name.substr(0, pos);
                 if (jw->name.length() > 10)
                     jw->name = jw->name.substr(0, 10);
                 jw->name = jw->name + "_" + std::to_string(i);

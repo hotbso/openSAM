@@ -431,6 +431,8 @@ static bool ParseAptDat(const std::string& fn, Scenery* sc) {
 
     std::string line;
     line.reserve(2000);  // can be quite long
+    std::string name;
+    name.reserve(100);
 
     while (std::getline(apt, line)) {
         // 1302 icao_code ENRM
@@ -448,8 +450,27 @@ static bool ParseAptDat(const std::string& fn, Scenery* sc) {
             int len;
             int n = sscanf(line.c_str(), "%f %f %f %*s %*s %n", &stand->lat, &stand->lon, &stand->hdgt, &len);
             if (3 == n) {
-                stand->id = line.substr(len);
+                name = line.substr(len);
                 // LogMsg("%d %d, %f %f %f '%s'", n, len, stand->lat, stand->lon, stand->hdgt, stand->id.c_str());
+
+                // a stand name can be anything between "1" and "Gate A 40 (Class C, Terminal 3)"
+                // we try to extract the net name "A 40" in the latter case
+
+                if (name.starts_with("Stand"))
+                    name.erase(0, 6);
+                else if (name.starts_with("Gate"))
+                    name.erase(0, 5);
+
+                // delete stuff following and including a "(,;"
+                const auto i = name.find_first_of("(,;");
+                if (i != std::string::npos)
+                    name.resize(i);
+
+                // trim trailing whitespace
+                const auto last = name.find_last_not_of(" ");
+                if (last != std::string::npos)
+                   stand->id = name.substr(0, last + 1);
+                // else leave empty
 
                 stand->hdgt = RA(stand->hdgt);
                 stand->sin_hdgt = sinf(kD2R * stand->hdgt);
