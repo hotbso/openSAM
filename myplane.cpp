@@ -185,7 +185,7 @@ void MyPlane::AutoModeSet(bool auto_mode) {
     if (!auto_mode && state_ == CAN_DOCK) {
         for (auto& ajw : active_jws_)
             ajw.jw_->locked = false;
-        active_jws_.resize(0);
+        active_jws_.clear();
         state_ = PARKED;
         return;
     }

@@ -58,7 +58,15 @@ void JwCtrl::XzToSamDref(float cabin_x, float cabin_z, float& rot1, float& exten
 
     if (rot3) {
         float net_length = dist + jw_->cabinLength * cosf(r2 * kD2R);
-        *rot3 = -asinf(y_ / net_length) / kD2R;
+        float sin_rot3 = -y_ / net_length;
+        if (fabsf(sin_rot3) > 1.0f) {
+            LogMsg("data corrupted");
+            *rot3 = 0.0f;
+            error_disabled = true;
+            return;
+        }
+
+        *rot3 = asinf(sin_rot3) / kD2R;
     }
 }
 
@@ -229,15 +237,15 @@ int JwCtrl::FindNearestJetway(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     avg_di.z /= n_door;
     avg_di.y = plane.door_info_[0].y;
 
-    nearest_jws.resize(0);
+    nearest_jws.clear();
 
     // custom jws
     float plane_lat = my_plane->lat();
     float plane_lon = my_plane->lon();
 
-    for (auto sc : sceneries) {
+    for (const auto sc : sceneries) {
         // cheap check against bounding box
-        if (!sc->in_bbox(plane_lat, plane_lon))
+        if (!sc->InBbox(plane_lat, plane_lon))
             continue;
         FilterCandidates(plane, nearest_jws, sc->sam_jws, avg_di);
     }

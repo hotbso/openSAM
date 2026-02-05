@@ -45,7 +45,7 @@ Plane::~Plane() {
     if (IDLE <= state_) {
         for (auto& ajw : active_jws_)
             ajw.Reset();
-        active_jws_.resize(0);
+        active_jws_.clear();
     }
 
     LogMsg("pid=%02d, Plane destructor finished", id_);
@@ -110,8 +110,8 @@ float Plane::JwStateMachine() {
         for (auto& ajw : active_jws_)
             ajw.Reset();
 
-        nearest_jws_.resize(0);
-        active_jws_.resize(0);
+        nearest_jws_.clear();
+        active_jws_.clear();
         SamJw::ResetAll();
     }
 
@@ -123,8 +123,8 @@ float Plane::JwStateMachine() {
                 for (auto& ajw : active_jws_)
                     ajw.Reset();
 
-                active_jws_.resize(0);
-                nearest_jws_.resize(0);
+                active_jws_.clear();
+                nearest_jws_.clear();
             }
 
             if (on_ground_ && !beacon_on_) {
@@ -294,8 +294,8 @@ float Plane::JwStateMachine() {
         if (state_ == IDLE) {
             for (auto& ajw : active_jws_)
                 ajw.Reset();
-            active_jws_.resize(0);
-            nearest_jws_.resize(0);
+            active_jws_.clear();
+            nearest_jws_.clear();
         }
 
         LockUI(true);

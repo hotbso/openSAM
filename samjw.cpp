@@ -119,7 +119,7 @@ Stand* SamJw::FindStand() {
 
     for (auto sc : sceneries) {
         // cheap check against bounding box
-        if (!sc->in_bbox(plane_lat, plane_lon))
+        if (!sc->InBbox(plane_lat, plane_lon))
             continue;
 
         for (auto s : sc->stands) {
@@ -210,7 +210,7 @@ void CheckRefFrameShift() {
         for (auto jw : zc_jws)
             delete (jw);
 
-        zc_jws.resize(0);  // keep the allocation
+        zc_jws.clear();  // keep the allocation
         zc_ref_gen = ref_gen;
     }
 }
@@ -267,7 +267,7 @@ static float JwAnimAcc(void* ref) {
 
         for (auto sc : sceneries) {
             // cheap check against bounding box
-            if (!sc->in_bbox(lat, lon)) {
+            if (!sc->InBbox(lat, lon)) {
                 stat_sc_far_skip++;
                 continue;
             }

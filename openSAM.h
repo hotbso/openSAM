@@ -75,7 +75,7 @@ struct Scenery {
         sam_objs.reserve(50);  sam_anims.reserve(50);
     }
 
-    auto in_bbox(float lat, float lon) -> bool {
+    bool InBbox(float lat, float lon) const{
         return (lat >= bb_lat_min && lat <= bb_lat_max
             && RA(lon - bb_lon_min) >= 0 && RA(lon - bb_lon_max) <= 0);
     }
@@ -120,6 +120,7 @@ extern unsigned long long stat_sc_far_skip, stat_near_skip,
     stat_jw_cache_hit;
 
 extern float now;           // current timestamp
+extern bool error_disabled; // set this on severe errors to disable openSAM and hopefully allow XP to continue
 
 // detect shifts of the reference frame
 extern float lat_ref, lon_ref;

@@ -61,7 +61,7 @@ int MyPlane::UIWidgetCb(XPWidgetMessage msg, XPWidgetID widget_id, [[maybe_unuse
             for (auto& njw : my_plane->nearest_jws_)
                 njw.selected_ = false;
 
-            my_plane->active_jws_.resize(0);
+            my_plane->active_jws_.clear();
 
             for (unsigned i = 0; i < n_door; i++) {
                 // check for a selected button

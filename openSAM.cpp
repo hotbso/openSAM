@@ -129,7 +129,7 @@ XPLMProbeInfo_t probeinfo;
 XPLMProbeRef probe_ref;
 XPLMMenuID anim_menu;
 
-static bool error_disabled;
+bool error_disabled;
 
 // inihibit all dataref accessors that call SDK functions until the sim is considered 'running'
 bool sim_running;
@@ -386,9 +386,11 @@ static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, 
     line.reserve(100);
 
     while (std::getline(f, line)) {
-        size_t i = line.find('\r');
-        if (i != std::string::npos)
-            line.resize(i);
+        if (line.empty())
+            continue;
+
+        if (line.back() == '\r')
+            line.pop_back();
 
         if (line.empty() || line[0] == '#')
             continue;
@@ -420,18 +422,20 @@ static void LoadAcfGenericType(const std::string& fn) {
 
     std::string line;
     while (std::getline(f, line)) {
-        size_t i = line.find('\r');
-        if (i != std::string::npos)
-            line.resize(i);
+        if (line.empty())
+            continue;
+
+        if (line.back() == '\r')
+            line.pop_back();
+
+        if (line.empty() || line[0] == '#')
+            continue;
 
         char code[5];
         char icao[5];
-        if (2 == sscanf(line.c_str(), "%4s %4s", code, icao)) {
-            if (code[0] == '#')
-                continue;
-
+        if (2 == sscanf(line.c_str(), "%4s %4s", code, icao))
             acf_generic_type_map[std::string(code)] = std::string(icao);
-        }
+
     }
 
     LogMsg("%d mappings loaded", (int)acf_generic_type_map.size());
