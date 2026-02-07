@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<scenery name="put name here">
+<scenery name="OSJW_openSAM_demo_airport">
     <!--
         The existence of this file tells openSAM that this scenery contains DGS objects.
     -->
-    
+
     <!-- If you have local library jetways define them here -->
     <sets>
-        <set id="hotbso_1" name="based on MrXLib_Steel_Old_4m" height="4.2" wheelPos="13" cabinPos="16.2999992" cabinLength="2.79999995" wheelDiameter="0.893" wheelDistance="1.36" sound="" externalPower="0" minRot1="-90" maxRot1="45" minRot2="-95" maxRot2="40" minRot3="-6" maxRot3="6" minExtent="0" maxExtent="17" minWheels="-3.0" maxWheels="1.5" initialRot1="0" initialRot2="-84.060997" initialRot3="-2.03600001" initialExtent="7.05499983" />
+        <set id="hotbso_1" name="based on MrXLib_Steel_Old_4m" height="4.2" wheelPos="13" cabinPos="16.2999992" cabinLength="2.79999995" wheelDiameter="0.893" wheelDistance="1.36" sound="" externalPower="0" minRot1="-90" maxRot1="45" minRot2="-95" maxRot2="40" minRot3="-6" maxRot3="6" minExtent="0" maxExtent="17" minWheels="-3.0" maxWheels="1.5" />
     </sets>
 </scenery>

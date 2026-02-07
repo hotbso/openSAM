@@ -82,8 +82,7 @@ struct SamLibJw {
     std::string id;
     std::string name;
     float height{}, wheelPos{}, cabinPos{}, cabinLength{}, wheelDiameter{}, wheelDistance{}, minRot1{}, maxRot1{}, minRot2{}, maxRot2{},
-        minRot3{}, maxRot3{}, minExtent{}, maxExtent{}, minWheels{}, maxWheels{}, initialRot1{}, initialRot2{}, initialRot3{},
-        initialExtent{};
+        minRot3{}, maxRot3{}, minExtent{}, maxExtent{}, minWheels{}, maxWheels{};
 };
 
 // currently active zero config jetways
