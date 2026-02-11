@@ -177,17 +177,18 @@ jobs:
               echo "=============== OPEN SAM ARTIFACT ==============="
               rsync -av  ${OPENSAM_ARTIFACT}/openSAM/ ${OPENSAM_FOLDER}/
               cp -r openSAM-pkg/lua/* ${OPENSAM_FOLDER}/lua
-              cp -r ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_FOLDER}/LICENSE
-              cp -r ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_FOLDER}/Credits_and_Licensing.txt
-              cp -r ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_FOLDER}/.
+              cp  ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_FOLDER}/.
+              cp  ${OPENSAM_ARTIFACT}/MisterX-License.jpg ${OPENSAM_FOLDER}/.
+              cp  ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_FOLDER}/.
+              cp  ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_FOLDER}/.
               ls -l ${OPENSAM_FOLDER}
               echo
 
               echo "=============== OPEN SAM LIBRARY ARTIFACT ==============="
               rsync -av  ${OPENSAM_ARTIFACT}/openSAM_Library/ ${OPENSAM_LIBRARY_FOLDER}/
-              cp -r ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_LIBRARY_FOLDER}/LICENSE
-              cp -r ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_LIBRARY_FOLDER}/Credits_and_Licensing.txt
-              cp -r ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_LIBRARY_FOLDER}/.
+              cp ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_LIBRARY_FOLDER}/.
+              cp ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_LIBRARY_FOLDER}/.
+              cp ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_LIBRARY_FOLDER}/.
               ls -l ${OPENSAM_LIBRARY_FOLDER}
 
               ## skunkcrafts for openSAM_Library
