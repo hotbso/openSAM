@@ -1,0 +1,9 @@
+# icao codes of planes that don't have proper use of "sim/cockpit2/switches/beacon_on"
+# e.g. always off or pulsing
+# use engines running instead
+MD11
+DH8D
+R22
+A320
+ICON
+# test C172
