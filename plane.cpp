@@ -147,7 +147,7 @@ float Plane::JwStateMachine() {
             }
 
             // falling through adds much concurrency to the MP case as unused jetways get unlocked much earlier
-            state_ = SELECT_JWS;
+            new_state = state_ = SELECT_JWS;
             LogMsg("pid=%02d, new state: SELECT_JWS", id_);
             // FALLTHROUGH
 
