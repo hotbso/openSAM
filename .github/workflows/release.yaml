@@ -170,17 +170,17 @@ jobs:
               mkdir -p ${OPENSAM_LIBRARY_FOLDER}
 
               echo "=============== RELEASE FOLDER  ==============="
-              cp -r ${OPENSAM_ARTIFACT}/LICENSE $RELEASE_FOLDER/.
-              cp -r ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt $RELEASE_FOLDER/.
-              cp -r ${OPENSAM_ARTIFACT}/README.html $RELEASE_FOLDER/.
+              cp ${OPENSAM_ARTIFACT}/LICENSE $RELEASE_FOLDER/.
+              cp ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt $RELEASE_FOLDER/.
+              cp ${OPENSAM_ARTIFACT}/README.html $RELEASE_FOLDER/.
+              cp ${OPENSAM_ARTIFACT}/MisterX-License.jpg $RELEASE_FOLDER/.
 
               echo "=============== OPEN SAM ARTIFACT ==============="
               rsync -av  ${OPENSAM_ARTIFACT}/openSAM/ ${OPENSAM_FOLDER}/
               cp -r openSAM-pkg/lua/* ${OPENSAM_FOLDER}/lua
-              cp  ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_FOLDER}/.
-              cp  ${OPENSAM_ARTIFACT}/MisterX-License.jpg ${OPENSAM_FOLDER}/.
-              cp  ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_FOLDER}/.
-              cp  ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_FOLDER}/.
+              cp ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_FOLDER}/.
+              cp ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_FOLDER}/.
+              cp ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_FOLDER}/.
               ls -l ${OPENSAM_FOLDER}
               echo
 
