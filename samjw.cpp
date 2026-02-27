@@ -41,6 +41,7 @@ typedef enum dr_code_e {
     DR_ROTATE1, DR_ROTATE2, DR_ROTATE3, DR_EXTENT,
     DR_WHEELS, DR_WHEELROTATEC, DR_WHEELROTATER, DR_WHEELROTATEL,
     DR_WARNLIGHT,
+    DR_CANOPY,
     N_JW_DR
 } dr_code_t;
 
@@ -53,7 +54,8 @@ static const char *dr_name_jw[] = {
     "wheelrotatec",
     "wheelrotater",
     "wheelrotatel",
-    "warnlight"
+    "warnlight",
+    "canopy"
 };
 
 
@@ -387,6 +389,9 @@ have_jw:
             break;
         case DR_WARNLIGHT:
             return jw->warnlight;
+            break;
+        case DR_CANOPY:
+            return jw->canopy;
             break;
         default:
             LogMsg("Accessor got invalid DR code: %d", drc);

@@ -49,7 +49,7 @@ class JwCtrl {
   public:
     enum JwCtrlState {
         PARKED,
-        TO_AP, AT_AP, TO_DOOR, DOCKED,  // sequence for docking
+        TO_AP, AT_AP, TO_DOOR, AT_DOOR, DOCKED,  // sequence for docking
 
         // TO_AP,                       // sequence for undocking
         TO_PARK };

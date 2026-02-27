@@ -34,11 +34,12 @@
 // from os_read_wav.c
 extern void ReadWav(const std::string& fname, Sound& sound);
 
-static constexpr float kDriveSpeed = 1.0;    // m/s
-static constexpr float kTurnSpeed = 10.0;    // °/s
-static constexpr float kHeightSpeed = 0.1;   // m/s
-static constexpr float kAnimTimeout = 50;    // s
-static constexpr float kAlignDist = 1.0;     // m abeam door
+static constexpr float kDriveSpeed = 1.0;        // m/s
+static constexpr float kTurnSpeed = 10.0;        // °/s
+static constexpr float kHeightSpeed = 0.1;       // m/s
+static constexpr float kAnimTimeout = 50;        // s
+static constexpr float kAlignDist = 1.0;         // m abeam door
+static constexpr float kCanopyCloseTime = 5.0f;  // s, time to close canopy after docking
 
 Sound JwCtrl::alert_;
 
@@ -546,12 +547,28 @@ bool JwCtrl::DockDrive() {
         float eps = std::max(2.0f * dt * kDriveSpeed, 0.05f);
         // LogMsg("eps: %0.3f, d_x: %0.3f", eps, fabs(tgt_x - cabin_x_));
         if (fabs(tgt_x - cabin_x_) < eps) {
-            state_ = DOCKED;
+            state_ = AT_DOOR;
             LogMsg("door reached");
             jw_->warnlight = 0;
             AlertOff();
-            return true;  // done
+            // FALLTHROUGH to close canopy
         }
+    }
+
+    if (state_ == AT_DOOR) {
+        // close canopy
+        if (jw_->canopy < 0.98f) {
+            jw_->canopy += dt / kCanopyCloseTime;
+            //LogMsg("closing canopy: %0.2f", jw_->canopy);
+            if (jw_->canopy > 1.0f)
+                jw_->canopy = 1.0f;
+            return false;
+        }
+
+        jw_->canopy = 1.0f;
+        state_ = DOCKED;
+        LogMsg("docked");
+        return true;
     }
 
     AlertSetpos();
@@ -584,6 +601,19 @@ bool JwCtrl::UndockDrive() {
     // float wheel_z = z + (jw_->extent + jw_->wheelPos) * sinf(rot1_d * kD2R);
 
     if (state_ == TO_AP) {
+        // first step: open canopy
+        if (jw_->canopy > 0.02f) {
+            jw_->canopy -= dt / kCanopyCloseTime;
+            //LogMsg("opening canopy: %0.2f", jw_->canopy);
+            if (jw_->canopy < 0.0f)
+                jw_->canopy = 0.0f;
+
+            if (jw_->canopy > 0.5f) // wait until canopy is sufficiently open before driving
+                return false;
+        }
+
+        jw_->canopy = 0.0f;
+
         if (wait_wb_rot_) {
             // LogMsg("TO_AP: waiting for wb rotation");
             if (!RotateWheelBase(dt)) {

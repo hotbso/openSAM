@@ -45,7 +45,8 @@ struct SamJw {
     unsigned int library_id{};  // id of the library jetway this one is configured from, 0 = none
 
     // values fed to the datarefs
-    float rotate1, rotate2, rotate3, extent, wheels, wheelrotatec{}, wheelrotater{}, wheelrotatel{}, warnlight;
+    float rotate1, rotate2, rotate3, extent, wheels, wheelrotatec{}, wheelrotater{}, wheelrotatel{},
+        warnlight, canopy;
 
     // geometry values from sam.xml or filled in from library jetway
     std::string name;
@@ -69,6 +70,7 @@ struct SamJw {
         extent = initialExtent;
         SetWheels();
         warnlight = 0;
+        canopy = 0;
     }
 
     void FillLibraryValues(unsigned int id);
