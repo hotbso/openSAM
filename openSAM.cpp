@@ -185,7 +185,7 @@ static int ReadSeasonAcc(void* ref) {
 }
 
 static int CmdActivateCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, [[maybe_unused]] void* ref) {
-    if (xplm_CommandBegin != phase)
+    if (error_disabled || xplm_CommandBegin != phase)
         return 0;
 
     LogMsg("cmd manually_activate");
@@ -194,7 +194,7 @@ static int CmdActivateCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase 
 }
 
 static int CmdToggleUICb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, [[maybe_unused]] void* ref) {
-    if (xplm_CommandBegin != phase)
+    if (error_disabled || xplm_CommandBegin != phase)
         return 0;
 
     LogMsg("cmd ToggleUI");
@@ -204,7 +204,7 @@ static int CmdToggleUICb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase 
 
 // multiplayer activation
 static int CmdToggleMpCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, [[maybe_unused]] void* ref) {
-    if (xplm_CommandBegin != phase)
+    if (error_disabled || xplm_CommandBegin != phase)
         return 0;
 
     LogMsg("cmd toggle_mp");
@@ -332,6 +332,9 @@ static void SetMenu() {
 }
 
 static void menu_cb([[maybe_unused]] void* menu_ref, void* item_ref) {
+    if (error_disabled)
+        return;
+
     int entry = (long long)item_ref;
 
     if (entry == 4) {
@@ -348,7 +351,7 @@ static void menu_cb([[maybe_unused]] void* menu_ref, void* item_ref) {
 
 // dock/undock command
 static int CmdDockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, void* ref) {
-    if (xplm_CommandBegin != phase)
+    if (error_disabled || xplm_CommandBegin != phase)
         return 0;
 
     LogMsg("cmd_dock_jw_cb called");
@@ -366,6 +369,9 @@ static int CmdDockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase ph
 // intercept XP12's standard cmd
 static int CmdXp12DockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase,
                                [[maybe_unused]] void* ref) {
+    if (error_disabled)
+        return 0;
+
     if (xplm_CommandBegin != phase)
         return 1;
 
