@@ -457,19 +457,25 @@ static bool ParseAptDat(const std::string& fn, Scenery* sc) {
                 // we try to extract the net name "A 40" in the latter case
 
                 if (name.starts_with("Stand"))
-                    name.erase(0, 6);
-                else if (name.starts_with("Gate"))
                     name.erase(0, 5);
+                else if (name.starts_with("Gate"))
+                    name.erase(0, 4);
+                else if (name.starts_with("Ramp"))
+                    name.erase(0, 4);
 
-                // delete stuff following and including a "(,;"
-                const auto i = name.find_first_of("(,;");
+                // trim leading whitespace
+                name.erase(0, name.find_first_not_of(" "));
+
+                // delete stuff following and including a "({,;"
+                const auto i = name.find_first_of("({,;");
                 if (i != std::string::npos)
                     name.resize(i);
 
-                // trim trailing whitespace
+                // trim trailing whitespace and assign
                 const auto last = name.find_last_not_of(" ");
                 if (last != std::string::npos)
-                   stand->id = name.substr(0, last + 1);
+                    stand->id = name.substr(0, last + 1);
+
                 // else leave empty
 
                 stand->hdgt = RA(stand->hdgt);
