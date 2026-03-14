@@ -1,0 +1,674 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- written by WED 2.6.0r2 -->
+<doc>
+  <objects>
+    <object class="WED_SimpleBoundaryNode" id="73" parent_id="69">
+      <children/>
+      <hierarchy name="Node 3" locked="0" hidden="0"/>
+      <point latitude="47.785563314" longitude="13.029079596"/>
+    </object>
+    <object class="WED_Ring" id="9" parent_id="0">
+      <children>
+        <child id="11"/>
+        <child id="12"/>
+        <child id="13"/>
+        <child id="14"/>
+      </children>
+      <hierarchy name="Polygon 1 Outer Ring" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_RampPosition" id="65" parent_id="87">
+      <children/>
+      <hierarchy name="A2 3 library jetways, class E" locked="0" hidden="0"/>
+      <point latitude="47.801532248" longitude="13.011511656" heading="67.55"/>
+      <ramp_start type="Tie-Down" traffic="14" width="E" ramp_op_type="None" airlines=""/>
+    </object>
+    <object class="WED_Root" id="1" parent_id="0">
+      <children>
+        <child id="2"/>
+        <child id="3"/>
+        <child id="4"/>
+      </children>
+      <hierarchy name="root"/>
+    </object>
+    <object class="WED_SimpleBoundaryNode" id="74" parent_id="69">
+      <children/>
+      <hierarchy name="Node 4" locked="0" hidden="0"/>
+      <point latitude="47.813069996" longitude="13.009708682"/>
+    </object>
+    <object class="WED_Select" id="2" parent_id="1">
+      <children/>
+      <hierarchy name="selection"/>
+      <selection/>
+    </object>
+    <object class="WED_ObjPlacement" id="75" parent_id="88">
+      <children/>
+      <hierarchy name="Safedock-T2_5.0m.obj" locked="0" hidden="0"/>
+      <point latitude="47.801626318" longitude="13.011808964" heading="67.00"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="openSAM/dgs/Safedock-T2_5.0m.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_SimpleBezierBoundaryNode" id="11" parent_id="9">
+      <children/>
+      <hierarchy name="Node 1" locked="0" hidden="0"/>
+      <point latitude="47.809283966" longitude="13.000215923" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+    </object>
+    <object class="WED_KeyObjects" id="3" parent_id="1">
+      <children/>
+      <hierarchy name="choices"/>
+      <keys>
+        <key name="airport" id="36"/>
+      </keys>
+    </object>
+    <object class="WED_ObjPlacement" id="76" parent_id="88">
+      <children/>
+      <hierarchy name="Safedock-T2_4.0m.obj" locked="0" hidden="0"/>
+      <point latitude="47.802134519" longitude="13.011503768" heading="67.00"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="openSAM/dgs/Safedock-T2_4.0m.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_SimpleBezierBoundaryNode" id="12" parent_id="9">
+      <children/>
+      <hierarchy name="Node 2" locked="0" hidden="0"/>
+      <point latitude="47.782871323" longitude="13.014772562" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+    </object>
+    <object class="WED_Group" id="4" parent_id="1">
+      <children>
+        <child id="36"/>
+      </children>
+      <hierarchy name="world" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_SimpleBezierBoundaryNode" id="13" parent_id="9">
+      <children/>
+      <hierarchy name="Node 3" locked="0" hidden="0"/>
+      <point latitude="47.784666751" longitude="13.026955017" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+    </object>
+    <object class="WED_SimpleBezierBoundaryNode" id="14" parent_id="9">
+      <children/>
+      <hierarchy name="Node 4" locked="0" hidden="0"/>
+      <point latitude="47.812273297" longitude="13.008806876" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+    </object>
+    <object class="WED_FacadeRing" id="15" parent_id="16">
+      <children>
+        <child id="17"/>
+        <child id="18"/>
+        <child id="19"/>
+        <child id="20"/>
+      </children>
+      <hierarchy name="Facade 2 outer ring" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_FacadePlacement" id="16" parent_id="86">
+      <children>
+        <child id="15"/>
+      </children>
+      <hierarchy name="term_building_Ground_01.fac" locked="0" hidden="0"/>
+      <facade_placement height="5" resource="lib/airport/Modern_Airports/Terminal_kit/term_building_Ground_01.fac" pick_walls="1" show_level="1 Default"/>
+    </object>
+    <object class="WED_FacadeNode" id="17" parent_id="15">
+      <children/>
+      <hierarchy name="Node 1" locked="0" hidden="0"/>
+      <point latitude="47.802997387" longitude="13.011001513" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_FacadeNode" id="18" parent_id="15">
+      <children/>
+      <hierarchy name="Node 2" locked="0" hidden="0"/>
+      <point latitude="47.795082781" longitude="13.015767364" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_FacadeNode" id="19" parent_id="15">
+      <children/>
+      <hierarchy name="Node 3" locked="0" hidden="0"/>
+      <point latitude="47.795771776" longitude="13.018303174" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_ObjPlacement" id="83" parent_id="86">
+      <children/>
+      <hierarchy name="parking_stripe.obj" locked="0" hidden="0"/>
+      <point latitude="47.802086924" longitude="13.011257312" heading="247.00"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="lib/airport/markings/parking_stripe.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_FacadeNode" id="20" parent_id="15">
+      <children/>
+      <hierarchy name="Node 4" locked="0" hidden="0"/>
+      <point latitude="47.803686381" longitude="13.013537323" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_ObjPlacement" id="84" parent_id="86">
+      <children/>
+      <hierarchy name="parking_stripe.obj" locked="0" hidden="0"/>
+      <point latitude="47.801532248" longitude="13.011511656" heading="247.00"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="lib/airport/markings/parking_stripe.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_FacadeRing" id="21" parent_id="22">
+      <children>
+        <child id="23"/>
+        <child id="24"/>
+        <child id="25"/>
+        <child id="26"/>
+      </children>
+      <hierarchy name="Facade 3 outer ring" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_Group" id="85" parent_id="36">
+      <children>
+        <child id="42"/>
+        <child id="58"/>
+        <child id="54"/>
+        <child id="111"/>
+        <child id="51"/>
+        <child id="62"/>
+        <child id="61"/>
+        <child id="114"/>
+        <child id="52"/>
+        <child id="63"/>
+        <child id="64"/>
+        <child id="115"/>
+      </children>
+      <hierarchy name="openSAM library Jetways" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_FacadePlacement" id="22" parent_id="86">
+      <children>
+        <child id="21"/>
+      </children>
+      <hierarchy name="term_building_Levels_01.fac" locked="0" hidden="0"/>
+      <facade_placement height="10" resource="lib/airport/Modern_Airports/Terminal_kit/term_building_Levels_01.fac" pick_walls="1" show_level="1 Default"/>
+    </object>
+    <object class="WED_Group" id="86" parent_id="36">
+      <children>
+        <child id="70"/>
+        <child id="89"/>
+        <child id="84"/>
+        <child id="107"/>
+        <child id="83"/>
+        <child id="22"/>
+        <child id="16"/>
+        <child id="38"/>
+      </children>
+      <hierarchy name="Buildings + Ground" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_FacadeNode" id="23" parent_id="21">
+      <children/>
+      <hierarchy name="Node 1" locked="0" hidden="0"/>
+      <point latitude="47.803086593" longitude="13.010935411" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 3"/>
+    </object>
+    <object class="WED_Group" id="87" parent_id="36">
+      <children>
+        <child id="37"/>
+        <child id="65"/>
+        <child id="109"/>
+      </children>
+      <hierarchy name="Stands" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_FacadeNode" id="24" parent_id="21">
+      <children/>
+      <hierarchy name="Node 2" locked="0" hidden="0"/>
+      <point latitude="47.795021505" longitude="13.015778585" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_Group" id="88" parent_id="36">
+      <children>
+        <child id="75"/>
+        <child id="76"/>
+      </children>
+      <hierarchy name="VDGS" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_FacadeNode" id="25" parent_id="21">
+      <children/>
+      <hierarchy name="Node 3" locked="0" hidden="0"/>
+      <point latitude="47.795753964" longitude="13.018448396" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_Taxiway" id="89" parent_id="86">
+      <children>
+        <child id="90"/>
+      </children>
+      <hierarchy name="plain.pol" locked="1" hidden="0"/>
+      <taxiway surface="Asphalt Plain" roughness="0.25" heading="0.0"/>
+    </object>
+    <object class="WED_FacadeNode" id="26" parent_id="21">
+      <children/>
+      <hierarchy name="Node 4" locked="0" hidden="0"/>
+      <point latitude="47.803785978" longitude="13.013621997" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_AirportChain" id="90" parent_id="89">
+      <children>
+        <child id="91"/>
+        <child id="92"/>
+        <child id="93"/>
+        <child id="94"/>
+      </children>
+      <hierarchy name="unnamed entity" locked="0" hidden="0"/>
+      <airport_chain closed="1"/>
+    </object>
+    <object class="WED_Airport" id="36" parent_id="4">
+      <children>
+        <child id="86"/>
+        <child id="108"/>
+        <child id="85"/>
+        <child id="88"/>
+        <child id="87"/>
+      </children>
+      <hierarchy name="openSAM demo" locked="0" hidden="0"/>
+      <airport kind="Airport" elevation="0.0" has_atc="1" icao="OSJW" always_flatten="0" drive_on_left="0" scenery_id="-1"/>
+      <meta_data>
+        <meta_data_entry pair="gui_label,3D"/>
+      </meta_data>
+    </object>
+    <object class="WED_RampPosition" id="37" parent_id="87">
+      <children/>
+      <hierarchy name="A1 1 library jetway, class C" locked="0" hidden="0"/>
+      <point latitude="47.802086924" longitude="13.011257312" heading="67.00"/>
+      <ramp_start type="Tie-Down" traffic="14" width="C" ramp_op_type="None" airlines=""/>
+    </object>
+    <object class="WED_Runway" id="38" parent_id="86">
+      <children>
+        <child id="39"/>
+        <child id="40"/>
+      </children>
+      <hierarchy name="15/33" locked="0" hidden="0"/>
+      <line width="50.00"/>
+      <runway surface="Asphalt Worn" shoulder="None" shoulder_width="0.0" roughness="0.0" center_lites="0" edge_lites="None" distance_signs="0" displaced1="0.0" blastpad1="0.0" markings1="Non-Precision (US)" app_lites1="None" TDZL1="0" REIL1="None" displaced2="0.0" blastpad2="0.0" markings2="Non-Precision (US)" app_lites2="None" TDZL2="0" REIL2="None"/>
+    </object>
+    <object class="WED_RunwayNode" id="39" parent_id="38">
+      <children/>
+      <hierarchy name="Start" locked="0" hidden="0"/>
+      <point latitude="47.804284776" longitude="13.002259552"/>
+    </object>
+    <object class="WED_RunwayNode" id="40" parent_id="38">
+      <children/>
+      <hierarchy name="End" locked="0" hidden="0"/>
+      <point latitude="47.783351877" longitude="13.013962209"/>
+    </object>
+    <object class="WED_FacadeRing" id="41" parent_id="42">
+      <children>
+        <child id="43"/>
+        <child id="44"/>
+      </children>
+      <hierarchy name="Facade 1 outer ring" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_FacadePlacement" id="42" parent_id="85">
+      <children>
+        <child id="41"/>
+      </children>
+      <hierarchy name="Tunnel_Steel_Modern_4m.fac" locked="0" hidden="0"/>
+      <facade_placement height="4" resource="openSAM/MisterX/libjw/Tunnel_Steel_Modern_4m.fac" pick_walls="1" show_level="1 Default"/>
+    </object>
+    <object class="WED_FacadeNode" id="43" parent_id="41">
+      <children/>
+      <hierarchy name="Node 1" locked="0" hidden="0"/>
+      <point latitude="47.802350358" longitude="13.011385728" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_FacadeNode" id="44" parent_id="41">
+      <children/>
+      <hierarchy name="Node 2" locked="0" hidden="0"/>
+      <point latitude="47.802313761" longitude="13.011245367" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_ObjPlacement" id="51" parent_id="85">
+      <children/>
+      <hierarchy name="Pillar_4m.obj" locked="0" hidden="0"/>
+      <point latitude="47.802313861" longitude="13.011244642" heading="156.26"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="openSAM/MisterX/libjw/Pillar_4m.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_ObjPlacement" id="52" parent_id="85">
+      <children/>
+      <hierarchy name="Jetway_Steel_Modern_4m.obj" locked="0" hidden="0"/>
+      <point latitude="47.802313283" longitude="13.011244642" heading="187.00"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="openSAM/MisterX/libjw/Jetway_Steel_Modern_4m.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_FacadeRing" id="53" parent_id="54">
+      <children>
+        <child id="55"/>
+        <child id="56"/>
+      </children>
+      <hierarchy name="Facade 3 outer ring" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_FacadePlacement" id="54" parent_id="85">
+      <children>
+        <child id="53"/>
+      </children>
+      <hierarchy name="Tunnel_Steel_Modern_5m.fac" locked="0" hidden="0"/>
+      <facade_placement height="2" resource="openSAM/MisterX/libjw/Tunnel_Steel_Modern_5m.fac" pick_walls="1" show_level="1 Default"/>
+    </object>
+    <object class="WED_FacadeNode" id="55" parent_id="53">
+      <children/>
+      <hierarchy name="Node 1" locked="0" hidden="0"/>
+      <point latitude="47.801847359" longitude="13.011687202" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_FacadeNode" id="56" parent_id="53">
+      <children/>
+      <hierarchy name="Node 2" locked="0" hidden="0"/>
+      <point latitude="47.801801704" longitude="13.011522110" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_FacadeRing" id="57" parent_id="58">
+      <children>
+        <child id="59"/>
+        <child id="60"/>
+      </children>
+      <hierarchy name="Facade 4 outer ring" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_FacadePlacement" id="58" parent_id="85">
+      <children>
+        <child id="57"/>
+      </children>
+      <hierarchy name="Tunnel_Steel_Modern_5m.fac" locked="0" hidden="0"/>
+      <facade_placement height="2" resource="openSAM/MisterX/libjw/Tunnel_Steel_Modern_5m.fac" pick_walls="1" show_level="1 Default"/>
+    </object>
+    <object class="WED_FacadeNode" id="59" parent_id="57">
+      <children/>
+      <hierarchy name="Node 1" locked="0" hidden="0"/>
+      <point latitude="47.801878385" longitude="13.011657729" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_FacadeNode" id="60" parent_id="57">
+      <children/>
+      <hierarchy name="Node 2" locked="0" hidden="0"/>
+      <point latitude="47.801817547" longitude="13.011442705" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_ObjPlacement" id="61" parent_id="85">
+      <children/>
+      <hierarchy name="Pillar_5m.obj" locked="0" hidden="0"/>
+      <point latitude="47.801801704" longitude="13.011522110" heading="0.0"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="openSAM/MisterX/libjw/Pillar_5m.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_ObjPlacement" id="62" parent_id="85">
+      <children/>
+      <hierarchy name="Pillar_5m.obj" locked="0" hidden="0"/>
+      <point latitude="47.801817547" longitude="13.011442705" heading="0.0"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="openSAM/MisterX/libjw/Pillar_5m.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_ObjPlacement" id="63" parent_id="85">
+      <children/>
+      <hierarchy name="Jetway_Steel_Modern_5m.obj" locked="0" hidden="0"/>
+      <point latitude="47.801801704" longitude="13.011522110" heading="161.00"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="openSAM/MisterX/libjw/Jetway_Steel_Modern_5m.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_ObjPlacement" id="64" parent_id="85">
+      <children/>
+      <hierarchy name="Jetway_Steel_Modern_5m.obj" locked="0" hidden="0"/>
+      <point latitude="47.801818091" longitude="13.011442647" heading="172.39"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="openSAM/MisterX/libjw/Jetway_Steel_Modern_5m.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_Ring" id="69" parent_id="70">
+      <children>
+        <child id="71"/>
+        <child id="72"/>
+        <child id="73"/>
+        <child id="74"/>
+      </children>
+      <hierarchy name="Exclusion 5 Outer Ring" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_ExclusionPoly" id="70" parent_id="86">
+      <children>
+        <child id="69"/>
+      </children>
+      <hierarchy name="Exclusion Poly 5" locked="0" hidden="0"/>
+      <exclusions>
+        <exclusion value="Objects"/>
+        <exclusion value="Facades"/>
+        <exclusion value="Forests"/>
+        <exclusion value="Beaches"/>
+        <exclusion value="Road Networks"/>
+        <exclusion value="Lines"/>
+        <exclusion value="Draped Polygons"/>
+        <exclusion value="String"/>
+      </exclusions>
+    </object>
+    <object class="WED_SimpleBoundaryNode" id="71" parent_id="69">
+      <children/>
+      <hierarchy name="Node 1" locked="0" hidden="0"/>
+      <point latitude="47.809516208" longitude="12.997038466"/>
+    </object>
+    <object class="WED_SimpleBoundaryNode" id="72" parent_id="69">
+      <children/>
+      <hierarchy name="Node 2" locked="0" hidden="0"/>
+      <point latitude="47.782121672" longitude="13.013677637"/>
+    </object>
+    <object class="WED_AirportNode" id="91" parent_id="90">
+      <children/>
+      <hierarchy name="Node 1" locked="0" hidden="0"/>
+      <point latitude="47.809283966" longitude="13.000215923" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <markings/>
+    </object>
+    <object class="WED_AirportNode" id="92" parent_id="90">
+      <children/>
+      <hierarchy name="Node 2" locked="0" hidden="0"/>
+      <point latitude="47.782871323" longitude="13.014772562" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <markings/>
+    </object>
+    <object class="WED_AirportNode" id="93" parent_id="90">
+      <children/>
+      <hierarchy name="Node 3" locked="0" hidden="0"/>
+      <point latitude="47.784666751" longitude="13.026955017" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <markings/>
+    </object>
+    <object class="WED_AirportNode" id="94" parent_id="90">
+      <children/>
+      <hierarchy name="Node 4" locked="0" hidden="0"/>
+      <point latitude="47.812273297" longitude="13.008806876" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <markings/>
+    </object>
+    <object class="WED_FacadeRing" id="95" parent_id="96">
+      <children>
+        <child id="97"/>
+        <child id="98"/>
+      </children>
+      <hierarchy name="Facade 1 outer ring" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_FacadePlacement" id="96" parent_id="108">
+      <children>
+        <child id="95"/>
+      </children>
+      <hierarchy name="Tunnel_Steel_Old_4m.fac" locked="0" hidden="0"/>
+      <facade_placement height="2" resource="openSAM/MisterX/libjw/Tunnel_Steel_Old_4m.fac" pick_walls="1" show_level="1 Default"/>
+    </object>
+    <object class="WED_FacadeNode" id="97" parent_id="95">
+      <children/>
+      <hierarchy name="Node 1" locked="0" hidden="0"/>
+      <point latitude="47.801171453" longitude="13.012088203" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_FacadeNode" id="98" parent_id="95">
+      <children/>
+      <hierarchy name="Node 2" locked="0" hidden="0"/>
+      <point latitude="47.801121395" longitude="13.011910785" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_ObjPlacement" id="99" parent_id="108">
+      <children/>
+      <hierarchy name="Pillar_4m.obj" locked="0" hidden="0"/>
+      <point latitude="47.801121395" longitude="13.011910785" heading="0.0"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="openSAM/MisterX/libjw/Pillar_4m.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_ObjPlacement" id="100" parent_id="108">
+      <children/>
+      <hierarchy name="Jetway_Steel_Old_4m_ljw.obj" locked="0" hidden="0"/>
+      <point latitude="47.801121158" longitude="13.011910183" heading="178.46"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="my_jetways/Jetway_Steel_Old_4m_ljw.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_ObjPlacement" id="107" parent_id="86">
+      <children/>
+      <hierarchy name="parking_stripe.obj" locked="0" hidden="0"/>
+      <point latitude="47.800864821" longitude="13.011995399" heading="247.00"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="lib/airport/markings/parking_stripe.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_Group" id="108" parent_id="36">
+      <children>
+        <child id="99"/>
+        <child id="96"/>
+        <child id="100"/>
+      </children>
+      <hierarchy name="local Library jetway" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_RampPosition" id="109" parent_id="87">
+      <children/>
+      <hierarchy name="A3 1 local jetway, class C" locked="0" hidden="0"/>
+      <point latitude="47.800864821" longitude="13.011995399" heading="68.14"/>
+      <ramp_start type="Tie-Down" traffic="14" width="C" ramp_op_type="None" airlines=""/>
+    </object>
+    <object class="WED_FacadeRing" id="110" parent_id="111">
+      <children>
+        <child id="112"/>
+        <child id="113"/>
+      </children>
+      <hierarchy name="Facade 1 outer ring" locked="0" hidden="0"/>
+    </object>
+    <object class="WED_FacadePlacement" id="111" parent_id="85">
+      <children>
+        <child id="110"/>
+      </children>
+      <hierarchy name="Tunnel_Steel_Modern_7m.fac" locked="0" hidden="0"/>
+      <facade_placement height="2" resource="openSAM/MisterX/libjw/Tunnel_Steel_Modern_7m.fac" pick_walls="1" show_level="1 Default"/>
+    </object>
+    <object class="WED_FacadeNode" id="112" parent_id="110">
+      <children/>
+      <hierarchy name="Node 1" locked="0" hidden="0"/>
+      <point latitude="47.801914297" longitude="13.011648350" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_FacadeNode" id="113" parent_id="110">
+      <children/>
+      <hierarchy name="Node 2" locked="0" hidden="0"/>
+      <point latitude="47.801845547" longitude="13.011384999" split="0" ctrl_latitude_lo="0.0" ctrl_longitude_lo="0.0" ctrl_latitude_hi="0.0" ctrl_longitude_hi="0.0"/>
+      <facade_node wall_type="Wall 1"/>
+    </object>
+    <object class="WED_ObjPlacement" id="114" parent_id="85">
+      <children/>
+      <hierarchy name="Pillar_7m.obj" locked="0" hidden="0"/>
+      <point latitude="47.801845894" longitude="13.011384999" heading="339.58"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="openSAM/MisterX/libjw/Pillar_7m.obj" show_level="1 Default"/>
+    </object>
+    <object class="WED_ObjPlacement" id="115" parent_id="85">
+      <children/>
+      <hierarchy name="Jetway_Steel_Modern_7m.obj" locked="0" hidden="0"/>
+      <point latitude="47.801845514" longitude="13.011385253" heading="-168.81"/>
+      <obj_placement custom_msl="0" msl="0.0" resource="openSAM/MisterX/libjw/Jetway_Steel_Modern_7m.obj" show_level="1 Default"/>
+    </object>
+  </objects>
+  <prefs>
+    <pref name="PropertyPane0/Closed">
+      <item value="85"/>
+      <item value="86"/>
+      <item value="88"/>
+      <item value="108"/>
+    </pref>
+    <pref name="doc/export_target" value="7"/>
+    <pref name="doc/xml_compatibility" value="205"/>
+    <pref name="export/last" value="+40+010/+47+013.dsf"/>
+    <pref name="map/east" value="13.012223"/>
+    <pref name="map/navaid_map_vis" value="0"/>
+    <pref name="map/north" value="47.802177"/>
+    <pref name="map/obj_density" value="6"/>
+    <pref name="map/pavement_alpha" value="2"/>
+    <pref name="map/preview_vis" value="1"/>
+    <pref name="map/real_lines_vis" value="1"/>
+    <pref name="map/slippy_vis" value="2"/>
+    <pref name="map/south" value="47.801189"/>
+    <pref name="map/vertices_vis" value="1"/>
+    <pref name="map/west" value="13.010345"/>
+    <pref name="map/world_map_vis" value="1"/>
+    <pref name="map_Airport Beacon_Kind" value="133"/>
+    <pref name="map_Autogen_Autogen Height" value="10.000000"/>
+    <pref name="map_Autogen_Resource" value="lib/g10/US/suburban/AGSParks.ags"/>
+    <pref name="map_Boundary_.Markings" value=""/>
+    <pref name="map_Boundary_Lights" value=""/>
+    <pref name="map_Boundary_Markings" value=""/>
+    <pref name="map_Exclusion Polys_Exclusion" value=""/>
+    <pref name="map_Exclusion Zones_Exclusions" value=""/>
+    <pref name="map_Facades_Height" value="2.000000"/>
+    <pref name="map_Facades_Pick Walls" value="1"/>
+    <pref name="map_Facades_Resource" value="openSAM/MisterX/libjw/Tunnel_Steel_Modern_7m.fac"/>
+    <pref name="map_Forests_Density" value="100.000000"/>
+    <pref name="map_Forests_Resource" value="lib/vegetation/trees/deciduous/shrubs_small.for"/>
+    <pref name="map_Helipad_Edge Lights" value="16"/>
+    <pref name="map_Helipad_Markings" value="131"/>
+    <pref name="map_Helipad_Roughness" value="0.000000"/>
+    <pref name="map_Helipad_Shoulder" value="86"/>
+    <pref name="map_Helipad_Surface" value="26"/>
+    <pref name="map_Hole_.Markings" value=""/>
+    <pref name="map_Hole_Lights" value=""/>
+    <pref name="map_Hole_Markings" value=""/>
+    <pref name="map_Light Fixture_Approach Angle" value="3.000000"/>
+    <pref name="map_Light Fixture_Fixture Type" value="63"/>
+    <pref name="map_Lines_Resource" value="lib/airport/markings/roads/zebra_3m.lin"/>
+    <pref name="map_Objects_Object" value="openSAM/MisterX/libjw/Jetway_Steel_Modern_7m.obj"/>
+    <pref name="map_Objects_Show with" value="810"/>
+    <pref name="map_Objects_max Heading" value="0.000000"/>
+    <pref name="map_Objects_min Heading" value="0.000000"/>
+    <pref name="map_Polygons_Heading" value="0.000000"/>
+    <pref name="map_Polygons_Resource" value="lib/airport/ground/pavement/asphalt/plain.pol"/>
+    <pref name="map_Polygons_Use Texture Map - Orthophoto" value="0"/>
+    <pref name="map_Ramp Start_Airlines" value=""/>
+    <pref name="map_Ramp Start_Equipment Type" value="194,195,196"/>
+    <pref name="map_Ramp Start_Ramp Operation Type" value="756"/>
+    <pref name="map_Ramp Start_Ramp Start Type" value="205"/>
+    <pref name="map_Ramp Start_Size" value="751"/>
+    <pref name="map_Roads_Layer" value="0"/>
+    <pref name="map_Roads_Name" value="N"/>
+    <pref name="map_Roads_Resource" value="lib/g10/roads_EU.net"/>
+    <pref name="map_Roads_Slop" value="10"/>
+    <pref name="map_Roads_Type" value="50"/>
+    <pref name="map_Runway_Appch" value="81"/>
+    <pref name="map_Runway_Center" value="0"/>
+    <pref name="map_Runway_Dist" value="0"/>
+    <pref name="map_Runway_Edge" value="5"/>
+    <pref name="map_Runway_Marks" value="119"/>
+    <pref name="map_Runway_REIL" value="10"/>
+    <pref name="map_Runway_Rough" value="0.000000"/>
+    <pref name="map_Runway_Shoulder" value="86"/>
+    <pref name="map_Runway_Surface" value="33"/>
+    <pref name="map_Runway_TDZL" value="0"/>
+    <pref name="map_Sealane_Buoys" value="1"/>
+    <pref name="map_Shapes_Property Text" value=""/>
+    <pref name="map_Sign_Size" value="18"/>
+    <pref name="map_Sign_Style" value="24"/>
+    <pref name="map_Sign_Text" value="{@L}A"/>
+    <pref name="map_Strings_Resource" value="lib/lights/street_light_single_white_outwards.str"/>
+    <pref name="map_Strings_Spacing" value="5.000000"/>
+    <pref name="map_Taxi Routes_Allowed Vehicles" value="208"/>
+    <pref name="map_Taxi Routes_Arrival" value=""/>
+    <pref name="map_Taxi Routes_Departure" value=""/>
+    <pref name="map_Taxi Routes_ILS" value=""/>
+    <pref name="map_Taxi Routes_Name" value="S"/>
+    <pref name="map_Taxi Routes_Oneway" value="0"/>
+    <pref name="map_Taxi Routes_Runway" value="477"/>
+    <pref name="map_Taxi Routes_Size" value="750"/>
+    <pref name="map_Taxi Routes_Slop" value="10"/>
+    <pref name="map_Taxilines_.Markings" value="147,160"/>
+    <pref name="map_Taxilines_Lights" value="160"/>
+    <pref name="map_Taxilines_Markings" value="147"/>
+    <pref name="map_Taxiway_.Markings" value=""/>
+    <pref name="map_Taxiway_Heading" value="0.000000"/>
+    <pref name="map_Taxiway_Lights" value=""/>
+    <pref name="map_Taxiway_Markings" value=""/>
+    <pref name="map_Taxiway_Pavement" value="26"/>
+    <pref name="map_Taxiway_Roughness" value="0.000000"/>
+    <pref name="map_Tower Viewpoint_Tower Height" value="5.000000"/>
+    <pref name="map_Truck Destination_Truck Types" value=""/>
+    <pref name="map_Truck Parking_." value="3"/>
+    <pref name="map_Truck Parking_Truck Type" value="216"/>
+    <pref name="map_Vertex_Snap To Vertices" value="1"/>
+    <pref name="map_Windsock_Lit" value="0"/>
+    <pref name="map_preview_window/camera_agl" value="330.299922"/>
+    <pref name="map_preview_window/camera_lat" value="50.019569"/>
+    <pref name="map_preview_window/camera_lon" value="8.533773"/>
+    <pref name="map_preview_window/camera_pitch" value="-10.000000"/>
+    <pref name="map_preview_window/camera_yaw" value="0.000000"/>
+    <pref name="map_preview_window/height" value="787"/>
+    <pref name="map_preview_window/visible" value="0"/>
+    <pref name="map_preview_window/width" value="1024"/>
+    <pref name="map_preview_window/x_loc" value="182"/>
+    <pref name="map_preview_window/y_loc" value="182"/>
+    <pref name="window/height" value="1193"/>
+    <pref name="window/main_split" value="402"/>
+    <pref name="window/main_split2" value="1960"/>
+    <pref name="window/prev_split" value="516"/>
+    <pref name="window/prop_split" value="803"/>
+    <pref name="window/width" value="2369"/>
+    <pref name="window/x_loc" value="133"/>
+    <pref name="window/y_loc" value="26"/>
+  </prefs>
+</doc>
