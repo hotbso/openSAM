@@ -141,7 +141,7 @@ class Plane {
     }
 
     // auto select jetways
-    void SelectJws();
+    void AutoSelectJws();
 
     // hook into flight loop
     float JwStateMachine();

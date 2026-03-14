@@ -52,7 +52,7 @@ Plane::~Plane() {
 }
 
 // auto select active jetways
-void Plane::SelectJws() {
+void Plane::AutoSelectJws() {
     if (n_door_ == 0)
         return;
 
@@ -87,7 +87,7 @@ void Plane::SelectJws() {
     }
 
     if (active_jws_.empty())
-        LogMsg("Oh no, no active jetways left in SelectJws()!");
+        LogMsg("Oh no, no active jetways left in AutoSelectJws()!");
 }
 
 // the state machine called from the flight loop
@@ -159,7 +159,7 @@ float Plane::JwStateMachine() {
             }
 
             if (auto_mode()) {
-                SelectJws();
+                AutoSelectJws();
                 if (active_jws_.empty()) {  // e.g. collisions, locked jws
                     for (auto& njw : nearest_jws_)
                         njw.jw_->locked = false;
