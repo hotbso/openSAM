@@ -160,6 +160,10 @@ in the current directory and uses the specified set name for datarefs.
 
 **Note**: all collected library jetways share a single global namespace. Hence be specific with your set names e.g. include your studio name.
 
+## Additional datarefs
+You can close the canopy of a jetway using ``sam/jetway/canopy``.\
+Docking:   After reaching the door position this dataref changes from 0 to 1 within 5 seconds. \
+Undocking: Starts with setting the dataref back to 0 within 5 seconds, when below 0.5 the jetway starts driving away.
 
 # Credits
 [Jonathan Harris (aka Marginal)](https://github.com/Marginal) for creating Autogate\
