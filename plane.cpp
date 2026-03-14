@@ -120,6 +120,10 @@ float Plane::JwStateMachine() {
     switch (state_) {
         case IDLE:
             if (prev_state_ != IDLE) {
+                // from anywhere to idle nullifies all selections and locks
+                for (auto& njw : nearest_jws_)
+                    njw.jw_->locked = false;
+
                 for (auto& ajw : active_jws_)
                     ajw.Reset();
 
@@ -296,14 +300,6 @@ float Plane::JwStateMachine() {
         LogMsg("pid=%02d, jw state transition, %s -> %s, beacon: %d", id_, state_str_[state_], state_str_[new_state],
                beacon_on_);
         state_ = new_state;
-
-        // from anywhere to idle nullifies all selections
-        if (state_ == IDLE) {
-            for (auto& ajw : active_jws_)
-                ajw.Reset();
-            active_jws_.clear();
-            nearest_jws_.clear();
-        }
 
         LockUI(true);
         UpdateUI(true);
