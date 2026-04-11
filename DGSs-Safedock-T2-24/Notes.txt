@@ -1,0 +1,10 @@
+Gimp 3.0.2 has a bug with grid filters.
+After export to a .png the grid show an offset compared to the .xcf.
+
+A workaround is:
+    - place the area to be filtered at a position that corresponds to the grid
+    - the LED background gets a 8x8 and a vertical 128 grid -> upper left is (128, 8)
+    - apply the grids
+    - copy layer
+    - merge down all filters in that layer
+    - deactivatite the original one
