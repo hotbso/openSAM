@@ -64,12 +64,12 @@
 // When it comes to object rotations or longitudes we use relative angles in (-180, +180]
 // This is done by RA().
 //
-// So first of all we rotate and shift everything into the 'door' frame i.e.
-// acf nose pointing up to -z, door at (0,0), jetways to the left somewhere at -x and some z.
+// So first of all we rotate and shift everything into the 'plane' frame i.e.
+// acf nose pointing up to -z, door at (0, some z, some y), jetways to the left somewhere at -x and some z.
 //
-// These values are kept in the "active_jw".
+// These values are kept in the "active_jw" object.
 //
-// Then we do our math in the door frame and transform everything back to the jetway frame
+// Then we do our math in the plane frame and transform everything back to the jetway frame
 // to get the rotation angles.
 //
 // The datarefs for jetway animation are:

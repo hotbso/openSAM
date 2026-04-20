@@ -180,10 +180,10 @@ float Plane::JwStateMachine() {
             if (active_jws_.size()) {
                 for (auto& ajw : active_jws_) {
                     LogMsg("pid=%02d, setting up active jw for door: %d", id_, ajw.door_);
-                    ajw.SetupForDoor(*this, door_info_[ajw.door_]);
+                    ajw.SetupForDoor(door_info_[ajw.door_]);
 
                     if (ajw.door_ == 0)  // slightly slant towards the nose cone for door LF1
-                        ajw.door_rot2_ += 3.0f;
+                        ajw.docked_rot2_ += 3.0f;
                 }
 
                 // unlock jws that were not selected as active jw

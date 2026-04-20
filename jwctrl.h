@@ -42,54 +42,61 @@ class Plane;
 
 // *** This must stay a POD *** (or change the code...)
 class JwCtrl {
-  private:
+   private:
     static Sound alert_;
     static bool SoundDevInit();
 
-  public:
+   public:
     enum JwCtrlState {
         PARKED,
-        TO_AP, AT_AP, TO_DOOR, AT_DOOR, DOCKED,  // sequence for docking
+        TO_AP,
+        AT_AP,
+        TO_DOOR,
+        AT_DOOR,
+        DOCKED,  // sequence for docking
 
         // TO_AP,                       // sequence for undocking
-        TO_PARK };
+        TO_PARK
+    };
 
-    bool selected_;     // nearest jw was selected as an active jw
-    int door_;          // active JwCtrl associated with door #
-    SamJw *jw_;
+    bool selected_;  // nearest jw was selected as an active jw
+    int door_;       // active JwCtrl associated with door #
+    SamJw* jw_;
     JwCtrlState state_;
 
-    // in door local coordinates
+    // everything in plane local coordinates
     float x_, y_, z_, psi_;
 
-    int soft_match_;     // does not really fulfill matching criteria
+    int soft_match_;  // does not really fulfill matching criteria
 
-    // target cabin position with corresponding dref values
-    float door_x_, door_rot1_, door_rot2_, door_rot3_, door_extent_;
-    float ap_x_;      // alignment point abeam door
+    // parked position of jw
     float parked_x_, parked_z_;
 
-    double cabin_x_, cabin_z_;
+    // target cabin position with corresponding dref values
+    // docked_x/z is a cabinLength abeam of the door
+    float docked_x_, docked_z_, docked_y_, docked_rot1_, docked_rot2_, docked_rot3_, docked_extent_;
+    float ap_x_, ap_z_;  // intermediate alignment point abeam docked_x/z
 
-    bool wait_wb_rot_;    // waiting for wheel base rotation
-    float wb_rot_;       // to this angle
+    double cabin_x_, cabin_z_;  // current position of cabin
 
-    float start_ts_;     // actually start operation if now > start_ts_
+    bool wait_wb_rot_;  // waiting for wheel base rotation
+    float wb_rot_;      // to this angle
+
+    float start_ts_;  // actually start operation if now > start_ts_
     float last_step_ts_;
-    float timeout_;      // so we don't get stuck
+    float timeout_;  // so we don't get stuck
 
-    FMOD_CHANNEL *alert_chn_;
+    FMOD_CHANNEL* alert_chn_;
 
-    void SetupForDoor(Plane& plane, const DoorInfo& door_info);
+    void SetupForDoor(const DoorInfo& door_info);
 
     // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 are optional
-    void XzToSamDref(float cabin_x, float cabin_z,
-                      float& rot1, float& extent, float *rot2, float *rot3);
+    void XzToSamDref(float cabin_x, float cabin_z, float& rot1, float& extent, float* rot2, float* rot3);
 
     //
     // animation
     //
-  private:
+   private:
     void Rotate1Extend();
 
     // rotation 2/3 to angle, return true when done
@@ -105,12 +112,17 @@ class JwCtrl {
     void AlertOff();
     void AlertSetpos();
 
-  public:
+   public:
+    JwCtrl(const JwCtrl&) = default;
+    JwCtrl& operator=(const JwCtrl&) = default;
+
+    JwCtrl(SamJw* jw, const Plane& plane);
+
     // find nearest jetways, order by z (= door number, hopefully)
     static int FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws);
 
     // check whether extended nearest njw would crash into parked njw2
-    bool CollisionCheck(const JwCtrl &njw2);
+    bool CollisionCheck(const JwCtrl& njw2);
 
     // setup for operation
     void SetupDockUndock(float start_time, bool with_sound);
@@ -124,8 +136,8 @@ class JwCtrl {
     friend bool operator<(const JwCtrl&, const JwCtrl&);
 
     // static initialization hooks, call once
-    static void SoundInit();       // inits device and loads wav
-    static void Init();             // registers dref accessors
+    static void SoundInit();  // inits device and loads wav
+    static void Init();       // registers dref accessors
 };
 
 static_assert(std::is_trivially_copyable_v<JwCtrl> &&
