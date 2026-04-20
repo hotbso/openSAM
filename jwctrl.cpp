@@ -43,6 +43,22 @@ static constexpr float kCanopyCloseTime = 5.0f;  // s, time to close canopy afte
 
 Sound JwCtrl::alert_;
 
+static inline Vec2 operator-(const Vec2& a, const Vec2& b) {
+    return {a.x - b.x, a.z - b.z};
+}
+
+static inline Vec2 operator+(const Vec2& a, const Vec2& b) {
+    return {a.x + b.x, a.z + b.z};
+}
+
+static inline Vec2 operator*(float s, const Vec2& v) {
+    return {v.x * s, v.z * s};
+}
+
+static inline Vec2 operator-(const Vec2& v) {
+    return {-v.x, -v.z};
+}
+
 // Helper for collision check, used for collision check between jetways
 static inline float det(const Vec2& v1, const Vec2& v2) {
     return v1.x * v2.z - v1.z * v2.x;
@@ -56,15 +72,9 @@ bool CollisionCheck(const Vec2& S1, const Vec2& E1, const Vec2& S2, const Vec2& 
     //          A                B          C
     // if the solutions for s, t are in [0,1] there is a collision
 
-    Vec2 A, B, C;
-    A.x = E1.x - S1.x;
-    A.z = E1.z - S1.z;
-
-    B.x = -(E2.x - S2.x);
-    B.z = -(E2.z - S2.z);
-
-    C.x = S2.x - S1.x;
-    C.z = S2.z - S1.z;
+    Vec2 A = E1 - S1;
+    Vec2 B = -(E2 - S2);
+    Vec2 C = S2 - S1;
 
     float d = det(A, B);
     if (fabsf(d) < 0.2f)
@@ -73,7 +83,9 @@ bool CollisionCheck(const Vec2& S1, const Vec2& E1, const Vec2& S2, const Vec2& 
     float t = det(A, C) / d;
     LogMsg("collision check between start1: (%0.2f, %0.2f), end1: (%0.2f, %0.2f) and start2: (%0.2f, %0.2f), end2: (%0.2f, %0.2f), s = %0.2f, t = %0.2f",
            S1.x, S1.z, E1.x, E1.z, S2.x, S2.z, E2.x, E2.z, s, t);
-    if (BETWEEN(t, 0.0f, 1.0f) && BETWEEN(s, 0.0f, 1.0f)) {
+
+    // we allow a bit of leeway for the start and end points
+    if (BETWEEN(t, -0.2f, 1.2f) && BETWEEN(s, -0.2f, 1.2f)) {
         LogMsg("collision detected");
         return true;
     }

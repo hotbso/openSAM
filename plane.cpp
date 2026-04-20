@@ -72,9 +72,12 @@ void Plane::AutoSelectJws() {
 #if 1
         // TODO: needs better door setup to really work
         // skip over collisions
-        for (unsigned j = i_jw + 1; j < nearest_jws_.size(); j++)
+        for (unsigned j = i_jw + 1; j < nearest_jws_.size(); j++) {
+            assert(i_door < n_door_);
+            nearest_jws_[i_jw].SetupForDoor(door_info_[i_door]);
             if (nearest_jws_[i_jw].CollisionCheck(nearest_jws_[j]))
                 goto skip;
+        }
 #endif
 
         nearest_jws_[i_jw].door_ = i_door;
