@@ -43,6 +43,44 @@ static constexpr float kCanopyCloseTime = 5.0f;  // s, time to close canopy afte
 
 Sound JwCtrl::alert_;
 
+// Helper for collision check, used for collision check between jetways
+static inline float det(const Vec2& v1, const Vec2& v2) {
+    return v1.x * v2.z - v1.z * v2.x;
+}
+
+bool CollisionCheck(const Vec2& S1, const Vec2& E1, const Vec2& S2, const Vec2& E2) {
+    // S = start, E = end
+    // we solve
+    //  S1 + s * (E1 - S1) = S2 + t * (E2 - S2)
+    //  s * (E1 - S1) + t * -(E2 - S2) = S2 - S1
+    //          A                B          C
+    // if the solutions for s, t are in [0,1] there is a collision
+
+    Vec2 A, B, C;
+    A.x = E1.x - S1.x;
+    A.z = E1.z - S1.z;
+
+    B.x = -(E2.x - S2.x);
+    B.z = -(E2.z - S2.z);
+
+    C.x = S2.x - S1.x;
+    C.z = S2.z - S1.z;
+
+    float d = det(A, B);
+    if (fabsf(d) < 0.2f)
+        return false;
+    float s = det(C, B) / d;
+    float t = det(A, C) / d;
+    LogMsg("collision check between start1: (%0.2f, %0.2f), end1: (%0.2f, %0.2f) and start2: (%0.2f, %0.2f), end2: (%0.2f, %0.2f), s = %0.2f, t = %0.2f",
+           S1.x, S1.z, E1.x, E1.z, S2.x, S2.z, E2.x, E2.z, s, t);
+    if (BETWEEN(t, 0.0f, 1.0f) && BETWEEN(s, 0.0f, 1.0f)) {
+        LogMsg("collision detected");
+        return true;
+    }
+
+    return false;
+}
+
 // fill in all values that are independent of the door
 JwCtrl::JwCtrl(SamJw* jw, const Plane& plane) {
     memset(this, 0, sizeof(JwCtrl));    // yes, it's a POD, so this is ok
@@ -252,6 +290,26 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     // sort for door assignment
     std::sort(nearest_jws.begin(), nearest_jws.end());
 
+    if (nearest_jws.size() >= 2 && plane.n_door_ >= 2) {
+        nearest_jws[0].SetupForDoor(plane.door_info_[0]);
+        nearest_jws[1].SetupForDoor(plane.door_info_[1]);
+        Vec2 start0{nearest_jws[0].x_, nearest_jws[0].z_};
+        Vec2 end0{nearest_jws[0].docked_x_, nearest_jws[0].docked_z_};
+
+        Vec2 start1{nearest_jws[1].x_, nearest_jws[1].z_};
+        Vec2 end1{nearest_jws[1].docked_x_, nearest_jws[1].docked_z_};
+        LogMsg("nearest jw 0 %s: start: (%0.2f, %0.2f), end: (%0.2f, %0.2f)", nearest_jws[0].jw_->name.c_str(), start0.x, start0.z, end0.x, end0.z);
+        LogMsg("nearest jw 1 %s: start: (%0.2f, %0.2f), end: (%0.2f, %0.2f)", nearest_jws[1].jw_->name.c_str(), start1.x, start1.z, end1.x, end1.z);
+        bool collision = ::CollisionCheck(start0, end0, start1, end1);
+        LogMsg("collision check between nearest 2 jetways: %s", collision ? "collision" : "no collision");
+
+        // We run a collision check between the first 2
+         if (collision) {
+            LogMsg("collision detected between the 2 nearest jetways, swapping them and hoping for the best");
+            std::swap(nearest_jws[0], nearest_jws[1]);
+        }
+    }
+
     // fake names for zc jetways
     int i{0};
     for (auto& njw : nearest_jws) {
@@ -284,37 +342,13 @@ static inline float det(float x1, float x2, float y1, float y2) {
 
 // check whether extended nearest njw would crash into parked njw2
 bool JwCtrl::CollisionCheck(const JwCtrl& njw2) {
-    // S = start, E = extended, P = parked; all (x, z) vectors
-    // we solve
-    //  S1 + s * (E1 - S1) = S2 + t * (P2 - S2)
-    //  s * (E1 - S1) + t * -(P2 - S2) = S2 - S1
-    //          A                B          C
-    // if the solutions for s, t are in [0,1] there is a collision
+    Vec2 s1{x_, z_};
+    Vec2 e1{docked_x_, docked_z_};
 
-    // x, z in the door frame
-    float A1 = docked_x_ - x_;
-    float A2 =         -z_;  // door_z is 0 in the door frame
+    Vec2 s2{njw2.x_, njw2.z_};
+    Vec2 e2{njw2.parked_x_, njw2.parked_z_};
 
-    float B1 = -(njw2.parked_x_ - njw2.x_);
-    float B2 = -(njw2.parked_z_ - njw2.z_);
-
-    float C1 = njw2.x_ - x_;
-    float C2 = njw2.z_ - z_;
-
-    float d = det(A1, A2, B1, B2);
-    if (fabsf(d) < 0.2f)
-        return false;
-
-    float s = det(C1, C2, B1, B2) / d;
-    float t = det(A1, A2, C1, C2) / d;
-    LogMsg("collision check between jw %s and %s, s = %0.2f, t = %0.2f", jw_->name.c_str(), njw2.jw_->name.c_str(), s, t);
-
-    if (BETWEEN(t, 0.0f, 1.0f) && BETWEEN(s, 0.0f, 1.0f)) {
-        LogMsg("collision detected");
-        return true;
-    }
-
-    return false;
+    return ::CollisionCheck(s1, e1, s2, e2);
 }
 
 // all the animation methods

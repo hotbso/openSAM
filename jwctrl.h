@@ -35,6 +35,10 @@ struct Sound {
 
 class Plane;
 
+struct Vec2 {
+    float x, z;
+};
+
 // JwCtrl
 // The jetway controller is the glue between a plane and its doors and sam jetways.
 // It has support functions to find appropriate jetways for a plane and does the animation
