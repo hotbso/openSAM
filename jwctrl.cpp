@@ -59,6 +59,11 @@ static inline Vec2 operator-(const Vec2& v) {
     return {-v.x, -v.z};
 }
 
+// 2 norm
+static inline float len2(Vec2 v) {
+    return sqrtf(v.x * v.x + v.z * v.z);
+}
+
 // Helper for collision check, used for collision check between jetways
 static inline float det(const Vec2& v1, const Vec2& v2) {
     return v1.x * v2.z - v1.z * v2.x;
@@ -85,7 +90,7 @@ bool CollisionCheck(const Vec2& S1, const Vec2& E1, const Vec2& S2, const Vec2& 
            S1.x, S1.z, E1.x, E1.z, S2.x, S2.z, E2.x, E2.z, s, t);
 
     // we allow a bit of leeway for the start and end points
-    if (BETWEEN(t, -0.2f, 1.2f) && BETWEEN(s, -0.2f, 1.2f)) {
+    if (BETWEEN(t, -0.1f, 1.1f) && BETWEEN(s, -0.1f, 1.1f)) {
         LogMsg("collision detected");
         return true;
     }
@@ -168,6 +173,7 @@ void JwCtrl::SetupForDoor(const DoorInfo& door_info) {
 }
 
 // a fuzzy comparator for jetway by door number
+// that will only give an approximate ordering that we will refine with a collision checks
 bool operator<(const JwCtrl& a, const JwCtrl& b) {
     // height goes first
     if (a.jw_->height < b.jw_->height - 1.0f)
@@ -354,13 +360,60 @@ static inline float det(float x1, float x2, float y1, float y2) {
 
 // check whether extended nearest njw would crash into parked njw2
 bool JwCtrl::CollisionCheck(const JwCtrl& njw2) {
-    Vec2 s1{x_, z_};
-    Vec2 e1{docked_x_, docked_z_};
+    static constexpr float kJwWidth = 3.0f;  // m, we assume a width of the jetway for the collision check
+    LogMsg("collision check between extended nearest jw %s and parked jw %s", jw_->name.c_str(), njw2.jw_->name.c_str());
 
-    Vec2 s2{njw2.x_, njw2.z_};
-    Vec2 e2{njw2.parked_x_, njw2.parked_z_};
+    // keep in mind the strange coordinate system with x right and z back
+    // in order to get a "tradional" orientation we flip z. From a a top-down view we have x right, z up.
+    Vec2 s1{x_, -z_};
+    Vec2 e1{docked_x_, -docked_z_};
 
-    return ::CollisionCheck(s1, e1, s2, e2);
+    Vec2 s2{njw2.x_, -njw2.z_};
+    Vec2 e2{njw2.parked_x_, -njw2.parked_z_};
+    LogMsg("checking line segments: start1: (%0.2f, %0.2f), end1: (%0.2f, %0.2f) and start2: (%0.2f, %0.2f), end2: (%0.2f, %0.2f)",
+           s1.x, s1.z, e1.x, e1.z, s2.x, s2.z, e2.x, e2.z);
+
+    Vec2 dir = e1 - s1;
+    Vec2 ortho_dir{-dir.z, dir.x};  // orthogonal vector for width
+    float len = len2(dir);
+    if (len < 0.01f)
+        return false;  // degenerate case, start and end are the same
+
+    ortho_dir = (0.5f * kJwWidth / len) * ortho_dir;
+    Vec2 s1_left = s1 + ortho_dir;
+    Vec2 e1_left = e1 + ortho_dir;
+    Vec2 s1_right = s1 - ortho_dir;
+    Vec2 e1_right = e1 - ortho_dir;
+
+    dir = e2 - s2;
+    len = len2(dir);
+    if (len < 0.01f)
+        return false;  // degenerate case, start and end are the same
+
+    ortho_dir = (0.5f * kJwWidth / len) * Vec2{-dir.z, dir.x};
+    LogMsg("ortho_dir for nearest jw: (%0.2f, %0.2f)", ortho_dir.x, ortho_dir.z);
+    Vec2 s2_left = s2 + ortho_dir;
+    Vec2 e2_left = e2 + ortho_dir;
+    Vec2 s2_right = s2 - ortho_dir;
+    Vec2 e2_right = e2 - ortho_dir;
+    LogMsg("expanded line segments for collision check: start1_left: (%0.2f, %0.2f), end1_left: (%0.2f, %0.2f) and start1_right: (%0.2f, %0.2f), end1_right: (%0.2f, %0.2f)",
+               s1_left.x, s1_left.z, e1_left.x, e1_left.z, s1_right.x, s1_right.z, e1_right.x, e1_right.z);
+    LogMsg("expanded line segments for collision check: start2_left: (%0.2f, %0.2f), end2_left: (%0.2f, %0.2f) and start2_right: (%0.2f, %0.2f), end2_right: (%0.2f, %0.2f)",
+           s2_left.x, s2_left.z, e2_left.x, e2_left.z, s2_right.x, s2_right.z, e2_right.x, e2_right.z);
+
+    // check s1_left against all 4 walls of the parked jetway
+    if (::CollisionCheck(s1_left, e1_left, s2_right, e2_right) ||   // along axis
+        ::CollisionCheck(s1_left, e1_left, s2_right, s2_left) ||    // wall at rotunda
+        ::CollisionCheck(s1_left, e1_left, e2_right, e2_left))      // wall at cabin
+        return true;
+
+    // check s1_right against all 4 walls of the parked jetway
+    if (::CollisionCheck(s1_right, e1_right, s2_right, e2_right) ||   // along axis
+        ::CollisionCheck(s1_right, e1_right, s2_right, s2_left) ||    // wall at rotunda
+        ::CollisionCheck(s1_right, e1_right, e2_right, e2_left))      // wall at cabin
+        return true;
+
+    return false;
 }
 
 // all the animation methods
