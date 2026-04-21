@@ -353,11 +353,6 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     return nearest_jws.size();
 }
 
-// det of 2 column vectors x,y
-static inline float det(float x1, float x2, float y1, float y2) {
-    return x1 * y2 - x2 * y1;
-}
-
 // check whether extended nearest njw would crash into parked njw2
 bool JwCtrl::CollisionCheck(const JwCtrl& njw2) {
     static constexpr float kJwWidth = 3.0f;  // m, we assume a width of the jetway for the collision check
@@ -391,11 +386,11 @@ bool JwCtrl::CollisionCheck(const JwCtrl& njw2) {
         return false;  // degenerate case, start and end are the same
 
     ortho_dir = (0.5f * kJwWidth / len) * Vec2{-dir.z, dir.x};
-    LogMsg("ortho_dir for nearest jw: (%0.2f, %0.2f)", ortho_dir.x, ortho_dir.z);
     Vec2 s2_left = s2 + ortho_dir;
     Vec2 e2_left = e2 + ortho_dir;
     Vec2 s2_right = s2 - ortho_dir;
     Vec2 e2_right = e2 - ortho_dir;
+
     LogMsg("expanded line segments for collision check: start1_left: (%0.2f, %0.2f), end1_left: (%0.2f, %0.2f) and start1_right: (%0.2f, %0.2f), end1_right: (%0.2f, %0.2f)",
                s1_left.x, s1_left.z, e1_left.x, e1_left.z, s1_right.x, s1_right.z, e1_right.x, e1_right.z);
     LogMsg("expanded line segments for collision check: start2_left: (%0.2f, %0.2f), end2_left: (%0.2f, %0.2f) and start2_right: (%0.2f, %0.2f), end2_right: (%0.2f, %0.2f)",
