@@ -22,6 +22,12 @@ REGION default
 # openSAM native
 EXPORT  openSAM/dgs/marshaller.agp			    dgs/marshaller.agp
 EXPORT  openSAM/dgs/marshaller_high.agp		    dgs/marshaller_high.agp
+EXPORT  openSAM/dgs/Safedock-T2-24.obj		    dgs/Safedock-T2-24_0.0m.obj
+EXPORT  openSAM/dgs/Safedock-T2-24_pole.obj		dgs/Safedock-T2-24_0.0m_pole.obj
+
+# stuff below should not show up in WED
+DEPRECATED
+
 EXPORT  openSAM/dgs/Safedock-T2_2.5m.obj		dgs/Safedock-T2-24_2.5m.obj
 EXPORT  openSAM/dgs/Safedock-T2_3.0m.obj		dgs/Safedock-T2-24_3.0m.obj
 EXPORT  openSAM/dgs/Safedock-T2_3.5m.obj		dgs/Safedock-T2-24_3.5m.obj
@@ -51,9 +57,6 @@ EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_5m.fac	MisterX/libjw/Tunnel_Ste
 EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_7m.fac	MisterX/libjw/Tunnel_Steel_Modern_7m.fac
 EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_4m.fac	    MisterX/libjw/Tunnel_Steel_Old_4m.fac
 EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_5m.fac	    MisterX/libjw/Tunnel_Steel_Old_5m.fac
-
-# stuff below should not show up in WED
-DEPRECATED
 
 # SAM3
 
