@@ -1,17 +1,13 @@
-PLUGDIR_XP12=openSAM-pkg/openSAM
-PLUGDIR_XP11=openSAM-pkg_XP11/openSAM
+PLUGDIR=openSAM-pkg/openSAM
 
 include Makefile.common
 
 OBJDIR=./OBJ_lx
 
-TARGET_XP12=$(OBJDIR)/openSAM.xpl
-TARGET_XP11=$(OBJDIR)/openSAM.xpl_xp11
+TARGET=$(OBJDIR)/openSAM.xpl
 
 HEADERS=$(wildcard *.h)
 OBJECTS:=$(addprefix $(OBJDIR)/, $(SOURCES:.cpp=.o))
-OBJECTS_XP12=$(OBJECTS) $(OBJDIR)/jwctrl_sound.o
-OBJECTS_XP11=$(OBJECTS) $(OBJDIR)/jwctrl_sound_xp11.o
 
 CXX=g++
 LD=g++
@@ -24,21 +20,16 @@ CXXFLAGS=$(CXXSTD) $(CFLAGS)
 LNFLAGS=-shared -rdynamic -nodefaultlibs -undefined_warning
 LIBS=-lexpat
 
-all: $(TARGET_XP12) $(TARGET_XP11)
+all: $(TARGET)
     $(shell [ -d $(OBJDIR) ] || mkdir $(OBJDIR))
 
 $(OBJDIR)/%.o: %.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
-$(TARGET_XP12): $(OBJECTS_XP12)
-	$(CC) -o $(TARGET_XP12) $(LNFLAGS) $(OBJECTS_XP12) $(LIBS)
-	mkdir -p "$(PLUGDIR_XP12)/lin_x64"
-	cp -p $(TARGET_XP12) "$(PLUGDIR_XP12)/lin_x64/openSAM.xpl"
-
-$(TARGET_XP11): $(OBJECTS_XP11)
-	$(CC) -o $(TARGET_XP11) $(LNFLAGS) $(OBJECTS_XP11) $(LIBS) -lopenal
-	mkdir -p "$(PLUGDIR_XP11)/lin_x64"
-	cp -p $(TARGET_XP11) "$(PLUGDIR_XP11)/lin_x64/openSAM.xpl"
+$(TARGET): $(OBJECTS)
+	$(CC) -o $(TARGET) $(LNFLAGS) $(OBJECTS) $(LIBS)
+	mkdir -p "$(PLUGDIR)/lin_x64"
+	cp -p $(TARGET) "$(PLUGDIR)/lin_x64/openSAM.xpl"
 
 clean:
 	rm -f ./$(OBJDIR)/*

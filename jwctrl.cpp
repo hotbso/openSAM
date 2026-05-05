@@ -26,10 +26,9 @@
 #include <algorithm>
 
 #include "openSAM.h"
-#include "plane.h"
+#include "my_plane.h"
 #include "samjw.h"
 #include "jwctrl.h"
-#include "os_dgs.h"
 
 // from os_read_wav.c
 extern void ReadWav(const std::string& fname, Sound& sound);
@@ -333,17 +332,13 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     for (auto& njw : nearest_jws) {
         SamJw* jw = njw.jw_;
         if (jw->is_zc_jw) {
-            Stand* stand = jw->stand;
-            if (stand) {
-                jw->name = stand->id;
-                if (jw->name.length() > 10)
-                    jw->name = jw->name.substr(0, 10);
-                jw->name = jw->name + "_" + std::to_string(i);
-            } else
-                jw->name = "zc_" + std::to_string(i);
-
-            i++;
+            if (jw->base_name.length() > 10)
+                jw->name = jw->base_name.substr(0, 10);
+            else
+                jw->name = jw->base_name;
+            jw->name = jw->name + "_" + std::to_string(i);
         }
+            i++;
     }
 
     // lock all nearest_jws

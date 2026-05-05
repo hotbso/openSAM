@@ -30,6 +30,7 @@
 #include "XPLMGraphics.h"
 #include "XPLMScenery.h"
 
+#include "dgs/apt_airport.h"
 #include "log_msg.h"
 
 static constexpr float kD2R = std::numbers::pi/180.0;
@@ -64,14 +65,13 @@ struct Scenery {
     std::string arpt_icao;
 
     std::vector<SamJw*> sam_jws;
-    std::vector<Stand*> stands;
     std::vector<SamObj*> sam_objs;
     std::vector<SamAnim*> sam_anims;
 
     float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for kFarSkip */
 
     Scenery() {
-        sam_jws.reserve(100); stands.reserve(100);
+        sam_jws.reserve(100);
         sam_objs.reserve(50);  sam_anims.reserve(50);
     }
 
@@ -111,8 +111,10 @@ extern std::string base_dir;        // base directory of openSAM
 
 extern XPLMDataRef lat_ref_dr, lon_ref_dr,
     draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr,
-    total_running_time_sec_dr,
-    vr_enabled_dr;
+    total_running_time_sec_dr, sin_wave_dr,  acf_cg_y_dr, acf_cg_z_dr,
+    vr_enabled_dr, plane_x_dr, plane_y_dr, plane_z_dr, plane_elevation_dr, plane_true_psi_dr, parkbrake_dr;
+
+extern XPLMCommandRef toggle_jetway_cmdr;
 
 extern unsigned long long stat_sc_far_skip, stat_near_skip,
     stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,

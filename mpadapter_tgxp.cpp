@@ -25,7 +25,7 @@
 #include <cassert>
 
 #include "openSAM.h"
-#include "plane.h"
+#include "my_plane.h"
 #include "mpadapter_tgxp.h"
 
 constexpr int kSpawnPerRun = 10;    // new Planes per update run

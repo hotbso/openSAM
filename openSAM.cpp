@@ -27,17 +27,22 @@
 
 #include "openSAM.h"
 #include "plane.h"
-#include "os_dgs.h"
 #include "samjw.h"
 #include "jwctrl.h"
 #include "os_anim.h"
-#include "plane.h"
+#include "my_plane.h"
 #include "mpadapter.h"
+#include "opensam_airport.h"
+#include <dgs/plane.h>
+
+#include "flat_earth_math.h"
 
 #include "XPLMPlugin.h"
 #include "XPLMProcessing.h"
 
 #include "version.h"
+
+namespace fem = flat_earth_math;
 
 //
 // C++ style:
@@ -106,7 +111,11 @@ static int sam_library_installed;
 static XPLMDataRef date_day_dr;
 
 XPLMDataRef lat_ref_dr, lon_ref_dr, draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr,
-    gear_fnrml_dr, total_running_time_sec_dr, vr_enabled_dr;
+    gear_fnrml_dr, total_running_time_sec_dr, vr_enabled_dr, plane_x_dr, plane_y_dr, plane_z_dr, plane_elevation_dr,
+    plane_true_psi_dr, parkbrake_dr, sin_wave_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr,
+    eng_running_dr, beacon_dr, is_helicopter_dr;
+
+XPLMCommandRef toggle_jetway_cmdr;
 
 float lat_ref{-1000}, lon_ref{-1000};
 unsigned int ref_gen{1};
@@ -189,7 +198,8 @@ static int CmdActivateCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase 
         return 0;
 
     LogMsg("cmd manually_activate");
-    DgsSetArrival();
+    if (arpt)
+        arpt->SetArrival();
     return 0;
 }
 
@@ -227,28 +237,61 @@ static int CmdToggleMpCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase 
     return 0;
 }
 
-static float FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
+static float FlightLoopCb(float inElapsedSinceLastCall,
                           [[maybe_unused]] float inElapsedTimeSinceLastFlightLoop, [[maybe_unused]] int inCounter,
                           [[maybe_unused]] void* inRefcon) {
     static float jw_next_ts, dgs_next_ts, anim_next_ts, mp_update_next_ts;
+    static fem::LLPos plane_pos, plane_pos_prev;
 
     if (error_disabled)
         return 0;
+
     try {
         now = XPLMGetDataf(total_running_time_sec_dr);
 
-        bool on_ground_prev = my_plane->on_ground();
-        my_plane->Update();
-        bool on_ground = my_plane->on_ground();
+        plane_pos_prev = plane_pos;
+        plane_pos = fem::LLPos(my_plane->lat(), my_plane->lon());;
 
-        // check for transition
-        if (on_ground != on_ground_prev) {
-            if (on_ground)
-                DgsSetArrival();
-            else
-                DgsSetInactive();
+        bool on_ground_prev = my_plane->on_ground();
+
+        // if we go 3 * supersonic it's a teleportation, e.g. a ToLiss situation reload
+        if (fem::len(plane_pos - plane_pos_prev) > inElapsedSinceLastCall * 3.0f * 340.0f) {
+            LogMsg("teleportation detected, resetting airport");
+            arpt = nullptr;
+            on_ground_prev = false;  // to trigger airport identification on next loop
         }
 
+        //LogMsg("FlightLoopCb called, now: %0.2f, on_ground_prev: %d", now, on_ground_prev);
+        my_plane->Update();
+        bool on_ground = my_plane->on_ground();
+        //LogMsg("on_ground: %d", on_ground);
+
+        // check for transition
+        // TODO: is redundant with my_plane
+        if (on_ground != on_ground_prev) {
+            if (on_ground) {
+                LogMsg("plane is now on the ground, trying to identify airport and stand");
+
+                std::string airport_id = dgs::AptAirport::LocateAirport(plane_pos);
+                if (!airport_id.empty()) {
+                    LogMsg("now on airport: %s", airport_id.c_str());
+                    if (arpt == nullptr || arpt->name() != airport_id) {  // don't reload same
+                        arpt = OsAirport::LoadAirport(airport_id);
+                        if (arpt) {
+                            LogMsg("airport %s loaded successfully", airport_id.c_str());
+                            arpt->SetArrival();
+                        }
+                    }
+                } else {
+                    LogMsg("airport could not be identified at %0.8f,%0.8f", plane_pos.lat, plane_pos.lon);
+                    arpt = nullptr;
+                }
+            } else {
+                arpt = nullptr;
+            }
+        }
+
+        // TODO: what if one of these values is not updated below due to if?
         float jw_loop_delay = jw_next_ts - now;
         float dgs_loop_delay = dgs_next_ts - now;
         float anim_loop_delay = anim_next_ts - now;
@@ -267,9 +310,11 @@ static float FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
                 jw_next_ts = now + jw_loop_delay;
             }
 
-            if (dgs_loop_delay <= 0.0f) {
-                dgs_loop_delay = DgsStateMachine();
-                dgs_next_ts = now + dgs_loop_delay;
+            if (arpt) {
+                if (dgs_loop_delay <= 0.0f) {
+                    dgs_loop_delay = arpt->StateMachine();
+                    dgs_next_ts = now + dgs_loop_delay;
+                }
             }
         }
 
@@ -278,7 +323,11 @@ static float FlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
             anim_next_ts = now + anim_loop_delay;
         }
         // LogMsg("jw_loop_delay: %0.2f", jw_loop_delay);
-        return std::min(anim_loop_delay, std::min(jw_loop_delay, dgs_loop_delay));
+        float delay = std::min(anim_loop_delay, std::min(jw_loop_delay, dgs_loop_delay));
+        if (delay <= 0.0f)  // negative is # of frames, 0 is stop
+            delay = -1.0f;
+
+        return delay;
     } catch (const std::exception& e) {
         LogMsg("FlightLoopCb caught exception: %s, openSAM disabled", e.what());
         error_disabled = true;
@@ -447,6 +496,19 @@ static void LoadAcfGenericType(const std::string& fn) {
     LogMsg("%d mappings loaded", (int)acf_generic_type_map.size());
 }
 
+dgs::EqStatusVal PbbEqStatus() {
+    // 'query' "opensam/jetway/status" by calling the accessor with ref 1
+
+    int s = MyPlane::JwStatusAcc((void*)1);
+
+    if (s == 1)
+        return dgs::EqStatusVal::kEqOff;
+    if (s == 2)
+        return dgs::EqStatusVal::kEqOn;
+
+    return dgs::EqStatusVal::kEqUnknown;
+}
+
 // =========================== plugin entry points ===============================================
 PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     LogMsg("Startup " VERSION);
@@ -491,6 +553,13 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     date_day_dr = XPLMFindDataRef("sim/time/local_date_days");
 
+    plane_x_dr = XPLMFindDataRef("sim/flightmodel/position/local_x");
+    plane_y_dr = XPLMFindDataRef("sim/flightmodel/position/local_y");
+    plane_z_dr = XPLMFindDataRef("sim/flightmodel/position/local_z");
+    plane_elevation_dr = XPLMFindDataRef("sim/flightmodel/position/elevation");
+    plane_true_psi_dr = XPLMFindDataRef("sim/flightmodel2/position/true_psi");
+    parkbrake_dr = XPLMFindDataRef("sim/flightmodel/controls/parkbrake");
+
     lat_ref_dr = XPLMFindDataRef("sim/flightmodel/position/lat_ref");
     lon_ref_dr = XPLMFindDataRef("sim/flightmodel/position/lon_ref");
 
@@ -501,6 +570,15 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     total_running_time_sec_dr = XPLMFindDataRef("sim/time/total_running_time_sec");
     vr_enabled_dr = XPLMFindDataRef("sim/graphics/VR/enabled");
+    sin_wave_dr = XPLMFindDataRef("sim/graphics/animation/sin_wave_2");
+
+    acf_icao_dr = XPLMFindDataRef("sim/aircraft/view/acf_ICAO");
+    eng_running_dr = XPLMFindDataRef("sim/flightmodel/engine/ENGN_running");
+    beacon_dr = XPLMFindDataRef("sim/cockpit2/switches/beacon_on");
+    acf_cg_y_dr = XPLMFindDataRef("sim/aircraft/weight/acf_cgY_original");
+    acf_cg_z_dr = XPLMFindDataRef("sim/aircraft/weight/acf_cgZ_original");
+    acf_gear_z_dr = XPLMFindDataRef("sim/aircraft/parts/acf_gear_znodef");
+    is_helicopter_dr = XPLMFindDataRef("sim/aircraft2/metadata/is_helicopter");
 
     LoadPrefs();
 
@@ -518,12 +596,21 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
 
     // Create my_plane early. Accessors don't check whether my_plane is initialized.
-    my_plane = std::make_unique<MyPlane>();
-    my_plane->AutoModeSet(pref_auto_mode);
-    JwInit();
-    JwCtrl::Init();
-    DgsInit();
-    AnimInit();
+    my_plane = std::make_shared<MyPlane>();
+    dgs::plane = std::dynamic_pointer_cast<dgs::Plane>(my_plane);
+
+    try {
+        my_plane->AutoModeSet(pref_auto_mode);
+        JwInit();
+        JwCtrl::Init();
+        OsAirport::Init();
+        AnimInit();
+    } catch (const std::exception& e) {
+        LogMsg("fatal error during initialization: '%s', bye!", e.what());
+        error_disabled = true;
+        // we have to return success here, otherwise X-Plane will unload the plugin and we have accessors installed
+        return 1;  // bye
+    }
 
     // own commands
     XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Manually activate searching for DGS");
@@ -545,9 +632,9 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     XPLMRegisterCommandHandler(toggle_mp_cmdr, CmdToggleMpCb, 0, NULL);
 
     // augment XP12's standard cmd
-    XPLMCommandRef xp12_toggle_cmdr = XPLMFindCommand("sim/ground_ops/jetway");
-    if (xp12_toggle_cmdr)
-        XPLMRegisterCommandHandler(xp12_toggle_cmdr, CmdXp12DockJwCb, 1, NULL);
+    toggle_jetway_cmdr = XPLMFindCommand("sim/ground_ops/jetway");
+    if (toggle_jetway_cmdr)
+        XPLMRegisterCommandHandler(toggle_jetway_cmdr, CmdXp12DockJwCb, 1, NULL);
 
     // build menues
     XPLMMenuID menu = XPLMFindPluginsMenu();
@@ -597,6 +684,7 @@ PLUGIN_API void XPluginStop(void) {
     // be a good SDK citizen
     // destroy everything that might call SDK functions. Even LogMsg() is a wrapper around a SDK call.
     mp_adapter = nullptr;
+    dgs::plane = nullptr;
     my_plane = nullptr;
     LogMsg("plugin stopped");
 }

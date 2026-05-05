@@ -25,7 +25,7 @@
 #include <cassert>
 
 #include "openSAM.h"
-#include "plane.h"
+#include "my_plane.h"
 #include "mpadapter_xpilot.h"
 
 static XPLMDataRef modeS_id_dr, icao_type_dr, flight_id_dr,  // identity

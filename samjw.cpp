@@ -29,8 +29,8 @@
 #include "samjw.h"
 #include "jwctrl.h"
 
-#include "os_dgs.h"
-#include "plane.h"
+#include "my_plane.h"
+#include "opensam_airport.h"
 
 static constexpr float kSam2ObjMax = 2.5;     // m, max delta between coords in sam.xml and object
 static constexpr float kSam2ObjHdgMax = 5;    // °, likewise for heading
@@ -110,48 +110,14 @@ void SamJw::FillLibraryValues(unsigned int id) {
 }
 
 //
-// find the stand the jetway belongs to
-//
-Stand* SamJw::FindStand() {
-    float dist = 1.0E10;
-    Stand* min_stand = nullptr;
-
-    float plane_lat = my_plane->lat();
-    float plane_lon = my_plane->lon();
-
-    for (auto sc : sceneries) {
-        // cheap check against bounding box
-        if (!sc->InBbox(plane_lat, plane_lon))
-            continue;
-
-        for (auto s : sc->stands) {
-            s->Xform2RefFrame();
-
-            float local_x, local_z;
-            s->Global2Stand(x, z, local_x, local_z);
-            if (local_x > 2.0f)  // on the right
-                continue;
-
-            float d = len2f(local_x, local_z);
-
-            if (d < dist) {
-                // LogMsg("new min: %s, z: %2.1f, x: %2.1f",stand->id, local_z, local_x);
-                dist = d;
-                min_stand = s;
-            }
-        }
-    }
-
-    stand = min_stand;
-    return stand;
-}
-
-//
 // configure a zc library jetway
 //
 static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi) {
     // library jetways may be in view from very far away when stand information is not
     // yet available. We won't see details anyway.
+    if (arpt == nullptr)
+        return nullptr;
+
     if (len2f(obj_x - my_plane->x(), obj_z - my_plane->z()) > 0.5f * kFarSkip || fabsf(obj_y - my_plane->y()) > 1000.0f)
         return nullptr;
 
@@ -162,20 +128,22 @@ static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float
     jw->y = obj_y;
     jw->psi = obj_psi;
     jw->is_zc_jw = true;
-    jw->name = "zc_";
     jw->FillLibraryValues(id);
 
-    Stand* stand = jw->FindStand();
+    const OsStand* stand = arpt->FindStandForJw(jw->x, jw->z);
     if (stand) {
+        jw->base_name = stand->name();
         // delta = cabin points perpendicular to stand
-        float delta = RA((stand->hdgt + 90.0f) - jw->psi);
+        float delta = RA((stand->hdgt() + 90.0f) - jw->psi);
         // randomize
         float delta_r = (0.2f + 0.8f * (0.01f * (rand() % 100))) * delta;
         jw->initialRot2 = delta_r;
-        LogMsg("jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, initialRot2: %0.1f", jw->psi, stand->hdgt, delta,
+        LogMsg("jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, initialRot2: %0.1f", jw->psi, stand->hdgt(), delta,
                jw->initialRot2);
-    } else
+    } else {
+        jw->base_name = "zc_";
         jw->initialRot2 = 5.0f;
+    }
 
     jw->initialExtent = 0.3f;
     jw->initialRot3 = -3.0f * 0.01f * (rand() % 100);
@@ -188,7 +156,7 @@ static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float
     zc_jws.push_back(jw);
 
     LogMsg("added to zc table stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
-           stand ? stand->id.c_str() : "<NULL>", jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
+           jw->base_name.c_str(), jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
     return jw;
 }
 
