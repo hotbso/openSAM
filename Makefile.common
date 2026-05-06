@@ -1,6 +1,6 @@
 VPATH:=.:../AutoDGS/dgs:../xplib
 SDK=../SDK
-INCLUDES=-I. -I../Autodgs -I../xplib -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets
+INCLUDES=-I. -I../AutoDGS -I../xplib -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets
 
 # build version.h
 include version.mak
