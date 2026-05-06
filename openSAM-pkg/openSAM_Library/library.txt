@@ -24,6 +24,8 @@ EXPORT  openSAM/dgs/marshaller.agp			    dgs/marshaller.agp
 EXPORT  openSAM/dgs/marshaller_high.agp		    dgs/marshaller_high.agp
 EXPORT  openSAM/dgs/Safedock-T2-24.obj		    dgs/Safedock-T2-24_0.0m.obj
 EXPORT  openSAM/dgs/Safedock-T2-24_pole.obj		dgs/Safedock-T2-24_0.0m_pole.obj
+EXPORT  openSAM/dgs/Safedock-X.obj		        dgs/Safedock-X.obj
+EXPORT  openSAM/dgs/Safedock-X-pole.obj		    dgs/Safedock-X-pole.obj
 
 # stuff below should not show up in WED
 DEPRECATED

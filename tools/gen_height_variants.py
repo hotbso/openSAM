@@ -10,7 +10,8 @@ import shutil, sys, os
 target_dir_lib = "../openSAM-pkg/openSAM_Library"
 target_dir_res = "../openSAM-pkg/openSAM/resources"
 
-tex_files = ["../../AutoDGS/DGS-Safedock-T2-24/Safedock-T2-24.png"]
+tex_files = ["../../AutoDGS/DGS-Safedock-T2-24/Safedock-T2-24.png",
+             "../../AutoDGS/DGS-Safedock-X/Safedock-X.png"]
 t2_tmpl_obj = "../../AutoDGS/DGS-Safedock-T2-24/Safedock-T2-24.obj"
 t2_tmpl_obj_pole = "../../AutoDGS/DGS-Safedock-T2-24/Safedock-T2-24-pole.obj"
 
@@ -141,6 +142,15 @@ def check():
             res = False
     if res:
         print("All files in library.txt exist")
+
+# Safedock-X is modern with height 0 only
+fn = f"{target_dir_lib}/dgs/Safedock-X.obj"
+gen_variant("../../AutoDGS/DGS-Safedock-X/Safedock-X.obj", fn, 0)
+gen_files.append(fn)
+
+fn = f"{target_dir_lib}/dgs/Safedock-X-pole.obj"
+gen_variant("../../AutoDGS/DGS-Safedock-X/Safedock-X-pole.obj", fn, 0)
+gen_files.append(fn)
 
 for h in [0, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7]:
     name = f"Safedock-T2-24_{h:0.1f}m"

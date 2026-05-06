@@ -26,6 +26,8 @@
 enum kDgsVariant {
     kDgsVar_marshaller,
     kDgsVar_sam1_legacy,
+    kDgsVar_safedock_x,
+    kDgsVar_safedock_x_pole,
     kDgsVar_safedock_t2_24_0_0m,
     kDgsVar_safedock_t2_24_2_5m,
     kDgsVar_safedock_t2_24_3_0m,
@@ -67,6 +69,8 @@ enum kDgsVariant {
 const char* dgs_variant_drefs[] = {
 "opensam/dgs/ident/marshaller",
 "opensam/dgs/ident/sam1_legacy",
+"opensam/dgs/ident/safedock_x",
+"opensam/dgs/ident/safedock_x_pole",
 "opensam/dgs/ident/safedock_t2_24_0_0m",
 "opensam/dgs/ident/safedock_t2_24_2_5m",
 "opensam/dgs/ident/safedock_t2_24_3_0m",
@@ -114,6 +118,16 @@ static inline void GetDgsVariantParams(kDgsVariant variant, unsigned int& dgs_ty
             break;
         case kDgsVar_sam1_legacy:
             dgs_type = kDgsType_SAM1_Legacy;
+            height = 0.0f;
+            turn_180 = false;
+            break;
+        case kDgsVar_safedock_x:
+            dgs_type = kDgsType_Safedock_X;
+            height = 0.0f;
+            turn_180 = false;
+            break;
+        case kDgsVar_safedock_x_pole:
+            dgs_type = kDgsType_Safedock_X;
             height = 0.0f;
             turn_180 = false;
             break;
