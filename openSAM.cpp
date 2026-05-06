@@ -501,12 +501,14 @@ dgs::EqStatusVal PbbEqStatus() {
 
     int s = MyPlane::JwStatusAcc((void*)1);
 
-    if (s == 1)
-        return dgs::EqStatusVal::kEqOff;
-    if (s == 2)
+    if (s == 0)     // no jetway
+        return dgs::EqStatusVal::kEqUnknown;
+
+    if (s == 2)     // docked
         return dgs::EqStatusVal::kEqOn;
 
-    return dgs::EqStatusVal::kEqUnknown;
+    // not docked or in transit
+    return dgs::EqStatusVal::kEqOff;
 }
 
 // =========================== plugin entry points ===============================================
