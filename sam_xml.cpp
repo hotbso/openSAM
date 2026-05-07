@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <iostream>
 #include <fstream>
+#include <exception>
 #include <unordered_map>
 
 #include <expat.h>
@@ -479,7 +480,7 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
     scpi.close();
     sc_paths.shrink_to_fit();
     if (openSAM_Library_path.empty())
-        throw OsEx("openSAM_Library is not installed!");
+        throw std::runtime_error("openSAM_Library is not installed!");
 }
 
 // collect sam.xml from all sceneries
@@ -488,7 +489,7 @@ void CollectSamXml(const SceneryPacks& scp) {
 
     // drefs from openSAM_Library must come first
     if (scp.openSAM_Library_path.empty() || !ParseSamXml(scp.openSAM_Library_path + "sam.xml", lib_jw_map))
-        throw OsEx("openSAM_Library is not installed or inaccessible!");
+        throw std::runtime_error("openSAM_Library is not installed or inaccessible!");
 
     if (!scp.SAM_Library_path.empty()) {
         if (!ParseSamXml(scp.SAM_Library_path + "libraryjetways.xml", lib_jw_map))

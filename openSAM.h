@@ -46,16 +46,6 @@ class SamAnim;
 
 static float RA(float angle);
 
-class OsEx : std::exception {
-    std::string _reason;
-
-  public:
-    OsEx(std::string reason) : _reason(reason) {}
-    const char* what() const noexcept {
-        return  _reason.c_str();
-    }
-};
-
 struct Scenery {
     // Not copyable or movable
     Scenery(const Scenery&) = delete;

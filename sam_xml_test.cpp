@@ -42,7 +42,7 @@ main(int argc, char **argv) {
         SceneryPacks scp(xp_dir);
         CollectSamXml(scp);
         LogMsg("%d sceneries with sam jetways found", (int)sceneries.size());
-    } catch (const OsEx& ex) {
+    } catch (const std::exception& ex) {
         LogMsg("fatal error: '%s', bye!", ex.what());
         return 0;   // bye
     }

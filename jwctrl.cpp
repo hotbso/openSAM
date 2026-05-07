@@ -24,6 +24,7 @@
 #include <ctime>
 #include <cstring>
 #include <algorithm>
+#include <exception>
 
 #include "openSAM.h"
 #include "my_plane.h"
@@ -824,10 +825,10 @@ void JwCtrl::SoundInit() {
         LogMsg("alert sound loaded, channels: %d, bit_rate: %d, size: %d", alert_.num_channels, alert_.sample_rate,
                alert_.size);
     else
-        throw OsEx("Could not load sound");
+        throw std::runtime_error("Could not load sound");
 
     if (!SoundDevInit())
-        throw OsEx("Could not init sound");
+        throw std::runtime_error("Could not init sound");
 }
 
 // static

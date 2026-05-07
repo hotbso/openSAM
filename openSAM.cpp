@@ -432,7 +432,7 @@ static int CmdXp12DockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhas
 static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, DoorInfo>& di_map) {
     std::ifstream f(fn);
     if (!f.is_open())
-        throw OsEx("Error loading " + fn);
+        throw std::runtime_error("Error loading " + fn);
 
     LogMsg("Building door_info_map from %s", fn.c_str());
 
@@ -470,7 +470,7 @@ static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, 
 static void LoadAcfGenericType(const std::string& fn) {
     std::ifstream f(fn);
     if (!f.is_open())
-        throw OsEx("Error loading " + fn);
+        throw std::runtime_error("Error loading " + fn);
 
     LogMsg("Building acf_generic_type_map from %s", fn.c_str());
 
@@ -546,7 +546,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         CollectSamXml(scp);
         LogMsg("%d sceneries with sam jetways found", (int)sceneries.size());
         JwCtrl::SoundInit();
-    } catch (const OsEx& ex) {
+    } catch (const std::exception& ex) {
         LogMsg("fatal error: '%s', bye!", ex.what());
         return 0;  // bye
     }
