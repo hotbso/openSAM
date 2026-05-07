@@ -127,7 +127,6 @@ std::string base_dir;  // base directory of openSAM
 
 static std::unique_ptr<MpAdapter> mp_adapter;
 
-std::unordered_map<std::string, DoorInfo> door_info_map;
 std::unordered_map<std::string, DoorInfo> csl_door_info_map;
 std::unordered_map<std::string, std::string> acf_generic_type_map;
 
@@ -539,7 +538,6 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     // collect all config and *.xml files
     try {
-        LoadDoorInfo(base_dir + "acf_door_position.txt", door_info_map);
         LoadDoorInfo(base_dir + "csl_door_position.txt", csl_door_info_map);
         LoadAcfGenericType(base_dir + "acf_generic_type.txt");
 

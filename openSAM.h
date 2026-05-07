@@ -101,7 +101,6 @@ struct DoorInfo {
 };
 
 // key is icao + <door num in ascii>
-extern std::unordered_map<std::string, DoorInfo> door_info_map;
 extern std::unordered_map<std::string, DoorInfo> csl_door_info_map;
 // key is icao or iata -> icao
 extern std::unordered_map<std::string, std::string> acf_generic_type_map;

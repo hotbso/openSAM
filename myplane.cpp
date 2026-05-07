@@ -187,12 +187,20 @@ void MyPlane::PlaneLoadedCb() {
     n_door_ = 0;
 
     // check whether door info is overridden in the config file
-    auto it = door_info_map.find(icao_ + '1');
-    if (it != door_info_map.end()) {
-        door_info_[0] = it->second;
-        LogMsg("using pos for door 1 from door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[0].x,
-               door_info_[0].y, door_info_[0].z);
-    } else {
+    auto it = cfg_.find("door_1");
+    if (it != cfg_.end()) {
+        const std::string& val = it->second;
+        if (3 != sscanf(val.c_str(), "%f %f %f", &door_info_[0].x, &door_info_[0].y, &door_info_[0].z)) {
+            LogMsg("invalid door_1 format in cfg_: '%s'", val.c_str());
+        } else {
+            n_door_++;
+            LogMsg("using pos for door 1 from cfg_: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[0].x, door_info_[0].y,
+                   door_info_[0].z);
+        }
+    }
+
+    // always continue with 1 door, right or wrong
+    if (n_door_ == 0) {
         door_info_[0].x = XPLMGetDataf(acf_door_x_dr_);
         door_info_[0].y = XPLMGetDataf(acf_door_y_dr_);
         door_info_[0].z = XPLMGetDataf(acf_door_z_dr_);
@@ -205,70 +213,19 @@ void MyPlane::PlaneLoadedCb() {
 
     // check for a second door, seems to be not available by dataref
     // data in the acf file is often bogus, so check our own config file first
-    it = door_info_map.find(icao_ + '2');
-    if (it != door_info_map.end()) {
-        door_info_[1] = it->second;
-        n_door_++;
-        LogMsg("found door 2 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[1].x, door_info_[1].y,
-               door_info_[1].z);
-    } else {
-        LogMsg("door 2 is not defined in door_info_map");
-    }
-
-    float plane_cg_y = kF2M * XPLMGetDataf(acf_cg_y_dr);
-    float plane_cg_z = kF2M * XPLMGetDataf(acf_cg_z_dr);
-
-    // if nothing found in the config file try the acf
-    if (n_door_ == 1) {
-        char acf_path[512];
-        char acf_file[256];
-
-        XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, acf_file, acf_path);
-        LogMsg("acf path: '%s'", acf_path);
-
-        FILE* acf = fopen(acf_path, "r");
-        if (acf) {
-            char line[200];
-            int got = 0;
-            int has_door2 = 0;
-            // we go the simple brute force way
-            while (fgets(line, sizeof(line), acf)) {
-                if (line == strstr(line, "P acf/_has_board_2 ")) {
-                    if (1 != sscanf(line + 19, "%d", &has_door2))
-                        break;
-                }
-
-                if (line == strstr(line, "P acf/_board_2/0 ")) {
-                    if (1 == sscanf(line + 17, "%f", &door_info_[1].x)) {
-                        door_info_[1].x *= kF2M;
-                        got++;
-                    }
-                }
-                if (line == strstr(line, "P acf/_board_2/1 ")) {
-                    float y;
-                    if (1 == sscanf(line + 17, "%f", &y)) {
-                        door_info_[1].y = y * kF2M - plane_cg_y;
-                        got++;
-                    }
-                }
-                if (line == strstr(line, "P acf/_board_2/2 ")) {
-                    float z;
-                    if (1 == sscanf(line + 17, "%f", &z)) {
-                        door_info_[1].z = z * kF2M - plane_cg_z;
-                        got++;
-                    }
-                }
-
-                if (has_door2 && got == 3) {
-                    n_door_ = 2;
-                    LogMsg("found door 2 in acf file: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[1].x, door_info_[1].y,
-                           door_info_[1].z);
-                    break;
-                }
-            }
-
-            fclose(acf);
+    it = cfg_.find("door_2");
+    if (it != cfg_.end()) {
+        const std::string& val = it->second;
+        if (3 != sscanf(val.c_str(), "%f %f %f", &door_info_[1].x, &door_info_[1].y, &door_info_[1].z)) {
+            LogMsg("invalid door_2 format in cfg_: '%s'", val.c_str());
+            door_info_[1] = {};
+        } else {
+            n_door_++;
+            LogMsg("found door 2 in cfg_: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[1].x, door_info_[1].y,
+                   door_info_[1].z);
         }
+    } else {
+        LogMsg("door 2 is not defined in cfg_");
     }
 }
 
