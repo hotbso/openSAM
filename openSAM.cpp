@@ -138,9 +138,7 @@ XPLMProbeRef probe_ref;
 XPLMMenuID anim_menu;
 
 bool error_disabled;
-
-// inihibit all dataref accessors that call SDK functions until the sim is considered 'running'
-bool sim_running;
+static bool pending_plane_loaded_cb = false;  // delayed init
 
 static void SavePrefs() {
     FILE* f = fopen(pref_path.c_str(), "w");
@@ -246,6 +244,11 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
         return 0;
 
     try {
+        if (pending_plane_loaded_cb) {
+            pending_plane_loaded_cb = false;
+            my_plane->PlaneLoadedCb();
+        }
+
         now = XPLMGetDataf(total_running_time_sec_dr);
 
         plane_pos_prev = plane_pos;
@@ -735,8 +738,7 @@ PLUGIN_API void XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, lon
 
     // my plane loaded
     if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
-        my_plane->PlaneLoadedCb();
-        sim_running = true;
+        pending_plane_loaded_cb = true;
         return;
     }
 }
