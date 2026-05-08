@@ -39,7 +39,7 @@
 static constexpr float kMaxDgs2StandX = 10.0f;  // max offset/distance from DGS to stand
 static constexpr float kMaxDgs2StandZ = 80.0f;
 
-std::unique_ptr<OsAirport> arpt;
+std::unique_ptr<OsAirport> os_arpt;
 
 OsStand::OsStand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation)
     : dgs::Stand(as, arpt_icao, elevation) {
@@ -268,7 +268,7 @@ static int DgsSam1IcaoAcc([[maybe_unused]] XPLMDataRef ref, int *values, int ofs
 float OsAirport::DgsIdentAcc(void* ref) {
     kDgsVariant dgs_var = (kDgsVariant)(uint64_t)ref;
 
-    if (arpt == nullptr || dgs_var >= kDgsVarCount)
+    if (os_arpt == nullptr || dgs_var >= kDgsVarCount)
         return 0.0f;
 
     float obj_x = XPLMGetDataf(draw_object_x_dr);
@@ -280,12 +280,12 @@ float OsAirport::DgsIdentAcc(void* ref) {
         return 0.0f;  // likely uninitialized, datareftool poll etc.
 
     //LogMsg("DgsIdentAcc called for variant %d, obj_x %.2f, obj_y %.2f, obj_z %.2f, obj_psi %.1f", dgs_var, obj_x, obj_y, obj_z, obj_psi);
-    if (ref_gen != arpt->dgs_cache_ref_gen_) {
-        arpt->dgs_cache_.clear();
-        arpt->dgs_cache_ref_gen_ = ref_gen;
+    if (ref_gen != os_arpt->dgs_cache_ref_gen_) {
+        os_arpt->dgs_cache_.clear();
+        os_arpt->dgs_cache_ref_gen_ = ref_gen;
     }
 
-    if (arpt->dgs_cache_.contains({obj_x, obj_z}))
+    if (os_arpt->dgs_cache_.contains({obj_x, obj_z}))
         return 0.0f;  // already seen this one
 
     DgsCtx ctx;
@@ -298,8 +298,8 @@ float OsAirport::DgsIdentAcc(void* ref) {
     XPLMLocalToWorld(obj_x, obj_y, obj_z, &ctx.lat, &ctx.lon, &ctx.altitude);
 
     DgsCacheKey key{obj_x, obj_z};
-    arpt->dgs_cache_[key] = true;
-    arpt->pending_dgs_.push_back(ctx);
+    os_arpt->dgs_cache_[key] = true;
+    os_arpt->pending_dgs_.push_back(ctx);
     //LogMsg("new DGS identified: type %d, height %.1f, turn_180 %d, obj_x %.2f, obj_y %.2f, obj_z %.2f, obj_psi %.1f", ctx.dgs_type,
     //       ctx.height, ctx.turn_180 ? 1 : 0, ctx.obj_x, ctx.obj_y, ctx.obj_z, ctx.obj_psi);
     return 0.0f;
@@ -314,7 +314,7 @@ float OsAirport::DgsIdentAcc(void* ref) {
 float OsAirport::DgsSam1Acc(void* ref) {
     int dr_index = (uint64_t)ref;
 
-    if (arpt == nullptr)
+    if (os_arpt == nullptr)
         goto inactive;
     {
         float obj_x = XPLMGetDataf(draw_object_x_dr);
@@ -343,12 +343,12 @@ float OsAirport::DgsSam1Acc(void* ref) {
 
         // not the active one, check if it's a new DGS to activate, only check status dref
         if (dr_index == SAM1_DR_STATUS) {
-            if (ref_gen != arpt->dgs_cache_ref_gen_) {
-                arpt->dgs_cache_.clear();
-                arpt->dgs_cache_ref_gen_ = ref_gen;
+            if (ref_gen != os_arpt->dgs_cache_ref_gen_) {
+                os_arpt->dgs_cache_.clear();
+                os_arpt->dgs_cache_ref_gen_ = ref_gen;
             }
 
-            if (arpt->dgs_cache_.contains({obj_x, obj_z}))
+            if (os_arpt->dgs_cache_.contains({obj_x, obj_z}))
                 goto inactive;  // already seen this one, but not active, so inactive
 
             DgsCtx ctx;
@@ -363,8 +363,8 @@ float OsAirport::DgsSam1Acc(void* ref) {
             XPLMLocalToWorld(obj_x, obj_y, obj_z, &ctx.lat, &ctx.lon, &ctx.altitude);
 
             DgsCacheKey key{obj_x, obj_z};
-            arpt->dgs_cache_[key] = true;
-            arpt->pending_dgs_.push_back(ctx);
+            os_arpt->dgs_cache_[key] = true;
+            os_arpt->pending_dgs_.push_back(ctx);
             // see you created in the near future, until then, let's be inactive
             // FALLTHROUGH
         }
@@ -392,7 +392,7 @@ float OsAirport::StateMachine() {
         LogMsg("Processing %d pending DGS", (int)pending_dgs_.size());
 
         for (auto& ctx : pending_dgs_)
-            arpt->ProcessPendingDgs(ctx);
+            os_arpt->ProcessPendingDgs(ctx);
 
         pending_dgs_.clear();
     }

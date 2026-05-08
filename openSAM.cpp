@@ -204,8 +204,8 @@ static int CmdActivateCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase 
         return 0;
 
     LogMsg("cmd manually_activate");
-    if (arpt)
-        arpt->SetArrival();
+    if (os_arpt)
+        os_arpt->SetArrival();
     return 0;
 }
 
@@ -268,7 +268,7 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
         // if we go 3 * supersonic it's a teleportation, e.g. a ToLiss situation reload
         if (fem::len(plane_pos - plane_pos_prev) > inElapsedSinceLastCall * 3.0f * 340.0f) {
             LogMsg("teleportation detected, resetting airport");
-            arpt = nullptr;
+            os_arpt = nullptr;
             on_ground_prev = false;  // to trigger airport identification on next loop
         }
 
@@ -286,19 +286,19 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
                 std::string airport_id = dgs::AptAirport::LocateAirport(plane_pos);
                 if (!airport_id.empty()) {
                     LogMsg("now on airport: %s", airport_id.c_str());
-                    if (arpt == nullptr || arpt->name() != airport_id) {  // don't reload same
-                        arpt = OsAirport::LoadAirport(airport_id);
-                        if (arpt) {
+                    if (os_arpt == nullptr || os_arpt->name() != airport_id) {  // don't reload same
+                        os_arpt = OsAirport::LoadAirport(airport_id);
+                        if (os_arpt) {
                             LogMsg("airport %s loaded successfully", airport_id.c_str());
-                            arpt->SetArrival();
+                            os_arpt->SetArrival();
                         }
                     }
                 } else {
                     LogMsg("airport could not be identified at %0.8f,%0.8f", plane_pos.lat, plane_pos.lon);
-                    arpt = nullptr;
+                    os_arpt = nullptr;
                 }
             } else {
-                arpt = nullptr;
+                os_arpt = nullptr;
             }
         }
 
@@ -321,9 +321,9 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
                 jw_next_ts = now + jw_loop_delay;
             }
 
-            if (arpt) {
+            if (os_arpt) {
                 if (dgs_loop_delay <= 0.0f) {
-                    dgs_loop_delay = arpt->StateMachine();
+                    dgs_loop_delay = os_arpt->StateMachine();
                     dgs_next_ts = now + dgs_loop_delay;
                 }
             }
@@ -744,7 +744,7 @@ PLUGIN_API void XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, lon
     // my plane loaded
     if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
         LogMsg("plane loaded, resetting airport");
-        arpt = nullptr;
+        os_arpt = nullptr;
         XPLMScheduleFlightLoop(flight_loop_id, 0, 0);
         pending_plane_loaded_cb = true;
         XPLMScheduleFlightLoop(flight_loop_id, 15.0, 1);  // let the dust settle

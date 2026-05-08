@@ -115,7 +115,7 @@ void SamJw::FillLibraryValues(unsigned int id) {
 static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi) {
     // library jetways may be in view from very far away when stand information is not
     // yet available. We won't see details anyway.
-    if (arpt == nullptr)
+    if (os_arpt == nullptr)
         return nullptr;
 
     if (len2f(obj_x - my_plane->x(), obj_z - my_plane->z()) > 0.5f * kFarSkip || fabsf(obj_y - my_plane->y()) > 1000.0f)
@@ -130,7 +130,7 @@ static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float
     jw->is_zc_jw = true;
     jw->FillLibraryValues(id);
 
-    const OsStand* stand = arpt->FindStandForJw(jw->x, jw->z);
+    const OsStand* stand = os_arpt->FindStandForJw(jw->x, jw->z);
     if (stand) {
         jw->base_name = stand->name();
         // delta = cabin points perpendicular to stand

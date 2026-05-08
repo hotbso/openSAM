@@ -129,5 +129,5 @@ class OsAirport : public dgs::Airport {
     void ConnectJetway() override;
 };
 
-extern std::unique_ptr<OsAirport> arpt;
+extern std::unique_ptr<OsAirport> os_arpt;
 #endif
