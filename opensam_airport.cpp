@@ -38,6 +38,7 @@
 
 static constexpr float kMaxDgs2StandX = 10.0f;  // max offset/distance from DGS to stand
 static constexpr float kMaxDgs2StandZ = 80.0f;
+static constexpr float kExtraDz = 0.03f;  // extra pull forward of displays in z direction to account for precision loss
 
 std::unique_ptr<OsAirport> os_arpt;
 
@@ -53,7 +54,7 @@ OsStand::~OsStand() {
 }
 
 void OsStand::InstallDgs(int dgs_type, const DgsCtx& ctx) {
-        float psi = (ctx.turn_180) ? RA(ctx.obj_psi + 180.0f) : ctx.obj_psi;  // SAM1 legacy DGS can be turned 180°
+    float psi = (ctx.turn_180) ? RA(ctx.obj_psi + 180.0f) : ctx.obj_psi;  // SAM1 legacy DGS can be turned 180°
     dgs_lat_ = ctx.lat;
     dgs_lon_ = ctx.lon;
     dgs_altitude_ = ctx.altitude;
@@ -63,6 +64,12 @@ void OsStand::InstallDgs(int dgs_type, const DgsCtx& ctx) {
     drawinfo_.y = ctx.obj_y;
     drawinfo_.z = ctx.obj_z;
     drawinfo_.heading = psi;
+
+    // account for precision loss as obj_x/y/z is only float
+    float dx = -kExtraDz * std::sin(psi * kD2R);
+    float dz =  kExtraDz * std::cos(psi * kD2R);
+    drawinfo_.x += dx;
+    drawinfo_.z += dz;
 
     switch (dgs_type) {
         case kDgsType_Marshaller:

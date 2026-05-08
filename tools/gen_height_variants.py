@@ -20,7 +20,6 @@ resource_files = ["../../AutoDGS/DGS-Safedock-T2-24/Safedock-T2-24-display.obj",
                   "../../AutoDGS/DGS-Safedock-X/Safedock-X-display_LIT.png"]
 
 new_near_lod = "350"
-display_extra_dz = 0.03 # pull forward display by 3cm due to the limited precision of obj_x/y/z in float32
 
 AGP = """A
 1000
@@ -215,13 +214,6 @@ for f in resource_files:
         with open(tgtname, "w", newline='\n') as fw:
             for l in lines:
                 l = l.replace("AutoDGS/", "opensam/")
-                if l.startswith("VT"):
-                    words = l.split()
-                    z = float(words[3])
-                    z += display_extra_dz
-                    words[3] = f"{z:f}"
-                    l = " ".join(words) + "\n"
-
                 fw.write(l)
         print(f"Processed: '{tgtname}'")
     else:
