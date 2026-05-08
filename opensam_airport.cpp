@@ -109,8 +109,7 @@ OsAirport::~OsAirport() {
     LogMsg("OsAirport '%s' destructed", name().c_str());
 }
 
-std::unique_ptr<OsAirport> OsAirport::LoadAirport(const std::string& icao) {
-    auto arpt = dgs::AptAirport::LookupAirport(icao);
+std::unique_ptr<OsAirport> OsAirport::LoadAirport(const dgs::AptAirport *arpt) {
     if (arpt == nullptr)
         return nullptr;
 

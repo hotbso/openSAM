@@ -127,7 +127,7 @@ extern XPLMProbeRef probe_ref;
 
 // functions
 
-extern void ToggleUI(void);
+extern void OsToggleUI(void);
 
 #define BETWEEN(x, a, b) ((a) <= (x) && (x) <= (b))
 

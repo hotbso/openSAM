@@ -214,7 +214,7 @@ static int CmdToggleUICb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase 
         return 0;
 
     LogMsg("cmd ToggleUI");
-    ToggleUI();
+    OsToggleUI();
     return 0;
 }
 
@@ -283,13 +283,13 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
             if (on_ground) {
                 LogMsg("plane is now on the ground, trying to identify airport and stand");
 
-                std::string airport_id = dgs::AptAirport::LocateAirport(plane_pos);
-                if (!airport_id.empty()) {
-                    LogMsg("now on airport: %s", airport_id.c_str());
-                    if (os_arpt == nullptr || os_arpt->name() != airport_id) {  // don't reload same
-                        os_arpt = OsAirport::LoadAirport(airport_id);
+                const dgs::AptAirport* arpt = dgs::AptAirport::LocateAirport(plane_pos);
+                if (arpt && arpt->is_opensam_) {
+                    LogMsg("now on airport: %s", arpt->icao_.c_str());
+                    if (os_arpt == nullptr || os_arpt->name() != arpt->icao_) {  // don't reload same
+                        os_arpt = std::make_unique<OsAirport>(*arpt);
                         if (os_arpt) {
-                            LogMsg("airport %s loaded successfully", airport_id.c_str());
+                            LogMsg("airport %s loaded successfully", os_arpt->name().c_str());
                             os_arpt->SetArrival();
                         }
                     }

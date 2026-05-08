@@ -235,8 +235,8 @@ static void CreateUI() {
     XPAddWidgetCallback(undock_btn, MyPlane::UIWidgetCb);
 }
 
-void ToggleUI(void) {
-    LogMsg("ToggleUI called");
+void OsToggleUI(void) {
+    LogMsg("OsToggleUI called");
 
     if (ui_widget == NULL)
         CreateUI();

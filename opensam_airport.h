@@ -106,9 +106,8 @@ class OsAirport : public dgs::Airport {
     int FindStandForObj(float obj_x, float obj_z, float obj_psi); // returns index in stands_ or -1 if not found
 
    public:
-    static std::unique_ptr<OsAirport> LoadAirport(const std::string& icao);
-    // Load airport from position
-    static std::unique_ptr<OsAirport> LoadAirport(const flat_earth_math::LLPos& pos);
+    static std::unique_ptr<OsAirport> LoadAirport(const dgs::AptAirport* arpt);
+
     static void Init();
     static float DgsIdentAcc(void* ref);  // dataref accessor for the dgs/ident/* datarefs
     static float DgsSam1Acc(void* ref);   // dataref accessor for the "sam/..." dgs related datarefs

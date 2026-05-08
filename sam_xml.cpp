@@ -505,7 +505,7 @@ void CollectSamXml(const SceneryPacks& scp) {
 
         // read stands from apt.dat
         int n_stands = 0;
-        dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", false, false, n_stands);
+        dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", false, true, false, n_stands);
 
         // don't save empty sceneries
         if (sc->sam_jws.empty() && n_stands == 0 && sc->sam_anims.empty()) {
