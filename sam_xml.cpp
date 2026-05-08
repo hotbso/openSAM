@@ -423,7 +423,7 @@ out:
     return rc;
 }
 
-// SceneryPacks contructor
+// SceneryPacks constructor
 SceneryPacks::SceneryPacks(const std::string& xp_dir) {
     std::string scpi_name(xp_dir + "/Custom Scenery/scenery_packs.ini");
 
@@ -443,17 +443,17 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
         if (line.back() == '\r')
             line.pop_back();
 
-        if (!line.starts_with("SCENERY_PACK ") || line.find("*GLOBAL_AIRPORTS*") != std::string::npos)
+        if (!line.starts_with("SCENERY_PACK ") || line.contains("*GLOBAL_AIRPORTS*"))
             continue;
 
         // autoortho pretends every file exists but
         // reads give errors
-        if (line.find("/z_ao_") != std::string::npos)
+        if (line.contains("/z_ao_"))
             continue;
 
         line.erase(0, 13);
         std::string sc_path;
-        bool is_absolute = (line[0] == '/' || line.find(':') != std::string::npos);
+        bool is_absolute = (line[0] == '/' || line.contains(':'));
         if (is_absolute)
             sc_path = line;
         else
@@ -464,12 +464,12 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
             if (sc_path[i] == '\\')
                 sc_path[i] = '/';
 
-        if (sc_path.find("/openSAM_Library/") != std::string::npos) {
+        if (sc_path.contains("/openSAM_Library/")) {
             openSAM_Library_path = sc_path;
             continue;
         }
 
-        if (sc_path.find("/SAM_Library/") != std::string::npos) {
+        if (sc_path.contains("/SAM_Library/")) {
             SAM_Library_path = sc_path;
             continue;
         }
@@ -479,8 +479,6 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
 
     scpi.close();
     sc_paths.shrink_to_fit();
-    if (openSAM_Library_path.empty())
-        throw std::runtime_error("openSAM_Library is not installed!");
 }
 
 // collect sam.xml from all sceneries

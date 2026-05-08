@@ -138,6 +138,15 @@ XPLMProbeRef probe_ref;
 XPLMMenuID anim_menu;
 
 bool error_disabled;
+
+static float FlightLoopCb(float inElapsedSinceLastCall, [[maybe_unused]] float inElapsedTimeSinceLastFlightLoop, [[maybe_unused]] int inCounter,
+                          [[maybe_unused]] void* inRefcon);
+
+static XPLMCreateFlightLoop_t flight_loop_ctx = {sizeof(XPLMCreateFlightLoop_t),
+                                                 xplm_FlightLoop_Phase_BeforeFlightModel, FlightLoopCb, nullptr};
+
+static XPLMFlightLoopID flight_loop_id;
+
 static bool pending_plane_loaded_cb = false;  // delayed init
 
 static void SavePrefs() {
@@ -545,6 +554,9 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         LoadAcfGenericType(base_dir + "acf_generic_type.txt");
 
         SceneryPacks scp(xp_dir);
+        if (scp.openSAM_Library_path.empty())
+             LogMsg("WARNING: openSAM_Library not found!");
+
         sam_library_installed = scp.SAM_Library_path.size() > 0;
         CollectSamXml(scp);
         LogMsg("%d sceneries with sam jetways found", (int)sceneries.size());
@@ -678,8 +690,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     SetMenu();
 
-    // ... and off we go
-    XPLMRegisterFlightLoopCallback(FlightLoopCb, 2.0, NULL);
+    flight_loop_id = XPLMCreateFlightLoop(&flight_loop_ctx);
     return 1;
 }
 
@@ -727,18 +738,25 @@ PLUGIN_API int XPluginEnable(void) {
 }
 
 PLUGIN_API void XPluginReceiveMessage([[maybe_unused]] XPLMPluginID in_from, long in_msg, void* in_param) {
+    if (error_disabled)
+        return;
+
+    // my plane loaded
+    if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
+        LogMsg("plane loaded, resetting airport");
+        arpt = nullptr;
+        XPLMScheduleFlightLoop(flight_loop_id, 0, 0);
+        pending_plane_loaded_cb = true;
+        XPLMScheduleFlightLoop(flight_loop_id, 15.0, 1);  // let the dust settle
+        return;
+    }
+
     // Everything before XPLM_MSG_AIRPORT_LOADED has bogus datarefs.
     //   Anyway it's too late for the current scenery.
     if ((in_msg == XPLM_MSG_AIRPORT_LOADED) || (airport_loaded && (in_msg == XPLM_MSG_SCENERY_LOADED))) {
         airport_loaded = 1;
         nh = (my_plane->lat() >= 0.0);
         SetSeasonAuto();
-        return;
-    }
-
-    // my plane loaded
-    if (in_msg == XPLM_MSG_PLANE_LOADED && in_param == 0) {
-        pending_plane_loaded_cb = true;
         return;
     }
 }

@@ -24,7 +24,7 @@ SOURCES=openSAM.cpp opensam_airport.cpp samjw.cpp jwctrl.cpp jwctrl_sound.cpp os
     apt_airport.cpp dgs.cpp dgs_plane.cpp airport.cpp marshaller.cpp safedock_t2_24.cpp safedock_x.cpp sam1_dgs.cpp
 
 # the c++ standard to use
-CXXSTD=-std=c++20
+CXXSTD=-std=c++23
 
 OPT=-O3
 
