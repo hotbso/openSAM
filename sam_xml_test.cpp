@@ -25,7 +25,7 @@
 #include <cstring>
 #include <iostream>
 
-#include "openSAM.h"
+#include "opensam.h"
 #include "samjw.h"
 #include "os_anim.h"
 
@@ -42,6 +42,13 @@ main(int argc, char **argv) {
         SceneryPacks scp(xp_dir);
         CollectSamXml(scp);
         LogMsg("%d sceneries with sam jetways found", (int)sceneries.size());
+        int n_stands;
+        if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, false, true, n_stands)) {
+             LogMsg("WARNING: global apt.dat could not be parsed, no DGS support!");
+            return 0;
+        } else {
+            LogMsg("%d stands with DGS found in global apt.dat", n_stands);
+        }
     } catch (const std::exception& ex) {
         LogMsg("fatal error: '%s', bye!", ex.what());
         return 0;   // bye
@@ -94,6 +101,11 @@ main(int argc, char **argv) {
     const auto eddf = dgs::AptAirport::LookupAirport("EDDF");
     if (eddf) {
         eddf->dump();
+    }
+
+    const auto ekbi = dgs::AptAirport::LookupAirport("EKBI");
+    if (ekbi) {
+        ekbi->dump();
     }
 
     return (0);

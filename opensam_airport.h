@@ -116,8 +116,6 @@ class OsAirport : public dgs::Airport {
     OsAirport(const dgs::AptAirport&);
     ~OsAirport();
 
-    void SetArrival();  // kick off guidance when we arrive at the airport
-
     float StateMachine(); // augment dgs::Airport's state machine with openSAM specific logic
 
     void ResetState(state_t new_state);

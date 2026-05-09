@@ -76,10 +76,10 @@ void OsStand::InstallDgs(int dgs_type, const DgsCtx& ctx) {
             dgs_ = dgs::CreateMarshaller(name());
             break;
         case kDgsType_Safedock_T2_24:
-            dgs_ = dgs::CreateSafedock_T2_24(name(), arpt_icao_, height_);
+            dgs_ = dgs::CreateSafedock_T2_24(name(), arpt_icao_, height_, true /*display_only*/);
             break;
         case kDgsType_Safedock_X:
-            dgs_ = dgs::CreateSafedock_X(name(), arpt_icao_, height_);
+            dgs_ = dgs::CreateSafedock_X(name(), arpt_icao_, height_, true /*display_only*/);
             break;
         case kDgsType_SAM1_Legacy:
             dgs_ = dgs::CreateSam1Legacy(name());
@@ -121,11 +121,6 @@ std::unique_ptr<OsAirport> OsAirport::LoadAirport(const dgs::AptAirport *arpt) {
         return nullptr;
 
     return std::make_unique<OsAirport>(*arpt);
-}
-
-void OsAirport::SetArrival() {
-    // kick off guidance when we arrive at the airport
-    Airport::ResetState(dgs::plane->BeaconOn() ? dgs::Airport::ARRIVAL : dgs::Airport::INACTIVE);
 }
 
 void OsAirport::ConnectJetway() {
@@ -416,10 +411,6 @@ float OsAirport::StateMachine() {
 
 //------------------------------------------------------------------------------------
 void OsAirport::Init() {
-    if (!dgs::InitDGS(base_dir + "resources/", true))
-        throw std::runtime_error("Failed to initialize dgs library");
-    dgs::InitSam1Legacy();
-
     for (int i = 0; i < kDgsVarCount; ++i) {
         XPLMRegisterDataAccessor(dgs_variant_drefs[i], xplmType_Float, 0, NULL, NULL, DgsIdentAcc, NULL, NULL, NULL,
                                  NULL, NULL, NULL, NULL, NULL, NULL, (void*)(uint64_t)i, NULL);

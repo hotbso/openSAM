@@ -1,15 +1,14 @@
-VPATH:=.:../AutoDGS/dgs:../xplib
+VPATH:=.:./dgs:../xplib
 SDK=../SDK
-INCLUDES=-I. -I../AutoDGS -I../xplib -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets
+INCLUDES=-I. -I../xplib -I$(SDK)/CHeaders/XPLM -I$(SDK)/CHeaders/Widgets
 
 # build version.h
 include version.mak
 
 COMMIT:=$(shell git log -1  --pretty=format:"%h")
 XPLIB_COMMIT:=$(shell cd ../xplib; git log -1  --pretty=format:"%h")
-AUTODGS_COMMIT:=$(shell cd ../AutoDGS; git log -1  --pretty=format:"%h")
 
-VERSION_L:=$(VERSION) $(COMMIT),xplib:$(XPLIB_COMMIT),AutoDGS:$(AUTODGS_COMMIT)
+VERSION_L:=$(VERSION) $(COMMIT),xplib:$(XPLIB_COMMIT)
 VH:=version.h
 # Sigh, echo -e is not universally available
 $(shell (echo "//generated file!"; echo "#define VERSION \"$(VERSION_L)\""; echo "#define VERSION_SHORT \"$(VERSION)\"") > $(VH).n)
@@ -18,10 +17,12 @@ $(shell if [ ! -f $(VH) ]; then mv $(VH).n $(VH); elif cmp -s $(VH).n $(VH); the
 # platform independent defines
 DEFINES=-DXPLM200 -DXPLM210 -DXPLM300 -DXPLM301 -DXPLM400 -DDREF_PREFIX=\"opensam\"
 
-SOURCES=openSAM.cpp opensam_airport.cpp samjw.cpp jwctrl.cpp jwctrl_sound.cpp os_ui.cpp os_anim.cpp sam_xml.cpp read_wav.cpp \
+SOURCES=opensam.cpp adgs_ui.cpp autodgs_airport.cpp adgs_api.cpp seasons.cpp \
+    opensam_airport.cpp samjw.cpp jwctrl.cpp jwctrl_sound.cpp os_ui.cpp os_anim.cpp sam_xml.cpp read_wav.cpp \
     plane.cpp myplane.cpp LTAPI.cpp mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp \
     log_msg.cpp widget_ctx.cpp simbrief.cpp \
-    apt_airport.cpp dgs.cpp dgs_plane.cpp airport.cpp marshaller.cpp safedock_t2_24.cpp safedock_x.cpp sam1_dgs.cpp
+    apt_airport.cpp dgs.cpp dgs_plane.cpp airport.cpp marshaller.cpp safedock_t2_24.cpp safedock_x.cpp sam1_dgs.cpp \
+    XPListBox.cpp
 
 # the c++ standard to use
 CXXSTD=-std=c++23

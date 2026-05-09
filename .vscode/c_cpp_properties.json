@@ -4,7 +4,6 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/../AutoDGS",
                 "${workspaceFolder}/../xplib/**",
                 "${workspaceFolder}/../SDK/CHeaders/XPLM",
                 "${workspaceFolder}/../SDK/CHeaders/Widgets"

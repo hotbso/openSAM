@@ -24,7 +24,7 @@
 #include <cassert>
 #include <fstream>
 
-#include "openSAM.h"
+#include "opensam.h"
 #include "XPLMPlanes.h"
 #include "XPLMNavigation.h"
 

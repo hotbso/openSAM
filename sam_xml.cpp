@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include <exception>
 #include <unordered_map>
 
@@ -37,7 +38,7 @@
 #define O_BINARY 0
 #endif
 
-#include "openSAM.h"
+#include "opensam.h"
 #include "samjw.h"
 #include "os_anim.h"
 
@@ -498,14 +499,27 @@ void CollectSamXml(const SceneryPacks& scp) {
         ParseSamXml(sc_path + "libraryjetways.xml", lib_jw_map);  // always try libraryjetways.xml
 
         Scenery* sc = new Scenery();
-        if (!ParseSamXml(sc_path + "sam.xml", lib_jw_map, sc)) {
-            delete (sc);
-            continue;
-        }
+        bool is_opensam = ParseSamXml(sc_path + "sam.xml", lib_jw_map, sc);
 
         // read stands from apt.dat
         int n_stands = 0;
-        dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", false, true, false, n_stands);
+
+        if (is_opensam) {
+            // will be used with openSAM personality
+            // ignore: false, is_opensam: true, AutoDGS filter: false
+            dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", false, true, false, n_stands);
+        } else {
+            // will be used with AutoDGS personality
+            bool ignore =
+                (std::filesystem::exists(sc_path + "no_autodgs") || std::filesystem::exists(sc_path + "no_autodgs.txt"));
+            // ignore: as specified, is_opensam: false, AutoDGS filter: true
+            dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, false, true, n_stands);
+        }
+
+        if (!is_opensam) {
+            delete (sc);
+            continue;
+        }
 
         // don't save empty sceneries
         if (sc->sam_jws.empty() && n_stands == 0 && sc->sam_anims.empty()) {

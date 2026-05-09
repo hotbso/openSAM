@@ -21,7 +21,7 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include "openSAM.h"
+#include "opensam.h"
 #include "my_plane.h"
 #include "samjw.h"
 #include "jwctrl.h"

@@ -24,7 +24,7 @@
 #include <stdexcept>
 #include <cassert>
 
-#include "openSAM.h"
+#include "opensam.h"
 #include "my_plane.h"
 #include "mpadapter_tgxp.h"
 

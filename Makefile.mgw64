@@ -51,9 +51,9 @@ install: $(TARGET)
 clean:
 	rm -f ./$(OBJDIR)/* sam_xml_test.exe
 
-SAM_XML_TEST_SRC=sam_xml_test.cpp sam_xml.cpp ../AutoDGS/dgs/apt_airport.cpp ../xplib/log_msg.cpp
+SAM_XML_TEST_SRC=sam_xml_test.cpp sam_xml.cpp  dgs/apt_airport.cpp ../xplib/log_msg.cpp
 sam_xml_test.exe: $(SAM_XML_TEST_SRC) $(HEADERS)
 	$(CXX) $(CXXSTD) -Wall -fdiagnostics-color -Wno-format-overflow \
-    -I../AutoDGS -I../xplib -I$(SDK)/CHeaders/XPLM -DIBM=1 -DXPLM200 -DXPLM210 -DXPLM300 -DXPLM301 \
+    -I. -I../xplib -I$(SDK)/CHeaders/XPLM -DIBM=1 -DXPLM200 -DXPLM210 -DXPLM300 -DXPLM301 \
     -DWINDOWS -DWIN32 -DLOCAL_DEBUGSTRING -o sam_xml_test.exe \
         $(SAM_XML_TEST_SRC) -l:libexpat.a

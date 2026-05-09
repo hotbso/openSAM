@@ -48,6 +48,9 @@ version.h
 
 # Kernel Module Compile Results
 *.mod*
+
+# Python
+**/__pycache__/
 *.cmd
 .tmp_versions/
 modules.order
