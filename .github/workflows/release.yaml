@@ -10,6 +10,43 @@ on:
   workflow_dispatch:
 
 jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
+      - name: Create Header
+        run: |
+          curl -L https://raw.githubusercontent.com/sindresorhus/github-markdown-css/main/github-markdown.css -o github.css
+          echo '<style>' > header.html
+          cat github.css >> header.html
+          # Force the styles onto the body tag directly
+          echo 'body { box-sizing: border-box; min-width: 300px; max-width: 980px; margin: 0 auto; padding: 45px; }' >> header.html
+          echo '@media (max-width: 767px) { body { padding: 15px; } }' >> header.html
+          echo '</style>' >> header.html
+          echo '<article class="markdown-body">' > before.html
+          echo '</article>' > after.html
+
+          pandoc README.md \
+            -f gfm \
+            -t html \
+            --self-contained \
+            --standalone \
+            --include-in-header=header.html \
+            --include-before-body=before.html \
+            --include-after-body=after.html \
+            --metadata title="README" \
+            -o README.html
+
+      - name: Upload Documentation Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: documentation
+          path: README.html
+
   build-linux-macos:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -105,7 +142,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    needs: [build-linux-macos, build-windows]
+    needs: [docs, build-linux-macos, build-windows]
 
     steps:
       - uses: actions/checkout@v6
@@ -139,6 +176,9 @@ jobs:
             do
               tar xvf $t
             done
+            cp ./build/documentation/README.html openSAM-pkg/
+            cp ./build/documentation/README.html openSAM-pkg/openSAM/
+            cp ./build/documentation/README.html openSAM-pkg/openSAM_Library/
 
       - name: Prepare Skunkcrafts Updater
         shell: bash
