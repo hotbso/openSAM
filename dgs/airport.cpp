@@ -120,8 +120,10 @@ void Stand::CheckRefFrame() {
         probeinfo.structSize = sizeof(XPLMProbeInfo_t);
 
        // refine elevation with probe, get is_wet_ info
-        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo))
+        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
+            LogMsg("terrain probe 1 failed, name: %s, lat: %f, lon: %f, elevation: %f", cname(), as_.lat, as_.lon, elevation_);
             throw std::runtime_error("XPLMProbeTerrainXYZ 1 failed");
+        }
 
         // On the first pass elevation is only an estimate so we iterate.
         // It makes a difference on higher elevation airports like LOWI.
@@ -129,8 +131,10 @@ void Stand::CheckRefFrame() {
         XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, &lat, &lon, &elevation_);
         XPLMWorldToLocal(as_.lat, as_.lon, elevation_, &x, &y, &z);
 
-        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo))
+        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
+            LogMsg("terrain probe 1a failed, name: %s, lat: %f, lon: %f, elevation: %f", cname(), as_.lat, as_.lon, elevation_);
             throw std::runtime_error("XPLMProbeTerrainXYZ 1a failed");
+        }
 
         is_wet_ = probeinfo.is_wet;
         x_ = probeinfo.locationX;
@@ -150,6 +154,8 @@ void Stand::CheckRefFrame() {
         drawinfo_.x = x;
         drawinfo_.y = y;
         drawinfo_.z = z;
+        if (dgs_)
+            dgs_->SetPos(drawinfo_);
     }
 }
 
