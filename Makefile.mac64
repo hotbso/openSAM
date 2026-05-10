@@ -15,12 +15,12 @@ OBJECTS_x86=$(OBJECTS_arm:.o_arm=.o_x86)
 # if we run this script on Linux it's osxcross
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
-    CCx=clang -target x86_64-apple-macos14
-    CCa=clang -target arm64-apple-macos14
+    CCx=clang -target x86_64-apple-macos15
+    CCa=clang -target arm64-apple-macos15
 
-    CXXx=clang++ -target x86_64-apple-macos14
-    CXXa=clang++ -target arm64-apple-macos14
-    LIBEXPAT=/opt/local/lib/libexpat.a
+    CXXx=clang++ -target x86_64-apple-macos15
+    CXXa=clang++ -target arm64-apple-macos15
+    LIBEXPAT=-lexpat
 else
     PATH:=/osxcross/target/bin:$(PATH)
     CCx=o64-clang -mmacosx-version-min=13.0

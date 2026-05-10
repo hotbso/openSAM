@@ -66,11 +66,6 @@ jobs:
             mv SDK ../
             git clone https://github.com/hotbso/xplib.git ../xplib
 
-      - uses: melusina-org/setup-macports@v1
-        if: startsWith(matrix.os, 'macos')
-        with:
-          macports-version: 2.11.4
-
       - name: Build Executable
         shell: bash
         env:
@@ -82,8 +77,6 @@ jobs:
           fi
 
           if [ $OS == "macos-15" ]; then
-            #port selfupdate
-            port install expat +universal
             make -f Makefile.mac64
           else
             make -f Makefile.lin64
