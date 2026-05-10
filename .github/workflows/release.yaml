@@ -33,7 +33,7 @@ jobs:
           pandoc README.md \
             -f gfm \
             -t html \
-            --self-contained \
+            --embed-resources \
             --standalone \
             --include-in-header=header.html \
             --include-before-body=before.html \
