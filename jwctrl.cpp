@@ -127,7 +127,7 @@ JwCtrl::JwCtrl(SamJw* jw, const Plane& plane) {
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be nullptr
 // Simplified math for small rot3 <= 5°!
 void JwCtrl::XzToSamDref(float cabin_x, float cabin_z, float& rot1, float& extent, float* rot2, float* rot3) {
-    float dist = len2f(cabin_x - x_, cabin_z - z_);
+    float dist = std::hypot(cabin_x - x_, cabin_z - z_);
 
     float rot1_d = atan2(cabin_z - z_, cabin_x - x_) / kD2R;  // door frame
     rot1 = RA(rot1_d + 90.0f - psi_);

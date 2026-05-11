@@ -162,8 +162,3 @@ static inline float RA(float angle) {
 
     return angle;
 }
-
-// norm-2 length
-static inline float len2f(float x, float y) {
-    return sqrtf(x * x + y * y);
-}

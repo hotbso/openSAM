@@ -118,7 +118,7 @@ static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float
     if (os_arpt == nullptr)
         return nullptr;
 
-    if (len2f(obj_x - my_plane->x(), obj_z - my_plane->z()) > 0.5f * kFarSkip || fabsf(obj_y - my_plane->y()) > 1000.0f)
+    if (std::hypot(obj_x - my_plane->x(), obj_z - my_plane->z()) > 0.5f * kFarSkip || fabsf(obj_y - my_plane->y()) > 1000.0f)
         return nullptr;
 
     SamJw* jw = new SamJw();

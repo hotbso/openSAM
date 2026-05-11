@@ -155,7 +155,7 @@ float MpAdapter_lt::update() {
         if (flight_id.size() == 0)  // likely a ground vehicle
             continue;
 
-        if (len2f((lt_plane.getLon() - my_lon) * my_cos_lat, lt_plane.getLat() - my_lat) * kLat2M > kMpMaxDist)
+        if (std::hypot((lt_plane.getLon() - my_lon) * my_cos_lat, lt_plane.getLat() - my_lat) * kLat2M > kMpMaxDist)
             continue;
 
         // LogMsg("LT lat/lon: %0.2f, %0.2f", lt_plane.getLat(), lt_plane.getLon());
