@@ -150,10 +150,34 @@ In addition openSAM exports datarefs:
 openSAM calls optional commands "openSAM/post_dock" and "openSAM/pre_undock". \
 See a sample in the lua directory for the ToLiss fleet and more examples in the contributed directory.
 
-## The problem of door positions
+## Customizations for Planes
+Newer VDGS perform monitoring of ramp equipment (chocks, GPU, PCA, ...). Datarefs for this task vary by plane and are configured in file *planes.cfg* in the plugin directory.\
+Example:
+
+```
+# Toliss A321
+icao	A321
+studio	ToLiss
+pax_no_dref	AirbusFBW/NoPax
+chk_dref AirbusFBW/Chocks 1
+gpu_dref AirbusFBW/EnableExternalPower 1
+pca_dref AirbusFBW/GroundLPAir 1
+chk_set dref AirbusFBW/Chocks 1
+door_2 -1.90 0.61 -7.65
+
+# Toliss all other planes
+icao	A[0-9N]+
+studio	ToLiss
+pax_no_dref	AirbusFBW/NoPax
+chk_dref AirbusFBW/Chocks 1
+gpu_dref AirbusFBW/EnableExternalPower 1
+pca_dref AirbusFBW/GroundLPAir 1
+chk_set dref AirbusFBW/Chocks 1
+```
+
 Door positions are often bogus and a docked jetway may not fit well to the door. This is in particular true for the position of a second door.
 openSAM picks up the position of door 1 from X-Plane datarefs (they end up there from the .acf file).\
-If these do not match well for a specific aircraft type you can override them in a config file ```openSAM/acf_door_position.txt```.
+If these do not match well for a specific aircraft type you can override them in *planes.cfg*.
 
 To find the (or a better) position proceed as follows:
 
@@ -247,4 +271,6 @@ https://pixabay.com/sound-effects/backing-up-beepwav-14889/
 See the license reproduced in ![Image](openSAM-pkg/MisterX-License.jpg) .
 
 ### Contributions by hotbso:
-This is in part a derived work from Autogate so the above mentioned licenses apply accordingly to the components of this project.
+This is in parts a derived work from Autogate so the above mentioned licenses apply accordingly to the components of this project.\
+The VDGS "Safedock-X" and "Safedock-T2-24" are original work created by hotbso and licensed under "CC BY-NC-SA" (https://creativecommons.org/licenses/by-nc-sa/4.0/). \
+In addition to "CC BY-NC-SA" creators of payware sceneries are allowed to reference these files from openSAM_Library but not to distribute them with their scenery.
