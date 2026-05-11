@@ -1,0 +1,4 @@
+# icao codes of planes where the plugin should not connect the jetway on beacon off
+# e.g. the ZIBO with own ground handling
+#B738
+# test A319
