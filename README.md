@@ -1,4 +1,4 @@
-# openSAM plugin for X-Plane 12, Marshaller and VDGS guidance for all sceneries, jetway and object animation for custom sceneries
+# openSAM plugin for X-Plane 12 Marshaller and VDGS guidance for all sceneries, jetway and object animation for custom sceneries
 One stop destination for DGS guidance, drop in replacement for legacy SAM, support for new custom sceneries.
 
 ## Installation and Support
@@ -77,9 +77,6 @@ This requires the `simbrief_hub` plugin to be installed.
 
 ![Image](images/simbrief.jpg)
 
-## Custom scenery
-The scenery artist placed DGS objects (Marshaller, type of VDGS) in WED. There is no further customization option.
-
 ## Standard scenery
 Per default all stands with jetways get a VDGS and all others get a Marshaller. This can easily be changed with the UI.
 First ensure that the plugin is activated then select the stand and change the setting accordingly. \
@@ -89,20 +86,37 @@ The configuration is saved in "<xp_dir>/Output/openSAM/<airport_icao>.cfg" and l
 ![Image](images/EGKK-default-VDGS.jpg)
 
 
-## SAM personality
+## Custom sceneries
+The scenery artist placed DGS objects (Marshaller, type of VDGS) and jetways in WED. There is no further customization option.
+
 ### Jetways
 ![Image](images/EDDM_A340-600.jpg)
-### DGS
-![Image](images/Marshaller_high.jpg)
-### Simbrief integration
-Requires the simbrief_hub plugin (https://github.com/hotbso/simbrief_hub)
-![Image](images/simbrief.jpg)
+
 ### Custom animations
 ![Image](images/custom-animation.jpg)
+
 ### Multiplayer support
+openSAM supports
+ - xPilot
+ - Traffic Global XP
+ - LiveTraffic
+
+Set up your multiplayer environment as needed (e.g. connect to Vatsim and/or enable/disable MP plugins).\
+Then select "Toggle Multiplayer Support" in openSAM's menu.\
+If xPilot is connected to Vatsim that takes precedence over other installed multplayer plugins.\
+The menu text of "Toggle Multiplayer Support" shows which personality is enabled.
+
+**Note**\
+xPilot and liveTraffic receive aircraft positions from other sceneries / simulators or the real world and these
+may not match up with your installed scenery. Your mileage will vary.
+
+TGXP gives the visually most pleasing rendition.
+
 ![Image](images/MP-TGXP.jpg)
 
-## Usage
+![Image](images/MP-xPilot.jpg)
+
+### Usage
 The openSAM plugin defines commands:
 - "Dock jetway"   -> openSAM/dock_jwy
 - "Undock jetway" -> openSAM/undock_jwy
@@ -135,24 +149,6 @@ In addition openSAM exports datarefs:
 ## Customize actions after docking / before undocking
 openSAM calls optional commands "openSAM/post_dock" and "openSAM/pre_undock". \
 See a sample in the lua directory for the ToLiss fleet and more examples in the contributed directory.
-
-
-## Multiplayer support
-openSAM supports
- - xPilot
- - Traffic Global XP
- - LiveTraffic
-
-Set up your multiplayer environment as needed (e.g. connect to Vatsim and/or enable/disable MP plugins).\
-Then select "Toggle Multiplayer Support" in openSAM's menu.\
-If xPilot is connected to Vatsim that takes precedence over other installed multplayer plugins.\
-The menu text of "Toggle Multiplayer Support" shows which personality is enabled.
-
-**Note**\
-xPilot and liveTraffic receive aircraft positions from other sceneries / simulators or the real world and these
-may not match up with your installed scenery. Your mileage will vary.
-
-TGXP gives the visually most pleasing rendition.
 
 ## The problem of door positions
 Door positions are often bogus and a docked jetway may not fit well to the door. This is in particular true for the position of a second door.
