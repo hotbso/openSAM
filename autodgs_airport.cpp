@@ -182,8 +182,8 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_
     if (cfg.empty())
         LoadCfg(sys_cfg_dir + name() + ".cfg", cfg);
 
-    float arpt_elevation = XPLMGetDataf(plane_elevation_dr);  // best guess
-
+    float arpt_elevation = XPLMGetDatad(plane_elevation_dr);  // best guess
+    LogMsg("Airport '%s', elevation from plane: %0.1f", name_.c_str(), arpt_elevation);
     for (auto const& as : apt_airport.stands_) {
         int dgs_type = kAutomatic;
         float dgs_dist;

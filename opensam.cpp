@@ -212,18 +212,62 @@ static int SamLibInstalledAcc([[maybe_unused]] void* ref) {
 }
 
 //------------------------------------------------------------------------------------
+void LoadAndActivateAirport() {
+    LogMsg("plane is now on the ground, trying to identify airport and stand");
+
+    const dgs::AptAirport* arpt = dgs::AptAirport::LocateAirport(plane_pos);
+    if (arpt == nullptr) {
+        LogMsg("airport could not be identified at %0.8f,%0.8f", plane_pos.lat, plane_pos.lon);
+        os_arpt = nullptr;
+        adgs_arpt = nullptr;
+    } else {
+        LogMsg("now on airport: %s", arpt->icao_.c_str());
+        if (arpt->is_opensam_) {
+            if (os_arpt == nullptr || os_arpt->name() != arpt->icao_) {  // don't reload same
+                os_arpt = std::make_unique<OsAirport>(*arpt);
+                if (os_arpt) {
+                    LogMsg("airport %s loaded successfully with openSAM personality", os_arpt->name().c_str());
+                    os_arpt->SetArrival();
+                }
+            }
+        } else {                                                             // AutoDGS
+            if (adgs_arpt == nullptr || adgs_arpt->name() != arpt->icao_) {  // don't reload same
+                adgs_arpt = std::make_unique<AdgsAirport>(*arpt);
+            }
+            if (adgs_arpt) {
+                LogMsg("airport %s loaded successfully with AutoDGS personality", adgs_arpt->name().c_str());
+                adgs_arpt->SetArrival();
+            }
+        }
+    }
+}
+
 static int CmdActivateCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, [[maybe_unused]] void* ref) {
     if (error_disabled || xplm_CommandBegin != phase)
         return 0;
 
     LogMsg("cmd manually_activate");
-    if (os_arpt)
-        os_arpt->SetArrival();
-    else if (adgs_arpt) {
-        adgs_arpt->SetArrival();
-        AdgsUpdateUI();
+
+    if (!my_plane->on_ground()) {
+        LogMsg("plane is not on the ground, can't activate");
+        return 0;
     }
 
+    // There is a multitude of possible and timing related interactions between teleportation and on_ground signals
+    // First try to set Arrival on an already active airport
+    if (os_arpt) {
+        os_arpt->SetArrival();
+        return 0;
+    }
+
+    if (adgs_arpt) {
+        adgs_arpt->SetArrival();
+        AdgsUpdateUI();
+        return 0;
+    }
+
+    // .. then try to activate one
+    LoadAndActivateAirport();
     return 0;
 }
 
@@ -265,6 +309,7 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
                           [[maybe_unused]] float inElapsedTimeSinceLastFlightLoop, [[maybe_unused]] int inCounter,
                           [[maybe_unused]] void* inRefcon) {
     static float jw_next_ts, dgs_next_ts, anim_next_ts, mp_update_next_ts;
+    static bool on_ground_prev = false;
 
     if (error_disabled)
         return 0;
@@ -280,14 +325,13 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
         plane_pos_prev = plane_pos;
         plane_pos = fem::LLPos(my_plane->lat(), my_plane->lon());;
 
-        bool on_ground_prev = my_plane->on_ground();
-
         // if we go 3 * supersonic it's a teleportation, e.g. a ToLiss situation reload
         if (fem::len(plane_pos - plane_pos_prev) > inElapsedSinceLastCall * 3.0f * 340.0f) {
             LogMsg("teleportation detected, resetting airport");
             os_arpt = nullptr;
             adgs_arpt = nullptr;
             on_ground_prev = false;  // to trigger airport identification on next loop
+            return 5.0f; // let the dust settle
         }
 
         //LogMsg("FlightLoopCb called, now: %0.2f, on_ground_prev: %d", now, on_ground_prev);
@@ -297,41 +341,17 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
 
         // check for transition
         if (on_ground != on_ground_prev) {
-            if (on_ground) {
-                LogMsg("plane is now on the ground, trying to identify airport and stand");
-
-                const dgs::AptAirport* arpt = dgs::AptAirport::LocateAirport(plane_pos);
-                if (arpt == nullptr) {
-                    LogMsg("airport could not be identified at %0.8f,%0.8f", plane_pos.lat, plane_pos.lon);
-                    os_arpt = nullptr;
-                    adgs_arpt = nullptr;
-                } else {
-                    LogMsg("now on airport: %s", arpt->icao_.c_str());
-                    if (arpt->is_opensam_) {
-                        if (os_arpt == nullptr || os_arpt->name() != arpt->icao_) {  // don't reload same
-                            os_arpt = std::make_unique<OsAirport>(*arpt);
-                            if (os_arpt) {
-                                LogMsg("airport %s loaded successfully with openSAM personality", os_arpt->name().c_str());
-                                os_arpt->SetArrival();
-                            }
-                        }
-                    } else { // AutoDGS
-                        if (adgs_arpt == nullptr || adgs_arpt->name() != arpt->icao_) {  // don't reload same
-                            adgs_arpt = std::make_unique<AdgsAirport>(*arpt);
-                        }
-                        if (adgs_arpt) {
-                            LogMsg("airport %s loaded successfully with AutoDGS personality", adgs_arpt->name().c_str());
-                            adgs_arpt->SetArrival();
-                        }
-                    }
-                }
-            } else {  // airborne
+            if (on_ground)
+                LoadAndActivateAirport();
+            else {  // airborne
                 os_arpt = nullptr;
                 adgs_arpt = nullptr;
             }
         }
 
-        if (os_arpt  == nullptr && adgs_arpt == nullptr)
+        on_ground_prev = on_ground;
+
+       if (os_arpt  == nullptr && adgs_arpt == nullptr)
             return 1.0f;  // no airport, nothing to do
 
         assert(os_arpt == nullptr || adgs_arpt == nullptr);  // can't be both
