@@ -38,7 +38,7 @@
 
 static constexpr float kMaxDgs2StandX = 10.0f;  // max offset/distance from DGS to stand
 static constexpr float kMaxDgs2StandZ = 80.0f;
-static constexpr float kExtraDz = 0.03f;  // extra pull forward of displays in z direction to account for precision loss
+static constexpr float kExtraDz = 0.04f;  // extra pull forward of displays in z direction to account for precision loss
 
 std::unique_ptr<OsAirport> os_arpt;
 
