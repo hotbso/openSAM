@@ -71,7 +71,7 @@ std::string ofp_destination;
 std::string ofp_arrival_stand;
 
 
-Stand::Stand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation)
+Stand::Stand(const AptStand& as, const std::string& arpt_icao, float elevation)
     : as_(as), arpt_icao_(arpt_icao) {
     elevation_ = elevation;
     elevation_is_estimate_ = true;
@@ -87,11 +87,11 @@ Stand::Stand(const dgs::AptStand& as, const std::string& arpt_icao, float elevat
 
     CheckRefFrame();
 
-    LogMsg("dgs::Stand '%s', constructed", cname());
+    LogMsg("Stand '%s', constructed", cname());
 }
 
 Stand::~Stand() {
-    LogMsg("dgs::Stand '%s' destructed", cname());
+    LogMsg("Stand '%s' destructed", cname());
     dgs_ = nullptr;
 }
 
@@ -172,7 +172,7 @@ void Stand::Local2Stand(float x, float z, float& x_stand_local, float& z_stand_l
 }
 
 void Stand::SetIdle() {
-    dgs_->SetMode(dgs::kIdle);
+    dgs_->SetMode(kIdle);
 }
 
 bool Stand::isVdgs() const {
@@ -183,7 +183,7 @@ bool Stand::isVdgs() const {
 const char* const Airport::state_str[] = {"INACTIVE", "DEPARTURE",  "BOARDING", "ARRIVAL",       "ENGAGED",
                                           "TRACK",    "GOOD",       "BAD",      "PARKBRAKE_SET", "BEACON_OFF",
                                           "PARKED",   "DEBOARDING", "DONE"};
-Airport::Airport(const dgs::AptAirport& apt_airport) {
+Airport::Airport(const AptAirport& apt_airport) {
     CheckRefFrameShift();   // ensure ref_gen is up to date
     ref_gen_ = ref_gen;
 
@@ -198,7 +198,7 @@ Airport::Airport(const dgs::AptAirport& apt_airport) {
 }
 
 Airport::~Airport() {
-    LogMsg("dgs::Airport '%s' destructed", name().c_str());
+    LogMsg("Airport '%s' destructed", name().c_str());
 }
 
 bool Airport::active_stand_has_xp12_jw() const {
@@ -391,10 +391,6 @@ float Airport::StateMachine() {
                 if (departure_stand_ >= 0)
                     stands_[departure_stand_]->SetIdle();
                 LogMsg("Departure stand now '%s'", dsi >= 0 ? stands_[dsi]->cname() : "*none*");
-                if (dsi >= 0) {
-                    Stand& ds = *stands_[dsi];
-                    ds.dgs_->SetMode(dgs::kDeparture);
-                }
                 departure_stand_ = dsi;
             }
         }
@@ -408,8 +404,10 @@ float Airport::StateMachine() {
 
         if (plane->PaxNo() <= 0) {
             state_ = DEPARTURE;
-            if (state_ != state_prev)
+            if (state_ != state_prev) {
                 LogMsg("New state %s", state_str[state_]);
+                ds.dgs_->SetMode(kDeparture);
+            }
             // FALLTHROUGH
         }
 
@@ -535,7 +533,7 @@ float Airport::StateMachine() {
 
             // always light up the VDGS or signal "this way" for the selected stand
             if (active_stand_ == selected_stand_) {
-                dgs_params_.status = dgs::kDgsGstIdentified;  // plane id
+                dgs_params_.status = kDgsGstIdentified;  // plane id
                 dgs_params_.track = 1;   // lead-in
             }
             break;
@@ -561,7 +559,7 @@ float Airport::StateMachine() {
                 break;
             }
 
-            dgs_params_.status = dgs::kDgsGstIdentified;  // plane id
+            dgs_params_.status = kDgsGstIdentified;  // plane id
             if (dgs_params_.distance > kAziZ || fabsf(azimuth_nw) > kAziA) {
                 dgs_params_.track = 1;  // lead-in only
                 break;
@@ -608,7 +606,7 @@ float Airport::StateMachine() {
 
         case GOOD: {
             // @stop position
-            dgs_params_.status = dgs::kDgsGstStop;  // stop position
+            dgs_params_.status = kDgsGstStop;  // stop position
             dgs_params_.lr = 3;
 
             int parkbrake_set = (XPLMGetDataf(parkbrake_dr) > 0.5);
@@ -628,13 +626,13 @@ float Airport::StateMachine() {
                 new_state = TRACK;
             else {
                 // Too far
-                dgs_params_.status = dgs::kDgsGstTooFar;
+                dgs_params_.status = kDgsGstTooFar;
                 dgs_params_.lr = 3;
             }
             break;
 
         case PARKBRAKE_SET:
-            dgs_params_.status = dgs::kDgsGstOk;
+            dgs_params_.status = kDgsGstOk;
             dgs_params_.lr = 0;
             // wait for beacon off
             if (!beacon_on)
@@ -642,7 +640,7 @@ float Airport::StateMachine() {
             break;
 
         case BEACON_OFF:
-            dgs_params_.status = dgs::kDgsGstOk;
+            dgs_params_.status = kDgsGstOk;
             dgs_params_.lr = 0;
 
             // let the dust settle after switching off the beacon
@@ -666,7 +664,7 @@ float Airport::StateMachine() {
 
 
         case PARKED: {
-            as.dgs_->SetMode(dgs::kParked);
+            as.dgs_->SetMode(kParked);
             int pax_no = plane->PaxNo();
             LogMsg("parked, PaxNo: %d", pax_no);
             if (pax_no < parked_pax_no_) {
@@ -682,7 +680,7 @@ float Airport::StateMachine() {
         } break;
 
         case DEBOARDING: {
-            as.dgs_->SetMode(dgs::kDeboarding);
+            as.dgs_->SetMode(kDeboarding);
             int pax_no = plane->PaxNo();
             as.dgs_->SetPaxNo(pax_no);
             loop_delay = as.dgs_->Tick();
@@ -727,7 +725,7 @@ float Airport::StateMachine() {
         dgs_params_.ref_x = ref_x;
         dgs_params_.ref_z = ref_z;
 
-        as.dgs_->SetMode(dgs::kArrival);
+        as.dgs_->SetMode(kArrival);
         as.dgs_->SetGuidanceParams(dgs_params_);
     }
 
