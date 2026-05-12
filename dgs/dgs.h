@@ -66,7 +66,7 @@ extern bool InitDGS(const std::string& res_dir);
 // Create dgs instances, succeeds or throws
 extern std::unique_ptr<DGS> CreateMarshaller(const std::string& name);
 extern std::unique_ptr<DGS> CreateSafedock_T2_24( const std::string& name,const std::string& arpt_icao, float height, bool display_only = false);
-extern std::unique_ptr<DGS> CreateSafedock_X(const std::string& name,const std::string& arpt_icao, float height, bool display_only = false);
+extern std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std::string& arpt_icao, float height, bool display_only = false);
 }  // namespace dgs
 
 // global stuff to be defined elsewhere, likely by the main plugin code, e.g. in autodgs.cpp

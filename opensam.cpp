@@ -262,7 +262,6 @@ static int CmdActivateCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase 
 
     if (adgs_arpt) {
         adgs_arpt->SetArrival();
-        AdgsUpdateUI();
         return 0;
     }
 
@@ -276,7 +275,12 @@ static int CmdToggleUICb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase 
         return 0;
 
     LogMsg("cmd ToggleUI");
-    OsToggleUI();
+
+    if (os_arpt)
+        OsToggleUI();
+    else if (adgs_arpt)
+        AdgsToggleUI();
+
     return 0;
 }
 
@@ -462,15 +466,6 @@ static int AdgsCmdMoveDgsCloserCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMComm
 
     if (adgs_arpt)
         adgs_arpt->DgsMoveCloser();
-    return 0;
-}
-
-static int AdgsCmdToggleUICb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, [[maybe_unused]] void* ref) {
-    if (error_disabled || xplm_CommandBegin != phase)
-        return 0;
-
-    LogMsg("adgs cmd toggle_ui");
-    AdgsToggleUI();
     return 0;
 }
 
@@ -696,9 +691,6 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     my_plane = std::make_shared<MyPlane>();
     dgs::plane = std::dynamic_pointer_cast<dgs::Plane>(my_plane);
 
-    //
-    // below datarefs are created, so we have to succeed, otherwise X-Plane will crash
-    //
     dgs::InitSam1Legacy();
     create_api_drefs();
 
@@ -733,19 +725,12 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     XPLMCommandRef toggle_mp_cmdr = XPLMCreateCommand("openSAM/toggle_multiplayer", "Toggle Multiplayer Support");
     XPLMRegisterCommandHandler(toggle_mp_cmdr, CmdToggleMpCb, 0, NULL);
 
-    // own commands, AutoDGS
-    XPLMCommandRef cycle_dgs_cmdr = XPLMCreateCommand("AutoDGS/cycle_dgs", "Cycle DGS between Marshaller, VDGS");
+    // AutoDGS mode
+    XPLMCommandRef cycle_dgs_cmdr = XPLMCreateCommand("openSAM/cycle_dgs", "Cycle DGS between Marshaller, VDGS");
     XPLMRegisterCommandHandler(cycle_dgs_cmdr, AdgsCmdCycleDgsCb, 0, NULL);
 
-    XPLMCommandRef move_dgs_closer_cmdr = XPLMCreateCommand("AutoDGS/move_dgs_closer", "Move DGS closer by 2m");
+    XPLMCommandRef move_dgs_closer_cmdr = XPLMCreateCommand("openSAM/move_dgs_closer", "Move DGS closer by 2m");
     XPLMRegisterCommandHandler(move_dgs_closer_cmdr, AdgsCmdMoveDgsCloserCb, 0, NULL);
-
-    // for backward compatibility, the "openSAM/activate" cmd does the same as "AutoDGS/activate"
-    XPLMCommandRef adgs_activate_cmdr = XPLMCreateCommand("AutoDGS/activate", "Manually activate searching for stands_");
-    XPLMRegisterCommandHandler(adgs_activate_cmdr, CmdActivateCb, 0, NULL);
-
-    XPLMCommandRef adgs_toggle_ui_cmdr = XPLMCreateCommand("AutoDGS/toggle_ui", "Open UI");
-    XPLMRegisterCommandHandler(adgs_toggle_ui_cmdr, AdgsCmdToggleUICb, 0, NULL);
 
     // augment XP12's standard cmd
     toggle_jetway_cmdr = XPLMFindCommand("sim/ground_ops/jetway");
@@ -775,21 +760,21 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     XPLMAppendMenuSeparator(os_menu);
 
-    Seasons::InitMenu(os_menu);
+    int sub_menu = XPLMAppendMenuItem(os_menu, "AutoDGS", NULL, 1);
+    XPLMMenuID adgs_menu = XPLMCreateMenu("AutoDGS", os_menu, sub_menu, NULL, NULL);
 
-    int sub_menu = XPLMAppendMenuItem(menu, "AutoDGS", NULL, 1);
-    XPLMMenuID adgs_menu = XPLMCreateMenu("AutoDGS", menu, sub_menu, NULL, NULL);
-
-    XPLMAppendMenuItemWithCommand(adgs_menu, "Manually activate", adgs_activate_cmdr);
     XPLMAppendMenuItemWithCommand(adgs_menu, "Cycle DGS", cycle_dgs_cmdr);
     XPLMAppendMenuItemWithCommand(adgs_menu, "Move DGS closer by 2m", move_dgs_closer_cmdr);
-    XPLMAppendMenuItemWithCommand(adgs_menu, "Toggle UI", adgs_toggle_ui_cmdr);
 
     int vdgs_menu_item = XPLMAppendMenuItem(adgs_menu, "Default VDGS", NULL, 0);
     vdgs_menu = XPLMCreateMenu("Default VDGS", adgs_menu, vdgs_menu_item, VdgsMenuCb, NULL);
     default_vdgs_item[0] = XPLMAppendMenuItem(vdgs_menu, "Safedock T2-24", (void *)0, 0);
     default_vdgs_item[1] = XPLMAppendMenuItem(vdgs_menu, "Safedock-X", (void *)1, 0);
     VdgsMenuRadioB();
+
+    XPLMAppendMenuSeparator(os_menu);
+
+    Seasons::InitMenu(os_menu);
 
     flight_loop_id = XPLMCreateFlightLoop(&flight_loop_ctx);
     return 1;

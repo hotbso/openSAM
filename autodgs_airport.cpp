@@ -342,3 +342,29 @@ void AdgsAirport::ConnectJetway() {
     LogMsg("toggling jetway command");
     XPLMCommandOnce(toggle_jetway_cmdr);
 }
+
+// hopefully these 2 can go away with imgui
+void AdgsAirport::SetArrival() {
+    Airport::SetArrival();
+
+    ui_update_pending_ = true;
+    adgs_ui_pending_update_ts_ = now + kUiUpdateDelay;  // delay update to let the state machine do its work
+}
+
+
+float AdgsAirport::StateMachine() {
+    if (ui_update_pending_ && now > adgs_ui_pending_update_ts_) {
+        ui_update_pending_ = false;
+        LogMsg("delayed update of AutoDGS UI");
+        AdgsUpdateUI(true);  // update AutoDGS UI if visible, otherwise wait for next time
+    }
+
+    float delay = Airport::StateMachine();
+
+    if (state() == INACTIVE) {
+        ui_update_pending_ = true;
+        adgs_ui_pending_update_ts_ = now + kUiUpdateDelay;  // delay update to let the state machine do its work
+    }
+
+    return delay;
+}
