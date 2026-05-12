@@ -24,12 +24,12 @@
 #include <ctime>
 #include <cstring>
 #include <algorithm>
+#include <exception>
 
-#include "openSAM.h"
-#include "plane.h"
+#include "opensam.h"
+#include "my_plane.h"
 #include "samjw.h"
 #include "jwctrl.h"
-#include "os_dgs.h"
 
 // from os_read_wav.c
 extern void ReadWav(const std::string& fname, Sound& sound);
@@ -127,7 +127,7 @@ JwCtrl::JwCtrl(SamJw* jw, const Plane& plane) {
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be nullptr
 // Simplified math for small rot3 <= 5°!
 void JwCtrl::XzToSamDref(float cabin_x, float cabin_z, float& rot1, float& extent, float* rot2, float* rot3) {
-    float dist = len2f(cabin_x - x_, cabin_z - z_);
+    float dist = std::hypot(cabin_x - x_, cabin_z - z_);
 
     float rot1_d = atan2(cabin_z - z_, cabin_x - x_) / kD2R;  // door frame
     rot1 = RA(rot1_d + 90.0f - psi_);
@@ -333,17 +333,13 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     for (auto& njw : nearest_jws) {
         SamJw* jw = njw.jw_;
         if (jw->is_zc_jw) {
-            Stand* stand = jw->stand;
-            if (stand) {
-                jw->name = stand->id;
-                if (jw->name.length() > 10)
-                    jw->name = jw->name.substr(0, 10);
-                jw->name = jw->name + "_" + std::to_string(i);
-            } else
-                jw->name = "zc_" + std::to_string(i);
-
-            i++;
+            if (jw->base_name.length() > 10)
+                jw->name = jw->base_name.substr(0, 10);
+            else
+                jw->name = jw->base_name;
+            jw->name = jw->name + "_" + std::to_string(i);
         }
+            i++;
     }
 
     // lock all nearest_jws
@@ -829,10 +825,10 @@ void JwCtrl::SoundInit() {
         LogMsg("alert sound loaded, channels: %d, bit_rate: %d, size: %d", alert_.num_channels, alert_.sample_rate,
                alert_.size);
     else
-        throw OsEx("Could not load sound");
+        throw std::runtime_error("Could not load sound");
 
     if (!SoundDevInit())
-        throw OsEx("Could not init sound");
+        throw std::runtime_error("Could not init sound");
 }
 
 // static

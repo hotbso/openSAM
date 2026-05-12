@@ -52,7 +52,7 @@ jobs:
     strategy:
       matrix:
         # use oldest possible ubuntu version in order to avoid compatibility errors with libc
-        os: [ubuntu-22.04, macos-14]
+        os: [ubuntu-22.04, macos-15]
       fail-fast: false
     steps:
       - uses: actions/checkout@v6
@@ -66,11 +66,6 @@ jobs:
             mv SDK ../
             git clone https://github.com/hotbso/xplib.git ../xplib
 
-      - uses: melusina-org/setup-macports@v1
-        if: startsWith(matrix.os, 'macos')
-        with:
-          macports-version: 2.11.4
-
       - name: Build Executable
         shell: bash
         env:
@@ -81,12 +76,9 @@ jobs:
             echo "VERSION=$TAG" > version.mak
           fi
 
-          if [ $OS == "macos-14" ]; then
-            #port selfupdate
-            port install expat +universal
+          if [ $OS == "macos-15" ]; then
             make -f Makefile.mac64
           else
-            sudo apt-get -y install libopenal1 libopenal-dev
             make -f Makefile.lin64
           fi
 
@@ -124,12 +116,6 @@ jobs:
             mv SDK ../
             git clone https://github.com/hotbso/xplib.git ../xplib
 
-      - name: Get libOpenal32
-        shell: bash
-        run: |
-            curl -L https://github.com/hotbso/libOpenAL32/archive/refs/heads/main.zip -o libOpenal32.zip
-            unzip libOpenal32.zip
-
       - name: Build Windows binaries
         shell: msys2 {0}
         run: |
@@ -137,7 +123,7 @@ jobs:
             if [ ! -z "$TAG" ]; then
               echo "VERSION=$TAG" > version.mak
             fi
-            make -f Makefile.mgw64 OPENAL=./libOpenAL32-main
+            make -f Makefile.mgw64
             tar cvf binary.tar openSAM-pkg*/openSAM/*_x64
 
       - name: Upload Build Artifact
@@ -186,7 +172,6 @@ jobs:
             cp ./build/documentation/README.html openSAM-pkg/
             cp ./build/documentation/README.html openSAM-pkg/openSAM/
             cp ./build/documentation/README.html openSAM-pkg/openSAM_Library/
-            bash ./sync_xp11_pkg.sh
 
       - name: Prepare Skunkcrafts Updater
         shell: bash
@@ -194,95 +179,84 @@ jobs:
             # at this point version.mak should have the version number
             source version.mak
 
-            for XP_VERSION in XP11 XP12; do
-              if [ $XP_VERSION == "XP11" ]; then
-                OPENSAM_ARTIFACT=openSAM-pkg_XP11
-              else
-                OPENSAM_ARTIFACT=openSAM-pkg
-              fi
+            OPENSAM_ARTIFACT=openSAM-pkg
+            RELEASE_FOLDER=release
+            OPENSAM_FOLDER=$RELEASE_FOLDER/openSAM
+            OPENSAM_LIBRARY_FOLDER=$RELEASE_FOLDER/openSAM_Library
 
-              RELEASE_FOLDER=release/${XP_VERSION}
-              OPENSAM_FOLDER=$RELEASE_FOLDER/openSAM
-              OPENSAM_LIBRARY_FOLDER=$RELEASE_FOLDER/openSAM_Library
+            mkdir -p ${OPENSAM_FOLDER}
+            mkdir -p ${OPENSAM_FOLDER}/lua
+            mkdir -p ${OPENSAM_LIBRARY_FOLDER}
 
-              mkdir -p ${OPENSAM_FOLDER}
-              mkdir -p ${OPENSAM_FOLDER}/lua
-              mkdir -p ${OPENSAM_LIBRARY_FOLDER}
+            echo "=============== RELEASE FOLDER  ==============="
+            cp ${OPENSAM_ARTIFACT}/LICENSE $RELEASE_FOLDER/.
+            cp ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt $RELEASE_FOLDER/.
+            cp ${OPENSAM_ARTIFACT}/README.html $RELEASE_FOLDER/.
+            cp ${OPENSAM_ARTIFACT}/MisterX-License.jpg $RELEASE_FOLDER/.
 
-              echo "=============== RELEASE FOLDER  ==============="
-              cp ${OPENSAM_ARTIFACT}/LICENSE $RELEASE_FOLDER/.
-              cp ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt $RELEASE_FOLDER/.
-              cp ${OPENSAM_ARTIFACT}/README.html $RELEASE_FOLDER/.
-              cp ${OPENSAM_ARTIFACT}/MisterX-License.jpg $RELEASE_FOLDER/.
+            echo "=============== OPEN SAM ARTIFACT ==============="
+            rsync -av  ${OPENSAM_ARTIFACT}/openSAM/ ${OPENSAM_FOLDER}/
+            cp -r openSAM-pkg/lua/* ${OPENSAM_FOLDER}/lua
+            cp ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_FOLDER}/.
+            cp ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_FOLDER}/.
+            cp ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_FOLDER}/.
+            ls -l ${OPENSAM_FOLDER}
+            echo
 
-              echo "=============== OPEN SAM ARTIFACT ==============="
-              rsync -av  ${OPENSAM_ARTIFACT}/openSAM/ ${OPENSAM_FOLDER}/
-              cp -r openSAM-pkg/lua/* ${OPENSAM_FOLDER}/lua
-              cp ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_FOLDER}/.
-              cp ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_FOLDER}/.
-              cp ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_FOLDER}/.
-              ls -l ${OPENSAM_FOLDER}
-              echo
+            echo "=============== OPEN SAM LIBRARY ARTIFACT ==============="
+            rsync -av  ${OPENSAM_ARTIFACT}/openSAM_Library/ ${OPENSAM_LIBRARY_FOLDER}/
+            cp ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_LIBRARY_FOLDER}/.
+            cp ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_LIBRARY_FOLDER}/.
+            cp ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_LIBRARY_FOLDER}/.
+            ls -l ${OPENSAM_LIBRARY_FOLDER}
 
-              echo "=============== OPEN SAM LIBRARY ARTIFACT ==============="
-              rsync -av  ${OPENSAM_ARTIFACT}/openSAM_Library/ ${OPENSAM_LIBRARY_FOLDER}/
-              cp ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_LIBRARY_FOLDER}/.
-              cp ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_LIBRARY_FOLDER}/.
-              cp ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_LIBRARY_FOLDER}/.
-              ls -l ${OPENSAM_LIBRARY_FOLDER}
+            ## skunkcrafts for openSAM_Library
+            sed -e "s|@FOLDER_NAME@|${OPENSAM_LIBRARY_FOLDER}|g" \
+              -e "s|@VERSION@|${VERSION}|g" \
+              -e "s|@NAME@|Library|g" \
+              skunkcrafts_updater.cfg.template > "${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater.cfg"
+            sed -e "s|@FOLDER_NAME@|${OPENSAM_LIBRARY_FOLDER}|g" \
+              -e "s|@VERSION@|${VERSION}|g" \
+              -e "s|@NAME@|Library|g" \
+              skunkcrafts_updater_beta.cfg.template > "${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_beta.cfg"
+            ## skunkcrafts for openSAM
+            sed -e "s|@FOLDER_NAME@|${OPENSAM_FOLDER}|g" \
+              -e "s|@VERSION@|${VERSION}|g" \
+              -e "s|@NAME@||g" \
+              skunkcrafts_updater.cfg.template > "${OPENSAM_FOLDER}/skunkcrafts_updater.cfg"
+            sed -e "s|@FOLDER_NAME@|${OPENSAM_FOLDER}|g" \
+              -e "s|@VERSION@|${VERSION}|g" \
+              -e "s|@NAME@||g" \
+              skunkcrafts_updater_beta.cfg.template > "${OPENSAM_FOLDER}/skunkcrafts_updater_beta.cfg"
 
-              ## skunkcrafts for openSAM_Library
-              sed -e "s|@FOLDER_NAME@|${OPENSAM_LIBRARY_FOLDER}|g" \
-                -e "s|@XP_VERSION@|${XP_VERSION}|g" \
-                -e "s|@VERSION@|${VERSION}|g" \
-                -e "s|@NAME@|Library|g" \
-                skunkcrafts_updater.cfg.template > "${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater.cfg"
-              sed -e "s|@FOLDER_NAME@|${OPENSAM_LIBRARY_FOLDER}|g" \
-                -e "s|@XP_VERSION@|${XP_VERSION}|g" \
-                -e "s|@VERSION@|${VERSION}|g" \
-                -e "s|@NAME@|Library|g" \
-                skunkcrafts_updater_beta.cfg.template > "${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_beta.cfg"
-              ## skunkcrafts for openSAM
-              sed -e "s|@FOLDER_NAME@|${OPENSAM_FOLDER}|g" \
-                -e "s|@XP_VERSION@|${XP_VERSION}|g" \
-                -e "s|@VERSION@|${VERSION}|g" \
-                -e "s|@NAME@||g" \
-                skunkcrafts_updater.cfg.template > "${OPENSAM_FOLDER}/skunkcrafts_updater.cfg"
-              sed -e "s|@FOLDER_NAME@|${OPENSAM_FOLDER}|g" \
-                -e "s|@XP_VERSION@|${XP_VERSION}|g" \
-                -e "s|@VERSION@|${VERSION}|g" \
-                -e "s|@NAME@||g" \
-                skunkcrafts_updater_beta.cfg.template > "${OPENSAM_FOLDER}/skunkcrafts_updater_beta.cfg"
-
-              find ${OPENSAM_FOLDER}/ -type f ! \( -name '*skunkcrafts_updater*' -o -path '*skunkcrafts_updater*' \) -print0 | while IFS= read -r -d '' file; do
-                checksum_hex=$(crc32 "$file")
-                # Convert hex checksum to uint32 decimal
-                checksum_decimal=$((16#${checksum_hex}))
-                # Remove "release/" prefix from $file
-                modified_file="${file#${OPENSAM_FOLDER}/}"
-                echo "$modified_file|$checksum_decimal" >> ${OPENSAM_FOLDER}/skunkcrafts_updater_whitelist.txt
-                # Get file size in bytes
-                filesize=$(stat -c%s "$file")
-                echo "$modified_file|$filesize" >> ${OPENSAM_FOLDER}/skunkcrafts_updater_sizeslist.txt
-              done
-
-              find ${OPENSAM_LIBRARY_FOLDER}/ -type f ! \( -name '*skunkcrafts_updater*' -o -path '*skunkcrafts_updater*' \) -print0 | while IFS= read -r -d '' file; do
-                checksum_hex=$(crc32 "$file")
-                # Convert hex checksum to uint32 decimal
-                checksum_decimal=$((16#$checksum_hex))
-                # Remove "release/" prefix from $file
-                modified_file="${file#${OPENSAM_LIBRARY_FOLDER}/}"
-                echo "$modified_file|$checksum_decimal" >> ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_whitelist.txt
-                # Get file size in bytes
-                filesize=$(stat -c%s "$file")
-                echo "$modified_file|$filesize" >> ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_sizeslist.txt
-              done
-
-              echo "00_README.txt" > ${OPENSAM_FOLDER}/skunkcrafts_updater_blacklist.txt
-              echo "00_README.txt" > ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_blacklist.txt
-
-              (cd ${RELEASE_FOLDER} && 7z a "${{ github.workspace }}/openSAM-${XP_VERSION}-${VERSION}.zip" *)
+            find ${OPENSAM_FOLDER}/ -type f ! \( -name '*skunkcrafts_updater*' -o -path '*skunkcrafts_updater*' \) -print0 | while IFS= read -r -d '' file; do
+              checksum_hex=$(crc32 "$file")
+              # Convert hex checksum to uint32 decimal
+              checksum_decimal=$((16#${checksum_hex}))
+              # Remove "release/" prefix from $file
+              modified_file="${file#${OPENSAM_FOLDER}/}"
+              echo "$modified_file|$checksum_decimal" >> ${OPENSAM_FOLDER}/skunkcrafts_updater_whitelist.txt
+              # Get file size in bytes
+              filesize=$(stat -c%s "$file")
+              echo "$modified_file|$filesize" >> ${OPENSAM_FOLDER}/skunkcrafts_updater_sizeslist.txt
             done
+
+            find ${OPENSAM_LIBRARY_FOLDER}/ -type f ! \( -name '*skunkcrafts_updater*' -o -path '*skunkcrafts_updater*' \) -print0 | while IFS= read -r -d '' file; do
+              checksum_hex=$(crc32 "$file")
+              # Convert hex checksum to uint32 decimal
+              checksum_decimal=$((16#$checksum_hex))
+              # Remove "release/" prefix from $file
+              modified_file="${file#${OPENSAM_LIBRARY_FOLDER}/}"
+              echo "$modified_file|$checksum_decimal" >> ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_whitelist.txt
+              # Get file size in bytes
+              filesize=$(stat -c%s "$file")
+              echo "$modified_file|$filesize" >> ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_sizeslist.txt
+            done
+
+            echo "00_README.txt" > ${OPENSAM_FOLDER}/skunkcrafts_updater_blacklist.txt
+            echo "00_README.txt" > ${OPENSAM_LIBRARY_FOLDER}/skunkcrafts_updater_blacklist.txt
+
+            (cd ${RELEASE_FOLDER} && 7z a "${{ github.workspace }}/openSAM-${VERSION}.zip" *)
 
             TAG=${GITHUB_REF##*/}
             TARGET_BRANCH="release"
@@ -301,7 +275,7 @@ jobs:
             git config --global user.name "GH Release"
             git add release/
             # force add otherwise ignored directories
-            git add -f release/XP*/openSAM/*_x64/
+            git add -f release/openSAM/*_x64/
             git commit -m "new ${TARGET_BRANCH} - ${TAG}"
             git push -f -u origin ${TARGET_BRANCH}
 

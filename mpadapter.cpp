@@ -20,7 +20,7 @@
 //
 
 #include <cassert>
-#include "openSAM.h"
+#include "opensam.h"
 #include "plane.h"
 
 #include "mpadapter.h"

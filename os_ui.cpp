@@ -21,8 +21,8 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include "openSAM.h"
-#include "plane.h"
+#include "opensam.h"
+#include "my_plane.h"
 #include "samjw.h"
 #include "jwctrl.h"
 #include "widget_ctx.h"
@@ -235,8 +235,8 @@ static void CreateUI() {
     XPAddWidgetCallback(undock_btn, MyPlane::UIWidgetCb);
 }
 
-void ToggleUI(void) {
-    LogMsg("ToggleUI called");
+void OsToggleUI(void) {
+    LogMsg("OsToggleUI called");
 
     if (ui_widget == NULL)
         CreateUI();

@@ -32,7 +32,6 @@ struct SamJw {
     bool bad{};       // marked bad, e.g. terrain probe failed
     bool is_zc_jw{};  // is a zero config jw
     bool locked{};    // locked by a plane
-    Stand* stand{};   // back pointer to stand for zc jetways
 
     // local x,z computed from the xml's lat/lon
     unsigned int xml_ref_gen{};  // only valid if this matches the generation of the ref frame
@@ -49,7 +48,8 @@ struct SamJw {
         warnlight, canopy;
 
     // geometry values from sam.xml or filled in from library jetway
-    std::string name;
+    std::string base_name;  // from sam.xml, e.g. "jetway1", "jetway2" or "jetway3"
+    std::string name;       // == base_name for sam.xml jetways or fabricated for zero config jetways
     std::string sound;
 
     float latitude{}, longitude{}, heading{}, height{}, wheelPos{}, cabinPos{}, cabinLength{}, wheelDiameter{},
@@ -74,7 +74,6 @@ struct SamJw {
     }
 
     void FillLibraryValues(unsigned int id);
-    Stand* FindStand();
 
     static void ResetAll(); // called from various places
 };

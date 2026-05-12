@@ -1,0 +1,130 @@
+//
+//    openSAM: open source SAM emulator for X Plane
+//
+//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
+
+#include "seasons.h"
+#include "opensam.h"
+#include "XPLMDataAccess.h"
+
+// support for legacy SAM seasons
+namespace Seasons {
+
+int auto_season;
+int nh;      // on northern hemisphere
+int season;  // 0-3
+
+static XPLMMenuID seasons_menu;
+static int auto_item, season_item[4];
+static const char* dr_name[] = {"sam/season/winter", "sam/season/spring", "sam/season/summer", "sam/season/autumn"};
+static XPLMDataRef date_day_dr;
+
+// Accessor for the "sam/season/*" datarefs
+static int ReadSeasonAcc(void* ref) {
+    int s = (long long)ref;
+    int val = (s == season);
+    return val;
+}
+
+void InitDataRefs() {
+    date_day_dr = XPLMFindDataRef("sim/time/local_date_days");
+
+    for (int i = 0; i < 4; i++)
+        XPLMRegisterDataAccessor(dr_name[i], xplmType_Int, 0, ReadSeasonAcc, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                                 NULL, NULL, NULL, NULL, (void*)(long long)i, NULL);
+}
+
+void SetAuto() {
+    if (!auto_season)
+        return;
+
+    int day = XPLMGetDatai(date_day_dr);
+    if (nh) {
+        if (day <= 80) {
+            season = 0;
+        } else if (day <= 172) {
+            season = 1;
+        } else if (day <= 264) {
+            season = 2;
+        } else if (day <= 355) {
+            season = 3;
+        } else if (day) {
+            season = 0;
+        }
+    } else {
+        if (day <= 80) {
+            season = 2;
+        } else if (day <= 172) {
+            season = 3;
+        } else if (day <= 264) {
+            season = 0;
+        } else if (day <= 355) {
+            season = 1;
+        } else if (day) {
+            season = 2;
+        }
+    }
+
+    LogMsg("nh: %d, day: %d, season: %d", nh, day, season);
+}
+
+// emulate a kind of radio buttons
+static void UpdateMenuRadioB() {
+    XPLMCheckMenuItem(seasons_menu, auto_item, auto_season ? xplm_Menu_Checked : xplm_Menu_Unchecked);
+
+    XPLMCheckMenuItem(seasons_menu, season_item[season], xplm_Menu_Checked);
+    for (int i = 0; i < 4; i++)
+        if (i != season)
+            XPLMCheckMenuItem(seasons_menu, season_item[i], xplm_Menu_Unchecked);
+}
+
+static void MenuCb([[maybe_unused]] void* menu_ref, void* item_ref) {
+    if (error_disabled)
+        return;
+
+    int entry = (long long)item_ref;
+
+    if (entry == 4) {
+        auto_season = !auto_season;
+        SetAuto();
+    } else {
+        season = entry;
+        auto_season = 0;  // selecting a season always goes to manual mode
+    }
+
+    UpdateMenuRadioB();
+}
+
+void InitMenu(XPLMMenuID os_menu) {
+    int seasons_menu_item = XPLMAppendMenuItem(os_menu, "Seasons", NULL, 0);
+    seasons_menu = XPLMCreateMenu("Seasons", os_menu, seasons_menu_item, MenuCb, NULL);
+
+    auto_item = XPLMAppendMenuItem(seasons_menu, "Automatic", (void*)4, 0);
+
+    XPLMAppendMenuSeparator(seasons_menu);
+
+    season_item[0] = XPLMAppendMenuItem(seasons_menu, "Winter", (void*)0, 0);
+    season_item[1] = XPLMAppendMenuItem(seasons_menu, "Spring", (void*)1, 0);
+    season_item[2] = XPLMAppendMenuItem(seasons_menu, "Summer", (void*)2, 0);
+    season_item[3] = XPLMAppendMenuItem(seasons_menu, "Autumn", (void*)3, 0);
+
+    UpdateMenuRadioB();
+}
+
+} // namespace Seasons

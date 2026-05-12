@@ -2,7 +2,7 @@ I
 800
 OBJ
 
-# a minimal object with only purpose to query dr "opensam/dgs/ident"
+# a minimal object with only purpose to query dr "opensam/dgs/ident/marshaller"
 
 TEXTURE ../blank/blank.png
 POINT_COUNTS 3 0 0 3
@@ -15,6 +15,6 @@ IDX 2
 
 ATTR_LOD 0.0 300.0
 ANIM_begin
-ANIM_hide 0.000000 10.000000 opensam/dgs/ident
+ANIM_hide 0.000000 10.000000 opensam/dgs/ident/marshaller
 TRIS 0 3
 ANIM_end

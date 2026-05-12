@@ -25,8 +25,7 @@
 #include <cstring>
 #include <iostream>
 
-#include "openSAM.h"
-#include "os_dgs.h"
+#include "opensam.h"
 #include "samjw.h"
 #include "os_anim.h"
 
@@ -43,7 +42,14 @@ main(int argc, char **argv) {
         SceneryPacks scp(xp_dir);
         CollectSamXml(scp);
         LogMsg("%d sceneries with sam jetways found", (int)sceneries.size());
-    } catch (const OsEx& ex) {
+        int n_stands;
+        if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, false, true, n_stands)) {
+             LogMsg("WARNING: global apt.dat could not be parsed, no DGS support!");
+            return 0;
+        } else {
+            LogMsg("%d stands with DGS found in global apt.dat", n_stands);
+        }
+    } catch (const std::exception& ex) {
         LogMsg("fatal error: '%s', bye!", ex.what());
         return 0;   // bye
     }
@@ -63,8 +69,8 @@ main(int argc, char **argv) {
     }
 
     for (auto sc : sceneries) {
-        printf("%s: %d jetways, %d stands collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n",
-               sc->name.c_str(), (int)sc->sam_jws.size(), (int)sc->stands.size(),
+        printf("%s: %d jetways collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n",
+               sc->name.c_str(), (int)sc->sam_jws.size(),
                sc->bb_lat_min, sc->bb_lon_min, sc->bb_lat_max, sc->bb_lon_max);
 
         puts("\nObjects");
@@ -90,15 +96,17 @@ main(int argc, char **argv) {
         printf("'%s'; '%s', height: %0.2f, cabinPos: %0.2f\n", ljw->id.c_str(), ljw->name.c_str(), ljw->height, ljw->cabinPos);
     }
 
-    puts("\nRamps");
-    for (auto sc : sceneries) {
-        printf("%s\n", sc->name.c_str());
-        for (auto stand : sc->stands) {
-            printf("%-40s %5.6f, %5.6f %6.2f\n", stand->id.c_str(),
-                    stand->lat, stand->lon, stand->hdgt);
-        }
-        puts("\n");
+    printf("\napt.dat collected: %d\n\n", dgs::AptAirport::NumAirports());
+
+    const auto eddf = dgs::AptAirport::LookupAirport("EDDF");
+    if (eddf) {
+        eddf->dump();
     }
 
-	return (0);
+    const auto ekbi = dgs::AptAirport::LookupAirport("EKBI");
+    if (ekbi) {
+        ekbi->dump();
+    }
+
+    return (0);
 }

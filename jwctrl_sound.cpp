@@ -21,7 +21,7 @@
 
 #include <cstddef>
 
-#include "openSAM.h"
+#include "opensam.h"
 #include "samjw.h"
 #include "jwctrl.h"
 

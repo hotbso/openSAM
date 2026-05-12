@@ -24,8 +24,8 @@
 #include <stdexcept>
 #include <cassert>
 
-#include "openSAM.h"
-#include "plane.h"
+#include "opensam.h"
+#include "my_plane.h"
 #include "mpadapter_xpilot.h"
 
 static XPLMDataRef modeS_id_dr, icao_type_dr, flight_id_dr,  // identity
@@ -176,7 +176,7 @@ float MpAdapter_xPilot::update() {
     for (int i = 1; i < n_planes_; i++) {
         // slot empty or not on ground or far away -> ignore
         if (0 == modeS_id_val_[i] || !on_ground_val_[i] ||
-            len2f(x_val_[i] - my_plane->x(), z_val_[i] - my_plane->z()) > kMpMaxDist)
+            std::hypot(x_val_[i] - my_plane->x(), z_val_[i] - my_plane->z()) > kMpMaxDist)
             continue;
 
         // flight_id

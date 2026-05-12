@@ -3,5 +3,5 @@ liveries|false
 module|https://raw.githubusercontent.com/hotbso/openSAM/refs/heads/release/@FOLDER_NAME@/
 version|@VERSION@
 disabled|false
-name|openSAM @NAME@ @XP_VERSION@ 
+name|openSAM @NAME@
 locked|false

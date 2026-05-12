@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "openSAM.h"
+#include "opensam.h"
 #include "jwctrl.h"
 
 struct WAV_FORMAT {

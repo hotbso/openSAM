@@ -28,6 +28,8 @@
 #include <fcntl.h>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
+#include <exception>
 #include <unordered_map>
 
 #include <expat.h>
@@ -36,9 +38,8 @@
 #define O_BINARY 0
 #endif
 
-#include "openSAM.h"
+#include "opensam.h"
 #include "samjw.h"
-#include "os_dgs.h"
 #include "os_anim.h"
 
 // context for element handlers
@@ -139,6 +140,8 @@ static void GetJwAttrs(const XML_Char** attr, SamJw* sam_jw) {
         else if (0 == strcmp(val, "LU1"))
             sam_jw->door = 2;
     }
+
+    sam_jw->base_name = sam_jw->name;  // for later use when we fabricate names for zero config jetways
 }
 
 static void GetLibJwAttrs(const XML_Char** attr, SamLibJw* sam_lib_jw) {
@@ -421,78 +424,7 @@ out:
     return rc;
 }
 
-// go through apt.dat and collect stand information from 1300 lines
-static bool ParseAptDat(const std::string& fn, Scenery* sc) {
-    std::ifstream apt(fn);
-    if (apt.fail())
-        return false;
-
-    LogMsg("Processing '%s'", fn.c_str());
-
-    std::string line;
-    line.reserve(2000);  // can be quite long
-    std::string name;
-    name.reserve(100);
-
-    while (std::getline(apt, line)) {
-        // 1302 icao_code ENRM
-        if (line.starts_with("1302 icao_code ")) {
-            sc->arpt_icao = line.substr(15, 4);
-            continue;
-        }
-
-        if (line.starts_with("1300 ")) {
-            if (line.back() == '\r')
-                line.pop_back();
-            // LogMsg("%s", line);
-            line.erase(0, 5);
-            Stand* stand = new Stand();
-            int len;
-            int n = sscanf(line.c_str(), "%f %f %f %*s %*s %n", &stand->lat, &stand->lon, &stand->hdgt, &len);
-            if (3 == n) {
-                name = line.substr(len);
-                // LogMsg("%d %d, %f %f %f '%s'", n, len, stand->lat, stand->lon, stand->hdgt, stand->id.c_str());
-
-                // a stand name can be anything between "1" and "Gate A 40 (Class C, Terminal 3)"
-                // we try to extract the net name "A 40" in the latter case
-
-                if (name.starts_with("Stand"))
-                    name.erase(0, 5);
-                else if (name.starts_with("Gate"))
-                    name.erase(0, 4);
-                else if (name.starts_with("Ramp"))
-                    name.erase(0, 4);
-
-                // trim leading whitespace
-                name.erase(0, name.find_first_not_of(" "));
-
-                // delete stuff following and including a "({,;"
-                const auto i = name.find_first_of("({,;");
-                if (i != std::string::npos)
-                    name.resize(i);
-
-                // trim trailing whitespace and assign
-                const auto last = name.find_last_not_of(" ");
-                if (last != std::string::npos)
-                    stand->id = name.substr(0, last + 1);
-
-                // else leave empty
-
-                stand->hdgt = RA(stand->hdgt);
-                stand->sin_hdgt = sinf(kD2R * stand->hdgt);
-                stand->cos_hdgt = cosf(kD2R * stand->hdgt);
-                sc->stands.push_back(stand);
-            } else {
-                delete (stand);
-            }
-        }
-    }
-
-    apt.close();
-    return true;
-}
-
-// SceneryPacks contructor
+// SceneryPacks constructor
 SceneryPacks::SceneryPacks(const std::string& xp_dir) {
     std::string scpi_name(xp_dir + "/Custom Scenery/scenery_packs.ini");
 
@@ -512,17 +444,17 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
         if (line.back() == '\r')
             line.pop_back();
 
-        if (!line.starts_with("SCENERY_PACK ") || line.find("*GLOBAL_AIRPORTS*") != std::string::npos)
+        if (!line.starts_with("SCENERY_PACK ") || line.contains("*GLOBAL_AIRPORTS*"))
             continue;
 
         // autoortho pretends every file exists but
         // reads give errors
-        if (line.find("/z_ao_") != std::string::npos)
+        if (line.contains("/z_ao_"))
             continue;
 
         line.erase(0, 13);
         std::string sc_path;
-        bool is_absolute = (line[0] == '/' || line.find(':') != std::string::npos);
+        bool is_absolute = (line[0] == '/' || line.contains(':'));
         if (is_absolute)
             sc_path = line;
         else
@@ -533,12 +465,12 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
             if (sc_path[i] == '\\')
                 sc_path[i] = '/';
 
-        if (sc_path.find("/openSAM_Library/") != std::string::npos) {
+        if (sc_path.contains("/openSAM_Library/")) {
             openSAM_Library_path = sc_path;
             continue;
         }
 
-        if (sc_path.find("/SAM_Library/") != std::string::npos) {
+        if (sc_path.contains("/SAM_Library/")) {
             SAM_Library_path = sc_path;
             continue;
         }
@@ -548,8 +480,6 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
 
     scpi.close();
     sc_paths.shrink_to_fit();
-    if (openSAM_Library_path.empty())
-        throw OsEx("openSAM_Library is not installed!");
 }
 
 // collect sam.xml from all sceneries
@@ -558,7 +488,7 @@ void CollectSamXml(const SceneryPacks& scp) {
 
     // drefs from openSAM_Library must come first
     if (scp.openSAM_Library_path.empty() || !ParseSamXml(scp.openSAM_Library_path + "sam.xml", lib_jw_map))
-        throw OsEx("openSAM_Library is not installed or inaccessible!");
+        throw std::runtime_error("openSAM_Library is not installed or inaccessible!");
 
     if (!scp.SAM_Library_path.empty()) {
         if (!ParseSamXml(scp.SAM_Library_path + "libraryjetways.xml", lib_jw_map))
@@ -569,16 +499,30 @@ void CollectSamXml(const SceneryPacks& scp) {
         ParseSamXml(sc_path + "libraryjetways.xml", lib_jw_map);  // always try libraryjetways.xml
 
         Scenery* sc = new Scenery();
-        if (!ParseSamXml(sc_path + "sam.xml", lib_jw_map, sc)) {
+        bool is_opensam = ParseSamXml(sc_path + "sam.xml", lib_jw_map, sc);
+
+        // read stands from apt.dat
+        int n_stands = 0;
+
+        if (is_opensam) {
+            // will be used with openSAM personality
+            // ignore: false, is_opensam: true, AutoDGS filter: false
+            dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", false, true, false, n_stands);
+        } else {
+            // will be used with AutoDGS personality
+            bool ignore =
+                (std::filesystem::exists(sc_path + "no_autodgs") || std::filesystem::exists(sc_path + "no_autodgs.txt"));
+            // ignore: as specified, is_opensam: false, AutoDGS filter: true
+            dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, false, true, n_stands);
+        }
+
+        if (!is_opensam) {
             delete (sc);
             continue;
         }
 
-        // read stands from apt.dat
-        ParseAptDat(sc_path + "Earth nav data/apt.dat", sc);
-
         // don't save empty sceneries
-        if (sc->sam_jws.empty() && sc->stands.empty() && sc->sam_anims.empty()) {
+        if (sc->sam_jws.empty() && n_stands == 0 && sc->sam_anims.empty()) {
             delete (sc);
             continue;
         }
@@ -587,7 +531,6 @@ void CollectSamXml(const SceneryPacks& scp) {
 
         // shrink to actual
         sc->sam_jws.shrink_to_fit();
-        sc->stands.shrink_to_fit();
         sc->sam_anims.shrink_to_fit();
         sc->sam_objs.shrink_to_fit();
 
@@ -603,16 +546,6 @@ void CollectSamXml(const SceneryPacks& scp) {
 
             sc->bb_lon_min = std::min(sc->bb_lon_min, RA(jw->longitude - far_skip_dlon));
             sc->bb_lon_max = std::max(sc->bb_lon_max, RA(jw->longitude + far_skip_dlon));
-        }
-
-        for (auto stand : sc->stands) {
-            float far_skip_dlon = far_skip_dlat / cosf(stand->lat * kD2R);
-
-            sc->bb_lat_min = std::min(sc->bb_lat_min, stand->lat - far_skip_dlat);
-            sc->bb_lat_max = std::max(sc->bb_lat_max, stand->lat + far_skip_dlat);
-
-            sc->bb_lon_min = std::min(sc->bb_lon_min, stand->lon - far_skip_dlon);
-            sc->bb_lon_max = std::max(sc->bb_lon_max, stand->lon + far_skip_dlon);
         }
 
         // don't consider objects as these may be far away (e.g. Aerosoft LSZH)

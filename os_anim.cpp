@@ -23,7 +23,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "openSAM.h"
+#include "opensam.h"
 #include "os_anim.h"
 
 static constexpr float kSam2ObjMax = 2.5;   // m, max delta between coords in sam.xml and object

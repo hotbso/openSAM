@@ -1,0 +1,16 @@
+I
+800
+OBJ
+
+# dummy base object
+
+TEXTURE	Safedock-T2-24-display_LIT.png
+TEXTURE_LIT	Safedock-T2-24-display_LIT.png
+
+POINT_COUNTS 0 0 0 0
+
+GLOBAL_no_blend 0.5
+
+ATTR_LOD	0	200
+ATTR_no_shadow
+ATTR_light_level 0.0 1.0 opensam/dgs/vdgs_brightness 7000
