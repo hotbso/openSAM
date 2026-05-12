@@ -1,7 +1,14 @@
-# openSAM plugin for X-Plane 12 Marshaller and VDGS guidance for all sceneries, jetway and object animation for custom sceneries
+# openSAM plugin for X-Plane 12
+## Marshaller and VDGS guidance for all sceneries<br> Jetway and object animation for custom sceneries
 One stop destination for DGS guidance, drop in replacement for legacy SAM, support for new custom sceneries.
 
 ## Installation and Support
+### Update from 4.x
+openSAM v5.x differs in it's file layout and a fresh install is recommended in order to avoid a lot of stale files.\
+If you changed the configuration files bring forward your changes into ```planes.cfg```.\
+AutoDGS is now included in openSAM. Copy over your airport configuration <xp_dir/Output/AutoDGS> to <xp_dir/Output/openSAM> .\
+In addition commands ```AutoDGS/...```  are renamed to ```openSAM/...``` so your your key and button bindings may need some rework.
+
 ### Initial Installation
 **This plugin runs on XP12 only. If you want to use it with XP11 stick to a 4.x release**
 
@@ -43,7 +50,7 @@ suitable stands in the direction that you are taxiing. Note that you MUST have y
 Once you come closer the VDGS or the Marshaller give appropriate guidance information.
 
 If you just want to try out the feature without prior flight you must issue the
-command "openSAM/activate" (or "AutoDGS/activate"), "Manually activate searching for DGS" through a binding or the menu.\
+command "openSAM/activate", "Manually activate searching for DGS" through a binding or the menu.\
 Beacon on, of course!
 
 ![Image](images/Safedock-X.jpg)
@@ -78,6 +85,9 @@ This requires the `simbrief_hub` plugin to be installed.
 ![Image](images/simbrief.jpg)
 
 ## Standard scenery
+The default VDGS for standard sceneries can be selected in the menu.
+![Image](images/Menu.jpg)
+
 Per default all stands with jetways get a VDGS and all others get a Marshaller. This can easily be changed with the UI.
 First ensure that the plugin is activated then select the stand and change the setting accordingly. \
 See a video here -> https://www.youtube.com/watch?v=EAuWxt0DB-8 \
