@@ -104,8 +104,6 @@ static const char* LookupAttr(const XML_Char** attr, const char* name) {
     }
 
 static void GetJwAttrs(const XML_Char** attr, SamJw* sam_jw) {
-    *sam_jw = (SamJw){};
-
     GET_STR_ATTR(sam_jw, name)
     GET_FLOAT_ATTR(sam_jw, latitude)
     GET_FLOAT_ATTR(sam_jw, longitude)
@@ -145,8 +143,6 @@ static void GetJwAttrs(const XML_Char** attr, SamJw* sam_jw) {
 }
 
 static void GetLibJwAttrs(const XML_Char** attr, SamLibJw* sam_lib_jw) {
-    *sam_lib_jw = (SamLibJw){};
-
     GET_STR_ATTR(sam_lib_jw, id)
     GET_STR_ATTR(sam_lib_jw, name)
     GET_FLOAT_ATTR(sam_lib_jw, height)
