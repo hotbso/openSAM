@@ -139,7 +139,10 @@ endif()
 # ==============================================================================
 # sam_xml_test (all platforms, matching Makefile.mgw64 test target)
 # ==============================================================================
-option(BUILD_TESTS "Build sam_xml_test" ON)
+if (WIN32)
+    option(BUILD_TESTS "Build sam_xml_test" ON)
+endif()
+
 if(BUILD_TESTS)
     add_executable(sam_xml_test
         sam_xml_test.cpp
