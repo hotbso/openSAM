@@ -1,4 +1,5 @@
 /OBJ_*/
+/build/
 *.xpl
 /*.zip
 version.h

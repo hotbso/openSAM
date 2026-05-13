@@ -66,30 +66,33 @@ jobs:
             mv SDK ../
             git clone https://github.com/hotbso/xplib.git ../xplib
 
-      - name: Build Executable
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build libexpat1-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja expat
+
+      - name: Configure and build
         shell: bash
-        env:
-          OS: ${{ matrix.os }}
         run: |
           TAG=${GITHUB_REF##*/}
-          if [ ! -z "$TAG" ]; then
+          if [ -n "$TAG" ]; then
             echo "VERSION=$TAG" > version.mak
           fi
-
-          if [ $OS == "macos-15" ]; then
-            make -f Makefile.mac64
-          else
-            make -f Makefile.lin64
-          fi
-
-          tar cvf binary.tar openSAM-pkg*/openSAM/*_x64
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=OFF \
+            -S . -B build
+          cmake --build build
+          cmake --install build
+          tar cvf binary.tar openSAM-pkg/openSAM/*_x64
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v7
         with:
           name: build-${{ matrix.os }}
-          path: |
-            binary.tar
+          path: binary.tar
 
   build-windows:
     runs-on: windows-latest
@@ -102,13 +105,15 @@ jobs:
           install: >-
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-expat
-            make
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            unzip
             git
 
       - uses: actions/checkout@v6
 
       - name: Get XPlane SDK + xplib
-        shell: bash
+        shell: msys2 {0}
         run: |
             SDK_VERSION=411
             curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o "XPSDK${SDK_VERSION}.zip"
@@ -120,18 +125,21 @@ jobs:
         shell: msys2 {0}
         run: |
             TAG=${GITHUB_REF##*/}
-            if [ ! -z "$TAG" ]; then
+            if [ -n "$TAG" ]; then
               echo "VERSION=$TAG" > version.mak
             fi
-            make -f Makefile.mgw64
-            tar cvf binary.tar openSAM-pkg*/openSAM/*_x64
+            cmake -G Ninja -DCMAKE_BUILD_TYPE=Release \
+              -DBUILD_TESTS=OFF \
+              -S . -B build
+            cmake --build build
+            cmake --install build
+            tar cvf binary.tar openSAM-pkg/openSAM/*_x64
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v7
         with:
           name: build-windows
-          path: |
-            binary.tar
+          path: binary.tar
 
   release:
     runs-on: ubuntu-latest
