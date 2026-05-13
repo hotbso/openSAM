@@ -98,7 +98,7 @@ if(WIN32)
         -l:libexpat.a
         pthread
     )
-    install(TARGETS openSAM DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/win_x64")
+    install(TARGETS openSAM RUNTIME DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/win_x64")
 
 elseif(APPLE)
     # Makefile.mac64 (native macOS or osxcross)
@@ -122,7 +122,7 @@ elseif(APPLE)
         set(_expat expat)   # ships with macOS / Homebrew / MacPorts natively
     endif()
     target_link_libraries(openSAM PRIVATE ${XPLM_FW} ${XPWIDGETS_FW} ${_expat})
-    install(TARGETS openSAM DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/mac_x64")
+    install(TARGETS openSAM LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/mac_x64")
 
 elseif(UNIX)
     # Makefile.lin64
@@ -133,7 +133,7 @@ elseif(UNIX)
     )
     target_link_options(openSAM PRIVATE -rdynamic -nodefaultlibs)
     target_link_libraries(openSAM PRIVATE expat)
-    install(TARGETS openSAM DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/lin_x64")
+    install(TARGETS openSAM LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/lin_x64")
 endif()
 
 # ==============================================================================
