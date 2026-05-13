@@ -107,6 +107,7 @@ jobs:
             mingw-w64-x86_64-expat
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
+            unzip
             git
 
       - uses: actions/checkout@v6

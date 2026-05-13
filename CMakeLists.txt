@@ -57,7 +57,7 @@ set(SOURCES
     XPListBox.cpp
 )
 
-add_library(openSAM MODULE ${SOURCES})
+add_library(openSAM SHARED ${SOURCES})
 set_target_properties(openSAM PROPERTIES PREFIX "" SUFFIX ".xpl")
 
 # ==============================================================================
@@ -110,7 +110,7 @@ elseif(APPLE)
         -Wall -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -Wno-deprecated-declarations
     )
     target_link_options(openSAM PRIVATE
-        -dynamiclib -rdynamic -fvisibility=hidden
+        -rdynamic -fvisibility=hidden
         -Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/linkscript.mac
     )
     find_library(XPLM_FW     XPLM     PATHS "${SDK}/Libraries/Mac" REQUIRED)
