@@ -2,6 +2,8 @@
 /build/
 *.xpl
 /*.zip
+*.blend1
+*.blend2
 version.h
 
 # Prerequisites
