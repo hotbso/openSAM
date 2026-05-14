@@ -35,7 +35,7 @@
 namespace dgs {
 
 static constexpr float kD2R = std::numbers::pi_v<float>/180.0f;
-static constexpr float kJw2Stand = 25.0;            // m, max dist jw to stand
+static constexpr float kJw2Stand = 28.0;            // m, max dist jw to stand
 
 namespace fem = flat_earth_math;
 
