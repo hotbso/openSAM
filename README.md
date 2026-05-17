@@ -240,7 +240,7 @@ Undocking: Starts with setting the dataref back to 0 within 5 seconds, when belo
 [TwinFan](https://github.com/TwinFan) for providing LTAPI\
 [X-Codr](https://www.x-codrdesigns.com/) for performance improvements\
 [Pierre](https://github.com/pierr3) for reworking the VDGS model and giving it much more precision and details\
-[MisterX](https://forums.x-plane.org/profile/125097-misterx6/) for allowing to include his jetways as library jetways in openSAM_Library
+[MisterX](https://forums.x-plane.org/profile/125097-misterx6/) for allowing to include his jetways as library jetways in openSAM_Library\
 [Blender KIT](https://www.blenderkit.com/) for free pbr materials
 
 ## License
