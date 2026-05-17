@@ -15,7 +15,7 @@ t2_tmpl_obj_pole = "../DGS-Safedock-T2-24/Safedock-T2-24-pole.obj"
 
 # for library objects
 lib_tex_files = ["../DGS-Safedock-T2-24/Safedock-T2-24.png",
-            "../DGS-Safedock-X/Safedock-X.png",
+            "../DGS-Safedock-X/Safedock-X.png", "../DGS-Safedock-X/Safedock-X_NML.png",
             # Marshaller is needed in the Library as WED object
             "../DGS-Marshaller/Marshaller.obj", "../DGS-Marshaller/Marshaller.dds", "../DGS-Marshaller/Marshaller_LIT.dds"]
 

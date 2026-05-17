@@ -241,6 +241,7 @@ Undocking: Starts with setting the dataref back to 0 within 5 seconds, when belo
 [X-Codr](https://www.x-codrdesigns.com/) for performance improvements\
 [Pierre](https://github.com/pierr3) for reworking the VDGS model and giving it much more precision and details\
 [MisterX](https://forums.x-plane.org/profile/125097-misterx6/) for allowing to include his jetways as library jetways in openSAM_Library
+[Blender KIT](https://www.blenderkit.com/) for free pbr materials
 
 ## License
 Please observe that this material is covered by various licenses.
@@ -279,6 +280,9 @@ https://pixabay.com/sound-effects/backing-up-beepwav-14889/
 
 ### Jetways by MisterX
 See the license reproduced in ![Image](openSAM-pkg/MisterX-License.jpg) .
+
+### PBR materials by Blender Kit
+See https://www.blenderkit.com/docs/licenses/
 
 ### Contributions by hotbso:
 This is in parts a derived work from Autogate so the above mentioned licenses apply accordingly to the components of this project.\

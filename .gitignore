@@ -1,5 +1,10 @@
 /OBJ_*/
 /build/
+**/SimpleBake_Bakes/*
+Logfile.txt
+MakePBR.settings
+xplane2blender.log
+
 *.xpl
 /*.zip
 *.blend1
