@@ -1,0 +1,37 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "win",
+      "displayName": "MSYS2 GCC Release",
+      "binaryDir": "${sourceDir}/build/win",
+      "generator": "Ninja"
+    },
+    {
+      "name": "lx",
+      "displayName": "Linux Native Release",
+      "binaryDir": "${sourceDir}/build/lx",
+      "generator": "Ninja"
+    },
+    {
+      "name": "macos",
+      "displayName": "macOS Cross Compile",
+      "binaryDir": "${sourceDir}/build/macos",
+      "toolchainFile": "${sourceDir}/cmake/toolchain-osxcross.cmake"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "win",
+      "configurePreset": "win"
+    },
+    {
+      "name": "lx",
+      "configurePreset": "lx"
+    },
+    {
+      "name": "macos",
+      "configurePreset": "macos"
+    }
+  ]
+}
