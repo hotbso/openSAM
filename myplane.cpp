@@ -415,9 +415,16 @@ bool MyPlane::CheckTeleportation() {
     if (!on_ground())
         return false;
 
-    if (parked_ngen_ != ::ref_gen || fabsf(parked_x_ - x_) > 1.0f || fabsf(parked_z_ - z_) > 1.0f) {
-        LogMsg("parked_ngen: %d, ngen: %d, parked_x: %0.3f, x: %0.3f, parked_z: %0.3f, z: %0.3f", parked_ngen_,
-               ::ref_gen, parked_x_, x_, parked_z_, z_);
+    if (parked_ngen_ != ::ref_gen) {
+        parked_ngen_ = ::ref_gen;
+        parked_x_ = x_;
+        parked_z_ = z_;
+        return false;
+    }
+
+    if (fabsf(parked_x_ - x_) > 1.0f || fabsf(parked_z_ - z_) > 1.0f) {
+        LogMsg("teleportation: parked_x: %0.3f, x: %0.3f, parked_z: %0.3f, z: %0.3f",
+               parked_x_, x_, parked_z_, z_);
         return true;
     }
 
