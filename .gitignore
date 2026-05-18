@@ -10,6 +10,7 @@ xplane2blender.log
 *.blend1
 *.blend2
 version.h
+/release/
 
 # Prerequisites
 *.d

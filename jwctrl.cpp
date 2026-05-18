@@ -207,7 +207,12 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
 
     int invisible_jws = 0;
     for (auto jw : jws) {
-        if (jw->obj_ref_gen < ref_gen) { // not visible -> not dockable
+        // Allow one generation of slack: a world reference-frame shift bumps ref_gen from the
+        // flight loop, but jetway draw callbacks (which set obj_ref_gen = ref_gen) won't run
+        // until the next frame. Without slack every jw would look invisible after a shift and
+        // PARKED -> CANT_DOCK on first try. Stale-by-one is still treated as visible; truly
+        // never-drawn jws (obj_ref_gen == 0) and 2+ gen stale ones are filtered.
+        if (jw->obj_ref_gen == 0 || jw->obj_ref_gen + 1 < ref_gen) { // not visible -> not dockable
             invisible_jws++;
             continue;
         }

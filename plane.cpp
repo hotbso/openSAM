@@ -41,13 +41,23 @@ const char* const Plane::state_str_[] = {"DISABLED", "IDLE",   "PARKED",    "SEL
                                          "DOCKING",  "DOCKED", "UNDOCKING", "CANT_DOCK"};
 
 Plane::~Plane() {
-    LogMsg("pid=%02d, Plane destructor, state: %s, active_jws: %d", id_, state_str_[state_], (int)active_jws_.size());
-    if (IDLE <= state_) {
-        for (auto& ajw : active_jws_)
-            ajw.Reset();
+    const char* sname = (state_ >= DISABLED && state_ <= CANT_DOCK) ? state_str_[state_] : "?";
+    LogMsg("pid=%02d, Plane destructor, state: %s, active_jws: %d", id_, sname, (int)active_jws_.size());
+
+    // Best-effort cleanup; never propagate exceptions out of a plugin destructor at shutdown,
+    // and never call SDK functions twice on the same controller.
+    try {
+        if (IDLE <= state_ && state_ <= CANT_DOCK) {
+            for (auto& ajw : active_jws_)
+                ajw.Reset();
+        }
         active_jws_.clear();
+        nearest_jws_.clear();
+    } catch (...) {
+        LogMsg("pid=%02d, Plane destructor: swallowed exception during cleanup", id_);
     }
 
+    state_ = DISABLED;
     LogMsg("pid=%02d, Plane destructor finished", id_);
 }
 
@@ -203,12 +213,15 @@ float Plane::JwStateMachine() {
             if (beacon_on_) {
                 LogMsg("CAN_DOCK and beacon goes on");
                 new_state = IDLE;
+                break;
             }
 
-            // mp planes always dock directly
-            if (dock_requested() || toggle_requested()) {
-                LogMsg("pid=%02d, docking requested", id_);
-
+            // beacon off in CAN_DOCK: always dock (auto + manual + MP).
+            // still consume request flags so they don't linger as stale state.
+            (void)dock_requested();
+            (void)toggle_requested();
+            LogMsg("pid=%02d, docking (beacon off)", id_);
+            {
                 float start_ts = now + active_jws_.size() * 5.0f;
                 for (auto& ajw : active_jws_) {
                     // staggered start for docking high to low
