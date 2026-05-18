@@ -363,6 +363,10 @@ void MyPlane::Update() {
                 beacon_on_pending_ = false;
             } else if (now > beacon_off_ts_ + 3.0)
                 beacon_on_ = false;
+            // Parked for docking: beacon off and no engine running. Skip the 3s
+            // beacon-off debounce (same as AutoGate check_running()).
+            if (!beacon && !engines_on_)
+                beacon_on_ = false;
         }
     }
 

@@ -210,11 +210,9 @@ float Plane::JwStateMachine() {
             (void)toggle_requested();
             LogMsg("pid=%02d, docking (beacon off)", id_);
             {
-                float start_ts = now + active_jws_.size() * 5.0f;
-                for (auto& ajw : active_jws_) {
-                    start_ts -= 5.0f;
-                    ajw.SetupDockUndock(start_ts, with_alert_sound());
-                }
+                // AutoGate WAITTIME=1s before bridge motion; jetways start together at now.
+                for (auto& ajw : active_jws_)
+                    ajw.SetupDockUndock(now, with_alert_sound());
 
                 new_state = DOCKING;
             }
@@ -225,6 +223,8 @@ float Plane::JwStateMachine() {
                 new_state = IDLE;
                 break;
             }
+            // Retry when jetways were not visible yet (AutoGate re-arms TRACK when parked).
+            new_state = PARKED;
             break;
 
         case DOCKING:
