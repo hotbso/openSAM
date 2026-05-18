@@ -120,7 +120,13 @@ class OsAirport : public dgs::Airport {
 
     void ResetState(state_t new_state);
 
+    // index into stands_, or -1 if the jetway is not associated with any stand
+    int FindStandIndexForJw(float jw_x, float jw_z);
     const OsStand* FindStandForJw(float jw_x, float jw_z);
+
+    // stand to use when filtering jetways for auto-dock (active DGS stand or parked position)
+    int JetwayFilterStandIndex(float plane_x, float plane_z, float plane_hdgt);
+
     // auto set chocks and connect jetway when parking ?
     bool auto_post_parkbrake() const override;
     void ConnectJetway() override;

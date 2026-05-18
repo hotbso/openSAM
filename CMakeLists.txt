@@ -83,6 +83,14 @@ target_compile_options(openSAM PRIVATE -O3)
 # ==============================================================================
 if(WIN32)
     # Makefile.mgw64
+    set(_expat_inc "${CMAKE_CURRENT_SOURCE_DIR}/../libexpat/expat/lib")
+    set(_expat_lib "${CMAKE_CURRENT_SOURCE_DIR}/../libexpat/build/libexpat.a")
+    if(EXISTS "${_expat_inc}/expat.h" AND EXISTS "${_expat_lib}")
+        target_include_directories(openSAM PRIVATE "${_expat_inc}")
+        set(_expat_link "${_expat_lib}")
+    else()
+        set(_expat_link "-l:libexpat.a")
+    endif()
     target_compile_definitions(openSAM PRIVATE WINDOWS WIN32 IBM=1)
     target_compile_options(openSAM PRIVATE
         -Wpedantic -Wextra -Wall -fdiagnostics-color -Wno-format-overflow -Wno-format-truncation
@@ -95,7 +103,7 @@ if(WIN32)
     target_link_libraries(openSAM PRIVATE
         ${SDK}/Libraries/Win/XPLM_64.lib
         ${SDK}/Libraries/Win/XPWidgets_64.lib
-        -l:libexpat.a
+        ${_expat_link}
         pthread
     )
     install(TARGETS openSAM RUNTIME DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/win_x64")
@@ -164,7 +172,12 @@ if(BUILD_TESTS)
     )
     target_compile_options(sam_xml_test PRIVATE -Wall -Wno-format-overflow)
     if(WIN32)
-        target_link_libraries(sam_xml_test PRIVATE -l:libexpat.a)
+        if(EXISTS "${_expat_inc}/expat.h" AND EXISTS "${_expat_lib}")
+            target_include_directories(sam_xml_test PRIVATE "${_expat_inc}")
+            target_link_libraries(sam_xml_test PRIVATE "${_expat_lib}")
+        else()
+            target_link_libraries(sam_xml_test PRIVATE -l:libexpat.a)
+        endif()
     else()
         target_link_libraries(sam_xml_test PRIVATE expat)
     endif()

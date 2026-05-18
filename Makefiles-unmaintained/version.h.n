@@ -1,0 +1,1 @@
+"//generated file!"; echo "#define VERSION \" 0134d7e,xplib:\""; echo "#define VERSION_SHORT \"\""

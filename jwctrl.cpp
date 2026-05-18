@@ -30,9 +30,15 @@
 #include "my_plane.h"
 #include "samjw.h"
 #include "jwctrl.h"
+#include "opensam_airport.h"
 
 // from os_read_wav.c
 extern void ReadWav(const std::string& fname, Sound& sound);
+
+static constexpr float kPlaneJwMaxX = 50.0f;     // m, plane-local search radius without stand filter
+static constexpr float kPlaneJwMaxZ = 45.0f;
+static constexpr float kStandJwMaxX = 35.0f;   // tighter when locked to one stand
+static constexpr float kStandJwMaxZ = 35.0f;
 
 static constexpr float kDriveSpeed = 1.0;        // m/s
 static constexpr float kTurnSpeed = 10.0;        // °/s
@@ -205,6 +211,10 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
     // So we find the nearest jetways on the left and do some heuristics
 
+    int filter_stand = -1;
+    if (os_arpt)
+        filter_stand = os_arpt->JetwayFilterStandIndex(plane.x(), plane.z(), plane.psi());
+
     int invisible_jws = 0;
     for (auto jw : jws) {
         // Allow one generation of slack: a world reference-frame shift bumps ref_gen from the
@@ -222,6 +232,15 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
             continue;
         }
 
+        if (filter_stand >= 0 && os_arpt) {
+            int jw_stand = os_arpt->FindStandIndexForJw(jw->x, jw->z);
+            if (jw_stand != filter_stand) {
+                LogMsg("pid=%02d, skip %s: jetway stand %d, filter stand %d", plane.id_, jw->name.c_str(), jw_stand,
+                       filter_stand);
+                continue;
+            }
+        }
+
         // LogMsg("pid=%02d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
         //         plane.id_, jw->name.c_str(), jw->door, jw->x, jw->z, jw->y, jw->psi);
 
@@ -230,10 +249,13 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
         njw.jw_ = jw;
         njw.SetupForDoor(door_info);
 
+        const float max_x = (filter_stand >= 0) ? kStandJwMaxX : kPlaneJwMaxX;
+        const float max_z = (filter_stand >= 0) ? kStandJwMaxZ : kPlaneJwMaxZ;
+
         // ... and send it through the filters ...
         if (njw.x_ > 1.0f ||
             BETWEEN(RA(njw.psi_ + jw->initialRot1), -130.0f, 20.0f) ||  // on the right side or pointing away
-            njw.x_ < -80.0f || fabsf(njw.z_) > 80.0f) {                 // or far away
+            njw.x_ < -max_x || fabsf(njw.z_) > max_z) {                 // or far away
             if (fabsf(njw.x_) < 120.0f && fabsf(njw.z_) < 120.0f)       // don't pollute the log with jws VERY far away
                 LogMsg("pid=%02d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initialRot1): %0.1f",
                        plane.id_, jw->name.c_str(), njw.x_, njw.z_, njw.psi_ + jw->initialRot1);

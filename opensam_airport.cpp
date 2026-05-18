@@ -21,6 +21,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <limits>
 #include <unordered_map>
 #include <stdexcept>
 
@@ -39,6 +40,12 @@
 static constexpr float kMaxDgs2StandX = 10.0f;  // max offset/distance from DGS to stand
 static constexpr float kMaxDgs2StandZ = 80.0f;
 static constexpr float kExtraDz = 0.05f;  // extra pull forward of displays in z direction to account for precision loss
+
+// keep in sync with dgs/apt_airport.cpp kJw2Stand
+static constexpr float kJw2StandDist = 28.0f;
+static constexpr float kJwStandMaxX = 15.0f;
+static constexpr float kJwStandMinZ = -55.0f;
+static constexpr float kJwStandMaxZ = 12.0f;
 
 std::unique_ptr<OsAirport> os_arpt;
 
@@ -127,24 +134,74 @@ void OsAirport::ConnectJetway() {
     my_plane->RequestDock();
 }
 
-const OsStand* OsAirport::FindStandForJw(float jw_x, float jw_z) {
-    const OsStand* min_stand = nullptr;
+int OsAirport::FindStandIndexForJw(float jw_x, float jw_z) {
+    int best = -1;
     float min_dist = std::numeric_limits<float>::max();
 
-    for (auto& stand : stands_) {
+    for (int i = 0; i < (int)stands_.size(); ++i) {
+        OsStand* stand = dynamic_cast<OsStand*>(stands_[i].get());
         float x_sl, z_sl;
         stand->Local2Stand(jw_x, jw_z, x_sl, z_sl);
-        if (x_sl > 2.0f)  // on the right
+
+        // Jetway base is on the terminal side of the stand centerline, not the far wing side.
+        if (x_sl > 2.0f)
+            continue;
+
+        if (std::fabs(x_sl) > kJwStandMaxX)
+            continue;
+        if (z_sl < kJwStandMinZ || z_sl > kJwStandMaxZ)
             continue;
 
         float dist = std::hypot(x_sl, z_sl);
+        if (dist > kJw2StandDist)
+            continue;
+
         if (dist < min_dist) {
             min_dist = dist;
-            min_stand = dynamic_cast<const OsStand*>(stand.get());
+            best = i;
         }
     }
 
-    return min_stand;
+    return best;
+}
+
+const OsStand* OsAirport::FindStandForJw(float jw_x, float jw_z) {
+    int idx = FindStandIndexForJw(jw_x, jw_z);
+    if (idx < 0)
+        return nullptr;
+    return dynamic_cast<const OsStand*>(stands_[idx].get());
+}
+
+int OsAirport::JetwayFilterStandIndex(float plane_x, float plane_z, float plane_hdgt) {
+    if (active_stand_ >= 0)
+        return active_stand_;
+
+    int best = -1;
+    float best_d = 1.0e10f;
+
+    for (int i = 0; i < (int)stands_.size(); ++i) {
+        OsStand* stand = dynamic_cast<OsStand*>(stands_[i].get());
+        float x_sl, z_sl;
+        stand->Local2Stand(plane_x, plane_z, x_sl, z_sl);
+
+        float local_hdgt = RA(plane_hdgt - stand->hdgt());
+        if (std::fabs(local_hdgt) > 25.0f)
+            continue;
+
+        // Parked at the gate: aircraft nose near the stand stop line, not an adjacent stand.
+        if (z_sl < -20.0f || z_sl > 12.0f)
+            continue;
+        if (std::fabs(x_sl) > 16.0f)
+            continue;
+
+        float d = std::hypot(x_sl, z_sl);
+        if (d < best_d) {
+            best_d = d;
+            best = i;
+        }
+    }
+
+    return best;
 }
 
 int OsAirport::FindStandForObj(float obj_x, float obj_z, float obj_psi) {
