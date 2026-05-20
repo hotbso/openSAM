@@ -44,7 +44,8 @@ class FlexDref {
     XPLMDataTypeID type_id_;
 
     bool mapped_ = false;
-    float trigger_value_ = 0.0;  // for future use, e.g. for chocks on/off state
+    int cmp_type_{};  // 0: eq, 1: ge, 2: gt, 3: le, 4: lt
+    float cmp_value_ = 0.0;
 
     void MapDref();
 
@@ -54,9 +55,9 @@ class FlexDref {
     void Clear();
     bool empty() const;
 
-    // name_value is e.g. "AirbusFBW/Chocks 1" or just "AirbusFBW/Chocks" if trigger_value is not needed
-    void Set(const std::string& name_value);
-    int GetTriggered(); // -> 0 or 1, if value >= trigger_value_
+    // name_cmp_value is e.g. "AirbusFBW/Chocks ge 1", cmp can be "eq", "ge", "gt", "le", "lt"
+    void Set(const std::string& name_cmp_value);
+    int GetTriggered(); // -> 0 or 1, if value >= cmp_value_
     float GetValue();
 };
 

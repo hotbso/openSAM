@@ -24,6 +24,9 @@
 #include <string>
 #include <unordered_map>
 #include <regex>
+#include <ranges>
+#include <vector>
+#include <sstream>
 
 #include "airport.h"
 #include "plane.h"
@@ -50,33 +53,67 @@ void FlexDref::MapDref() {
     }
 
     type_id_ = XPLMGetDataRefTypes(dr_);
-    LogMsg("Mapped dataref '%s', type_id: %d, trigger_value: %f", name_.c_str(), type_id_, trigger_value_);
+    LogMsg("Mapped dataref '%s', type_id: %d, trigger_value: %f", name_.c_str(), type_id_, cmp_value_);
 }
 
 void FlexDref::Clear() {
     name_.clear();
     dr_ = nullptr;
     mapped_ = false;
-    trigger_value_ = 0.0;
+    cmp_value_ = 0.0;
+    cmp_type_ = -1;
 }
 
 bool FlexDref::empty() const { return name_.empty(); }
 
-void FlexDref::Set(const std::string& name_value) {
+void FlexDref::Set(const std::string& name_cmp_value) {
     mapped_ = false;
-    auto sep = name_value.find_first_of(" \t");
-    if (sep != std::string::npos) {
-        name_ = name_value.substr(0, sep);
-        trigger_value_ = std::stof(name_value.substr(sep + 1));
+
+    std::istringstream iss(name_cmp_value);
+    auto words = std::views::istream<std::string>(iss) | std::ranges::to<std::vector<std::string>>();
+
+    if (words.size() >= 3) {
+        name_ = words[0];
+        const std::string& cmp = words[1];
+        if (cmp == "eq") {
+            cmp_type_ = 0;
+        } else if (cmp == "ge") {
+            cmp_type_ = 1;
+        } else if (cmp == "gt") {
+            cmp_type_ = 2;
+        } else if (cmp == "le") {
+            cmp_type_ = 3;
+        } else if (cmp == "lt") {
+            cmp_type_ = 4;
+        } else {
+            LogMsg("invalid comparison type '%s' for '%s'", cmp.c_str(), name_.c_str());
+            throw std::runtime_error("config error, invalid comparison type");
+        }
+
+        try {
+            cmp_value_ = std::stof(words[2]);
+        } catch (const std::exception& e) {
+            LogMsg("invalid comparison value in '%s': %s", name_cmp_value.c_str(), e.what());
+            throw std::runtime_error("config error, invalid comparison value");
+        }
     } else {
-        name_ = name_value;
-        trigger_value_ = -1.0f;
+        // just return the value, e.g. for "pax_no_dref	AirbusFBW/NoPax"
+        cmp_type_ = -1; // not a trigger dref
+        name_ = name_cmp_value;
+        cmp_value_ = -1.0f;
     }
 }
 
 int FlexDref::GetTriggered() {
     float value = GetValue();
-    return value >= trigger_value_;
+    switch (cmp_type_) {
+        case 0: return value == cmp_value_;
+        case 1: return value >= cmp_value_;
+        case 2: return value > cmp_value_;
+        case 3: return value <= cmp_value_;
+        case 4: return value < cmp_value_;
+        default: return 0; // not a trigger dref
+    }
 }
 
 float FlexDref::GetValue() {
@@ -138,7 +175,12 @@ void FlexCmd::Set(const std::string& name) {
         auto sep = dref_part.find_first_of(" \t");
         if (sep != std::string::npos) {
             name_ = dref_part.substr(0, sep);
-            dr_value_ = std::stof(dref_part.substr(sep + 1));
+            try {
+                dr_value_ = std::stof(dref_part.substr(sep + 1));
+            } catch (const std::exception& e) {
+                LogMsg("invalid dataref value in '%s': %s", name.c_str(), e.what());
+                throw std::runtime_error("config error, invalid dataref value");
+            }
         } else {
             name_ = dref_part;
             dr_value_ = 1.0f; // default
