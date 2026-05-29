@@ -202,7 +202,6 @@ jobs:
 
             echo "=============== RELEASE FOLDER  ==============="
             cp ${OPENSAM_ARTIFACT}/LICENSE $RELEASE_FOLDER/.
-            cp ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt $RELEASE_FOLDER/.
             cp ${OPENSAM_ARTIFACT}/README.html $RELEASE_FOLDER/.
             cp ${OPENSAM_ARTIFACT}/MisterX-License.jpg $RELEASE_FOLDER/.
 
@@ -210,7 +209,6 @@ jobs:
             rsync -av  ${OPENSAM_ARTIFACT}/openSAM/ ${OPENSAM_FOLDER}/
             cp -r openSAM-pkg/lua/* ${OPENSAM_FOLDER}/lua
             cp ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_FOLDER}/.
-            cp ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_FOLDER}/.
             cp ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_FOLDER}/.
             ls -l ${OPENSAM_FOLDER}
             echo
@@ -218,7 +216,6 @@ jobs:
             echo "=============== OPEN SAM LIBRARY ARTIFACT ==============="
             rsync -av  ${OPENSAM_ARTIFACT}/openSAM_Library/ ${OPENSAM_LIBRARY_FOLDER}/
             cp ${OPENSAM_ARTIFACT}/LICENSE ${OPENSAM_LIBRARY_FOLDER}/.
-            cp ${OPENSAM_ARTIFACT}/Credits_and_Licensing.txt ${OPENSAM_LIBRARY_FOLDER}/.
             cp ${OPENSAM_ARTIFACT}/README.html ${OPENSAM_LIBRARY_FOLDER}/.
             ls -l ${OPENSAM_LIBRARY_FOLDER}
 

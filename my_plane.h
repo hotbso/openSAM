@@ -31,6 +31,8 @@
 // It is accessible through "std::unique_ptr<MyPlane> my_plane" .
 //
 class MyPlane : public Plane, public dgs::Plane {
+    friend class Ui;  // for direct access to the jw_selected_ array
+
     XPLMDataRef plane_lat_dr_, plane_lon_dr_, plane_y_agl_dr_;
 
     float on_ground_ts_;
@@ -63,11 +65,6 @@ class MyPlane : public Plane, public dgs::Plane {
     float y_agl() { return XPLMGetDataf(plane_y_agl_dr_); }
 
     float elevation() const { return elevation_; }
-
-    // UI support
-    void UpdateUI(bool only_if_visible) override;
-    void LockUI(bool yes_no) override { ui_unlocked_ = !yes_no; }
-    static int UIWidgetCb(XPWidgetMessage msg, XPWidgetID widget_id, intptr_t param1, intptr_t param2);
 
     bool with_alert_sound() override { return true; }
 

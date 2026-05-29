@@ -180,10 +180,13 @@ bool Stand::isVdgs() const {
 }
 
 //---------------------------------------------------------------------------
-const char* const Airport::state_str[] = {"INACTIVE", "DEPARTURE",  "BOARDING", "ARRIVAL",       "ENGAGED",
-                                          "TRACK",    "GOOD",       "BAD",      "PARKBRAKE_SET", "BEACON_OFF",
-                                          "PARKED",   "DEBOARDING", "DONE"};
-Airport::Airport(const AptAirport& apt_airport) {
+const char* const Airport::state_str_[] = {"INACTIVE", "DEPARTURE",  "BOARDING", "ARRIVAL",       "ENGAGED",
+                                           "TRACK",    "GOOD",       "BAD",      "PARKBRAKE_SET", "BEACON_OFF",
+                                           "PARKED",   "DEBOARDING", "DONE"};
+
+static int seqno_base = 0;
+
+Airport::Airport(const AptAirport& apt_airport) : seqno_(++seqno_base) {
     CheckRefFrameShift();   // ensure ref_gen is up to date
     ref_gen_ = ref_gen;
 
@@ -405,7 +408,7 @@ float Airport::StateMachine() {
         if (plane->PaxNo() <= 0) {
             state_ = DEPARTURE;
             if (state_ != state_prev) {
-                LogMsg("New state %s", state_str[state_]);
+                LogMsg("New state %s", state_str_[state_]);
                 ds.dgs_->SetMode(kDeparture);
             }
             // FALLTHROUGH
@@ -448,7 +451,7 @@ float Airport::StateMachine() {
         if (state_ == DEPARTURE) {
             if (plane->PaxNo() > 0) {
                 state_ = BOARDING;
-                LogMsg("New state %s", state_str[state_]);
+                LogMsg("New state %s", state_str_[state_]);
                 // FALLTHROUGH
             } else
                 return ds.dgs_->Tick();  // just scroll the text
@@ -700,7 +703,7 @@ float Airport::StateMachine() {
     }
 
     if (new_state != state_) {
-        LogMsg("state transition %s -> %s, beacon: %d", state_str[state_], state_str[new_state], beacon_on);
+        LogMsg("state transition %s -> %s, beacon: %d", state_str_[state_], state_str_[new_state], beacon_on);
         state_ = new_state;
         timestamp_ = now;
         return -1;  // see you on next frame
@@ -712,7 +715,7 @@ float Airport::StateMachine() {
         if (now > update_dgs_log_ts_ + 2.0) {
             update_dgs_log_ts_ = now;
             LogMsg("stand: %s, state: %s, status: %d, track: %d, lr: %d, distance: %0.2f, xtrack: %0.1f m",
-                   as.name().c_str(), state_str[state_], dgs_params_.status, dgs_params_.track, dgs_params_.lr, dgs_params_.distance, dgs_params_.xtrack);
+                   as.name().c_str(), state_str_[state_], dgs_params_.status, dgs_params_.track, dgs_params_.lr, dgs_params_.distance, dgs_params_.xtrack);
         }
 
         // xform drefs into required constraints for the OBJs
@@ -734,7 +737,7 @@ float Airport::StateMachine() {
 
 void Airport::ResetState(state_t new_state) {
     if (state_ != new_state)
-        LogMsg("setting state to %s", state_str[new_state]);
+        LogMsg("setting state to %s", state_str_[new_state]);
 
     state_ = new_state;
     if (active_stand_ >= 0)

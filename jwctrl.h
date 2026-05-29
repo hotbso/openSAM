@@ -24,6 +24,8 @@
 
 #include <array>
 
+#include "samjw.h"
+
 #include "XPLMSound.h"
 
 struct Sound {

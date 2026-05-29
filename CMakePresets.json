@@ -14,10 +14,11 @@
       "generator": "Ninja"
     },
     {
-      "name": "macos",
+      "name": "mac",
       "displayName": "macOS Cross Compile",
-      "binaryDir": "${sourceDir}/build/macos",
-      "toolchainFile": "${sourceDir}/cmake/toolchain-osxcross.cmake"
+      "binaryDir": "${sourceDir}/build/mac",
+      "toolchainFile": "${sourceDir}/toolchain-osxcross.cmake",
+      "generator": "Ninja"
     }
   ],
   "buildPresets": [
@@ -30,8 +31,8 @@
       "configurePreset": "lx"
     },
     {
-      "name": "macos",
-      "configurePreset": "macos"
+      "name": "mac",
+      "configurePreset": "mac"
     }
   ]
 }

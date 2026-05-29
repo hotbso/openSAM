@@ -44,17 +44,29 @@ else()
     file(WRITE "${_vh}" "${_vh_content}")
 endif()
 
+
+SET(IMGUI_SRCS
+    ${CMAKE_SOURCE_DIR}/imgui/imgui.cpp
+    ${CMAKE_SOURCE_DIR}/imgui/imgui_draw.cpp
+    ${CMAKE_SOURCE_DIR}/imgui/imgui_widgets.cpp
+    ${CMAKE_SOURCE_DIR}/imgui/imgui_tables.cpp
+    ${CMAKE_SOURCE_DIR}/imgui/misc/cpp/imgui_stdlib.cpp
+    ${CMAKE_SOURCE_DIR}/ImgWindow/ImgWindow.cpp
+    ${CMAKE_SOURCE_DIR}/ImgWindow/ImgFontAtlas.cpp
+)
+
 # ==============================================================================
 # Sources (Makefile.common: SOURCES + xplib files resolved from VPATH)
 # ==============================================================================
 set(SOURCES
-    opensam.cpp adgs_ui.cpp autodgs_airport.cpp adgs_api.cpp seasons.cpp
-    opensam_airport.cpp samjw.cpp jwctrl.cpp jwctrl_sound.cpp os_ui.cpp os_anim.cpp sam_xml.cpp read_wav.cpp
+    opensam.cpp autodgs_airport.cpp adgs_api.cpp seasons.cpp
+    opensam_airport.cpp samjw.cpp jwctrl.cpp jwctrl_sound.cpp os_anim.cpp sam_xml.cpp read_wav.cpp
     plane.cpp myplane.cpp LTAPI.cpp mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp
-    ${XPLIB}/log_msg.cpp ${XPLIB}/widget_ctx.cpp ${XPLIB}/simbrief.cpp
     dgs/apt_airport.cpp dgs/dgs.cpp dgs/dgs_plane.cpp dgs/airport.cpp dgs/marshaller.cpp
     dgs/safedock_t2_24.cpp dgs/safedock_x.cpp sam1_dgs.cpp
-    XPListBox.cpp
+    ui.cpp
+    ${IMGUI_SRCS}
+    ${XPLIB}/log_msg.cpp ${XPLIB}/simbrief.cpp
 )
 
 add_library(openSAM SHARED ${SOURCES})
@@ -67,8 +79,10 @@ target_include_directories(openSAM PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/dgs
     ${XPLIB}
+    ${CMAKE_SOURCE_DIR}/imgui
+    ${CMAKE_SOURCE_DIR}/imgui/misc/cpp
+    ${CMAKE_SOURCE_DIR}/ImgWindow
     ${SDK}/CHeaders/XPLM
-    ${SDK}/CHeaders/Widgets
 )
 
 target_compile_definitions(openSAM PRIVATE
@@ -94,9 +108,9 @@ if(WIN32)
     )
     target_link_libraries(openSAM PRIVATE
         ${SDK}/Libraries/Win/XPLM_64.lib
-        ${SDK}/Libraries/Win/XPWidgets_64.lib
         -l:libexpat.a
         pthread
+        opengl32
     )
     install(TARGETS openSAM RUNTIME DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/win_x64")
 
@@ -114,14 +128,13 @@ elseif(APPLE)
         -Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/linkscript.mac
     )
     find_library(XPLM_FW     XPLM     PATHS "${SDK}/Libraries/Mac" REQUIRED)
-    find_library(XPWIDGETS_FW XPWidgets PATHS "${SDK}/Libraries/Mac" REQUIRED)
     # When cross-compiling via osxcross the toolchain file sets OSXCROSS_EXPAT_LIB
     if(DEFINED OSXCROSS_EXPAT_LIB AND EXISTS "${OSXCROSS_EXPAT_LIB}")
         set(_expat "${OSXCROSS_EXPAT_LIB}")
     else()
         set(_expat expat)   # ships with macOS / Homebrew / MacPorts natively
     endif()
-    target_link_libraries(openSAM PRIVATE ${XPLM_FW} ${XPWIDGETS_FW} ${_expat})
+    target_link_libraries(openSAM PRIVATE ${XPLM_FW} ${_expat} "-framework OpenGL")
     install(TARGETS openSAM LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/mac_x64")
 
 elseif(UNIX)
@@ -132,7 +145,7 @@ elseif(UNIX)
         -fPIC -fno-stack-protector
     )
     target_link_options(openSAM PRIVATE -rdynamic -nodefaultlibs)
-    target_link_libraries(openSAM PRIVATE expat)
+    target_link_libraries(openSAM PRIVATE expat GL)
     install(TARGETS openSAM LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/lin_x64")
 endif()
 

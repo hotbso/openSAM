@@ -145,8 +145,6 @@ extern XPLMProbeRef probe_ref;
 
 // functions
 extern void create_api_drefs();
-extern void AdgsToggleUI(void);
-extern void AdgsUpdateUI(bool only_if_visible = true);
 extern void OsToggleUI(void);
 
 #define BETWEEN(x, a, b) ((a) <= (x) && (x) <= (b))

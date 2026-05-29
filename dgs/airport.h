@@ -1,5 +1,5 @@
 //
-//    AutoDGS / openSAM: ManageVDGS
+//    AutoDGS / openSAM: Manage VDGS and jetways
 //
 //    Copyright (C) 2026 Holger Teutsch
 //
@@ -94,7 +94,9 @@ class Airport {
         ARRIVAL, ENGAGED, TRACK, GOOD, BAD, PARKBRAKE_SET, BEACON_OFF, PARKED, DEBOARDING, DONE
     } state_t;
 
-    static const char * const state_str[];
+    static const char * const state_str_[];
+
+    const int seqno_;  // sequence number
 
   protected:
     unsigned int ref_gen_;    // reference frame generation number
@@ -138,7 +140,10 @@ class Airport {
 
     const std::string& name() const { return name_; }
     state_t state() const { return state_; }
+    const char* state_str() const { return state_str_[state_]; }
+    int active_stand() const { return active_stand_; }
     int selected_stand() const { return selected_stand_; }
+    const Stand& stand(int i) const { return *stands_[i]; } // you are expected to know what you are doing if you call this with an index that is out of bounds
     bool active_stand_has_xp12_jw() const;
 };
 

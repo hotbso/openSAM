@@ -1,0 +1,403 @@
+//
+//    openSAM: manage DGS and jetways for X Plane
+//
+//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Lesser General Public
+//    License as published by the Free Software Foundation; either
+//    version 2.1 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Lesser General Public License for more details.
+//
+//    You should have received a copy of the GNU Lesser General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+//    USA
+//
+
+#include <string>
+#include <vector>
+#include <algorithm>
+
+#include "XPLMDisplay.h"
+#include "XPLMUtilities.h"
+#include "XPLMProcessing.h"
+
+#include "imgui.h"
+#include "imgui_stdlib.h"
+#include "ImgWindow.h"
+
+#include "opensam.h"
+#include "autodgs_airport.h"
+#include "opensam_airport.h"
+#include "my_plane.h"
+#include "dgs/plane.h"
+#include "version.h"
+
+#include "ui.h"
+
+static constexpr int kWinWidth = 350;
+static constexpr int kWinHeight = 450;
+static constexpr int kWinPad = 75;
+static constexpr float kFontSize = 14.0f;
+
+std::unique_ptr<ImgWindow> ui;
+
+void CreateUi() {
+    int sc_left, sc_top;
+    XPLMGetScreenBoundsGlobal(&sc_left, &sc_top, nullptr, nullptr);
+
+    int left = sc_left + kWinPad;
+    int right = left + kWinWidth;
+    int top = sc_top - kWinPad;
+    int bottom = top - kWinHeight;
+    ui = std::make_unique<Ui>(left, top, right, bottom);
+}
+
+void ImgWindowIni() {
+    LogMsg("Initializing Imgui Window...");
+    ImgWindow::sFontAtlas = std::make_shared<ImgFontAtlas>();
+
+    // load from X-Plane's default font directory
+    if (ImgWindow::sFontAtlas->AddFontFromFileTTF("./Resources/fonts/DejaVuSans.ttf", kFontSize) == nullptr) {
+        LogMsg("Failed to load font DejaVuSans from file, falling back to default font");
+    }
+
+    LogMsg("Imgui Window initialized");
+}
+
+void ImgWindowFini() {
+    // We just destroy the font atlas
+    ImgWindow::sFontAtlas.reset();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+Ui::Ui(int left, int top, int right, int bot)
+    : ImgWindow(left, top, right, bot, xplm_WindowDecorationRoundRectangle, xplm_WindowLayerFloatingWindows) {
+    ImGui::GetIO().IniFilename = strdup((user_cfg_dir + "imgui.ini").c_str());
+
+    // Create a flight loop id, but don't schedule it yet
+    XPLMCreateFlightLoop_t loop_params = {
+        sizeof(loop_params),                      // structSize
+        xplm_FlightLoop_Phase_BeforeFlightModel,  // phase
+        FlightLoopCb,                             // callbackFunc
+        (void*)this,                              // refcon
+    };
+
+    flt_id_ = XPLMCreateFlightLoop(&loop_params);
+
+    SetWindowTitle("openSAM " VERSION_SHORT);
+    SetWindowResizingLimits(100, 100, 1024, 1024);
+    SetVisible(true);
+}
+
+Ui::~Ui() {
+    if (flt_id_)
+        XPLMDestroyFlightLoop(flt_id_);
+}
+
+void Ui::BuildInterface() {
+    if (ImGui::TreeNode("Settings")) {
+        ImGui::TextUnformatted("Settings nyi");
+        ImGui::TreePop();
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    dgs::Airport* dgs_arpt = nullptr;
+    if (adgs_arpt) {
+        dgs_arpt = adgs_arpt.get();
+        ImGui::Text("AutoDGS Airport: '%s'", dgs_arpt->name().c_str());
+    } else if (os_arpt) {
+        dgs_arpt = os_arpt.get();
+        ImGui::Text("SAM Airport:     '%s'", dgs_arpt->name().c_str());
+    } else {
+        ImGui::Text("No airport loaded");
+        return;
+    }
+
+    assert(dgs_arpt);
+
+    if (arpt_seqno_ != dgs_arpt->seqno_) {
+        // Airport data has changed since last time, so we update the listbox content.
+        // We do this once because it generates a lot of allocations and may be costly per frame.
+        lb_stands_.clear();
+        lb_stands_.reserve(dgs_arpt->nstands() + 1);
+        lb_stands_.push_back("<automatic>");  // first entry is always "<automatic>"
+
+        // for AutoDGS we add the DGS type
+        if (adgs_arpt) {
+            for (int i = 0; i < dgs_arpt->nstands(); i++) {
+                auto [dgs_type, name] = adgs_arpt->GetStand(i);
+                lb_stands_.push_back((dgs_type == kMarshaller ? "M " : "V ") + name);
+            }
+        } else {
+            for (int i = 0; i < dgs_arpt->nstands(); i++)
+                lb_stands_.push_back(dgs_arpt->stand(i).name());
+        }
+        arpt_seqno_ = dgs_arpt->seqno_;
+    }
+
+    ImGui::TextUnformatted("DGS state:      ");
+    ImGui::SameLine();
+    ImVec4 red = ImColor(255, 0, 0, 255);
+    ImGui::PushStyleColor(ImGuiCol_Text, red);
+    ImGui::TextUnformatted(dgs_arpt->state_str());
+    ImGui::PopStyleColor();
+
+    int as = dgs_arpt->active_stand();
+    int ss = dgs_arpt->selected_stand();
+    if (as >= 0) {
+        const auto& stand = dgs_arpt->stand(as);
+        ImGui::Text("Active stand:    '%s'", stand.name().c_str());
+    }
+
+    if (ss >= 0 && ss != as) {
+        const auto& stand = dgs_arpt->stand(ss);
+        ImGui::Text("Selected stand:  '%s'", stand.name().c_str());
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    if (dgs_arpt->state() == dgs::Airport::INACTIVE) {
+        if (ImGui::Button("Set mode ARRIVAL")) {
+            set_mode_arrival_requested_ = true;
+            XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
+        }
+        return;
+    }
+
+    // for AutoDGS we have additional buttons to interact with the DGS
+    // show them as long as we have an active stand
+    if (adgs_arpt && as >= 0) {
+        auto [dgs_type, name] = adgs_arpt->GetStand(as);
+        int idx = as + 1;                                            // +1 due to "<automatic>"
+        lb_stands_[idx][0] = (dgs_type == kMarshaller ? 'M' : 'V');  // set current indicator
+
+        new_dgs_type_ = dgs_type;
+
+        ImGui::Columns(2);  // 2 columns: one for the radio buttons, one for the "Move closer" button
+        if (ImGui::RadioButton("Marshaller", new_dgs_type_ == 0)) {
+            new_dgs_type_ = 0;
+        }
+
+        ImGui::NextColumn();  // column 2 for the button
+        if (ImGui::Button("Move closer")) {
+            move_closer_requested_ = true;
+            XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
+        }
+
+        ImGui::NextColumn();  // column 1 for the radio button
+        if (ImGui::RadioButton("VDGS", new_dgs_type_ == 1)) {
+            new_dgs_type_ = 1;
+        }
+        ImGui::Columns();
+
+        if (new_dgs_type_ != dgs_type) {
+            new_dgs_type_stand_ = as;
+            dgs_type_changed_ = true;
+            XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
+            LogMsg("Flight loop scheduled to apply new DGS type %d for active stand index %d", new_dgs_type_, as);
+        }
+    }
+
+    if (dgs::Airport::ARRIVAL <= dgs_arpt->state() && dgs_arpt->state() <= dgs::Airport::BAD) {
+        lb_item_ = dgs_arpt->selected_stand() + 1;  // +1 due to "<automatic>"
+
+        ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, ImGui::GetContentRegionAvail().y));
+        for (int i = 0; i < (int)lb_stands_.size(); i++) {
+            const bool is_selected = (lb_item_ == i);
+
+            // Render the selectable item
+            if (ImGui::Selectable(lb_stands_[i].c_str(), is_selected)) {
+                lb_item_ = i;  // Update selection state on click
+                new_selected_stand_ = i - 1;
+                selected_stand_changed_ = true;
+                XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
+                LogMsg("Flight loop scheduled to apply new selected stand index %d (listbox index %d)",
+                       new_selected_stand_, lb_item_);
+            }
+
+            // Set the initial focus when opening the combo/listbox (optional)
+            if (is_selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+
+        ImGui::EndListBox();
+    }
+
+    if (os_arpt == nullptr)
+        return;
+
+    // openSAM jetway UI
+    jw_auto_mode_ = my_plane->auto_mode();
+
+    ImGui::TextUnformatted("Jetway selection mode:");
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Automatic", jw_auto_mode_))
+        jw_auto_mode_ = true;
+
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Manual", !jw_auto_mode_))
+        jw_auto_mode_ = false;
+
+    if (jw_auto_mode_ != my_plane->auto_mode()) {
+        jw_auto_mode_changed_ = true;
+        XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
+    }
+
+    if (my_plane->state() == Plane::SELECT_JWS) {
+        if (nearest_jws_seqno_ != my_plane->nearest_jws_seqno_) {
+            // nearest jetway list has changed since last time, so we reset the selection
+            memset(jw_selected_, 0, sizeof(jw_selected_));
+            nearest_jws_seqno_ = my_plane->nearest_jws_seqno_;
+        }
+
+        int n_jws = my_plane->nearest_jws_.size();
+        int n_doors = my_plane->n_door_;
+
+        ImGui::Spacing();
+        ImGui::Columns(n_doors + 1);
+        ImGui::NextColumn();
+        for (int d = 0; d < n_doors; d++) {
+            ImGui::Text("Door %d", d + 1);
+            ImGui::NextColumn();
+        }
+        ImGui::Separator();
+        int id = 0;
+        for (int j = 0; j < n_jws; j++) {
+            ImGui::TextUnformatted(my_plane->nearest_jws_[j].jw_->name.c_str());
+            ImGui::NextColumn();
+            for (int d = 0; d < n_doors; d++) {
+                ImGui::PushID(id++);  // ensure unique ID for each checkbox
+                bool selected = jw_selected_[j][d];
+                if (ImGui::Checkbox("", &selected)) {
+                    jw_selected_[j][d] = selected;
+                    LogMsg("JW %d door %d selection changed to %s", j + 1, d + 1,
+                           jw_selected_[j][d] ? "SELECTED" : "DESELECTED");
+
+                    if (selected) {
+                        for (int d1 = 0; d1 < n_doors; d1++)
+                            if (d1 != d)
+                                jw_selected_[j][d1] = false;  // only one door can be selected per JW
+
+                        for (int j1 = 0; j1 < n_jws; j1++)
+                            if (j1 != j)
+                                jw_selected_[j1][d] = false;  // only one JW can be selected per door
+                    }
+                }
+                ImGui::PopID();
+                ImGui::NextColumn();
+            }
+        }
+        ImGui::Columns();
+
+        ImGui::Separator();
+        ImGui::Spacing();
+        bool have_selection = false;
+        for (int i = 0; i < n_doors; i++) {
+            for (int j = 0; j < n_jws; j++) {
+                if (jw_selected_[j][i]) {
+                    have_selection = true;
+                    break;
+                }
+            }
+        }
+
+        if (have_selection) {
+            if (ImGui::Button("Dock")) {
+                my_plane->active_jws_.clear();
+                for (int i = 0; i < n_doors; i++) {
+                    for (int j = 0; j < n_jws; j++) {
+                        if (jw_selected_[j][i]) {
+                            my_plane->nearest_jws_[j].selected_ = true;
+                            my_plane->nearest_jws_[j].door_ = i;
+                            my_plane->active_jws_.push_back(my_plane->nearest_jws_[j]);
+                            LogMsg("JW %d door %d selected for docking", j + 1, i + 1);
+                        }
+                    }
+                }
+                my_plane->dock_requested_ = true;
+            }
+        }
+    } else if (my_plane->state() == Plane::CAN_DOCK) {
+        if (ImGui::Button("Dock"))
+            my_plane->dock_requested_ = true;
+    } else if (my_plane->state() == Plane::CANT_DOCK) {
+        ImGui::TextUnformatted("Cannot dock: no suitable jetways found!");
+    } else if (my_plane->state() == Plane::DOCKING) {
+        ImGui::TextUnformatted("Docking in progress...");
+    } else if (my_plane->state() == Plane::UNDOCKING) {
+        ImGui::TextUnformatted("Undocking in progress...");
+    } else if (my_plane->state() == Plane::DOCKED) {
+        if (ImGui::Button("Undock"))
+            my_plane->undock_requested_ = true;
+    }
+}
+
+// Delayed actions that require FlightLoop context
+float Ui::FlightLoopCb(float, float, int, void* inRefcon) {
+    LogMsg("FlightLoopCb called with inRefcon=%p", inRefcon);
+
+    Ui& ui = *reinterpret_cast<Ui*>(inRefcon);
+
+    dgs::Airport* dgs_arpt = nullptr;
+    if (adgs_arpt)
+        dgs_arpt = adgs_arpt.get();
+    else if (os_arpt)
+        dgs_arpt = os_arpt.get();
+
+    if (dgs_arpt == nullptr || dgs_arpt->seqno_ != ui.arpt_seqno_) {
+        // stale request
+        ui.selected_stand_changed_ = ui.set_mode_arrival_requested_ = ui.move_closer_requested_ = ui.dgs_type_changed_ =
+            ui.jw_auto_mode_changed_ = false;
+        return 0.0f;
+    }
+
+    if (ui.selected_stand_changed_) {
+        LogMsg("Setting selected stand to %d", ui.new_selected_stand_);
+        dgs_arpt->SetSelectedStand(ui.new_selected_stand_);
+        ui.selected_stand_changed_ = false;
+    }
+
+    if (ui.set_mode_arrival_requested_) {
+        LogMsg("Setting airport mode to ARRIVAL");
+        dgs_arpt->SetArrival();
+        ui.set_mode_arrival_requested_ = false;
+    }
+
+    if (ui.move_closer_requested_) {
+        LogMsg("Moving plane closer to the stand");
+        if (adgs_arpt)
+            adgs_arpt->DgsMoveCloser();
+        ui.move_closer_requested_ = false;
+    }
+
+    if (ui.dgs_type_changed_) {
+        LogMsg("Changing DGS type of stand index %d to %d", ui.new_dgs_type_stand_, ui.new_dgs_type_);
+        if (adgs_arpt) {
+            int as = adgs_arpt->active_stand();
+            if (as == ui.new_dgs_type_stand_)
+                adgs_arpt->SetDgsType(ui.new_dgs_type_);
+        }
+
+        ui.dgs_type_changed_ = false;
+    }
+
+    if (ui.jw_auto_mode_changed_) {
+        LogMsg("Setting automatic jetway selection to %s", ui.jw_auto_mode_ ? "ON" : "OFF");
+        my_plane->AutoModeSet(ui.jw_auto_mode_);
+        ui.jw_auto_mode_changed_ = false;
+    }
+
+    return 0.0f;
+}

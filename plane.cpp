@@ -155,6 +155,7 @@ float Plane::JwStateMachine() {
             }
 
             // falling through adds much concurrency to the MP case as unused jetways get unlocked much earlier
+            nearest_jws_seqno_++;  // for detecting changes in the nearest jetway list by the UI
             new_state = state_ = SELECT_JWS;
             LogMsg("pid=%02d, new state: SELECT_JWS", id_);
             // FALLTHROUGH
@@ -175,9 +176,6 @@ float Plane::JwStateMachine() {
                     new_state = CANT_DOCK;
                     break;
                 }
-            } else if (prev_state_ != state_) {
-                LockUI(false);  // allow jw selection in the ui (if the plane supports it)
-                UpdateUI(true);
             }
 
             // or wait for GUI selection

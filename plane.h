@@ -25,8 +25,6 @@
 #include <unordered_map>
 #include <memory>
 
-#include "XPWidgets.h"
-
 #include "jwctrl.h"
 
 static constexpr int kNearJwLimit = 3;      // max # of jetways we consider for docking
@@ -52,6 +50,8 @@ class Plane {
 
     std::vector<JwCtrl> active_jws_;
     std::vector<JwCtrl> nearest_jws_;
+    int nearest_jws_seqno_{0};  // for detecting changes in the nearest jetway list by the UI
+
     static int id_base_;
 
    public:

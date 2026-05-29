@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2024, 2025, 2026  Holger Teutsch
 //
@@ -44,6 +44,7 @@
 
 #include "flat_earth_math.h"
 #include "seasons.h"
+#include "ui.h"
 
 #include "XPLMPlugin.h"
 #include "XPLMProcessing.h"
@@ -276,10 +277,10 @@ static int CmdToggleUICb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase 
 
     LogMsg("cmd ToggleUI");
 
-    if (os_arpt)
-        OsToggleUI();
-    else if (adgs_arpt)
-        AdgsToggleUI();
+    if (ui)
+        ui = nullptr;
+    else
+        CreateUi();
 
     return 0;
 }
@@ -322,6 +323,11 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
         if (pending_plane_loaded_cb) {
             pending_plane_loaded_cb = false;
             my_plane->PlaneLoadedCb();
+        }
+
+        if (ui && !ui->GetVisible()) { // close if user closed it manually
+            LogMsg("UI window was closed by user, destroying");
+            ui = nullptr;
         }
 
         now = XPLMGetDataf(total_running_time_sec_dr);
@@ -456,7 +462,6 @@ static int AdgsCmdCycleDgsCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPh
 
     if (adgs_arpt)
         adgs_arpt->CycleDgsType();
-    AdgsUpdateUI();
     return 0;
 }
 
@@ -706,6 +711,8 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         return 1;  // bye
     }
 
+    ImgWindowIni();
+
     // own commands
     XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Manually activate searching for DGS");
     XPLMRegisterCommandHandler(activate_cmdr, CmdActivateCb, 0, NULL);
@@ -788,6 +795,7 @@ PLUGIN_API void XPluginStop(void) {
     adgs_arpt = nullptr;
     dgs::plane = nullptr;
     my_plane = nullptr;
+    ImgWindowFini();
     LogMsg("plugin stopped");
 }
 
@@ -798,6 +806,8 @@ PLUGIN_API void XPluginDisable(void) {
     }
 
     SavePrefs();
+    ui = nullptr;
+
     LogMsg("acc called:           %9llu", stat_acc_called);
     LogMsg("scenery far skip:     %9llu", stat_sc_far_skip);
     LogMsg("near skip:            %9llu", stat_near_skip);
