@@ -256,7 +256,11 @@ void Ui::BuildInterface() {
     if (dgs::Airport::ARRIVAL <= dgs_arpt->state() && dgs_arpt->state() <= dgs::Airport::BAD) {
         lb_item_ = dgs_arpt->selected_stand() + 1;  // +1 due to "<automatic>"
 
-        ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, ImGui::GetContentRegionAvail().y));
+        int height = ImGui::GetContentRegionAvail().y;
+        if (os_arpt)
+            height -= ImGui::GetTextLineHeightWithSpacing();    // jw selection is below the stand listbox
+
+        ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, height));
         for (int i = 0; i < (int)lb_stands_.size(); i++) {
             const bool is_selected = (lb_item_ == i);
 
