@@ -779,10 +779,6 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     default_vdgs_item[1] = XPLMAppendMenuItem(vdgs_menu, "Safedock-X", (void *)1, 0);
     VdgsMenuRadioB();
 
-    XPLMAppendMenuSeparator(os_menu);
-
-    Seasons::InitMenu(os_menu);
-
     flight_loop_id = XPLMCreateFlightLoop(&flight_loop_ctx);
     return 1;
 }

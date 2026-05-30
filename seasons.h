@@ -31,7 +31,6 @@ namespace Seasons {
     extern int season;  // 0-3
 
     void InitDataRefs();
-    void InitMenu(XPLMMenuID os_menu);
     void SetAuto();
 }
 

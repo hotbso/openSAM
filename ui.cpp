@@ -36,6 +36,7 @@
 #include "opensam_airport.h"
 #include "my_plane.h"
 #include "dgs/plane.h"
+#include "seasons.h"
 #include "version.h"
 
 #include "ui.h"
@@ -102,12 +103,38 @@ Ui::~Ui() {
 
 void Ui::BuildInterface() {
     if (ImGui::TreeNode("Settings")) {
-        ImGui::TextUnformatted("Settings nyi");
+        ImGui::Spacing();
+        ImGui::Separator();
+        int radio = Seasons::auto_season ? 4 : Seasons::season;
+        ImGui::TextUnformatted("SAM legacy Season: ");
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Auto", radio == 4))
+            radio = 4;
+
+        if (ImGui::RadioButton("Spring", radio == 0))
+            radio = 0;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Summer", radio == 1))
+            radio = 1;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Autumn", radio == 2))
+            radio = 2;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Winter", radio == 3))
+            radio = 3;
+
+        if (radio == 4) {
+            Seasons::auto_season = true;
+        } else {
+            Seasons::auto_season = false;
+            Seasons::season = radio;
+        }
+
         ImGui::TreePop();
     }
 
     ImGui::Spacing();
-    ImGui::Separator();
+    ImGui::Separator(); ImGui::Separator();
     ImGui::Spacing();
 
     dgs::Airport* dgs_arpt = nullptr;

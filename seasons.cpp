@@ -84,47 +84,4 @@ void SetAuto() {
     LogMsg("nh: %d, day: %d, season: %d", nh, day, season);
 }
 
-// emulate a kind of radio buttons
-static void UpdateMenuRadioB() {
-    XPLMCheckMenuItem(seasons_menu, auto_item, auto_season ? xplm_Menu_Checked : xplm_Menu_Unchecked);
-
-    XPLMCheckMenuItem(seasons_menu, season_item[season], xplm_Menu_Checked);
-    for (int i = 0; i < 4; i++)
-        if (i != season)
-            XPLMCheckMenuItem(seasons_menu, season_item[i], xplm_Menu_Unchecked);
-}
-
-static void MenuCb([[maybe_unused]] void* menu_ref, void* item_ref) {
-    if (error_disabled)
-        return;
-
-    int entry = (long long)item_ref;
-
-    if (entry == 4) {
-        auto_season = !auto_season;
-        SetAuto();
-    } else {
-        season = entry;
-        auto_season = 0;  // selecting a season always goes to manual mode
-    }
-
-    UpdateMenuRadioB();
-}
-
-void InitMenu(XPLMMenuID os_menu) {
-    int seasons_menu_item = XPLMAppendMenuItem(os_menu, "Seasons", NULL, 0);
-    seasons_menu = XPLMCreateMenu("Seasons", os_menu, seasons_menu_item, MenuCb, NULL);
-
-    auto_item = XPLMAppendMenuItem(seasons_menu, "Automatic", (void*)4, 0);
-
-    XPLMAppendMenuSeparator(seasons_menu);
-
-    season_item[0] = XPLMAppendMenuItem(seasons_menu, "Winter", (void*)0, 0);
-    season_item[1] = XPLMAppendMenuItem(seasons_menu, "Spring", (void*)1, 0);
-    season_item[2] = XPLMAppendMenuItem(seasons_menu, "Summer", (void*)2, 0);
-    season_item[3] = XPLMAppendMenuItem(seasons_menu, "Autumn", (void*)3, 0);
-
-    UpdateMenuRadioB();
-}
-
 } // namespace Seasons
