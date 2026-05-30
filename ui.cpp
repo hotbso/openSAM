@@ -103,6 +103,23 @@ Ui::~Ui() {
 
 void Ui::BuildInterface() {
     if (ImGui::TreeNode("Settings")) {
+        //--------------------------------------------------
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::TextUnformatted("Default VDGS for standard airports:");
+        ImGui::SameLine();
+
+        int current_vdgs_type = default_vdgs_type;
+        if (ImGui::RadioButton("Safedock T2-24", default_vdgs_type == kVdgsSafedock_T2_24))
+            default_vdgs_type = kVdgsSafedock_T2_24;
+
+        if (ImGui::RadioButton("Safedock-X", default_vdgs_type == kVdgsSafedock_X))
+            default_vdgs_type = kVdgsSafedock_X;
+
+        if (default_vdgs_type != current_vdgs_type)
+            LogMsg("Default VDGS type changed to %d", default_vdgs_type);
+
+        //--------------------------------------------------
         ImGui::Spacing();
         ImGui::Separator();
         int radio = Seasons::auto_season ? 4 : Seasons::season;
@@ -133,6 +150,7 @@ void Ui::BuildInterface() {
         ImGui::TreePop();
     }
 
+    //--------------------------------------------------
     ImGui::Spacing();
     ImGui::Separator(); ImGui::Separator();
     ImGui::Spacing();

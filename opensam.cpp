@@ -474,27 +474,6 @@ static int AdgsCmdMoveDgsCloserCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMComm
     return 0;
 }
 
-// emulate a kind of radio buttons
-static void VdgsMenuRadioB() {
-    XPLMCheckMenuItem(vdgs_menu, default_vdgs_item[default_vdgs_type], xplm_Menu_Checked);
-    for (int i = 0; i < kNumDgsTypes; i++)
-        if (i != default_vdgs_type)
-            XPLMCheckMenuItem(vdgs_menu, default_vdgs_item[i], xplm_Menu_Unchecked);
-}
-
-static void VdgsMenuCb([[maybe_unused]] XPLMMenuID menu_ref, void* item_ref) {
-    if (error_disabled)
-        return;
-
-    int sel = (int)(intptr_t)item_ref;
-    if (sel < 0 || sel >= kNumDgsTypes)
-        return;
-
-    default_vdgs_type = sel;
-    LogMsg("default VDGS type set to %d", default_vdgs_type);
-    VdgsMenuRadioB();
-}
-
 static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, DoorInfo>& di_map) {
     std::ifstream f(fn);
     if (!f.is_open())
@@ -772,12 +751,6 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     XPLMAppendMenuItemWithCommand(adgs_menu, "Cycle DGS", cycle_dgs_cmdr);
     XPLMAppendMenuItemWithCommand(adgs_menu, "Move DGS closer by 2m", move_dgs_closer_cmdr);
-
-    int vdgs_menu_item = XPLMAppendMenuItem(adgs_menu, "Default VDGS", NULL, 0);
-    vdgs_menu = XPLMCreateMenu("Default VDGS", adgs_menu, vdgs_menu_item, VdgsMenuCb, NULL);
-    default_vdgs_item[0] = XPLMAppendMenuItem(vdgs_menu, "Safedock T2-24", (void *)0, 0);
-    default_vdgs_item[1] = XPLMAppendMenuItem(vdgs_menu, "Safedock-X", (void *)1, 0);
-    VdgsMenuRadioB();
 
     flight_loop_id = XPLMCreateFlightLoop(&flight_loop_ctx);
     return 1;
