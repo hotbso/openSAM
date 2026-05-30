@@ -607,9 +607,9 @@ ImgWindow::HandleKeyFuncCB(
                     io.AddKeyEvent(key, (inFlags & xplm_DownFlag) == xplm_DownFlag);
                 }
             }
-            io.AddKeyEvent(ImGuiKey_ModShift, (inFlags & xplm_ShiftFlag) == xplm_ShiftFlag);
-            io.AddKeyEvent(ImGuiKey_ModAlt,   (inFlags & xplm_OptionAltFlag) == xplm_OptionAltFlag);
-            io.AddKeyEvent(ImGuiKey_ModCtrl,  (inFlags & xplm_ControlFlag) == xplm_ControlFlag);
+            io.AddKeyEvent(ImGuiMod_Shift, (inFlags & xplm_ShiftFlag) == xplm_ShiftFlag);
+            io.AddKeyEvent(ImGuiMod_Alt,   (inFlags & xplm_OptionAltFlag) == xplm_OptionAltFlag);
+            io.AddKeyEvent(ImGuiMod_Ctrl,  (inFlags & xplm_ControlFlag) == xplm_ControlFlag);
 
             // inKey will only includes printable characters,
             // but also those created with key combinations like @ or {}
