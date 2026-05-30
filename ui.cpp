@@ -107,7 +107,6 @@ void Ui::BuildInterface() {
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::TextUnformatted("Default VDGS for standard airports:");
-        ImGui::SameLine();
 
         int current_vdgs_type = default_vdgs_type;
         if (ImGui::RadioButton("Safedock T2-24", default_vdgs_type == kVdgsSafedock_T2_24))

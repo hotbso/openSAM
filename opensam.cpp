@@ -139,12 +139,9 @@ static std::unique_ptr<MpAdapter> mp_adapter;
 std::unordered_map<std::string, DoorInfo> csl_door_info_map;
 std::unordered_map<std::string, std::string> acf_generic_type_map;
 
-unsigned long long stat_sc_far_skip, stat_near_skip, stat_acc_called, stat_jw_match, stat_dgs_acc, stat_anim_acc_called,
+unsigned long long stat_sc_far_skip, stat_near_skip, stat_acc_called, stat_jw_match, stat_anim_acc_called,
     stat_auto_drf_called, stat_jw_cache_hit;
 
-static XPLMMenuID vdgs_menu;
-static constexpr int kNumDgsTypes = 2;        // must match number of items in default_vdgs_item and VdgsMenuCb()
-static int default_vdgs_item[kNumDgsTypes];   // menu items
 int default_vdgs_type = kVdgsSafedock_T2_24;  // index into default_vdgs_item
 
 // 'emulate' a connection status dataref for XP12's jetway, toggled by intercepting XP12's standard cmd
@@ -782,7 +779,6 @@ PLUGIN_API void XPluginDisable(void) {
     LogMsg("near skip:            %9llu", stat_near_skip);
     LogMsg("stat_jw_cache_hit     %9llu", stat_jw_cache_hit);
     LogMsg("cache hit rate:       %9.2f %%", 100.0f * stat_jw_cache_hit / (stat_acc_called + 1));
-    LogMsg("dgs acc called:       %9llu", stat_dgs_acc);
     LogMsg("stat_anim_acc_called: %9llu", stat_anim_acc_called);
     LogMsg("stat_auto_drf_called: %9llu", stat_auto_drf_called);
     LogMsg("plugin disabled");
@@ -797,7 +793,7 @@ PLUGIN_API int XPluginEnable(void) {
         LogMsg("Can't create terrain probe");
         return 0;
     }
-    stat_sc_far_skip = stat_near_skip = stat_acc_called = stat_jw_match = stat_dgs_acc = stat_anim_acc_called =
+    stat_sc_far_skip = stat_near_skip = stat_acc_called = stat_jw_match = stat_anim_acc_called =
         stat_auto_drf_called = stat_jw_cache_hit = 0;
 
     LogMsg("plugin enabled");

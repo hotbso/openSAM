@@ -30,8 +30,6 @@ int auto_season;
 int nh;      // on northern hemisphere
 int season;  // 0-3
 
-static XPLMMenuID seasons_menu;
-static int auto_item, season_item[4];
 static const char* dr_name[] = {"sam/season/winter", "sam/season/spring", "sam/season/summer", "sam/season/autumn"};
 static XPLMDataRef date_day_dr;
 
