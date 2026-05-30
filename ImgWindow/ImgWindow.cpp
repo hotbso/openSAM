@@ -141,9 +141,9 @@ ImgWindow::ImgWindow(
 
 	// bind the font
 	if (mFontAtlas) {
-        mFontTexture = static_cast<GLuint>(reinterpret_cast<intptr_t>(io.Fonts->TexID));
+        mFontTexture = static_cast<GLuint>(io.Fonts->TexID);
     } else {
-        if (!iFontAtlas || iFontAtlas->TexID == nullptr) {
+        if (!iFontAtlas || iFontAtlas->TexID == 0) {
             // fallback binding if an atlas wasn't explicitly set.
             unsigned char *pixels;
             int width, height;
@@ -168,7 +168,7 @@ ImgWindow::ImgWindow(
                          GL_ALPHA,
                          GL_UNSIGNED_BYTE,
                          pixels);
-            io.Fonts->SetTexID((void *)((intptr_t)(mFontTexture)));
+            io.Fonts->SetTexID((ImTextureID)(mFontTexture));
         }
     }
 
