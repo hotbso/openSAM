@@ -86,15 +86,14 @@ This requires the `simbrief_hub` plugin to be installed.
 
 ## Standard scenery
 The default VDGS for standard sceneries can be selected in the menu.
-![Image](images/Menu.jpg)
+![Image](images/ui-1.jpg)
 
 Per default all stands with jetways get a VDGS and all others get a Marshaller. This can easily be changed with the UI.
 First ensure that the plugin is activated then select the stand and change the setting accordingly. \
 See a video here -> https://www.youtube.com/watch?v=EAuWxt0DB-8 \
 The configuration is saved in "<xp_dir>/Output/openSAM/<airport_icao>.cfg" and loaded automatically on your next visit of the airport.
 
-![Image](images/EGKK-default-VDGS.jpg)
-
+![Image](images/AutoDGS-selected_gate.jpg)
 
 ## Custom sceneries
 The scenery artist placed DGS objects (Marshaller, type of VDGS) and jetways in WED. There is no further customization option.
@@ -102,7 +101,7 @@ The scenery artist placed DGS objects (Marshaller, type of VDGS) and jetways in 
 ### Jetways
 ![Image](images/EDDM_A340-600.jpg)
 
-### Custom animations
+### Custom animations / Remote Control
 ![Image](images/custom-animation.jpg)
 
 ### Multiplayer support
