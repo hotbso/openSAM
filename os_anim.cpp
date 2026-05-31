@@ -1,7 +1,7 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
-//    Copyright (C) 2024, 2025  Holger Teutsch
+//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -24,6 +24,7 @@
 #include <cstring>
 
 #include "opensam.h"
+#include "samjw.h"      // for CheckRefFrameShift
 #include "os_anim.h"
 
 static constexpr float kSam2ObjMax = 2.5;   // m, max delta between coords in sam.xml and object
@@ -31,7 +32,7 @@ static constexpr float kSam2ObjHdgMax = 5;  // °, likewise for heading
 
 static Scenery* cur_sc;            // the current scenery determined by dref access
 static float cur_sc_ts = -100.0f;  // timestamp of selection of cur_sc
-static Scenery* menu_sc;           // the scenery the menu is built of
+Scenery* anim_sc;                  // the scenery active for animation
 
 //
 // Accessor for the "sam/..." custom animation datarefs
@@ -40,7 +41,7 @@ static Scenery* menu_sc;           // the scenery the menu is built of
 //
 // ref is uint64_t is the index into the global dref table
 //
-static float AnimAcc(void* ref) {
+float SamAnim::AnimAcc(void* ref) {
     float obj_x = XPLMGetDataf(draw_object_x_dr);
     float obj_z = XPLMGetDataf(draw_object_z_dr);
     float obj_psi = XPLMGetDataf(draw_object_psi_dr);
@@ -50,16 +51,7 @@ static float AnimAcc(void* ref) {
 
     stat_anim_acc_called++;
 
-    // check for shift of reference frame
-    float lat_r = XPLMGetDataf(lat_ref_dr);
-    float lon_r = XPLMGetDataf(lon_ref_dr);
-
-    if (lat_r != lat_ref || lon_r != lon_ref) {
-        lat_ref = lat_r;
-        lon_ref = lon_r;
-        ref_gen++;
-        LogMsg("reference frame shift");
-    }
+    CheckRefFrameShift();
 
     int drf_idx = (uint64_t)ref;
 
@@ -96,17 +88,17 @@ static float AnimAcc(void* ref) {
                 cur_sc_ts = now;
             }
 
-            if (anim->state == ANIM_OFF_2_ON || anim->state == ANIM_ON_2_OFF) {
+            if (anim->state == kOff2On || anim->state == kOn2Off) {
                 now = XPLMGetDataf(total_running_time_sec_dr);
                 float dt = now - anim->start_ts;
 
-                if (anim->state == ANIM_ON_2_OFF)
+                if (anim->state == kOn2Off)
                     dt = drf->t[drf->n_tv - 1] - dt;  // downwards
 
                 if (dt < 0.0f)
-                    anim->state = ANIM_OFF;
+                    anim->state = kOff;
                 else if (dt > drf->t[drf->n_tv - 1])
-                    anim->state = ANIM_ON;
+                    anim->state = kOn;
                 else {
                     for (int j = 1; j < drf->n_tv; j++)
                         if (dt < drf->t[j])
@@ -114,9 +106,9 @@ static float AnimAcc(void* ref) {
                 }
             }
 
-            if (anim->state == ANIM_OFF)
+            if (anim->state == kOff)
                 return drf->v[0];
-            if (anim->state == ANIM_ON)
+            if (anim->state == kOn)
                 return drf->v[drf->n_tv - 1];
         }
     }
@@ -154,52 +146,31 @@ static float AutoDrfAcc(void* ref) {
     return 0.0f;  // should never be reached
 }
 
-void AnimMenuCb([[maybe_unused]] void* menu_ref, void* item_ref) {
-    if (NULL == menu_sc)  // just in case
+void SamAnim::SetState(bool on) {
+    if (is_on() == on)
         return;
 
-    unsigned int idx = (uint64_t)item_ref;
-    SamAnim* anim = menu_sc->sam_anims[idx];
-
-    LogMsg("AnimMenuCb: label: %s, menu_item: %d", anim->label.c_str(), anim->menu_item);
-    now = XPLMGetDataf(total_running_time_sec_dr);
+    LogMsg("SamAnim::SetState: label: %s, on: %d", label.c_str(), on);
 
     bool reverse;
 
-    if (anim->state == ANIM_OFF || anim->state == ANIM_ON_2_OFF) {
-        XPLMCheckMenuItem(anim_menu, anim->menu_item, xplm_Menu_Checked);
-        reverse = (anim->state == ANIM_ON_2_OFF);
-        anim->state = ANIM_OFF_2_ON;
+    if (is_on()) {
+        reverse = (state == SamAnim::kOff2On);
+        state = SamAnim::kOn2Off;
     } else {
-        XPLMCheckMenuItem(anim_menu, anim->menu_item, xplm_Menu_Unchecked);
-        reverse = (anim->state == ANIM_OFF_2_ON);
-        anim->state = ANIM_ON_2_OFF;
+        reverse = (state == SamAnim::kOn2Off);
+        state = SamAnim::kOff2On;
     }
+
+    now = XPLMGetDataf(total_running_time_sec_dr);
 
     if (reverse) {
-        SamDrf* drf = sam_drfs[anim->drf_idx];
-        float t_rel = now - anim->start_ts;
+        SamDrf* drf = sam_drfs[drf_idx];
+        float t_rel = now - start_ts;
         float dt = drf->t[drf->n_tv - 1] - t_rel;
-        anim->start_ts = now - dt;
+        start_ts = now - dt;
     } else
-        anim->start_ts = now;
-}
-
-static void BuildMenu(Scenery* sc) {
-    LogMsg("build menu for scenery %s", sc->name.c_str());
-    XPLMClearAllMenuItems(anim_menu);
-
-    for (unsigned i = 0; i < sc->sam_anims.size(); i++) {
-        SamAnim* anim = sc->sam_anims[i];
-        XPLMMenuCheck chk =
-            (anim->state == ANIM_OFF || anim->state == ANIM_ON_2_OFF) ? xplm_Menu_Unchecked : xplm_Menu_Checked;
-
-        std::string menu_line;
-        menu_line = anim->label + " " + anim->title;
-        LogMsg("%s", menu_line.c_str());
-        anim->menu_item = XPLMAppendMenuItem(anim_menu, menu_line.c_str(), (void*)(uint64_t)i, 0);
-        XPLMCheckMenuItem(anim_menu, anim->menu_item, chk);
-    }
+        start_ts = now;
 }
 
 // not much state here, just regularly check for a current scenery
@@ -211,13 +182,14 @@ float AnimStateMachine(void) {
         cur_sc = NULL;
     }
 
-    if (cur_sc != menu_sc) {
-        menu_sc = cur_sc;
-        if (menu_sc)
-            BuildMenu(menu_sc);
-        else {
-            LogMsg("clear menu");
-            XPLMClearAllMenuItems(anim_menu);
+    // keep building the ui_line outside of imgui
+    if (cur_sc != anim_sc) {
+        anim_sc = cur_sc;
+        if (anim_sc) {
+            for (auto& anim : anim_sc->sam_anims) {
+                if (anim->ui_line.empty())
+                    anim->ui_line = anim->label + " " + anim->title;
+            }
         }
     }
 
@@ -231,7 +203,7 @@ bool AnimInit() {
             XPLMRegisterDataAccessor(drf->name.c_str(), xplmType_Float, 0, NULL, NULL, AutoDrfAcc, NULL, NULL, NULL,
                                      NULL, NULL, NULL, NULL, NULL, NULL, (void*)drf, NULL);
         else
-            XPLMRegisterDataAccessor(drf->name.c_str(), xplmType_Float, 0, NULL, NULL, AnimAcc, NULL, NULL, NULL, NULL,
+            XPLMRegisterDataAccessor(drf->name.c_str(), xplmType_Float, 0, NULL, NULL, SamAnim::AnimAcc, NULL, NULL, NULL, NULL,
                                      NULL, NULL, NULL, NULL, NULL, (void*)(uint64_t)i, NULL);
     }
 

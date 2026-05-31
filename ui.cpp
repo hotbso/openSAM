@@ -37,11 +37,12 @@
 #include "my_plane.h"
 #include "dgs/plane.h"
 #include "seasons.h"
+#include "os_anim.h"
 #include "version.h"
 
 #include "ui.h"
 
-static constexpr int kWinWidth = 350;
+static constexpr int kWinWidth = 400;
 static constexpr int kWinHeight = 450;
 static constexpr int kWinPad = 75;
 static constexpr float kFontSize = 14.0f;
@@ -72,13 +73,15 @@ void ImgWindowIni() {
 }
 
 void ImgWindowFini() {
-    // We just destroy the font atlas
+    ui = nullptr; // just in case ...
     ImgWindow::sFontAtlas.reset();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 Ui::Ui(int left, int top, int right, int bot)
     : ImgWindow(left, top, right, bot, xplm_WindowDecorationRoundRectangle, xplm_WindowLayerFloatingWindows) {
+
+    // is currently not really supported, hopefully with 12.5
     ImGui::GetIO().IniFilename = strdup((user_cfg_dir + "imgui.ini").c_str());
 
     // Create a flight loop id, but don't schedule it yet
@@ -91,7 +94,7 @@ Ui::Ui(int left, int top, int right, int bot)
 
     flt_id_ = XPLMCreateFlightLoop(&loop_params);
 
-    SetWindowTitle("openSAM " VERSION_SHORT);
+    SetWindowTitle("openSAM " VERSION);
     SetWindowResizingLimits(100, 100, 1024, 1024);
     SetVisible(true);
 }
@@ -147,6 +150,24 @@ void Ui::BuildInterface() {
         }
 
         ImGui::TreePop();
+    }
+
+    //--------------------------------------------------
+    if (anim_sc && anim_sc->sam_anims.size()) {
+        if (ImGui::TreeNode("Remote Control")) {
+            ImGui::Spacing();
+            ImGui::Separator();
+
+            for (auto& anim : anim_sc->sam_anims) {
+                bool on = anim->is_on();
+                if (ImGui::Checkbox(anim->ui_line.c_str(), &on)) {
+                    anim->SetState(on);
+                    LogMsg("Animation '%s' state changed to %s", anim->ui_line.c_str(), on ? "ON" : "OFF");
+                }
+            }
+
+            ImGui::TreePop();
+        }
     }
 
     //--------------------------------------------------

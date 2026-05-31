@@ -1,7 +1,7 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
-//    Copyright (C) 2024, 2025  Holger Teutsch
+//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -22,7 +22,6 @@
 #include <cstddef>
 #include <vector>
 
-#define DRF_MAX_ANIM 10
 struct SamDrf {
     std::string name;
 
@@ -39,32 +38,33 @@ struct SamObj {
     float latitude, longitude, elevation, heading;
 
     // local x,y,z computed from the xml's lat/lon
-    float xml_x, xml_y, xml_z;
     unsigned int xml_ref_gen;   // only valid if this matches the generation of the ref frame
+    float xml_x, xml_y, xml_z;
 };
 
-typedef enum _ANIM_STATE  {
-    ANIM_OFF = 0,
-    ANIM_OFF_2_ON,
-    ANIM_ON_2_OFF,
-    ANIM_ON
-} anim_state_t;
-
 class SamAnim {
-  public:
-    std::string label;
-    std::string title;
+   public:
+    enum AnimState { kOff = 0, kOff2On, kOn2Off, kOn };
 
-    int drf_idx;        // index into sam_drfs
-    int obj_idx;        // index into sc->sam_objs
+    std::string label, title;
+    std::string ui_line;
 
-    anim_state_t state;
+    int drf_idx;  // index into sam_drfs
+    int obj_idx;  // index into sc->sam_objs
+
+    AnimState state;
     float start_ts;
 
     int menu_item;
+
+    bool is_on() const { return state == kOn || state == kOff2On; }
+    void SetState(bool on);
+
+    static float AnimAcc(void* ref);    // dref accessor
 };
 
 extern std::vector<SamDrf*> sam_drfs;
+extern Scenery* anim_sc;                // the scenery currently selected for animation
 
 extern bool AnimInit(void);
 extern float AnimStateMachine(void);

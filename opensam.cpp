@@ -150,7 +150,6 @@ float xp12_jw_connected_ts;
 
 XPLMProbeInfo_t probeinfo;
 XPLMProbeRef probe_ref;
-XPLMMenuID anim_menu;
 static fem::LLPos plane_pos, plane_pos_prev;
 
 bool error_disabled;
@@ -727,12 +726,6 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     XPLMAppendMenuItemWithCommand(os_menu, "Dock Jetway", dock_cmdr);
     XPLMAppendMenuItemWithCommand(os_menu, "Undock Jetway", undock_cmdr);
     XPLMAppendMenuItemWithCommand(os_menu, "Toggle UI", toggle_ui_cmdr);
-    XPLMAppendMenuSeparator(os_menu);
-
-    // openSAM -> Remote control
-    int rc_menu_item = XPLMAppendMenuItem(os_menu, "Remote Control", NULL, 0);
-    anim_menu = XPLMCreateMenu("Remote Control", os_menu, rc_menu_item, AnimMenuCb, NULL);
-
     XPLMAppendMenuSeparator(os_menu);
 
     XPLMAppendMenuItemWithCommand(os_menu, "Manually activate searching for DGS", activate_cmdr);

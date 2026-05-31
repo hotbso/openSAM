@@ -137,8 +137,6 @@ extern float lat_ref, lon_ref;
 // init with 1 so jetways never seen by the accessor won't be considered in JwCtrl::FindNearestJetways()
 extern unsigned int ref_gen;
 
-extern XPLMMenuID anim_menu;
-
 // terrain probe
 extern XPLMProbeInfo_t probeinfo;
 extern XPLMProbeRef probe_ref;
