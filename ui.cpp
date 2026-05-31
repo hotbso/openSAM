@@ -232,7 +232,7 @@ void Ui::BuildInterface() {
     ImGui::Separator();
     ImGui::Spacing();
 
-    if (dgs_arpt->state() == dgs::Airport::INACTIVE) {
+    if (dgs_arpt->state() == dgs::Airport::INACTIVE && my_plane->beacon_on()) {
         if (ImGui::Button("Set mode ARRIVAL")) {
             set_mode_arrival_requested_ = true;
             XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
