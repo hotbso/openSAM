@@ -189,7 +189,7 @@ ImgWindow::ImgWindow(
 		DrawWindowCB,
 		HandleMouseClickCB,
 		HandleKeyFuncCB,
-		HandleCursorFuncCB,
+		NULL, //HandleCursorFuncCB
 		HandleMouseWheelFuncCB,
 		reinterpret_cast<void*>(this),
 		decoration,
@@ -392,7 +392,15 @@ ImgWindow::updateImgui()
 	io.DisplaySize = ImVec2(win_width, win_height);
 	// in boxels, we're always scale 1, 1.
 	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-	ImGui::NewFrame();
+
+    // X-Plane does not make a reliable callback when the mouse leaves a Window so we query the mouse here and feed it to ImGui.
+    int m_x, m_y;
+    XPLMGetMouseLocationGlobal(&m_x, &m_y);
+	float outX, outY;
+	translateToImguiSpace(m_x, m_y, outX, outY);
+	io.AddMousePosEvent(outX, outY);
+
+    ImGui::NewFrame();
 
 	ImGui::SetNextWindowPos(ImVec2((float) 0.0, (float) 0.0), ImGuiCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(win_width, win_height), ImGuiCond_Always);
@@ -412,6 +420,7 @@ ImgWindow::updateImgui()
 		// reset keysdown otherwise we'll think any keys used to defocus the keyboard are still down!
 		io.ClearInputKeys();
 	}
+
 	mFirstRender = false;
 }
 
@@ -621,23 +630,6 @@ ImgWindow::HandleKeyFuncCB(
             }
         }
 	}
-}
-
-XPLMCursorStatus
-ImgWindow::HandleCursorFuncCB(
-	XPLMWindowID         /*inWindowID*/,
-	int                  x,
-	int                  y,
-	void *               inRefcon)
-{
-	auto *thisWindow = reinterpret_cast<ImgWindow *>(inRefcon);
-	ImGui::SetCurrentContext(thisWindow->mImGuiContext);
-	ImGuiIO& io = ImGui::GetIO();
-	float outX, outY;
-	thisWindow->translateToImguiSpace(x, y, outX, outY);
-	io.AddMousePosEvent(outX, outY);
-	//FIXME: Maybe we can support imgui's cursors a bit better?
-	return xplm_CursorDefault;
 }
 
 int
