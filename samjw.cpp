@@ -60,10 +60,10 @@ static const char *dr_name_jw[] = {
 
 
 // zero config jw structures
-std::vector<SamJw *>zc_jws;
-static unsigned int zc_ref_gen;  // change of ref_gen invalidates the whole list
+ZcTable zc_table;
 
 static std::array<SamJw*, (1 << kHashBits)>jw_cache;
+static unsigned int jwc_ref_gen = 0;  // generation # of the reference frame for which the cache is valid
 
 //
 // fill in values for a library jetway
@@ -153,36 +153,11 @@ static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float
     jw->extent = jw->initialExtent;
     jw->SetWheels();
 
-    zc_jws.push_back(jw);
+    zc_table.jws_.push_back(jw);
 
     LogMsg("added to zc table stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
            jw->base_name.c_str(), jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
     return jw;
-}
-
-// check for shift of reference frame
-void CheckRefFrameShift() {
-    // check for shift of reference frame
-    float lat_r = XPLMGetDataf(lat_ref_dr);
-    float lon_r = XPLMGetDataf(lon_ref_dr);
-
-    if (lat_r != lat_ref || lon_r != lon_ref) {
-        lat_ref = lat_r;
-        lon_ref = lon_r;
-        ref_gen++;
-        jw_cache = {};
-        LogMsg("reference frame shift");
-    }
-
-    if (zc_ref_gen < ref_gen) {
-        // from a different frame = stale data
-        LogMsg("zc_jws deleted");
-        for (auto jw : zc_jws)
-            delete (jw);
-
-        zc_jws.clear();  // keep the allocation
-        zc_ref_gen = ref_gen;
-    }
 }
 
 //
@@ -220,6 +195,11 @@ static float JwAnimAcc(void* ref) {
     // Unless the airport is extremely large the high bits are mostly the same
     // hence we merge in the z coordinate as high bit.
     // Results in a hit rate of ~99% for SFD KLAX.
+    if (jwc_ref_gen != ref_gen) {
+        jwc_ref_gen = ref_gen;
+        jw_cache = {};
+    }
+
     unsigned ci_lo = (int)(obj_x * 2.0f) & ((1 << (kHashBits - 1)) - 1);
     unsigned ci_hi = (int)(obj_z) << (kHashBits - 1);
     unsigned cache_idx = (ci_hi | ci_lo) & ((1 << kHashBits) - 1);
@@ -308,7 +288,8 @@ static float JwAnimAcc(void* ref) {
 
         // no match of custom jw
         // check against the zero config table
-        for (auto tjw : zc_jws) {
+        zc_table.CheckValidity();
+        for (auto tjw : zc_table.jws_) {
             if (obj_x == tjw->x && obj_z == tjw->z && obj_y == tjw->y) {
                 stat_jw_match++;
                 jw_cache[cache_idx] = jw = tjw;
@@ -375,12 +356,13 @@ void SamJw::ResetAll() {
         for (auto jw : sc->sam_jws)
             jw->Reset();
 
-    for (auto jw : zc_jws)
+    zc_table.CheckValidity();
+    for (auto jw : zc_table.jws_)
         jw->Reset();
 }
 
 void JwInit() {
-    zc_jws.reserve(150);
+    zc_table.jws_.reserve(150);
 
     // create the jetway animation datarefs
     for (int drc = DR_ROTATE1; drc < N_JW_DR; drc++) {

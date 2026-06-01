@@ -273,8 +273,9 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
 
     // in case we move from a SAM airport to one with XP12 default
     // or autogate jetways this test never executes in the data accessors
-    // so we may end up with a stale zc_jws table here
+    // so we may end up with a stale zc_table
     CheckRefFrameShift();
+    zc_table.CheckValidity();
 
     // compute the 'average' door location
     DoorInfo avg_di;
@@ -303,7 +304,7 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     }
 
     // and zero config jetways
-    FilterCandidates(plane, nearest_jws, zc_jws, avg_di);
+    FilterCandidates(plane, nearest_jws, zc_table.jws_, avg_di);
 
     // sort for door assignment
     std::sort(nearest_jws.begin(), nearest_jws.end());

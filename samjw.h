@@ -86,6 +86,26 @@ struct SamLibJw {
         minRot3{}, maxRot3{}, minExtent{}, maxExtent{}, minWheels{}, maxWheels{};
 };
 
+// a table of zero config jetways for the current reference frame
+class ZcTable {
+    unsigned int ref_gen_{};  // generation # of the reference frame for which the table is valid
+
+    public:
+    std::vector<SamJw*> jws_;
+
+    void CheckValidity() {
+        if (ref_gen_ != ref_gen) {
+            LogMsg("zc_table invalidated by reference frame shift");
+            for (auto jw : jws_)
+                delete (jw);
+            jws_.clear();
+            ref_gen_ = ref_gen;
+        }
+    }
+};
+
+extern ZcTable zc_table;
+
 // currently active zero config jetways
 extern std::vector<SamJw*> zc_jws;
 
@@ -93,5 +113,4 @@ extern std::vector<SamJw*> zc_jws;
 extern std::vector<SamLibJw*> lib_jw;
 
 extern void JwInit(void);
-void CheckRefFrameShift();
 #endif

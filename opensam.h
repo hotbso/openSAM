@@ -143,7 +143,7 @@ extern XPLMProbeRef probe_ref;
 
 // functions
 extern void create_api_drefs();
-extern void OsToggleUI(void);
+extern void CheckRefFrameShift();
 
 #define BETWEEN(x, a, b) ((a) <= (x) && (x) <= (b))
 

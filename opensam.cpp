@@ -203,6 +203,20 @@ static void LoadPrefs() {
     }
 }
 
+// check for shift of reference frame
+void CheckRefFrameShift() {
+    // check for shift of reference frame
+    float lat_r = XPLMGetDataf(lat_ref_dr);
+    float lon_r = XPLMGetDataf(lon_ref_dr);
+
+    if (lat_r != lat_ref || lon_r != lon_ref) {
+        lat_ref = lat_r;
+        lon_ref = lon_r;
+        ref_gen++;
+        LogMsg("reference frame shift");
+    }
+}
+
 // Accessor for the "opensam/SAM_Library_installed" dataref
 static int SamLibInstalledAcc([[maybe_unused]] void* ref) {
     return sam_library_installed;
