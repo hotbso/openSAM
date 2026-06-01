@@ -53,7 +53,7 @@ Plane::~Plane() {
 
 // auto select active jetways
 void Plane::AutoSelectJws() {
-    if (n_door_ == 0)
+    if (n_doors_ == 0)
         return;
 
     bool have_hard_match = false;
@@ -71,7 +71,7 @@ void Plane::AutoSelectJws() {
 
         // skip over collisions
         for (unsigned j = i_jw + 1; j < nearest_jws_.size(); j++) {
-            assert(i_door < n_door_);
+            assert(i_door < n_doors_);
             nearest_jws_[i_jw].SetupForDoor(door_info_[i_door]);
             nearest_jws_[j].SetupForDoor(door_info_[i_door]);
             if (nearest_jws_[i_jw].CollisionCheck(nearest_jws_[j]))
@@ -83,7 +83,7 @@ void Plane::AutoSelectJws() {
         active_jws_.push_back(nearest_jws_[i_jw]);
         LogMsg("active jetway for door %d: %s", i_door, active_jws_.back().jw_->name.c_str());
         i_door++;
-        if (i_door >= n_door_)
+        if (i_door >= n_doors_)
             break;
 
     skip:
@@ -302,10 +302,6 @@ float Plane::JwStateMachine() {
         LogMsg("pid=%02d, jw state transition, %s -> %s, beacon: %d", id_, state_str_[state_], state_str_[new_state],
                beacon_on_);
         state_ = new_state;
-
-        LockUI(true);
-        UpdateUI(true);
-
         state_machine_next_ts_ = 0.0f;
         return -1;  // see you on next frame
     }

@@ -59,7 +59,7 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao, fl
 
     LogMsg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao.c_str());
 
-    n_door_ = 0;
+    n_doors_ = 0;
     try {
         // first an optional translation to a generic icao code
         try {
@@ -69,7 +69,7 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao, fl
         }
 
         door_info_[0] = csl_door_info_map.at(icao_ + '1');
-        n_door_++;
+        n_doors_++;
 
         x_ = x;
         z_ = z;
@@ -92,9 +92,9 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao, fl
     // door 2 + 3 are optional
     try {
         door_info_[1] = csl_door_info_map.at(icao_ + '2');
-        n_door_++;
+        n_doors_++;
         door_info_[2] = csl_door_info_map.at(icao_ + '3');
-        n_door_++;
+        n_doors_++;
     } catch (const std::out_of_range& ex) {
     }
 

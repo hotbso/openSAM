@@ -332,7 +332,7 @@ void Ui::BuildInterface() {
         }
 
         int n_jws = my_plane->nearest_jws_.size();
-        int n_doors = my_plane->n_door_;
+        int n_doors = my_plane->n_doors_;
 
         ImGui::Spacing();
         ImGui::Columns(n_doors + 1);
@@ -384,13 +384,15 @@ void Ui::BuildInterface() {
 
         if (have_selection) {
             if (ImGui::Button("Dock")) {
+                // make selected jetways active for docking, and fire a docking request.
                 my_plane->active_jws_.clear();
                 for (int i = 0; i < n_doors; i++) {
                     for (int j = 0; j < n_jws; j++) {
                         if (jw_selected_[j][i]) {
-                            my_plane->nearest_jws_[j].selected_ = true;
-                            my_plane->nearest_jws_[j].door_ = i;
-                            my_plane->active_jws_.push_back(my_plane->nearest_jws_[j]);
+                            auto& njw = my_plane->nearest_jws_[j];
+                            njw.selected_ = true;
+                            njw.door_ = i;
+                            my_plane->active_jws_.push_back(njw);
                             LogMsg("JW %d door %d selected for docking", j + 1, i + 1);
                         }
                     }

@@ -27,8 +27,8 @@
 
 #include "jwctrl.h"
 
-static constexpr int kNearJwLimit = 3;      // max # of jetways we consider for docking
-static constexpr float kMpMaxDist = 2000;   // (m) max dist we consider MP planes
+static constexpr int kNearJwLimit = 3;     // max # of jetways we consider for docking
+static constexpr float kMpMaxDist = 2000;  // (m) max dist we consider MP planes
 
 //
 // Generic class that provides all plane related values for jetway animation.
@@ -57,8 +57,8 @@ class Plane {
    public:
     const int id_;  // id for logging
 
-    // readonly use!
-    unsigned n_door_{0};
+    // loaded for my_plane on start, updated on the fly for MP planes
+    unsigned n_doors_{0};
     DoorInfo door_info_[kMaxDoor];
 
     Plane() : id_(id_base_++) {
@@ -69,88 +69,48 @@ class Plane {
     virtual ~Plane() = 0;
 
     // general state
-    State state() {
-        return state_;
-    }
-    std::string& icao() {
-        return icao_;
-    }
+    State state() { return state_; }
+    std::string& icao() { return icao_; }
 
     // position
-    float x() const {
-        return x_;
-    }
+    float x() const { return x_; }
 
-    float y() const {
-        return y_;
-    }
+    float y() const { return y_; }
 
-    float z() const {
-        return z_;
-    }
+    float z() const { return z_; }
 
-    float psi() const {
-        return psi_;
-    }
+    float psi() const { return psi_; }
 
     // detailed state
-    bool on_ground() const {
-        return on_ground_;
-    }
+    bool on_ground() const { return on_ground_; }
 
-    bool beacon_on() const {
-        return beacon_on_;
-    }
+    bool beacon_on() const { return beacon_on_; }
 
-    bool parkbrake_set() const {
-        return parkbrake_set_;
-    }
+    bool parkbrake_set() const { return parkbrake_set_; }
 
-    bool engines_on() const {
-        return engines_on_;
-    }
+    bool engines_on() const { return engines_on_; }
 
     // cmd support
     virtual bool auto_mode() const = 0;
-    virtual bool dock_requested() {
-        return false;
-    }
+    virtual bool dock_requested() { return false; }
 
-    virtual bool undock_requested() {
-        return false;
-    }
+    virtual bool undock_requested() { return false; }
 
-    virtual bool toggle_requested() {
-        return false;
-    }
+    virtual bool toggle_requested() { return false; }
 
-    virtual bool call_pre_post_dock_cmd() {
-        return false;
-    }
+    virtual bool call_pre_post_dock_cmd() { return false; }
 
     // in general no sound on (mass-) docking
-    virtual bool with_alert_sound() {
-        return (state_ == DOCKED);
-    }
+    virtual bool with_alert_sound() { return (state_ == DOCKED); }
 
-    virtual void MemorizeParkedPos() {
-    }  // for teleportation detection
+    virtual void MemorizeParkedPos() {}  // for teleportation detection
 
-    virtual bool CheckTeleportation() {
-        return false;
-    }
+    virtual bool CheckTeleportation() { return false; }
 
     // auto select jetways
     void AutoSelectJws();
 
     // hook into flight loop
     float JwStateMachine();
-
-    // UI support functions called from JwStateMachine()
-    virtual void UpdateUI([[maybe_unused]] bool only_if_visible) {
-    }
-
-    virtual void LockUI([[maybe_unused]] bool yes_no) {
-    }
 };
 #endif

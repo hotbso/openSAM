@@ -113,7 +113,7 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
         return;
     }
 
-    n_door_ = 0;
+    n_doors_ = 0;
     // first an optional translation to icao code
     auto it = acf_generic_type_map.find(type_code);
     if (it != acf_generic_type_map.end()) {
@@ -125,7 +125,7 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     auto door_it = csl_door_info_map.find(icao_ + '1');
     if (door_it != csl_door_info_map.end()) {
         door_info_[0] = door_it->second;
-        n_door_++;
+        n_doors_++;
 
         // lateral adjustment
         constexpr float z_adjust = 1.0f;  // backwards
@@ -152,12 +152,12 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     auto it2 = csl_door_info_map.find(icao_ + '2');
     if (it2 != csl_door_info_map.end()) {
         door_info_[1] = it2->second;
-        n_door_++;
+        n_doors_++;
     }
     auto it3 = csl_door_info_map.find(icao_ + '3');
     if (it3 != csl_door_info_map.end()) {
         door_info_[2] = it3->second;
-        n_door_++;
+        n_doors_++;
     }
 
     state_ = IDLE;
