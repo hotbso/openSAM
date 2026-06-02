@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <cassert>
 
 #include "opensam.h"
 #include "samjw.h"
@@ -70,9 +71,11 @@ main(int argc, char **argv) {
     }
 
     for (auto sc : sceneries) {
+        assert(sc->apt);
+
         printf("%s: %d jetways collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n",
                sc->name.c_str(), (int)sc->sam_jws.size(),
-               sc->bb_lat_min, sc->bb_lon_min, sc->bb_lat_max, sc->bb_lon_max);
+               sc->bbox_min_.lat, sc->bbox_min_.lon, sc->bbox_max_.lat, sc->bbox_max_.lon);
 
         puts("\nObjects");
         for (auto obj : sc->sam_objs)

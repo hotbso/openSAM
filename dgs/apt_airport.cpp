@@ -106,15 +106,16 @@ void AptAirport::ComputeBBox() {
 }
 
 // go through apt.dat and collect stands
-bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_opensam, bool filter_autodgs, int& total_stands) {
+AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_opensam, bool filter_autodgs, int& total_stands) {
     std::ifstream apt(fn);
     if (apt.fail())
-        return false;
+        return nullptr;
 
     LogMsg("Processing '%s'", fn.c_str());
     std::string line;
     line.reserve(2000);  // can be quite long
 
+    AptAirport* retval = nullptr;
     AptAirport* arpt = nullptr;
     std::string arpt_name;
     std::vector<Jetway> jetways;
@@ -137,6 +138,7 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_opensam
             arpt->stands_.shrink_to_fit();
             std::sort(arpt->stands_.begin(), arpt->stands_.end());
             apt_airports[arpt->icao_] = arpt;
+            retval = arpt;
             jetways.clear();
             arpt->ComputeBBox();  // compute bounding box for this airport
         } else
@@ -272,7 +274,7 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_opensam
 
     save_arpt();
     apt.close();
-    return true;
+    return retval;
 }
 
 const AptAirport* AptAirport::LookupAirport(const std::string& airport_id) {

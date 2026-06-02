@@ -90,6 +90,7 @@ static const char* LookupAttr(const XML_Char** attr, const char* name) {
             ptr->n = atof(val);                 \
     }
 
+
 #define GET_STR_ATTR(ptr, n)                          \
     {                                                 \
         const char* val = LookupAttr(attr, #n);       \
@@ -504,16 +505,16 @@ void CollectSamXml(const SceneryPacks& scp, int& max_sam_stands) {
         if (is_opensam) {
             // will be used with openSAM personality
             // ignore: false, is_opensam: true, AutoDGS filter: false
-            dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", false, true, false, n_stands);
+            sc->apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", false, true, false, n_stands);
         } else {
             // will be used with AutoDGS personality
             bool ignore =
                 (std::filesystem::exists(sc_path + "no_autodgs") || std::filesystem::exists(sc_path + "no_autodgs.txt"));
             // ignore: as specified, is_opensam: false, AutoDGS filter: true
-            dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, false, true, n_stands);
+            sc->apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, false, true, n_stands);
         }
 
-        if (!is_opensam) {
+        if (!(sc->apt && is_opensam)) {
             delete (sc);
             continue;
         }
@@ -524,28 +525,26 @@ void CollectSamXml(const SceneryPacks& scp, int& max_sam_stands) {
             continue;
         }
 
-        if (is_opensam)
-            max_sam_stands = std::max(max_sam_stands, n_stands);
+        max_sam_stands = std::max(max_sam_stands, n_stands);
 
-        static constexpr float far_skip_dlat = kFarSkip / kLat2M;
+        static constexpr double far_skip_dlat = kFarSkip / kLat2M;
 
         // shrink to actual
         sc->sam_jws.shrink_to_fit();
         sc->sam_anims.shrink_to_fit();
         sc->sam_objs.shrink_to_fit();
 
-        // compute the bounding boxes
-
-        sc->bb_lat_min = sc->bb_lon_min = 1000.0f;
-        sc->bb_lat_max = sc->bb_lon_max = -1000.0f;
+        // compute the bounding boxes, start with the airport's bbox
+        sc->bbox_min_ = sc->apt->bbox_min_;
+        sc->bbox_max_ = sc->apt->bbox_max_;
 
         for (auto jw : sc->sam_jws) {
-            float far_skip_dlon = far_skip_dlat / cosf(jw->latitude * kD2R);
-            sc->bb_lat_min = std::min(sc->bb_lat_min, jw->latitude - far_skip_dlat);
-            sc->bb_lat_max = std::max(sc->bb_lat_max, jw->latitude + far_skip_dlat);
+            const double dlon = far_skip_dlat / std::cos(jw->latitude * kD2R);
+            sc->bbox_min_.lat = std::min(sc->bbox_min_.lat, jw->latitude - far_skip_dlat);
+            sc->bbox_max_.lat = std::max(sc->bbox_max_.lat, jw->latitude + far_skip_dlat);
 
-            sc->bb_lon_min = std::min(sc->bb_lon_min, RA(jw->longitude - far_skip_dlon));
-            sc->bb_lon_max = std::max(sc->bb_lon_max, RA(jw->longitude + far_skip_dlon));
+            sc->bbox_min_.lon = std::min(sc->bbox_min_.lon, fem::RA(jw->longitude - dlon));
+            sc->bbox_max_.lon = std::max(sc->bbox_max_.lon, fem::RA(jw->longitude + dlon));
         }
 
         // don't consider objects as these may be far away (e.g. Aerosoft LSZH)

@@ -54,7 +54,7 @@ OsStand::~OsStand() {
 }
 
 void OsStand::InstallDgs(int dgs_type, const DgsCtx& ctx) {
-    float psi = (ctx.turn_180) ? RA(ctx.obj_psi + 180.0f) : ctx.obj_psi;  // SAM1 legacy DGS can be turned 180°
+    float psi = (ctx.turn_180) ? fem::RA(ctx.obj_psi + 180.0f) : ctx.obj_psi;  // SAM1 legacy DGS can be turned 180°
     dgs_lat_ = ctx.lat;
     dgs_lon_ = ctx.lon;
     dgs_altitude_ = ctx.altitude;
@@ -165,7 +165,7 @@ int OsAirport::FindStandForObj(float obj_x, float obj_z, float obj_psi) {
         // must be in a box +- kMaxDgs2StandX, kMaxDgs2StandZ
         // and reasonably aligned with stand (or for SAM1 anti aligned)
         if (std::fabs(obj_x_sl) > kMaxDgs2StandX || obj_z_sl < -kMaxDgs2StandZ || obj_z_sl > -5.0f ||
-            BETWEEN(std::fabs(RA(stand->hdgt() - obj_psi)), 10.0f, 170.0f))
+            BETWEEN(std::fabs(fem::RA(stand->hdgt() - obj_psi)), 10.0f, 170.0f))
             continue;
 
         // closest to center line, nearest to stand, closer to cl takes precedence

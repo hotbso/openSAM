@@ -62,7 +62,7 @@ float SamAnim::AnimAcc(void* ref) {
 
             SamObj* obj = sc->sam_objs[anim->obj_idx];
 
-            if (fabsf(RA(obj->heading - obj_psi)) > kSam2ObjHdgMax)
+            if (fabsf(fem::RA(obj->heading - obj_psi)) > kSam2ObjHdgMax)
                 continue;
 
             if (obj->xml_ref_gen < ref_gen) {

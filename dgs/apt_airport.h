@@ -50,9 +50,6 @@ struct AptRunway {
 };
 
 class AptAirport {
-   private:
-    flat_earth_math::LLPos bbox_min_, bbox_max_;  // bounding box of this airport
-
    public:
     static std::unordered_map<std::string, AptAirport*> apt_airports;
 
@@ -66,12 +63,14 @@ class AptAirport {
     AptAirport();
     static int NumAirports() { return apt_airports.size(); }
 
-    // parse apt.dat, enter data into apt_airports, return false on failure
+    // parse apt.dat, enter data into apt_airports, return pointer to (last) parsed airport or nullptr on error
     // if ignore is true, a dummy airport with that id will be added and marked as ignored
     // this will also shadow a global airport with the same id, so it won't be found by LocateAirport
 
-    static bool ParseAptDat(const std::string& fn, bool ignore, bool is_opensam, bool filter_autodgs, int& total_stands);
+    static AptAirport* ParseAptDat(const std::string& fn, bool ignore, bool is_opensam, bool filter_autodgs, int& total_stands);
 
+
+    flat_earth_math::LLPos bbox_min_, bbox_max_;  // bounding box of this airport
     std::string icao_;
     bool has_twr_{false};
     bool ignore_{false};        // e.g. no_autodgs marker present

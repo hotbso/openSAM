@@ -52,7 +52,8 @@ struct SamJw {
     std::string name;       // == base_name for sam.xml jetways or fabricated for zero config jetways
     std::string sound;
 
-    float latitude{}, longitude{}, heading{}, height{}, wheelPos{}, cabinPos{}, cabinLength{}, wheelDiameter{},
+    double latitude{}, longitude{}, altitude{}; // altitude is determined by terrain probe or XPLMLocal2World for zero config jetways
+    float heading{}, height{}, wheelPos{}, cabinPos{}, cabinLength{}, wheelDiameter{},
         wheelDistance{}, minRot1{}, maxRot1{}, minRot2{}, maxRot2{}, minRot3{}, maxRot3{}, minExtent{}, maxExtent{},
         minWheels{}, maxWheels{}, initialRot1{}, initialRot2{}, initialRot3{}, initialExtent{};
     int door{};  // 0 = LF1 or default, 1 = LF2

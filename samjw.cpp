@@ -135,7 +135,7 @@ static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float
     if (stand) {
         jw->base_name = stand->name();
         // delta = cabin points perpendicular to stand
-        float delta = RA((stand->hdgt() + 90.0f) - jw->psi);
+        float delta = fem::RA((stand->hdgt() + 90.0f) - jw->psi);
         // randomize
         float delta_r = (0.2f + 0.8f * (0.01f * (rand() % 100))) * delta;
         jw->initialRot2 = delta_r;
@@ -230,7 +230,7 @@ static float JwAnimAcc(void* ref) {
                     // so it should not be too costly
                     //
                     double x, y, z;
-                    XPLMWorldToLocal(tjw->latitude, tjw->longitude, 0.0, &x, &y, &z);
+                    XPLMWorldToLocal(tjw->latitude, tjw->longitude, tjw->altitude, &x, &y, &z);
                     if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
                         LogMsg("terrain probe 1 failed, jw: '%s', lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
                                tjw->name.c_str(), tjw->latitude, tjw->longitude, x, y, z);
@@ -240,13 +240,13 @@ static float JwAnimAcc(void* ref) {
                     }
 
                     // xform back to world to get an approximation for the elevation
-                    double lat, lon, elevation;
+                    double lat, lon;
                     XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, &lat, &lon,
-                                     &elevation);
-                    // LogMsg("elevation: %0.2f", elevation);
+                                     &tjw->altitude);
+                    // LogMsg("elevation: %0.2f", tjw->altitude);
 
                     // and again to local with SAM's lat/lon and the approx elevation
-                    XPLMWorldToLocal(tjw->latitude, tjw->longitude, elevation, &x, &y, &z);
+                    XPLMWorldToLocal(tjw->latitude, tjw->longitude, tjw->altitude, &x, &y, &z);
                     if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
                         LogMsg("terrain probe 2 failed???");
                         return 0.0f;
@@ -261,7 +261,7 @@ static float JwAnimAcc(void* ref) {
                     // Heading is likely to match.
                     // We check position first as it's more likely to rule out other jetways
                     // letting us perform less checks to find the right one.
-                    if (fabsf(RA(tjw->heading - obj_psi)) > kSam2ObjHdgMax)
+                    if (fabsf(fem::RA(tjw->heading - obj_psi)) > kSam2ObjHdgMax)
                         continue;
 
                     // have a match

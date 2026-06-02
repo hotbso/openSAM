@@ -33,6 +33,8 @@
 #include "dgs/apt_airport.h"
 #include "log_msg.h"
 
+namespace fem = flat_earth_math;
+
 static constexpr float kD2R = std::numbers::pi/180.0;
 static constexpr float kF2M = 0.3048;                   // 1 ft [m]
 static constexpr float kLat2M = 111120;                 // 1° lat in m
@@ -59,8 +61,9 @@ struct SamObj;
 struct SamJw;
 struct SceneryPacks;
 class SamAnim;
-
-static float RA(float angle);
+namespace dgs {
+class AptAirport;
+}
 
 struct Scenery {
     // Not copyable or movable
@@ -74,7 +77,9 @@ struct Scenery {
     std::vector<SamObj*> sam_objs;
     std::vector<SamAnim*> sam_anims;
 
-    float bb_lat_min, bb_lat_max, bb_lon_min, bb_lon_max;   /* bounding box for kFarSkip */
+    dgs::AptAirport* apt;  // non-owning pointer to the airport this scenery belongs to, never null
+
+    fem::LLPos bbox_min_, bbox_max_;  // bounding box of this airport
 
     Scenery() {
         sam_jws.reserve(100);
@@ -82,8 +87,8 @@ struct Scenery {
     }
 
     bool InBbox(float lat, float lon) const{
-        return (lat >= bb_lat_min && lat <= bb_lat_max
-            && RA(lon - bb_lon_min) >= 0 && RA(lon - bb_lon_max) <= 0);
+        fem::LLPos pos(lat, lon);
+        return fem::InRect(pos, bbox_min_, bbox_max_);
     }
 };
 
@@ -167,15 +172,3 @@ extern void create_api_drefs();
 extern void CheckRefFrameShift();
 
 #define BETWEEN(x, a, b) ((a) <= (x) && (x) <= (b))
-
-// normalize angle to a relative angle in (-180,180]
-static inline float RA(float angle) {
-    angle = fmodf(angle, 360.0f);
-    if (angle > 180.0f)
-        return angle - 360.0f;
-
-    if (angle <= -180.0f)
-        return angle + 360.0f;
-
-    return angle;
-}

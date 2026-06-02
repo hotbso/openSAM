@@ -58,7 +58,7 @@ void JwCtrl::AlertSetpos() {
     static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
     FMOD_VECTOR pos;
 
-    float rot1 = RA((jw_->rotate1 + jw_->psi) - 90.0f);
+    float rot1 = fem::RA((jw_->rotate1 + jw_->psi) - 90.0f);
     pos.x = jw_->x + (jw_->extent + jw_->cabinPos) * cosf(rot1 * kD2R);
     pos.y = jw_->y + jw_->height;
     pos.z = jw_->z + (jw_->extent + jw_->cabinPos) * sinf(rot1 * kD2R);

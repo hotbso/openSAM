@@ -115,10 +115,10 @@ JwCtrl::JwCtrl(SamJw* jw, const Plane& plane) {
     x_ =  cos_psi * dx + sin_psi * dz;
     z_ = -sin_psi * dx + cos_psi * dz;
     y_ = (jw_->y + jw_->height) - plane.y();
-    psi_ = RA(jw_->psi - plane_psi);
+    psi_ = fem::RA(jw_->psi - plane_psi);
 
     // parked position
-    float rot1_d = RA((jw_->initialRot1 + psi_) - 90.0f);  // plane frame
+    float rot1_d = fem::RA((jw_->initialRot1 + psi_) - 90.0f);  // plane frame
     float r = jw_->initialExtent + jw_->cabinPos;
     parked_x_ = x_ + r * std::cos(rot1_d * kD2R);
     parked_z_ = z_ + r * std::sin(rot1_d * kD2R);
@@ -130,11 +130,11 @@ void JwCtrl::XzToSamDref(float cabin_x, float cabin_z, float& rot1, float& exten
     float dist = std::hypot(cabin_x - x_, cabin_z - z_);
 
     float rot1_d = atan2(cabin_z - z_, cabin_x - x_) / kD2R;  // door frame
-    rot1 = RA(rot1_d + 90.0f - psi_);
+    rot1 = fem::RA(rot1_d + 90.0f - psi_);
     extent = dist - jw_->cabinPos;
 
     // angle 0° plane frame  -> hdgt -> jw_ frame -> diff to rot1
-    float r2 = RA(0.0f + 90.0f - psi_ - rot1);
+    float r2 = fem::RA(0.0f + 90.0f - psi_ - rot1);
     if (rot2)
         *rot2 = r2;
 
@@ -227,7 +227,7 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
 
         // ... and send it through the filters ...
         if (njw.x_ > 1.0f ||
-            BETWEEN(RA(njw.psi_ + jw->initialRot1), -130.0f, 20.0f) ||  // on the right side or pointing away
+            BETWEEN(fem::RA(njw.psi_ + jw->initialRot1), -130.0f, 20.0f) ||  // on the right side or pointing away
             njw.x_ < -80.0f || std::abs(njw.z_) > 80.0f) {                 // or far away
             if (std::abs(njw.x_) < 120.0f && std::abs(njw.z_) < 120.0f)       // don't pollute the log with jws VERY far away
                 LogMsg("pid=%02d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initialRot1): %0.1f",
@@ -410,7 +410,7 @@ bool JwCtrl::CollisionCheck(const JwCtrl& njw2) {
 
 // all the animation methods
 bool JwCtrl::RotateWheelBase(float dt) {
-    float delta_rot = RA(wb_rot_ - jw_->wheelrotatec);
+    float delta_rot = fem::RA(wb_rot_ - jw_->wheelrotatec);
 
     // optimize rotation
     if (delta_rot > 90.0f)
@@ -487,7 +487,7 @@ bool JwCtrl::Rotate2(float rot2, float dt) {
 
 // animate wheels for straight driving
 void JwCtrl::AnimateWheels(float ds) {
-    if (std::abs(RA(wb_rot_ - jw_->wheelrotatec)) > 90.0f)
+    if (std::abs(fem::RA(wb_rot_ - jw_->wheelrotatec)) > 90.0f)
         ds = -ds;
     // LogMsg("wb_rot_: %0.2f, wheelrotatec: %0.2f, ds: 0.3f", wb_rot_, jw_->wheelrotatec, ds);
 
@@ -522,7 +522,7 @@ bool JwCtrl::DockDrive() {
     float dt = now - last_step_ts_;
     last_step_ts_ = now;
 
-    float rot1_d = RA((jw_->rotate1 + psi_) - 90.0f);  // plane frame
+    float rot1_d = fem::RA((jw_->rotate1 + psi_) - 90.0f);  // plane frame
 
     // float wheel_x = x_ + (jw_->extent + jw_->wheelPos) * std::cos(rot1_d * kD2R);
     // float wheel_z = z_ + (jw_->extent + jw_->wheelPos) * std::sin(rot1_d * kD2R);
@@ -553,12 +553,12 @@ bool JwCtrl::DockDrive() {
         double drive_angle = atan2(tgt_z -cabin_z_, tgt_x - cabin_x_) / kD2R;
 
         // wb_rot_ is drive_angle in the 'tunnel frame'
-        wb_rot_ = RA(drive_angle - rot1_d);
+        wb_rot_ = fem::RA(drive_angle - rot1_d);
 
         // avoid compression of jetway
         if (jw_->extent <= jw_->minExtent && wb_rot_ < -90.0f) {
             wb_rot_ = -90.0f;
-            drive_angle = RA(rot1_d + -90.0f);
+            drive_angle = fem::RA(rot1_d + -90.0f);
         }
 
         cabin_x_ += cos(drive_angle * kD2R) * ds;
@@ -577,7 +577,7 @@ bool JwCtrl::DockDrive() {
         float tgt_rot2 = docked_rot2_;
         if (cabin_x_ < (tgt_x - 1.0f) || cabin_z_ < (tgt_z -2.0f)) {
             float angle_to_door = atan2f(docked_z_ - cabin_z_, docked_x_ - cabin_x_) / kD2R;
-            tgt_rot2 = RA(angle_to_door + 90.0f - psi_ - jw_->rotate1);  // point to door
+            tgt_rot2 = fem::RA(angle_to_door + 90.0f - psi_ - jw_->rotate1);  // point to door
         }
         // LogMsg("jw_->rotate2: %0.1f, tgt_rot2: %0.1f, tgt_rot2: %0.1f", jw_->rotate2, tgt_rot2, tgt_rot2);
 
@@ -589,7 +589,7 @@ bool JwCtrl::DockDrive() {
 
     if (state_ == AT_AP) {
         // use the time to rotate the wheel base towards the door
-        wb_rot_ = RA(-rot1_d);
+        wb_rot_ = fem::RA(-rot1_d);
         RotateWheelBase(dt);
 
         // rotation 2 + 3 must be at target now
@@ -620,7 +620,7 @@ bool JwCtrl::DockDrive() {
         cabin_x_ += ds;
         // LogMsg("cabin_x_: %0.3f, cabin_z_: %0.3f", cabin_x_, cabin_z_);
 
-        wb_rot_ = RA(-rot1_d);
+        wb_rot_ = fem::RA(-rot1_d);
         if (!RotateWheelBase(dt)) {
             wait_wb_rot_ = true;
             return false;
@@ -681,7 +681,7 @@ bool JwCtrl::UndockDrive() {
     float dt = now - last_step_ts_;
     last_step_ts_ = now;
 
-    float rot1_d = RA((jw_->rotate1 + psi_) - 90.0f);  // door frame
+    float rot1_d = fem::RA((jw_->rotate1 + psi_) - 90.0f);  // door frame
 
     // float wheel_x = x + (jw_->extent + jw_->wheelPos) * std::cos(rot1_d * kD2R);
     // float wheel_z = z + (jw_->extent + jw_->wheelPos) * std::sin(rot1_d * kD2R);
@@ -727,7 +727,7 @@ bool JwCtrl::UndockDrive() {
         // %0.2f",
         //         rot1_d, cabin_x_, cabin_z_, wheel_x, wheel_z, drive_angle);
 
-        wb_rot_ = RA(drive_angle - rot1_d);
+        wb_rot_ = fem::RA(drive_angle - rot1_d);
         if (!RotateWheelBase(dt)) {
             wait_wb_rot_ = true;
             return false;
@@ -762,12 +762,12 @@ bool JwCtrl::UndockDrive() {
         double drive_angle = atan2(tgt_z - cabin_z_, tgt_x - cabin_x_) / kD2R;
 
         // wb_rot_ is drive_angle in the 'tunnel frame'
-        wb_rot_ = RA(drive_angle - rot1_d);
+        wb_rot_ = fem::RA(drive_angle - rot1_d);
 
         // avoid compression of jetway
         if (jw_->extent <= jw_->minExtent && wb_rot_ > 90.0f) {
             wb_rot_ = 90.0f;
-            drive_angle = RA(rot1_d + 90.0f);
+            drive_angle = fem::RA(rot1_d + 90.0f);
         }
 
         cabin_x_ += cos(drive_angle * kD2R) * ds;
