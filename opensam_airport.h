@@ -34,27 +34,6 @@ enum DgsType {
     kDgsType_SAM1_Legacy
 };
 
-struct DgsCacheKey {
-    // x, z are obj_x/z coordinates of the DGS, used for quick lookup of DGS by position
-    float x, z;
-
-    bool operator==(const DgsCacheKey &other) const {
-        return (x == other.x) && (z == other.z);
-    }
-};
-
-struct DgsCacheKeyHasher {
-    std::size_t operator()(const DgsCacheKey& key) const {
-        // x, z should be enough to identify a DGS
-        int64_t x_int = (int64_t)(key.x * 100.0f);  // scale to preserve 2 decimal places
-        int64_t z_int = (int64_t)(key.z * 100.0f);
-        // 0x9e3779b9 is the Golden Ratio constant used to prevent bit clustering
-        std::size_t seed = std::hash<int64_t>{}(x_int);
-        seed ^= std::hash<int64_t>{}(z_int) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        return seed;
-    }
-};
-
 struct DgsCtx {
     unsigned int dgs_type;
 
@@ -94,7 +73,7 @@ class OsAirport : public dgs::Airport {
     // the cache is used to quickly check whether a DGS at a given position has already been seen
     // it is filled on the fly when we encounter a DGS for the first time in a draw loop and cleared when the ref
     // frame changes
-    std::unordered_map<DgsCacheKey, bool, DgsCacheKeyHasher> dgs_cache_;
+    std::unordered_map<PositionCacheKey, bool, PositionCacheKeyHasher> dgs_cache_;
     unsigned int dgs_cache_ref_gen_ = 0;                                // to invalidate cache when ref frame changes
 
     // pending_dgs is filled in the draw loop with newly identified DGS to be processed in flight loop context for

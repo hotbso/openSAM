@@ -89,8 +89,8 @@ struct Scenery {
 
 extern std::vector<Scenery *> sceneries;
 
-// a poor man's factory for creating sceneries
-extern void CollectSamXml(const SceneryPacks &scp);
+// a poor man's factory for creating sceneries, return max # of stands in sam sceneries
+extern void CollectSamXml(const SceneryPacks& scp, int& max_sam_stands);
 
 struct SceneryPacks {
     std::string openSAM_Library_path;
@@ -104,6 +104,28 @@ struct SceneryPacks {
 static constexpr int kMaxDoor = 3;
 struct DoorInfo {
     float x, y, z;
+};
+
+// for quick lookup of objects by position (x/y/z)
+struct PositionCacheKey {
+    // x, z are obj_x/z coordinates of an object, used for quick lookup of object by position
+    float x, z;
+
+    bool operator==(const PositionCacheKey &other) const {
+        return (x == other.x) && (z == other.z);
+    }
+};
+
+struct PositionCacheKeyHasher {
+    std::size_t operator()(const PositionCacheKey& key) const {
+        // x, z should be enough to identify an object
+        int64_t x_int = (int64_t)(key.x * 100.0f);  // scale to preserve 2 decimal places
+        int64_t z_int = (int64_t)(key.z * 100.0f);
+        // 0x9e3779b9 is the Golden Ratio constant used to prevent bit clustering
+        std::size_t seed = std::hash<int64_t>{}(x_int);
+        seed ^= std::hash<int64_t>{}(z_int) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        return seed;
+    }
 };
 
 // key is icao + <door num in ascii>
@@ -124,8 +146,7 @@ extern XPLMDataRef lat_ref_dr, lon_ref_dr,
 extern XPLMCommandRef toggle_jetway_cmdr;
 
 extern unsigned long long stat_sc_far_skip, stat_near_skip,
-    stat_acc_called, stat_jw_match, stat_dgs_acc, stat_dgs_acc_last,
-    stat_anim_acc_called, stat_auto_drf_called,
+    stat_jw_acc_called, stat_anim_acc_called, stat_auto_drf_called,
     stat_jw_cache_hit;
 
 extern float now;           // current timestamp

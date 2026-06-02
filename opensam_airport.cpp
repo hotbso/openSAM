@@ -298,7 +298,7 @@ float OsAirport::DgsIdentAcc(void* ref) {
     ctx.obj_psi = obj_psi;
     XPLMLocalToWorld(obj_x, obj_y, obj_z, &ctx.lat, &ctx.lon, &ctx.altitude);
 
-    DgsCacheKey key{obj_x, obj_z};
+    PositionCacheKey key{obj_x, obj_z};
     os_arpt->dgs_cache_[key] = true;
     os_arpt->pending_dgs_.push_back(ctx);
     //LogMsg("new DGS identified: type %d, height %.1f, turn_180 %d, obj_x %.2f, obj_y %.2f, obj_z %.2f, obj_psi %.1f", ctx.dgs_type,
@@ -363,7 +363,7 @@ float OsAirport::DgsSam1Acc(void* ref) {
             ctx.obj_psi = obj_psi;
             XPLMLocalToWorld(obj_x, obj_y, obj_z, &ctx.lat, &ctx.lon, &ctx.altitude);
 
-            DgsCacheKey key{obj_x, obj_z};
+            PositionCacheKey key{obj_x, obj_z};
             os_arpt->dgs_cache_[key] = true;
             os_arpt->pending_dgs_.push_back(ctx);
             // see you created in the near future, until then, let's be inactive

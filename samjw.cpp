@@ -34,7 +34,6 @@
 
 static constexpr float kSam2ObjMax = 2.5;     // m, max delta between coords in sam.xml and object
 static constexpr float kSam2ObjHdgMax = 5;    // °, likewise for heading
-static constexpr int kHashBits = 13;          // size of cache
 
 // keep in sync with array below !
 typedef enum dr_code_e {
@@ -62,7 +61,7 @@ static const char *dr_name_jw[] = {
 // zero config jw structures
 ZcTable zc_table;
 
-static std::array<SamJw*, (1 << kHashBits)>jw_cache;
+static std::unordered_map<PositionCacheKey, SamJw*, PositionCacheKeyHasher> jw_cache;
 static unsigned int jwc_ref_gen = 0;  // generation # of the reference frame for which the cache is valid
 
 //
@@ -110,7 +109,7 @@ void SamJw::FillLibraryValues(unsigned int id) {
 }
 
 //
-// configure a zc library jetway
+// configure a zc library jetway and add it to zc_table
 //
 static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi) {
     // library jetways may be in view from very far away when stand information is not
@@ -120,6 +119,8 @@ static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float
 
     if (std::hypot(obj_x - my_plane->x(), obj_z - my_plane->z()) > 0.5f * kFarSkip || fabsf(obj_y - my_plane->y()) > 1000.0f)
         return nullptr;
+
+    zc_table.CheckValidity();
 
     SamJw* jw = new SamJw();
     jw->obj_ref_gen = ref_gen;
@@ -179,7 +180,7 @@ static float JwAnimAcc(void* ref) {
     if (obj_x == 0.0f && obj_y == 0.0f && obj_z == 0.0f)
         return 0.0f;  // likely uninitialized, datareftool poll etc.
 
-    stat_acc_called++;
+    stat_jw_acc_called++;
 
     CheckRefFrameShift();
 
@@ -189,24 +190,20 @@ static float JwAnimAcc(void* ref) {
 
     SamJw* jw = nullptr;
 
-    // We cache jetway pointers in a "1-way associative cache" 8-) .
-    // The tag is jw->(x, y, z).
-    // For the mapping we use the x coordinate in 0.5 m resolution as base.
-    // Unless the airport is extremely large the high bits are mostly the same
-    // hence we merge in the z coordinate as high bit.
-    // Results in a hit rate of ~99% for SFD KLAX.
+    // We cache jetway pointers for quick lookup by position in the local coordinate system.
     if (jwc_ref_gen != ref_gen) {
         jwc_ref_gen = ref_gen;
-        jw_cache = {};
+        jw_cache.clear();
+        LogMsg("jw cache invalidated by reference frame shift, load factor: %0.2f", jw_cache.load_factor());
     }
 
-    unsigned ci_lo = (int)(obj_x * 2.0f) & ((1 << (kHashBits - 1)) - 1);
-    unsigned ci_hi = (int)(obj_z) << (kHashBits - 1);
-    unsigned cache_idx = (ci_hi | ci_lo) & ((1 << kHashBits) - 1);
-    SamJw* cjw = jw_cache[cache_idx];
-    if (cjw && cjw->x == obj_x && cjw->y == obj_y && cjw->z == obj_z) {
+    PositionCacheKey key{obj_x, obj_z};
+    auto it = jw_cache.find(key);
+    if (it != jw_cache.end()) {
         stat_jw_cache_hit++;
-        jw = cjw;
+        jw = it->second;
+        if (jw == nullptr)  // cached as not found
+            return 0.0f;
         goto have_jw;
     }
 
@@ -277,8 +274,7 @@ static float JwAnimAcc(void* ref) {
                         tjw->psi = obj_psi;
                     }
 
-                    stat_jw_match++;
-                    jw_cache[cache_idx] = jw = tjw;
+                    jw_cache[key] = jw = tjw;
                     goto have_jw;  // out of nested loops
                 }
 
@@ -291,19 +287,27 @@ static float JwAnimAcc(void* ref) {
         zc_table.CheckValidity();
         for (auto tjw : zc_table.jws_) {
             if (obj_x == tjw->x && obj_z == tjw->z && obj_y == tjw->y) {
-                stat_jw_match++;
-                jw_cache[cache_idx] = jw = tjw;
+                jw_cache[key] = jw = tjw;
                 goto have_jw;
             }
 
             stat_near_skip++;
         }
 
-        if (nullptr == jw && 0 < id && id < lib_jw.size())  // unconfigured library jetway
+        if (nullptr == jw && 0 < id && id < lib_jw.size()) { // unconfigured library jetway
             jw = ConfigureZcJw(id, obj_x, obj_z, obj_y, obj_psi);
+            if (jw == nullptr) {
+                // no negative caching for zc jetways as the airport is not yet loaded
+               return 0.0f;
+            }
+        }
 
-        if (nullptr == jw)  // still unconfigured -> bad luck
+        if (nullptr == jw) { // still unconfigured -> bad luck
+            jw_cache[key] = nullptr;  // cache not found
+            LogMsg("no match for jetway object at x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, id: %d", obj_x, obj_z, obj_y,
+                   obj_psi, id);
             return 0.0f;
+        }
     }
 
 have_jw:
@@ -361,8 +365,9 @@ void SamJw::ResetAll() {
         jw->Reset();
 }
 
-void JwInit() {
+void JwInit(int max_sam_stands) {
     zc_table.jws_.reserve(150);
+    jw_cache.reserve(max_sam_stands);   // usually there are much more stands than jetways
 
     // create the jetway animation datarefs
     for (int drc = DR_ROTATE1; drc < N_JW_DR; drc++) {

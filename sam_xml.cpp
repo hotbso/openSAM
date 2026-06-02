@@ -479,7 +479,8 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
 }
 
 // collect sam.xml from all sceneries
-void CollectSamXml(const SceneryPacks& scp) {
+void CollectSamXml(const SceneryPacks& scp, int& max_sam_stands) {
+    max_sam_stands = 0;
     std::unordered_map<std::string, SamLibJw*> lib_jw_map;
 
     // drefs from openSAM_Library must come first
@@ -522,6 +523,9 @@ void CollectSamXml(const SceneryPacks& scp) {
             delete (sc);
             continue;
         }
+
+        if (is_opensam)
+            max_sam_stands = std::max(max_sam_stands, n_stands);
 
         static constexpr float far_skip_dlat = kFarSkip / kLat2M;
 

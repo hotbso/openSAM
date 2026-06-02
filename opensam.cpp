@@ -139,7 +139,7 @@ static std::unique_ptr<MpAdapter> mp_adapter;
 std::unordered_map<std::string, DoorInfo> csl_door_info_map;
 std::unordered_map<std::string, std::string> acf_generic_type_map;
 
-unsigned long long stat_sc_far_skip, stat_near_skip, stat_acc_called, stat_jw_match, stat_anim_acc_called,
+unsigned long long stat_sc_far_skip, stat_near_skip, stat_jw_acc_called, stat_anim_acc_called,
     stat_auto_drf_called, stat_jw_cache_hit;
 
 int default_vdgs_type = kVdgsSafedock_T2_24;  // index into default_vdgs_item
@@ -612,6 +612,8 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     std::filesystem::create_directories(user_cfg_dir);
 
+    int max_sam_stands;
+
     // collect all config and *.xml files
     try {
         LoadDoorInfo(base_dir + "csl_door_position.txt", csl_door_info_map);
@@ -623,7 +625,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
         sam_library_installed = scp.SAM_Library_path.size() > 0;
 
-        CollectSamXml(scp);
+        CollectSamXml(scp, max_sam_stands);
         LogMsg("%d sceneries with sam jetways found", (int)sceneries.size());
         int n_stands = 0;
         if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, false, true, n_stands)) {
@@ -690,7 +692,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     try {
         my_plane->AutoModeSet(pref_auto_mode);
-        JwInit();
+        JwInit(max_sam_stands);
         JwCtrl::Init();
         OsAirport::Init();
         AnimInit();
@@ -781,11 +783,11 @@ PLUGIN_API void XPluginDisable(void) {
     SavePrefs();
     ui = nullptr;
 
-    LogMsg("acc called:           %9llu", stat_acc_called);
+    LogMsg("acc called:           %9llu", stat_jw_acc_called);
     LogMsg("scenery far skip:     %9llu", stat_sc_far_skip);
     LogMsg("near skip:            %9llu", stat_near_skip);
     LogMsg("stat_jw_cache_hit     %9llu", stat_jw_cache_hit);
-    LogMsg("cache hit rate:       %9.2f %%", 100.0f * stat_jw_cache_hit / (stat_acc_called + 1));
+    LogMsg("cache hit rate:       %9.2f %%", 100.0f * stat_jw_cache_hit / (stat_jw_acc_called + 1));
     LogMsg("stat_anim_acc_called: %9llu", stat_anim_acc_called);
     LogMsg("stat_auto_drf_called: %9llu", stat_auto_drf_called);
     LogMsg("plugin disabled");
@@ -800,7 +802,7 @@ PLUGIN_API int XPluginEnable(void) {
         LogMsg("Can't create terrain probe");
         return 0;
     }
-    stat_sc_far_skip = stat_near_skip = stat_acc_called = stat_jw_match = stat_anim_acc_called =
+    stat_sc_far_skip = stat_near_skip = stat_jw_acc_called = stat_anim_acc_called =
         stat_auto_drf_called = stat_jw_cache_hit = 0;
 
     LogMsg("plugin enabled");

@@ -112,5 +112,5 @@ extern std::vector<SamJw*> zc_jws;
 // library jetways information from all collected libraryjetways.xml files
 extern std::vector<SamLibJw*> lib_jw;
 
-extern void JwInit(void);
+extern void JwInit(int max_sam_stands);
 #endif
