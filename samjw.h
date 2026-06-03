@@ -52,7 +52,7 @@ struct SamJw {
     std::string name;       // == base_name for sam.xml jetways or fabricated for zero config jetways
     std::string sound;
 
-    double latitude{}, longitude{}, altitude{}; // altitude is determined by terrain probe or XPLMLocal2World for zero config jetways
+    double latitude{}, longitude{}, altitude{}; // altitude is determined by terrain probe or XPLMLocalToWorld for zero config jetways
     float heading{}, height{}, wheelPos{}, cabinPos{}, cabinLength{}, wheelDiameter{},
         wheelDistance{}, minRot1{}, maxRot1{}, minRot2{}, maxRot2{}, minRot3{}, maxRot3{}, minExtent{}, maxExtent{},
         minWheels{}, maxWheels{}, initialRot1{}, initialRot2{}, initialRot3{}, initialExtent{};
@@ -86,29 +86,6 @@ struct SamLibJw {
     float height{}, wheelPos{}, cabinPos{}, cabinLength{}, wheelDiameter{}, wheelDistance{}, minRot1{}, maxRot1{}, minRot2{}, maxRot2{},
         minRot3{}, maxRot3{}, minExtent{}, maxExtent{}, minWheels{}, maxWheels{};
 };
-
-// a table of zero config jetways for the current reference frame
-class ZcTable {
-    unsigned int ref_gen_{};  // generation # of the reference frame for which the table is valid
-
-    public:
-    std::vector<SamJw*> jws_;
-
-    void CheckValidity() {
-        if (ref_gen_ != ref_gen) {
-            LogMsg("zc_table invalidated by reference frame shift");
-            for (auto jw : jws_)
-                delete (jw);
-            jws_.clear();
-            ref_gen_ = ref_gen;
-        }
-    }
-};
-
-extern ZcTable zc_table;
-
-// currently active zero config jetways
-extern std::vector<SamJw*> zc_jws;
 
 // library jetways information from all collected libraryjetways.xml files
 extern std::vector<SamLibJw*> lib_jw;

@@ -273,9 +273,8 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
 
     // in case we move from a SAM airport to one with XP12 default
     // or autogate jetways this test never executes in the data accessors
-    // so we may end up with a stale zc_table
+    // so we may end up with a stale cache
     CheckRefFrameShift();
-    zc_table.CheckValidity();
 
     // compute the 'average' door location
     DoorInfo avg_di;
@@ -303,9 +302,6 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
         FilterCandidates(plane, nearest_jws, sc->sam_jws, avg_di);
     }
 
-    // and zero config jetways
-    FilterCandidates(plane, nearest_jws, zc_table.jws_, avg_di);
-
     // sort for door assignment
     std::sort(nearest_jws.begin(), nearest_jws.end());
 
@@ -330,17 +326,17 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     }
 
     // fake names for zc jetways
-    int i{0};
+    int i = 1;
     for (auto& njw : nearest_jws) {
         SamJw* jw = njw.jw_;
-        if (jw->is_zc_jw) {
+        if (jw->is_zc_jw && jw->name.empty()) {
             if (jw->base_name.length() > 10)
                 jw->name = jw->base_name.substr(0, 10);
             else
                 jw->name = jw->base_name;
             jw->name = jw->name + "_" + std::to_string(i);
         }
-            i++;
+        i++;
     }
 
     // lock all nearest_jws

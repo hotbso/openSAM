@@ -86,6 +86,9 @@ struct Scenery {
         sam_objs.reserve(50);  sam_anims.reserve(50);
     }
 
+    // add a zero config jw to the scenery
+    SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y, float obj_psi);
+
     bool InBbox(float lat, float lon) const{
         fem::LLPos pos(lat, lon);
         return fem::InRect(pos, bbox_min_, bbox_max_);

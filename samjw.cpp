@@ -57,10 +57,6 @@ static const char *dr_name_jw[] = {
     "canopy"
 };
 
-
-// zero config jw structures
-ZcTable zc_table;
-
 static std::unordered_map<PositionCacheKey, SamJw*, PositionCacheKeyHasher> jw_cache;
 static unsigned int jwc_ref_gen = 0;  // generation # of the reference frame for which the cache is valid
 
@@ -109,19 +105,11 @@ void SamJw::FillLibraryValues(unsigned int id) {
 }
 
 //
-// configure a zc library jetway and add it to zc_table
+// configure a zc library jetway and add it to the scenery
+// As all jetways zc jetways ahould live forever as there can be complex interactions between
+// frame shifts and multiplayer planes with active jetways
 //
-static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float obj_psi) {
-    // library jetways may be in view from very far away when stand information is not
-    // yet available. We won't see details anyway.
-    if (os_arpt == nullptr)
-        return nullptr;
-
-    if (std::hypot(obj_x - my_plane->x(), obj_z - my_plane->z()) > 0.5f * kFarSkip || fabsf(obj_y - my_plane->y()) > 1000.0f)
-        return nullptr;
-
-    zc_table.CheckValidity();
-
+SamJw* Scenery::AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y, float obj_psi) {
     SamJw* jw = new SamJw();
     jw->obj_ref_gen = ref_gen;
     jw->x = obj_x;
@@ -129,9 +117,16 @@ static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float
     jw->y = obj_y;
     jw->psi = obj_psi;
     jw->is_zc_jw = true;
-    jw->FillLibraryValues(id);
+
+    XPLMLocalToWorld(obj_x, obj_y, obj_z, &jw->latitude,  &jw->longitude, &jw->altitude);
+    jw->xml_ref_gen = ref_gen;
+    jw->xml_x = obj_x;
+    jw->xml_y = obj_y;
+    jw->xml_z = obj_z;
+    jw->heading = obj_psi;
 
     const OsStand* stand = os_arpt->FindStandForJw(jw->x, jw->z);
+
     if (stand) {
         jw->base_name = stand->name();
         // delta = cabin points perpendicular to stand
@@ -152,11 +147,15 @@ static SamJw* ConfigureZcJw(int id, float obj_x, float obj_z, float obj_y, float
     jw->rotate2 = jw->initialRot2;
     jw->rotate3 = jw->initialRot3;
     jw->extent = jw->initialExtent;
+    jw->FillLibraryValues(id);
     jw->SetWheels();
 
-    zc_table.jws_.push_back(jw);
+    if (sam_jws.size() == 0)
+        sam_jws.reserve(os_arpt->n_stands());  // should be a good intial estimate
 
-    LogMsg("added to zc table stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
+    sam_jws.push_back(jw);
+
+    LogMsg("added zc jetway, stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
            jw->base_name.c_str(), jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
     return jw;
 }
@@ -193,8 +192,8 @@ static float JwAnimAcc(void* ref) {
     // We cache jetway pointers for quick lookup by position in the local coordinate system.
     if (jwc_ref_gen != ref_gen) {
         jwc_ref_gen = ref_gen;
-        jw_cache.clear();
         LogMsg("jw cache invalidated by reference frame shift, load factor: %0.2f", jw_cache.load_factor());
+        jw_cache.clear();
     }
 
     PositionCacheKey key{obj_x, obj_z};
@@ -255,11 +254,11 @@ static float JwAnimAcc(void* ref) {
                     tjw->xml_ref_gen = ref_gen;
                 }
 
-                if (fabsf(obj_x - tjw->xml_x) <= kSam2ObjMax && fabsf(obj_z - tjw->xml_z) <= kSam2ObjMax) {
+                if (std::abs(obj_x - tjw->xml_x) <= kSam2ObjMax && std::abs(obj_z - tjw->xml_z) <= kSam2ObjMax) {
                     // Heading is likely to match.
                     // We check position first as it's more likely to rule out other jetways
                     // letting us perform less checks to find the right one.
-                    if (fabsf(fem::RA(tjw->heading - obj_psi)) > kSam2ObjHdgMax)
+                    if (std::abs(fem::RA(tjw->heading - obj_psi)) > kSam2ObjHdgMax)
                         continue;
 
                     // have a match
@@ -278,25 +277,22 @@ static float JwAnimAcc(void* ref) {
 
                 stat_near_skip++;
             }
-        }
 
-        // no match of custom jw
-        // check against the zero config table
-        zc_table.CheckValidity();
-        for (auto tjw : zc_table.jws_) {
-            if (obj_x == tjw->x && obj_z == tjw->z && obj_y == tjw->y) {
-                jw_cache[key] = jw = tjw;
+            // obj was not found in the scenery's configured jetways, but maybe it's a zero config library jetway
+            if (nullptr == jw && 0 < id && id < lib_jw.size()) {  // unconfigured library jetway
+                if (os_arpt == nullptr)
+                    return 0.0f;  // airport not loaded yet, can't do anything
+
+                jw = sc->AddZeroConfigJetway(id, obj_x, obj_z, obj_y, obj_psi);
                 goto have_jw;
             }
 
-            stat_near_skip++;
+            break;  // only check the first matching scenery, we should not have multiple sceneries with jetways in
+                    // sight at the same time
         }
 
-        if (nullptr == jw && 0 < id && id < lib_jw.size()) // unconfigured library jetway
-            jw = ConfigureZcJw(id, obj_x, obj_z, obj_y, obj_psi);
-
-        if (nullptr == jw) // still unconfigured -> bad luck or very far away, still not in reach of a scenery
-           return 0.0f;
+        if (nullptr == jw)  // still unconfigured -> bad luck
+            return 0.0f;
     }
 
 have_jw:
@@ -348,14 +344,9 @@ void SamJw::ResetAll() {
     for (auto sc : sceneries)
         for (auto jw : sc->sam_jws)
             jw->Reset();
-
-    zc_table.CheckValidity();
-    for (auto jw : zc_table.jws_)
-        jw->Reset();
 }
 
 void JwInit(int max_sam_stands) {
-    zc_table.jws_.reserve(150);
     jw_cache.reserve(max_sam_stands);   // usually there are much more stands than jetways
 
     // create the jetway animation datarefs

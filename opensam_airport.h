@@ -99,7 +99,9 @@ class OsAirport : public dgs::Airport {
 
     void ResetState(state_t new_state);
 
+    size_t n_stands() const { return stands_.size(); }
     const OsStand* FindStandForJw(float jw_x, float jw_z);
+
     // auto set chocks and connect jetway when parking ?
     bool auto_post_parkbrake() const override;
     void ConnectJetway() override;
