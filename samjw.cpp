@@ -202,8 +202,6 @@ static float JwAnimAcc(void* ref) {
     if (it != jw_cache.end()) {
         stat_jw_cache_hit++;
         jw = it->second;
-        if (jw == nullptr)  // cached as not found
-            return 0.0f;
         goto have_jw;
     }
 
@@ -294,20 +292,11 @@ static float JwAnimAcc(void* ref) {
             stat_near_skip++;
         }
 
-        if (nullptr == jw && 0 < id && id < lib_jw.size()) { // unconfigured library jetway
+        if (nullptr == jw && 0 < id && id < lib_jw.size()) // unconfigured library jetway
             jw = ConfigureZcJw(id, obj_x, obj_z, obj_y, obj_psi);
-            if (jw == nullptr) {
-                // no negative caching for zc jetways as the airport is not yet loaded
-               return 0.0f;
-            }
-        }
 
-        if (nullptr == jw) { // still unconfigured -> bad luck
-            jw_cache[key] = nullptr;  // cache not found
-            LogMsg("no match for jetway object at x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, id: %d", obj_x, obj_z, obj_y,
-                   obj_psi, id);
-            return 0.0f;
-        }
+        if (nullptr == jw) // still unconfigured -> bad luck or very far away, still not in reach of a scenery
+           return 0.0f;
     }
 
 have_jw:
