@@ -42,6 +42,9 @@
 
 #include "ui.h"
 
+#include "fa-solid-900.inc"
+#include "IconsFontAwesome5.h"
+
 static constexpr int kWinWidth = 400;
 static constexpr int kWinHeight = 450;
 static constexpr int kWinPad = 75;
@@ -69,6 +72,25 @@ void ImgWindowIni() {
         LogMsg("Failed to load font DejaVuSans from file, falling back to default font");
     }
 
+    // Now we merge some icons from the OpenFontsIcons font into the above font
+    // (see `imgui/docs/FONTS.txt`)
+    ImFontConfig config;
+    config.MergeMode = true;
+
+    // We only read very selectively the individual glyphs we are actually using
+    // to safe on texture space
+    static ImVector<ImWchar> icon_ranges;
+    ImFontGlyphRangesBuilder builder;
+    // Add all icons that are actually used (they concatenate into one string)
+    builder.AddText((const char*)ICON_FA_CHECK);
+    builder.BuildRanges(&icon_ranges);
+
+    // Merge the icon font with the text font
+    ImgWindow::sFontAtlas->AddFontFromMemoryCompressedTTF(fa_solid_900_compressed_data,
+                                                          fa_solid_900_compressed_size,
+                                                          kFontSize,
+                                                          &config,
+                                                          icon_ranges.Data);
     LogMsg("Imgui Window initialized");
 }
 
@@ -401,6 +423,36 @@ void Ui::BuildInterface() {
             }
         }
     } else if (my_plane->state() == Plane::CAN_DOCK) {
+        int n_jws = my_plane->nearest_jws_.size();
+        int n_doors = my_plane->n_doors_;
+
+        ImGui::Spacing();
+        ImGui::Columns(n_doors + 1);
+        ImGui::NextColumn();
+        for (int d = 0; d < n_doors; d++) {
+            ImGui::Text("Door %d", d + 1);
+            ImGui::NextColumn();
+        }
+        ImGui::Separator();
+        for (int j = 0; j < n_jws; j++) {
+            ImGui::TextUnformatted(my_plane->nearest_jws_[j].jw_->name.c_str());
+            ImGui::NextColumn();
+            for (int d = 0; d < n_doors; d++) {
+                for (const auto& ajw : my_plane->active_jws_) {
+                    if (ajw.jw_ == my_plane->nearest_jws_[j].jw_ && ajw.door_ == d) {
+                        ImGui::TextUnformatted((const char*)ICON_FA_CHECK);
+                        ImGui::SameLine();
+                        break;
+                    }
+                }
+                ImGui::NextColumn();
+            }
+        }
+        ImGui::Columns();
+
+        ImGui::Separator();
+        ImGui::Spacing();
+
         if (ImGui::Button("Dock"))
             my_plane->dock_requested_ = true;
     } else if (my_plane->state() == Plane::CANT_DOCK) {
