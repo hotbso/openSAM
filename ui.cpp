@@ -175,12 +175,12 @@ void Ui::BuildInterface() {
     }
 
     //--------------------------------------------------
-    if (anim_sc && anim_sc->sam_anims.size()) {
+    if (anim_sc && anim_sc->sam_anims_.size()) {
         if (ImGui::TreeNode("Remote Control")) {
             ImGui::Spacing();
             ImGui::Separator();
 
-            for (auto& anim : anim_sc->sam_anims) {
+            for (auto& anim : anim_sc->sam_anims_) {
                 bool on = anim->is_on();
                 if (ImGui::Checkbox(anim->ui_line.c_str(), &on)) {
                     anim->SetState(on);

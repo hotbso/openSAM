@@ -150,10 +150,10 @@ SamJw* Scenery::AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_
     jw->FillLibraryValues(id);
     jw->SetWheels();
 
-    if (sam_jws.size() == 0)
-        sam_jws.reserve(os_arpt->n_stands());  // should be a good intial estimate
+    if (sam_jws_.size() == 0)
+        sam_jws_.reserve(os_arpt->n_stands());  // should be a good intial estimate
 
-    sam_jws.push_back(jw);
+    sam_jws_.push_back(jw);
 
     LogMsg("added zc jetway, stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
            jw->base_name.c_str(), jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
@@ -216,7 +216,7 @@ static float JwAnimAcc(void* ref) {
                 continue;
             }
 
-            for (auto tjw : sc->sam_jws) {
+            for (auto tjw : sc->sam_jws_) {
                 if (tjw->bad)
                     continue;
 
@@ -342,7 +342,7 @@ have_jw:
 // static method, reset all jetways
 void SamJw::ResetAll() {
     for (auto sc : sceneries)
-        for (auto jw : sc->sam_jws)
+        for (auto jw : sc->sam_jws_)
             jw->Reset();
 }
 

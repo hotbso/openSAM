@@ -56,11 +56,11 @@ float SamAnim::AnimAcc(void* ref) {
     int drf_idx = (uint64_t)ref;
 
     for (auto sc : sceneries) {
-        for (auto anim : sc->sam_anims) {
+        for (auto anim : sc->sam_anims_) {
             if (drf_idx != anim->drf_idx)
                 continue;
 
-            SamObj* obj = sc->sam_objs[anim->obj_idx];
+            SamObj* obj = sc->sam_objs_[anim->obj_idx];
 
             if (fabsf(fem::RA(obj->heading - obj_psi)) > kSam2ObjHdgMax)
                 continue;
@@ -186,7 +186,7 @@ float AnimStateMachine(void) {
     if (cur_sc != anim_sc) {
         anim_sc = cur_sc;
         if (anim_sc) {
-            for (auto& anim : anim_sc->sam_anims) {
+            for (auto& anim : anim_sc->sam_anims_) {
                 if (anim->ui_line.empty())
                     anim->ui_line = anim->label + " " + anim->title;
             }

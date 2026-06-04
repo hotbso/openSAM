@@ -65,34 +65,37 @@ namespace dgs {
 class AptAirport;
 }
 
-struct Scenery {
-    // Not copyable or movable
+class Scenery {
+   public:
+    Scenery() {
+        sam_jws_.reserve(100);
+        sam_objs_.reserve(50);
+        sam_anims_.reserve(50);
+    }
+
+    // Not copyable or assignable
     Scenery(const Scenery&) = delete;
     Scenery& operator=(const Scenery&) = delete;
-
-    std::string name;
-    std::string arpt_icao;
-
-    std::vector<SamJw*> sam_jws;
-    std::vector<SamObj*> sam_objs;
-    std::vector<SamAnim*> sam_anims;
-
-    dgs::AptAirport* apt;  // non-owning pointer to the airport this scenery belongs to, never null
-
-    fem::LLPos bbox_min_, bbox_max_;  // bounding box of this airport
-
-    Scenery() {
-        sam_jws.reserve(100);
-        sam_objs.reserve(50);  sam_anims.reserve(50);
-    }
+    Scenery(Scenery&&) = default;
 
     // add a zero config jw to the scenery
     SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y, float obj_psi);
 
-    bool InBbox(float lat, float lon) const{
+    bool InBbox(float lat, float lon) const {
         fem::LLPos pos(lat, lon);
         return fem::InRect(pos, bbox_min_, bbox_max_);
     }
+
+    std::string name_;
+    std::string arpt_icao_;
+
+    std::vector<SamJw*> sam_jws_;
+    std::vector<SamObj*> sam_objs_;
+    std::vector<SamAnim*> sam_anims_;
+
+    dgs::AptAirport* apt_;  // non-owning pointer to the airport this scenery belongs to, never null
+
+    fem::LLPos bbox_min_, bbox_max_;  // bounding box of this airport
 };
 
 extern std::vector<Scenery *> sceneries;

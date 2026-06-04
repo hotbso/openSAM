@@ -291,7 +291,6 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
 
     nearest_jws.clear();
 
-    // custom jws
     float plane_lat = my_plane->lat();
     float plane_lon = my_plane->lon();
 
@@ -299,7 +298,7 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
         // cheap check against bounding box
         if (!sc->InBbox(plane_lat, plane_lon))
             continue;
-        FilterCandidates(plane, nearest_jws, sc->sam_jws, avg_di);
+        FilterCandidates(plane, nearest_jws, sc->sam_jws_, avg_di);
     }
 
     // sort for door assignment

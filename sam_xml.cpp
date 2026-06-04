@@ -173,8 +173,8 @@ static int LookupDrf(const std::string& name) {
 }
 
 static int LookupObj(const Scenery* sc, const std::string& id) {
-    for (unsigned int i = 0; i < sc->sam_objs.size(); i++)
-        if (sc->sam_objs[i]->id == id)
+    for (unsigned int i = 0; i < sc->sam_objs_.size(); i++)
+        if (sc->sam_objs_[i]->id == id)
             return i;
 
     return -1;
@@ -186,8 +186,10 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
     Scenery* sc = ctx->sc;
 
     if (sc && (0 == strcmp(name, "scenery"))) {
-        GET_STR_ATTR(ctx->sc, name);
-        return;
+        const char* val = LookupAttr(attr, "name");
+        if (val)
+            ctx->sc->name_ = val;
+       return;
     }
 
     if (0 == strcmp(name, "jetways")) {
@@ -205,7 +207,7 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
         GetJwAttrs(attr, jw);
         // simple sanity check, e.g Aerosoft LEBL has bogus values
         if (BETWEEN(jw->latitude, -85.0f, 85.0f) && BETWEEN(jw->longitude, -180.0f, 180.0f))
-            sc->sam_jws.push_back(jw);
+            sc->sam_jws_.push_back(jw);
         else {
             LogMsg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude, jw->longitude);
             delete (jw);
@@ -308,7 +310,7 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
         GET_FLOAT_ATTR(obj, longitude);
         GET_FLOAT_ATTR(obj, elevation);
         GET_FLOAT_ATTR(obj, heading);
-        sc->sam_objs.push_back(obj);
+        sc->sam_objs_.push_back(obj);
         return;
     }
 
@@ -334,7 +336,7 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
             anim->drf_idx = LookupDrf(name);
 
         if (anim->obj_idx >= 0 && anim->drf_idx >= 0)
-            sc->sam_anims.push_back(anim);
+            sc->sam_anims_.push_back(anim);
         else {
             delete (anim);
             LogMsg("dataref of object not found for checkbox entry");
@@ -505,22 +507,22 @@ void CollectSamXml(const SceneryPacks& scp, int& max_sam_stands) {
         if (is_opensam) {
             // will be used with openSAM personality
             // ignore: false, is_opensam: true, AutoDGS filter: false
-            sc->apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", false, true, false, n_stands);
+            sc->apt_ = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", false, true, false, n_stands);
         } else {
             // will be used with AutoDGS personality
             bool ignore =
                 (std::filesystem::exists(sc_path + "no_autodgs") || std::filesystem::exists(sc_path + "no_autodgs.txt"));
             // ignore: as specified, is_opensam: false, AutoDGS filter: true
-            sc->apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, false, true, n_stands);
+            sc->apt_ = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, false, true, n_stands);
         }
 
-        if (!(sc->apt && is_opensam)) {
+        if (!(sc->apt_ && is_opensam)) {
             delete (sc);
             continue;
         }
 
         // don't save empty sceneries
-        if (sc->sam_jws.empty() && n_stands == 0 && sc->sam_anims.empty()) {
+        if (sc->sam_jws_.empty() && n_stands == 0 && sc->sam_anims_.empty()) {
             delete (sc);
             continue;
         }
@@ -530,15 +532,15 @@ void CollectSamXml(const SceneryPacks& scp, int& max_sam_stands) {
         static constexpr double far_skip_dlat = kFarSkip / kLat2M;
 
         // shrink to actual
-        sc->sam_jws.shrink_to_fit();
-        sc->sam_anims.shrink_to_fit();
-        sc->sam_objs.shrink_to_fit();
+        sc->sam_jws_.shrink_to_fit();
+        sc->sam_anims_.shrink_to_fit();
+        sc->sam_objs_.shrink_to_fit();
 
         // compute the bounding boxes, start with the airport's bbox
-        sc->bbox_min_ = sc->apt->bbox_min_;
-        sc->bbox_max_ = sc->apt->bbox_max_;
+        sc->bbox_min_ = sc->apt_->bbox_min_;
+        sc->bbox_max_ = sc->apt_->bbox_max_;
 
-        for (auto jw : sc->sam_jws) {
+        for (auto jw : sc->sam_jws_) {
             const double dlon = far_skip_dlat / std::cos(jw->latitude * kD2R);
             sc->bbox_min_.lat = std::min(sc->bbox_min_.lat, jw->latitude - far_skip_dlat);
             sc->bbox_max_.lat = std::max(sc->bbox_max_.lat, jw->latitude + far_skip_dlat);
