@@ -294,12 +294,13 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     float plane_lat = my_plane->lat();
     float plane_lon = my_plane->lon();
 
-    for (auto& sc : sceneries) {
-        // cheap check against bounding box
-        if (!sc.InBbox(plane_lat, plane_lon))
-            continue;
-        FilterCandidates(plane, nearest_jws, sc.sam_jws_, avg_di);
+    Scenery* sc = Scenery::FindScenery(plane_lat, plane_lon);
+    if (sc == nullptr) {
+        LogMsg("no scenery found for plane lat,lon (%0.4f, %0.4f), no jetways", plane_lat, plane_lon);
+        return 0;
     }
+
+    FilterCandidates(plane, nearest_jws, sc->sam_jws_, avg_di);
 
     // sort for door assignment
     std::sort(nearest_jws.begin(), nearest_jws.end());

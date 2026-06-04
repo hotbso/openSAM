@@ -1,7 +1,7 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
-//    Copyright (C) 2024, 2025  Holger Teutsch
+//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -19,6 +19,8 @@
 //    USA
 //
 
+#pragma once
+
 #include <cmath>
 #include <numbers>
 #include <string>
@@ -30,12 +32,10 @@
 #include "XPLMGraphics.h"
 #include "XPLMScenery.h"
 
+#include "scenery.h"
 #include "dgs/apt_airport.h"
 #include "log_msg.h"
 
-namespace fem = flat_earth_math;
-
-static constexpr float kD2R = std::numbers::pi/180.0;
 static constexpr float kF2M = 0.3048;                   // 1 ft [m]
 static constexpr float kLat2M = 111120;                 // 1° lat in m
 
@@ -54,58 +54,6 @@ extern int default_vdgs_type;
 typedef enum { MODE_AUTO, MODE_MANUAL } opmode_t;
 extern const char * const opmode_str[];
 extern opmode_t operation_mode;
-
-// forwards
-struct Stand;
-struct SamObj;
-struct SamJw;
-struct SceneryPacks;
-class SamAnim;
-
-class Scenery {
-   public:
-    Scenery() {
-        sam_jws_.reserve(100);
-        sam_objs_.reserve(50);
-        sam_anims_.reserve(50);
-    }
-
-    // Not copyable or assignable
-    Scenery(const Scenery&) = delete;
-    Scenery& operator=(const Scenery&) = delete;
-    Scenery(Scenery&&) = default;
-
-    // add a zero config jw to the scenery
-    SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y, float obj_psi);
-
-    bool InBbox(float lat, float lon) const {
-        fem::LLPos pos(lat, lon);
-        return fem::InRect(pos, bbox_min_, bbox_max_);
-    }
-
-    std::string name_;
-    std::string arpt_icao_;
-
-    std::vector<SamJw*> sam_jws_;
-    std::vector<SamObj*> sam_objs_;
-    std::vector<SamAnim*> sam_anims_;
-
-    fem::LLPos bbox_min_, bbox_max_;  // bounding box of this airport
-};
-
-extern std::vector<Scenery> sceneries;
-
-// a poor man's factory for creating sceneries, return max # of stands in sam sceneries
-extern void CollectSamXml(const SceneryPacks& scp, int& max_sam_stands);
-
-struct SceneryPacks {
-    std::string openSAM_Library_path;
-    std::string SAM_Library_path;
-
-    std::vector<std::string> sc_paths;
-
-    SceneryPacks(const std::string& xp_dir);
-};
 
 static constexpr int kMaxDoor = 3;
 struct DoorInfo {

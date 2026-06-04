@@ -61,7 +61,7 @@ struct ExpatCtx {
     }
 };
 
-std::vector<Scenery> sceneries;
+std::vector<Scenery> Scenery::sceneries;
 
 std::vector<SamLibJw*> lib_jw;
 std::vector<SamDrf*> sam_drfs;
@@ -481,8 +481,17 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
     sc_paths.shrink_to_fit();
 }
 
-// collect sam.xml from all sceneries
-void CollectSamXml(const SceneryPacks& scp, int& max_sam_stands) {
+/////////////////////////////////////////////////////////////////////////////////////////////////
+Scenery* Scenery::FindScenery(float lat, float lon) {
+    for (auto& sc : sceneries) {
+        if (fem::InRect(fem::LLPos(lat, lon), sc.bbox_min_, sc.bbox_max_))
+            return &sc;
+    }
+    return nullptr;
+}
+
+// collect all sceneries
+void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
     max_sam_stands = 0;
     std::unordered_map<std::string, SamLibJw*> lib_jw_map;
 

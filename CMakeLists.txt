@@ -60,7 +60,7 @@ SET(IMGUI_SRCS
 # ==============================================================================
 set(SOURCES
     opensam.cpp autodgs_airport.cpp adgs_api.cpp seasons.cpp
-    opensam_airport.cpp samjw.cpp jwctrl.cpp jwctrl_sound.cpp os_anim.cpp sam_xml.cpp read_wav.cpp
+    opensam_airport.cpp samjw.cpp jwctrl.cpp jwctrl_sound.cpp os_anim.cpp scenery.cpp read_wav.cpp
     plane.cpp myplane.cpp LTAPI.cpp mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp
     dgs/apt_airport.cpp dgs/dgs.cpp dgs/dgs_plane.cpp dgs/airport.cpp dgs/marshaller.cpp
     dgs/safedock_t2_24.cpp dgs/safedock_x.cpp sam1_dgs.cpp
@@ -150,35 +150,35 @@ elseif(UNIX)
 endif()
 
 # ==============================================================================
-# sam_xml_test (all platforms, matching Makefile.mgw64 test target)
+# scenery_test (all platforms, matching Makefile.mgw64 test target)
 # ==============================================================================
 if (WIN32)
-    option(BUILD_TESTS "Build sam_xml_test" ON)
+    option(BUILD_TESTS "Build scenery_test" ON)
 endif()
 
 if(BUILD_TESTS)
-    add_executable(sam_xml_test
-        sam_xml_test.cpp
-        sam_xml.cpp
+    add_executable(scenery_test
+        scenery_test.cpp
+        scenery.cpp
         dgs/apt_airport.cpp
         ${XPLIB}/log_msg.cpp
     )
-    target_include_directories(sam_xml_test PRIVATE
+    target_include_directories(scenery_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${XPLIB}
         ${SDK}/CHeaders/XPLM
     )
-    target_compile_definitions(sam_xml_test PRIVATE
+    target_compile_definitions(scenery_test PRIVATE
         XPLM200 XPLM210 XPLM300 XPLM301
         LOCAL_DEBUGSTRING
         $<IF:$<BOOL:${WIN32}>,WINDOWS WIN32 IBM=1,>
         $<IF:$<BOOL:${APPLE}>,APL=1,>
         $<IF:$<AND:$<BOOL:${UNIX}>,$<NOT:$<BOOL:${APPLE}>>>,LIN=1,>
     )
-    target_compile_options(sam_xml_test PRIVATE -Wall -Wno-format-overflow)
+    target_compile_options(scenery_test PRIVATE -Wall -Wno-format-overflow)
     if(WIN32)
-        target_link_libraries(sam_xml_test PRIVATE -l:libexpat.a)
+        target_link_libraries(scenery_test PRIVATE -l:libexpat.a)
     else()
-        target_link_libraries(sam_xml_test PRIVATE expat)
+        target_link_libraries(scenery_test PRIVATE expat)
     endif()
 endif()

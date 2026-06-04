@@ -55,7 +55,7 @@ float SamAnim::AnimAcc(void* ref) {
 
     int drf_idx = (uint64_t)ref;
 
-    for (auto& sc : sceneries) {
+    for (auto& sc : Scenery::sceneries) {
         for (auto anim : sc.sam_anims_) {
             if (drf_idx != anim->drf_idx)
                 continue;

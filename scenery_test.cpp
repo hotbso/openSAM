@@ -26,24 +26,27 @@
 #include <iostream>
 #include <cassert>
 
-#include "opensam.h"
+#include "scenery.h"
 #include "samjw.h"
 #include "os_anim.h"
+#include "dgs/airport.h"
 
-const char *log_msg_prefix = "sam_xml_test: ";
+#include "log_msg.h"
+
+const char *log_msg_prefix = "scenery_test: ";
 
 std::string xp_dir{"E:/X-Plane-12-test"};
 
 int
 main(int argc, char **argv) {
 
-    std::cout << "sam_xml_test starting\n";
+    std::cout << "scenery_test starting\n";
 
     try {
         SceneryPacks scp(xp_dir);
         int max_sam_stands;
-        CollectSamXml(scp, max_sam_stands);
-        LogMsg("%d sceneries with sam jetways found, max stands: %d", (int)sceneries.size(), max_sam_stands);
+        Scenery::CollectSceneries(scp, max_sam_stands);
+        LogMsg("%d sceneries with sam jetways found, max stands: %d", (int)Scenery::sceneries.size(), max_sam_stands);
         int n_stands;
         if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, false, true, n_stands)) {
              LogMsg("WARNING: global apt.dat could not be parsed, no DGS support!");
@@ -56,7 +59,7 @@ main(int argc, char **argv) {
         return 0;   // bye
     }
 
-    printf("\n%d sceneries collected\n", (int)sceneries.size());
+    printf("\n%d sceneries collected\n", (int)Scenery::sceneries.size());
 
     printf("%d datarefs collected\n", (int)sam_drfs.size());
 
@@ -70,7 +73,7 @@ main(int argc, char **argv) {
         puts("");
     }
 
-    for (const auto& sc : sceneries) {
+    for (const auto& sc : Scenery::sceneries) {
         printf("%s: %d jetways collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n",
                sc.name_.c_str(), (int)sc.sam_jws_.size(),
                sc.bbox_min_.lat, sc.bbox_min_.lon, sc.bbox_max_.lat, sc.bbox_max_.lon);
@@ -99,6 +102,12 @@ main(int argc, char **argv) {
     }
 
     printf("\napt.dat collected: %d\n\n", dgs::AptAirport::NumAirports());
+
+    Scenery* sc = Scenery::FindScenery(50.033333, 8.570556);  // EDDF
+    if (sc)
+        printf("Scenery for EDDF found: %s\n", sc->name_.c_str());
+    else
+        printf("Scenery for EDDF not found\n");
 
     const auto eddf = dgs::AptAirport::LookupAirport("EDDF");
     if (eddf) {

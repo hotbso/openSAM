@@ -172,9 +172,9 @@ SamJw* Scenery::AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_
 // sam/jetways/15/rotate2  -> (15, DR_ROTATE2)
 //
 static float JwAnimAcc(void* ref) {
-    float obj_x = XPLMGetDataf(draw_object_x_dr);
-    float obj_z = XPLMGetDataf(draw_object_z_dr);
-    float obj_y = XPLMGetDataf(draw_object_y_dr);
+    const float obj_x = XPLMGetDataf(draw_object_x_dr);
+    const float obj_z = XPLMGetDataf(draw_object_z_dr);
+    const float obj_y = XPLMGetDataf(draw_object_y_dr);
 
     if (obj_x == 0.0f && obj_y == 0.0f && obj_z == 0.0f)
         return 0.0f;  // likely uninitialized, datareftool poll etc.
@@ -201,101 +201,90 @@ static float JwAnimAcc(void* ref) {
     if (it != jw_cache.end()) {
         stat_jw_cache_hit++;
         jw = it->second;
-        goto have_jw;
-    }
+    } else {
+        const float lat = my_plane->lat();
+        const float lon = my_plane->lon();
 
-    {
-        float lat = my_plane->lat();
-        float lon = my_plane->lon();
-        float obj_psi = XPLMGetDataf(draw_object_psi_dr);
+        Scenery* sc = Scenery::FindScenery(lat, lon);
+        if (sc == nullptr) {
+            stat_sc_far_skip++;
+            return 0.0f;  // no scenery with jetways in sight, can't do anything
+        }
 
-        for (auto& sc : sceneries) {
-            // cheap check against bounding box
-            if (!sc.InBbox(lat, lon)) {
-                stat_sc_far_skip++;
+        const float obj_psi = XPLMGetDataf(draw_object_psi_dr);
+
+        for (auto tjw : sc->sam_jws_) {
+            if (tjw->bad)
                 continue;
+
+            if (tjw->xml_ref_gen < ref_gen) {
+                // we must iterate to get the elevation of the jetway
+                //
+                // this stuff runs once when a jw in a scenery comes in sight
+                // so it should not be too costly
+                //
+                double x, y, z;
+                XPLMWorldToLocal(tjw->latitude, tjw->longitude, tjw->altitude, &x, &y, &z);
+                if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
+                    LogMsg("terrain probe 1 failed, jw: '%s', lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
+                            tjw->name.c_str(), tjw->latitude, tjw->longitude, x, y, z);
+                    LogMsg("jw: '%s' marked BAD", tjw->name.c_str());
+                    tjw->bad = true;
+                    return 0.0f;
+                }
+
+                // xform back to world to get an approximation for the elevation
+                double lat, lon;
+                XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, &lat, &lon,
+                                    &tjw->altitude);
+                // LogMsg("elevation: %0.2f", tjw->altitude);
+
+                // and again to local with SAM's lat/lon and the approx elevation
+                XPLMWorldToLocal(tjw->latitude, tjw->longitude, tjw->altitude, &x, &y, &z);
+                if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
+                    LogMsg("terrain probe 2 failed???");
+                    return 0.0f;
+                }
+
+                tjw->xml_x = probeinfo.locationX;
+                tjw->xml_z = probeinfo.locationZ;
+                tjw->xml_ref_gen = ref_gen;
             }
 
-            for (auto tjw : sc.sam_jws_) {
-                if (tjw->bad)
+            if (std::abs(obj_x - tjw->xml_x) <= kSam2ObjMax && std::abs(obj_z - tjw->xml_z) <= kSam2ObjMax) {
+                // Heading is likely to match.
+                // We check position first as it's more likely to rule out other jetways
+                // letting us perform less checks to find the right one.
+                if (std::abs(fem::RA(tjw->heading - obj_psi)) > kSam2ObjHdgMax)
                     continue;
 
-                if (tjw->xml_ref_gen < ref_gen) {
-                    // we must iterate to get the elevation of the jetway
-                    //
-                    // this stuff runs once when a jw in a scenery comes in sight
-                    // so it should not be too costly
-                    //
-                    double x, y, z;
-                    XPLMWorldToLocal(tjw->latitude, tjw->longitude, tjw->altitude, &x, &y, &z);
-                    if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
-                        LogMsg("terrain probe 1 failed, jw: '%s', lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
-                               tjw->name.c_str(), tjw->latitude, tjw->longitude, x, y, z);
-                        LogMsg("jw: '%s' marked BAD", tjw->name.c_str());
-                        tjw->bad = true;
-                        return 0.0f;
-                    }
-
-                    // xform back to world to get an approximation for the elevation
-                    double lat, lon;
-                    XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, &lat, &lon,
-                                     &tjw->altitude);
-                    // LogMsg("elevation: %0.2f", tjw->altitude);
-
-                    // and again to local with SAM's lat/lon and the approx elevation
-                    XPLMWorldToLocal(tjw->latitude, tjw->longitude, tjw->altitude, &x, &y, &z);
-                    if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
-                        LogMsg("terrain probe 2 failed???");
-                        return 0.0f;
-                    }
-
-                    tjw->xml_x = probeinfo.locationX;
-                    tjw->xml_z = probeinfo.locationZ;
-                    tjw->xml_ref_gen = ref_gen;
+                // have a match
+                if (tjw->obj_ref_gen < ref_gen) {
+                    // use higher precision values of the actually drawn object
+                    tjw->obj_ref_gen = ref_gen;
+                    tjw->x = obj_x;
+                    tjw->z = obj_z;
+                    tjw->y = obj_y;
+                    tjw->psi = obj_psi;
                 }
 
-                if (std::abs(obj_x - tjw->xml_x) <= kSam2ObjMax && std::abs(obj_z - tjw->xml_z) <= kSam2ObjMax) {
-                    // Heading is likely to match.
-                    // We check position first as it's more likely to rule out other jetways
-                    // letting us perform less checks to find the right one.
-                    if (std::abs(fem::RA(tjw->heading - obj_psi)) > kSam2ObjHdgMax)
-                        continue;
-
-                    // have a match
-                    if (tjw->obj_ref_gen < ref_gen) {
-                        // use higher precision values of the actually drawn object
-                        tjw->obj_ref_gen = ref_gen;
-                        tjw->x = obj_x;
-                        tjw->z = obj_z;
-                        tjw->y = obj_y;
-                        tjw->psi = obj_psi;
-                    }
-
-                    jw_cache[key] = jw = tjw;
-                    goto have_jw;  // out of nested loops
-                }
-
-                stat_near_skip++;
+                jw_cache[key] = jw = tjw;
+                break;
             }
+        }
 
-            // obj was not found in the scenery's configured jetways, but maybe it's a zero config library jetway
-            if (nullptr == jw && 0 < id && id < lib_jw.size()) {  // unconfigured library jetway
-                if (os_arpt == nullptr)
-                    return 0.0f;  // airport not loaded yet, can't do anything
+        // obj was not found in the scenery's configured jetways, but maybe it's a zero config library jetway
+        if (nullptr == jw && 0 < id && id < lib_jw.size()) {  // unconfigured library jetway
+            if (os_arpt == nullptr)
+                return 0.0f;  // airport not loaded yet, can't do anything
 
-                jw = sc.AddZeroConfigJetway(id, obj_x, obj_z, obj_y, obj_psi);
-                goto have_jw;
-            }
-
-            break;  // only check the first matching scenery, we should not have multiple sceneries with jetways in
-                    // sight at the same time
+            jw = sc->AddZeroConfigJetway(id, obj_x, obj_z, obj_y, obj_psi);
         }
 
         if (nullptr == jw)  // still unconfigured -> bad luck
             return 0.0f;
-    }
+    } // no cache hit
 
-have_jw:
     switch (drc) {
         case DR_ROTATE1:
             // a one shot event on first access
@@ -341,7 +330,7 @@ have_jw:
 
 // static method, reset all jetways
 void SamJw::ResetAll() {
-    for (auto& sc : sceneries)
+    for (auto& sc : Scenery::sceneries)
         for (auto& jw : sc.sam_jws_)
             jw->Reset();
 }
