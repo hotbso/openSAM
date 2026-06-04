@@ -70,25 +70,23 @@ main(int argc, char **argv) {
         puts("");
     }
 
-    for (auto sc : sceneries) {
-        assert(sc->apt_);
-
+    for (const auto& sc : sceneries) {
         printf("%s: %d jetways collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n",
-               sc->name_.c_str(), (int)sc->sam_jws_.size(),
-               sc->bbox_min_.lat, sc->bbox_min_.lon, sc->bbox_max_.lat, sc->bbox_max_.lon);
+               sc.name_.c_str(), (int)sc.sam_jws_.size(),
+               sc.bbox_min_.lat, sc.bbox_min_.lon, sc.bbox_max_.lat, sc.bbox_max_.lon);
 
         puts("\nObjects");
-        for (auto obj : sc->sam_objs_)
+        for (auto obj : sc.sam_objs_)
             printf("'%s' %5.6f %5.6f %5.6f %5.6f\n", obj->id.c_str(), obj->latitude, obj->longitude,
                    obj->elevation, obj->heading);
 
         puts("\nAnimations");
-        for (auto anim : sc->sam_anims_)
+        for (auto anim : sc.sam_anims_)
             printf("'%s' '%s', obj: '%s', drf: '%s'\n", anim->label.c_str(), anim->title.c_str(),
-                   sc->sam_objs_[anim->obj_idx]->id.c_str(), sam_drfs[anim->drf_idx]->name.c_str());
+                   sc.sam_objs_[anim->obj_idx]->id.c_str(), sam_drfs[anim->drf_idx]->name.c_str());
 
         puts("\nJetways");
-        for (auto jw : sc->sam_jws_) {
+        for (auto jw : sc.sam_jws_) {
             printf("%s %5.6f %5.6f door: %d\n", jw->name.c_str(), jw->latitude, jw->longitude, jw->door);
         }
         puts("\n");

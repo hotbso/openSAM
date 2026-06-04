@@ -61,7 +61,7 @@ struct ExpatCtx {
     }
 };
 
-std::vector<Scenery*> sceneries;
+std::vector<Scenery> sceneries;
 
 std::vector<SamLibJw*> lib_jw;
 std::vector<SamDrf*> sam_drfs;
@@ -378,7 +378,7 @@ static void XMLCALL EndElement(void* user_data, const XML_Char* name) {
         ctx->in_gui = false;
 }
 
-static bool ParseSamXml(const std::string& fn, std::unordered_map<std::string, SamLibJw*>& lib_jw_map, Scenery* sc = nullptr) {
+static bool ParseSamXml(const std::string& fn, std::unordered_map<std::string, SamLibJw*>& lib_jw_map, Scenery* sc) {
     bool rc = false;
     int fd = open(fn.c_str(), O_RDONLY | O_BINARY);
     if (fd < 0)
@@ -487,71 +487,70 @@ void CollectSamXml(const SceneryPacks& scp, int& max_sam_stands) {
     std::unordered_map<std::string, SamLibJw*> lib_jw_map;
 
     // drefs from openSAM_Library must come first
-    if (scp.openSAM_Library_path.empty() || !ParseSamXml(scp.openSAM_Library_path + "sam.xml", lib_jw_map))
+    if (scp.openSAM_Library_path.empty() || !ParseSamXml(scp.openSAM_Library_path + "sam.xml", lib_jw_map, nullptr))
         throw std::runtime_error("openSAM_Library is not installed or inaccessible!");
 
     if (!scp.SAM_Library_path.empty()) {
-        if (!ParseSamXml(scp.SAM_Library_path + "libraryjetways.xml", lib_jw_map))
+        if (!ParseSamXml(scp.SAM_Library_path + "libraryjetways.xml", lib_jw_map, nullptr))
             LogMsg("Warning: SAM_Library is installed but 'SAM_Library/libraryjetways.xml' could not be processed");
     }
 
-    for (auto& sc_path : scp.sc_paths) {
-        ParseSamXml(sc_path + "libraryjetways.xml", lib_jw_map);  // always try libraryjetways.xml
+    sceneries.reserve(scp.sc_paths.size());
 
-        Scenery* sc = new Scenery();
-        bool is_opensam = ParseSamXml(sc_path + "sam.xml", lib_jw_map, sc);
+    for (auto& sc_path : scp.sc_paths) {
+        ParseSamXml(sc_path + "libraryjetways.xml", lib_jw_map, nullptr);  // always try libraryjetways.xml
+
+        Scenery sc;
+        bool is_opensam = ParseSamXml(sc_path + "sam.xml", lib_jw_map, &sc);
 
         // read stands from apt.dat
         int n_stands = 0;
 
+        dgs::AptAirport* apt = nullptr;
         if (is_opensam) {
             // will be used with openSAM personality
             // ignore: false, is_opensam: true, AutoDGS filter: false
-            sc->apt_ = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", false, true, false, n_stands);
+            apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", false, true, false, n_stands);
         } else {
             // will be used with AutoDGS personality
             bool ignore =
                 (std::filesystem::exists(sc_path + "no_autodgs") || std::filesystem::exists(sc_path + "no_autodgs.txt"));
             // ignore: as specified, is_opensam: false, AutoDGS filter: true
-            sc->apt_ = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, false, true, n_stands);
+            apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, false, true, n_stands);
         }
 
-        if (!(sc->apt_ && is_opensam)) {
-            delete (sc);
+        if (!(apt && is_opensam))
             continue;
-        }
 
         // don't save empty sceneries
-        if (sc->sam_jws_.empty() && n_stands == 0 && sc->sam_anims_.empty()) {
-            delete (sc);
+        if (sc.sam_jws_.empty() && n_stands == 0 && sc.sam_anims_.empty())
             continue;
-        }
 
         max_sam_stands = std::max(max_sam_stands, n_stands);
 
         static constexpr double far_skip_dlat = kFarSkip / kLat2M;
 
         // shrink to actual
-        sc->sam_jws_.shrink_to_fit();
-        sc->sam_anims_.shrink_to_fit();
-        sc->sam_objs_.shrink_to_fit();
+        sc.sam_jws_.shrink_to_fit();
+        sc.sam_anims_.shrink_to_fit();
+        sc.sam_objs_.shrink_to_fit();
 
         // compute the bounding boxes, start with the airport's bbox
-        sc->bbox_min_ = sc->apt_->bbox_min_;
-        sc->bbox_max_ = sc->apt_->bbox_max_;
+        sc.bbox_min_ = apt->bbox_min_;
+        sc.bbox_max_ = apt->bbox_max_;
 
-        for (auto jw : sc->sam_jws_) {
+        for (auto jw : sc.sam_jws_) {
             const double dlon = far_skip_dlat / std::cos(jw->latitude * kD2R);
-            sc->bbox_min_.lat = std::min(sc->bbox_min_.lat, jw->latitude - far_skip_dlat);
-            sc->bbox_max_.lat = std::max(sc->bbox_max_.lat, jw->latitude + far_skip_dlat);
+            sc.bbox_min_.lat = std::min(sc.bbox_min_.lat, jw->latitude - far_skip_dlat);
+            sc.bbox_max_.lat = std::max(sc.bbox_max_.lat, jw->latitude + far_skip_dlat);
 
-            sc->bbox_min_.lon = std::min(sc->bbox_min_.lon, fem::RA(jw->longitude - dlon));
-            sc->bbox_max_.lon = std::max(sc->bbox_max_.lon, fem::RA(jw->longitude + dlon));
+            sc.bbox_min_.lon = std::min(sc.bbox_min_.lon, fem::RA(jw->longitude - dlon));
+            sc.bbox_max_.lon = std::max(sc.bbox_max_.lon, fem::RA(jw->longitude + dlon));
         }
 
         // don't consider objects as these may be far away (e.g. Aerosoft LSZH)
 
-        sceneries.push_back(sc);
+        sceneries.emplace_back(std::move(sc));
     }
 
     sceneries.shrink_to_fit();

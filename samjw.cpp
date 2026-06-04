@@ -209,14 +209,14 @@ static float JwAnimAcc(void* ref) {
         float lon = my_plane->lon();
         float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
-        for (auto sc : sceneries) {
+        for (auto& sc : sceneries) {
             // cheap check against bounding box
-            if (!sc->InBbox(lat, lon)) {
+            if (!sc.InBbox(lat, lon)) {
                 stat_sc_far_skip++;
                 continue;
             }
 
-            for (auto tjw : sc->sam_jws_) {
+            for (auto tjw : sc.sam_jws_) {
                 if (tjw->bad)
                     continue;
 
@@ -283,7 +283,7 @@ static float JwAnimAcc(void* ref) {
                 if (os_arpt == nullptr)
                     return 0.0f;  // airport not loaded yet, can't do anything
 
-                jw = sc->AddZeroConfigJetway(id, obj_x, obj_z, obj_y, obj_psi);
+                jw = sc.AddZeroConfigJetway(id, obj_x, obj_z, obj_y, obj_psi);
                 goto have_jw;
             }
 
@@ -341,8 +341,8 @@ have_jw:
 
 // static method, reset all jetways
 void SamJw::ResetAll() {
-    for (auto sc : sceneries)
-        for (auto jw : sc->sam_jws_)
+    for (auto& sc : sceneries)
+        for (auto& jw : sc.sam_jws_)
             jw->Reset();
 }
 

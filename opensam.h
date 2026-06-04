@@ -61,9 +61,6 @@ struct SamObj;
 struct SamJw;
 struct SceneryPacks;
 class SamAnim;
-namespace dgs {
-class AptAirport;
-}
 
 class Scenery {
    public:
@@ -93,12 +90,10 @@ class Scenery {
     std::vector<SamObj*> sam_objs_;
     std::vector<SamAnim*> sam_anims_;
 
-    dgs::AptAirport* apt_;  // non-owning pointer to the airport this scenery belongs to, never null
-
     fem::LLPos bbox_min_, bbox_max_;  // bounding box of this airport
 };
 
-extern std::vector<Scenery *> sceneries;
+extern std::vector<Scenery> sceneries;
 
 // a poor man's factory for creating sceneries, return max # of stands in sam sceneries
 extern void CollectSamXml(const SceneryPacks& scp, int& max_sam_stands);
