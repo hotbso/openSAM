@@ -31,6 +31,7 @@ static constexpr float kSam2ObjMax = 2.5;   // m, max delta between coords in sa
 static constexpr float kSam2ObjHdgMax = 5;  // °, likewise for heading
 
 static Scenery* cur_sc;            // the current scenery determined by dref access
+static unsigned int cur_sc_ref_gen;    // the generation of the ref frame for which cur_sc is valid
 static float cur_sc_ts = -100.0f;  // timestamp of selection of cur_sc
 Scenery* anim_sc;                  // the scenery active for animation
 
@@ -86,6 +87,7 @@ float SamAnim::AnimAcc(void* ref) {
             if (now > cur_sc_ts + 20.0f) {  // avoid high freq flicker
                 cur_sc = &sc;
                 cur_sc_ts = now;
+                cur_sc_ref_gen = ref_gen;
             }
 
             if (anim->state == kOff2On || anim->state == kOn2Off) {
@@ -177,7 +179,7 @@ void SamAnim::SetState(bool on) {
 // and maintain the menu
 float AnimStateMachine(void) {
     // check whether we have recently seen a scenery
-    if (cur_sc && now > cur_sc_ts + 180.0f) {
+    if (cur_sc && (now > cur_sc_ts + 180.0f || ref_gen > cur_sc_ref_gen)) {
         LogMsg("have not seen a custom animated scenery recently");
         cur_sc = NULL;
     }
