@@ -28,12 +28,12 @@
 #include "flat_earth_math.h"
 namespace fem = flat_earth_math;
 
+#include "os_anim.h"
+
 static constexpr float kD2R = std::numbers::pi/180.0;
 
 // forwards
-struct SamObj;
 struct SamJw;
-class SamAnim;
 
 struct SceneryPacks {
     std::string openSAM_Library_path;
@@ -52,9 +52,9 @@ class Scenery {
     std::string name_;
     std::string arpt_icao_;
 
-    std::vector<SamJw*> sam_jws_;
-    std::vector<SamObj*> sam_objs_;
-    std::vector<SamAnim*> sam_anims_;
+    std::vector<SamJw*> sam_jws_;       // this may grow dynamically with zero config jetways so we keep pointers to avoid invalidation
+    std::vector<SamObj> sam_objs_;
+    std::vector<SamAnim> sam_anims_;
 
     Scenery() {
         sam_jws_.reserve(100);

@@ -36,6 +36,7 @@
 const char *log_msg_prefix = "scenery_test: ";
 
 std::string xp_dir{"E:/X-Plane-12-test"};
+std::vector<SamDrf> SamDrf::sam_drfs;
 
 int
 main(int argc, char **argv) {
@@ -61,14 +62,15 @@ main(int argc, char **argv) {
 
     printf("\n%d sceneries collected\n", (int)Scenery::sceneries.size());
 
-    printf("%d datarefs collected\n", (int)sam_drfs.size());
+    printf("%d datarefs collected\n", (int)SamDrf::sam_drfs.size());
 
-    for (auto drf : sam_drfs) {
-        printf("%s, auto_play: %d, randomize_phase: %d, augment_wind_speed: %d\n",
-               drf->name.c_str(), drf->autoplay, drf->randomize_phase, drf->augment_wind_speed);
+    for (int i = 0; i < (int)SamDrf::sam_drfs.size(); i++) {
+        SamDrf& drf = SamDrf::sam_drfs[i];
+        printf("%d: '%s', auto_play: %d, randomize_phase: %d, augment_wind_speed: %d\n",
+               i, drf.name.c_str(), drf.autoplay, drf.randomize_phase, drf.augment_wind_speed);
 
-        for (int j = 0; j < drf->n_tv; j++)
-            printf("   t: %6.2f, v: %6.2f\n", drf->t[j], drf->v[j]);
+        for (int j = 0; j < drf.n_tv; j++)
+            printf("   t: %6.2f, v: %6.2f\n", drf.t[j], drf.v[j]);
 
         puts("");
     }
@@ -79,14 +81,14 @@ main(int argc, char **argv) {
                sc.bbox_min_.lat, sc.bbox_min_.lon, sc.bbox_max_.lat, sc.bbox_max_.lon);
 
         puts("\nObjects");
-        for (auto obj : sc.sam_objs_)
-            printf("'%s' %5.6f %5.6f %5.6f %5.6f\n", obj->id.c_str(), obj->latitude, obj->longitude,
-                   obj->elevation, obj->heading);
+        for (auto& obj : sc.sam_objs_)
+            printf("'%s' %5.6f %5.6f %5.6f %5.6f\n", obj.id.c_str(), obj.latitude, obj.longitude,
+                   obj.elevation, obj.heading);
 
         puts("\nAnimations");
-        for (auto anim : sc.sam_anims_)
-            printf("'%s' '%s', obj: '%s', drf: '%s'\n", anim->label.c_str(), anim->title.c_str(),
-                   sc.sam_objs_[anim->obj_idx]->id.c_str(), sam_drfs[anim->drf_idx]->name.c_str());
+        for (auto& anim : sc.sam_anims_)
+            printf("'%s' '%s', obj: '%s', drf: '%s'\n", anim.label.c_str(), anim.title.c_str(),
+                   sc.sam_objs_[anim.obj_idx].id.c_str(), SamDrf::sam_drfs[anim.drf_idx].name.c_str());
 
         puts("\nJetways");
         for (auto jw : sc.sam_jws_) {

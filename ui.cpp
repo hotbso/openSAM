@@ -181,10 +181,10 @@ void Ui::BuildInterface() {
             ImGui::Separator();
 
             for (auto& anim : anim_sc->sam_anims_) {
-                bool on = anim->is_on();
-                if (ImGui::Checkbox(anim->ui_line.c_str(), &on)) {
-                    anim->SetState(on);
-                    LogMsg("Animation '%s' state changed to %s", anim->ui_line.c_str(), on ? "ON" : "OFF");
+                bool on = anim.is_on();
+                if (ImGui::Checkbox(anim.ui_line.c_str(), &on)) {
+                    anim.SetState(on);
+                    LogMsg("Animation '%s' state changed to %s", anim.ui_line.c_str(), on ? "ON" : "OFF");
                 }
             }
 

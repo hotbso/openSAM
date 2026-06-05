@@ -52,7 +52,7 @@ struct ExpatCtx {
     bool in_datarefs{}, in_dataref{};
     bool in_objects{};
     bool in_gui{};
-    SamDrf* cur_dataref{};
+    int cur_drf_idx = -1;    // index into sam_drfs of the dataref currently being parsed, -1 if none
 
     std::unordered_map<std::string, SamLibJw*>& lib_jw_map;
 
@@ -64,7 +64,6 @@ struct ExpatCtx {
 std::vector<Scenery> Scenery::sceneries;
 
 std::vector<SamLibJw*> lib_jw;
-std::vector<SamDrf*> sam_drfs;
 
 static const int BUFSIZE = 4096;
 
@@ -80,28 +79,27 @@ static const char* LookupAttr(const XML_Char** attr, const char* name) {
     {                                           \
         const char* val = LookupAttr(attr, #n); \
         if (val)                                \
-            ptr->n = atoi(val);                 \
+            (ptr)->n = atoi(val);               \
     }
 
 #define GET_FLOAT_ATTR(ptr, n)                  \
     {                                           \
         const char* val = LookupAttr(attr, #n); \
         if (val)                                \
-            ptr->n = atof(val);                 \
+            (ptr)->n = atof(val);               \
     }
 
-
-#define GET_STR_ATTR(ptr, n)                          \
-    {                                                 \
-        const char* val = LookupAttr(attr, #n);       \
-        if (val)                                      \
-            ptr->n = val; \
+#define GET_STR_ATTR(ptr, n)                    \
+    {                                           \
+        const char* val = LookupAttr(attr, #n); \
+        if (val)                                \
+            (ptr)->n = val;                     \
     }
 
-#define GET_BOOL_ATTR(ptr, n)                         \
-    {                                                 \
-        const char* val = LookupAttr(attr, #n);       \
-        ptr->n = (val && (0 == strcmp(val, "true"))); \
+#define GET_BOOL_ATTR(ptr, n)                           \
+    {                                                   \
+        const char* val = LookupAttr(attr, #n);         \
+        (ptr)->n = (val && (0 == strcmp(val, "true"))); \
     }
 
 static void GetJwAttrs(const XML_Char** attr, SamJw* sam_jw) {
@@ -165,8 +163,8 @@ static void GetLibJwAttrs(const XML_Char** attr, SamLibJw* sam_lib_jw) {
 }
 
 static int LookupDrf(const std::string& name) {
-    for (unsigned int i = 0; i < sam_drfs.size(); i++)
-        if (sam_drfs[i]->name == name)
+    for (unsigned int i = 0; i < SamDrf::sam_drfs.size(); i++)
+        if (SamDrf::sam_drfs[i].name == name)
             return i;
 
     return -1;
@@ -174,7 +172,7 @@ static int LookupDrf(const std::string& name) {
 
 static int LookupObj(const Scenery* sc, const std::string& id) {
     for (unsigned int i = 0; i < sc->sam_objs_.size(); i++)
-        if (sc->sam_objs_[i]->id == id)
+        if (sc->sam_objs_[i].id == id)
             return i;
 
     return -1;
@@ -246,34 +244,36 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
         // for (int i = 0; attr[i]; i += 2)
         //     LogMsg("dataref %s, %s", attr[i], attr[i+1]);
 
-        auto drf = new SamDrf();
-        ctx->cur_dataref = drf;
+        SamDrf drf;
 
-        GET_STR_ATTR(drf, name);
-        if (drf->name[0] == '\0') {
+        GET_STR_ATTR(&drf, name);
+        if (drf.name[0] == '\0') {
             LogMsg("name attribute not found for dataref");
-            ctx->cur_dataref = NULL;
+            ctx->cur_drf_idx = -1;
             return;
         }
 
-        if (LookupDrf(drf->name) >= 0) {
-            LogMsg("duplicate definition for dataref '%s', ignored", drf->name.c_str());
-            ctx->cur_dataref = NULL;
+        if (LookupDrf(drf.name) >= 0) {
+            LogMsg("duplicate definition for dataref '%s', ignored", drf.name.c_str());
+            ctx->cur_drf_idx = -1;
             return;
         }
 
-        GET_BOOL_ATTR(drf, autoplay);
-        GET_BOOL_ATTR(drf, randomize_phase);
-        GET_BOOL_ATTR(drf, augment_wind_speed);
-        drf->t.reserve(10);
-        drf->v.reserve(10);
-        drf->s.reserve(10);
-        sam_drfs.push_back(drf);
+        GET_BOOL_ATTR(&drf, autoplay);
+        GET_BOOL_ATTR(&drf, randomize_phase);
+        GET_BOOL_ATTR(&drf, augment_wind_speed);
+        drf.t.reserve(10);
+        drf.v.reserve(10);
+        drf.s.reserve(10);
+
+        ctx->cur_drf_idx = SamDrf::sam_drfs.size();
+        //LogMsg("cur_drf_idx %d, name '%s', autoplay %d, randomize_phase %d, augment_wind_speed %d", ctx->cur_drf_idx, drf.name.c_str(), drf.autoplay, drf.randomize_phase, drf.augment_wind_speed);
+        SamDrf::sam_drfs.push_back(std::move(drf));
         return;
     }
 
-    if (ctx->in_dataref && ctx->cur_dataref && (0 == strcmp(name, "animation"))) {
-        SamDrf* d = ctx->cur_dataref;
+    if (ctx->in_dataref && ctx->cur_drf_idx >= 0 && (0 == strcmp(name, "animation"))) {
+        SamDrf& d = SamDrf::sam_drfs[ctx->cur_drf_idx];
         const char* attr_t = LookupAttr(attr, "t");
         const char* attr_v = LookupAttr(attr, "v");
 
@@ -281,16 +281,16 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
             float t = atof(attr_t);
             float v = atof(attr_v);
 
-            if (d->n_tv > 0 && t == d->t[d->n_tv - 1])  // no double entries
-                d->v[d->n_tv - 1] = v;
+            if (d.n_tv > 0 && t == d.t[d.n_tv - 1])  // no double entries
+                d.v[d.n_tv - 1] = v;
             else {
-                int n = d->n_tv;
-                d->t.push_back(t);
-                d->v.push_back(v);
+                int n = d.n_tv;
+                d.t.push_back(t);
+                d.v.push_back(v);
                 // save a few cycles in the accessor
-                float s = n > 0 ? (v - d->v[n - 1]) / (t - d->t[n - 1]) : 0.0f;
-                d->s.push_back(s);
-                d->n_tv++;
+                float s = n > 0 ? (v - d.v[n - 1]) / (t - d.t[n - 1]) : 0.0f;
+                d.s.push_back(s);
+                d.n_tv++;
             }
         }
 
@@ -304,13 +304,13 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
     }
 
     if (sc && ctx->in_objects && (0 == strcmp(name, "instance"))) {
-        SamObj* obj = new SamObj();
-        GET_STR_ATTR(obj, id);
-        GET_FLOAT_ATTR(obj, latitude);
-        GET_FLOAT_ATTR(obj, longitude);
-        GET_FLOAT_ATTR(obj, elevation);
-        GET_FLOAT_ATTR(obj, heading);
-        sc->sam_objs_.push_back(obj);
+        SamObj obj;
+        GET_STR_ATTR(&obj, id);
+        GET_FLOAT_ATTR(&obj, latitude);
+        GET_FLOAT_ATTR(&obj, longitude);
+        GET_FLOAT_ATTR(&obj, elevation);
+        GET_FLOAT_ATTR(&obj, heading);
+        sc->sam_objs_.push_back(std::move(obj));
         return;
     }
 
@@ -321,24 +321,23 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
     }
 
     if (sc && ctx->in_gui && (0 == strcmp(name, "checkbox"))) {
-        SamAnim* anim = new SamAnim();
-        GET_STR_ATTR(anim, label);
-        GET_STR_ATTR(anim, title);
+        SamAnim anim;
+        GET_STR_ATTR(&anim, label);
+        GET_STR_ATTR(&anim, title);
 
-        anim->obj_idx = anim->drf_idx = -1;
+        anim.obj_idx = anim.drf_idx = -1;
 
         const char* inst = LookupAttr(attr, "instance");
         if (inst)
-            anim->obj_idx = LookupObj(sc, inst);
+            anim.obj_idx = LookupObj(sc, inst);
 
         const char* name = LookupAttr(attr, "dataref");
         if (name)
-            anim->drf_idx = LookupDrf(name);
+            anim.drf_idx = LookupDrf(name);
 
-        if (anim->obj_idx >= 0 && anim->drf_idx >= 0)
-            sc->sam_anims_.push_back(anim);
+        if (anim.obj_idx >= 0 && anim.drf_idx >= 0)
+            sc->sam_anims_.push_back(std::move(anim));
         else {
-            delete (anim);
             LogMsg("dataref of object not found for checkbox entry");
         }
         return;
@@ -361,13 +360,13 @@ static void XMLCALL EndElement(void* user_data, const XML_Char* name) {
 
     else if (0 == strcmp(name, "dataref")) {
         ctx->in_dataref = false;
-        auto drf = ctx->cur_dataref;
-        if (drf) {
-            drf->t.shrink_to_fit();
-            drf->v.shrink_to_fit();
-            drf->s.shrink_to_fit();
-            if (drf->n_tv < 2)  // sanity check
-                LogMsg("too few animation entries for %s", drf->name.c_str());
+        if (ctx->cur_drf_idx >= 0) {
+            SamDrf& drf = SamDrf::sam_drfs[ctx->cur_drf_idx];
+            drf.t.shrink_to_fit();
+            drf.v.shrink_to_fit();
+            drf.s.shrink_to_fit();
+            if (drf.n_tv < 2)  // sanity check
+                LogMsg("too few animation entries for %s", drf.name.c_str());
         }
     }
 
@@ -563,7 +562,7 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
     }
 
     sceneries.shrink_to_fit();
-    sam_drfs.shrink_to_fit();
+    SamDrf::sam_drfs.shrink_to_fit();
 
     // transfer collected library jetways to vector for fast access by dref acessors
     lib_jw.reserve(lib_jw_map.size() + 1);
