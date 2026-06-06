@@ -29,6 +29,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <filesystem>
+#include <chrono>
 
 #include "opensam.h"
 #include "plane.h"
@@ -619,11 +620,12 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         LoadDoorInfo(base_dir + "csl_door_position.txt", csl_door_info_map);
         LoadAcfGenericType(base_dir + "acf_generic_type.txt");
 
+        auto t_start = std::chrono::high_resolution_clock::now();
         SceneryPacks scp(xp_dir);
         if (scp.openSAM_Library_path.empty())
              LogMsg("WARNING: openSAM_Library not found!");
 
-        sam_library_installed = scp.SAM_Library_path.size() > 0;
+        sam_library_installed = !scp.SAM_Library_path.empty();
 
         Scenery::CollectSceneries(scp, max_sam_stands);
         LogMsg("%d sceneries with sam jetways found", (int)Scenery::sceneries.size());
@@ -634,6 +636,10 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         } else {
             LogMsg("%d stands with DGS found in global apt.dat", n_stands);
         }
+
+        auto t_end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double>(t_end - t_start).count();
+        LogMsg("Sceneries collected in %0.2fs", duration);
 
         JwCtrl::SoundInit();
     } catch (const std::exception& ex) {
