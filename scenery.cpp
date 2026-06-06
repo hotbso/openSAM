@@ -482,10 +482,22 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 Scenery* Scenery::FindScenery(float lat, float lon) {
-    for (auto& sc : sceneries) {
-        if (fem::InRect(fem::LLPos(lat, lon), sc.bbox_min_, sc.bbox_max_))
-            return &sc;
+    static Scenery* last_sc = nullptr;
+    fem::LLPos pos(lat, lon);
+
+    if (last_sc && fem::InRect(pos, last_sc->bbox_min_, last_sc->bbox_max_)) {
+        stat_sc_last++;
+        return last_sc;
     }
+
+    for (auto& sc : sceneries) {
+        if (fem::InRect(pos, sc.bbox_min_, sc.bbox_max_)) {
+            last_sc = &sc;
+            return last_sc;
+        }
+    }
+
+    last_sc = nullptr;
     return nullptr;
 }
 

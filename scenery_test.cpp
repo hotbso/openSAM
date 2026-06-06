@@ -37,6 +37,7 @@ const char *log_msg_prefix = "scenery_test: ";
 
 std::string xp_dir{"E:/X-Plane-12-test"};
 std::vector<SamDrf> SamDrf::sam_drfs;
+unsigned long long stat_sc_last;
 
 int
 main(int argc, char **argv) {

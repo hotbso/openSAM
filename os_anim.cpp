@@ -82,10 +82,8 @@ float SamAnim::AnimAcc(void* ref) {
                 obj.xml_ref_gen = ref_gen;
             }
 
-            if (fabs(obj_x - obj.xml_x) > kSam2ObjMax || fabs(obj_z - obj.xml_z) > kSam2ObjMax) {
-                stat_near_skip++;
+            if (fabs(obj_x - obj.xml_x) > kSam2ObjMax || fabs(obj_z - obj.xml_z) > kSam2ObjMax)
                 continue;
-            }
 
             SamDrf& drf = SamDrf::sam_drfs[drf_idx];
 
