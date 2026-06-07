@@ -36,13 +36,13 @@ static constexpr float kSam2ObjMax = 2.5;     // m, max delta between coords in 
 static constexpr float kSam2ObjHdgMax = 5;    // °, likewise for heading
 
 // keep in sync with array below !
-typedef enum dr_code_e {
-    DR_ROTATE1, DR_ROTATE2, DR_ROTATE3, DR_EXTENT,
-    DR_WHEELS, DR_WHEELROTATEC, DR_WHEELROTATER, DR_WHEELROTATEL,
-    DR_WARNLIGHT,
-    DR_CANOPY,
-    N_JW_DR
-} dr_code_t;
+enum DrCode {
+    kRotate1, kRotate2, kRotate3, kExtent,
+    kWheels, kWheelRotateC, kWheelRotateR, kWheelRotateL,
+    kWarnLight,
+    kCanopy,
+    kNumDrCodes
+};
 
 static const char *dr_name_jw[] = {
     "rotate1",
@@ -57,6 +57,7 @@ static const char *dr_name_jw[] = {
     "canopy"
 };
 
+// The global cache for jetways keyed by (x,z)
 static std::unordered_map<PositionCacheKey, SamJw*, PositionCacheKeyHasher> jw_cache;
 static unsigned int jwc_ref_gen = 0;  // generation # of the reference frame for which the cache is valid
 
@@ -106,8 +107,8 @@ void SamJw::FillLibraryValues(unsigned int id) {
 
 //
 // configure a zc library jetway and add it to the scenery
-// As all jetways zc jetways ahould live forever as there can be complex interactions between
-// frame shifts and multiplayer planes with active jetways
+// As all jetways zc jetways should live forever as there can be complex interactions between
+// frame shifts and multiplayer planes with active jetways.
 //
 SamJw* Scenery::AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y, float obj_psi) {
     SamJw* jw = new SamJw();
@@ -168,8 +169,8 @@ SamJw* Scenery::AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_
 //
 // ref is uint64_t and has the library id in the high long and the dataref id in low long.
 // e.g.
-// sam/jetways/rotate1     -> ( 0, DR_ROTATE1)
-// sam/jetways/15/rotate2  -> (15, DR_ROTATE2)
+// sam/jetways/rotate1     -> ( 0, kRotate1)
+// sam/jetways/15/rotate2  -> (15, kRotate2)
 //
 static float JwAnimAcc(void* ref) {
     const float obj_x = XPLMGetDataf(draw_object_x_dr);
@@ -183,8 +184,8 @@ static float JwAnimAcc(void* ref) {
 
     CheckRefFrameShift();
 
-    uint64_t ctx = (uint64_t)ref;
-    dr_code_t drc = (dr_code_t)(ctx & 0xffffffff);
+    uint64_t ctx = reinterpret_cast<uint64_t>(ref);
+    DrCode drc = static_cast<DrCode>(ctx & 0xffffffff);
     unsigned int id = ctx >> 32;
 
     SamJw* jw = nullptr;
@@ -226,6 +227,7 @@ static float JwAnimAcc(void* ref) {
                 double x, y, z;
                 XPLMWorldToLocal(tjw->latitude, tjw->longitude, tjw->altitude, &x, &y, &z);
                 if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
+                    // usually from bogus values in sam.xml
                     LogMsg("terrain probe 1 failed, jw: '%s', lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
                             tjw->name.c_str(), tjw->latitude, tjw->longitude, x, y, z);
                     LogMsg("jw: '%s' marked BAD", tjw->name.c_str());
@@ -242,7 +244,9 @@ static float JwAnimAcc(void* ref) {
                 // and again to local with SAM's lat/lon and the approx elevation
                 XPLMWorldToLocal(tjw->latitude, tjw->longitude, tjw->altitude, &x, &y, &z);
                 if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
+                    // should not happen for the second probe
                     LogMsg("terrain probe 2 failed???");
+                    tjw->bad = true;
                     return 0.0f;
                 }
 
@@ -286,38 +290,38 @@ static float JwAnimAcc(void* ref) {
     } // no cache hit
 
     switch (drc) {
-        case DR_ROTATE1:
+        case kRotate1:
             // a one shot event on first access
             if (id > 0) {
                 jw->FillLibraryValues(id);
             }
             return jw->rotate1;
             break;
-        case DR_ROTATE2:
+        case kRotate2:
             return jw->rotate2;
             break;
-        case DR_ROTATE3:
+        case kRotate3:
             return jw->rotate3;
             break;
-        case DR_EXTENT:
+        case kExtent:
             return jw->extent;
             break;
-        case DR_WHEELS:
+        case kWheels:
             return jw->wheels;
             break;
-        case DR_WHEELROTATEC:
+        case kWheelRotateC:
             return jw->wheelrotatec;
             break;
-        case DR_WHEELROTATER:
+        case kWheelRotateR:
             return jw->wheelrotater;
             break;
-        case DR_WHEELROTATEL:
+        case kWheelRotateL:
             return jw->wheelrotatel;
             break;
-        case DR_WARNLIGHT:
+        case kWarnLight:
             return jw->warnlight;
             break;
-        case DR_CANOPY:
+        case kCanopy:
             return jw->canopy;
             break;
         default:
@@ -339,7 +343,7 @@ void JwInit(int max_sam_stands) {
     jw_cache.reserve(max_sam_stands);   // usually there are much more stands than jetways
 
     // create the jetway animation datarefs
-    for (int drc = DR_ROTATE1; drc < N_JW_DR; drc++) {
+    for (int drc = kRotate1; drc < kNumDrCodes; drc++) {
         char name[100];
         name[99] = '\0';
         snprintf(name, sizeof(name) - 1, "sam/jetway/%s", dr_name_jw[drc]);
