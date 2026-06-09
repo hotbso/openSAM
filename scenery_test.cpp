@@ -122,5 +122,14 @@ main(int argc, char **argv) {
         ekbi->dump();
     }
 
+    double min_lat = 90.0, max_lat = -90.0, min_lon = 360.0, max_lon = -360.0;
+    for (const auto& [s, a] : dgs::AptAirport::apt_airports) {
+        min_lat = std::min(min_lat, a->bbox_min_.lat);
+        max_lat = std::max(max_lat, a->bbox_max_.lat);
+        min_lon = std::min(min_lon, a->bbox_min_.lon);
+        max_lon = std::max(max_lon, a->bbox_max_.lon);
+    }
+
+    printf("\nGlobal Bounding box: %0.3f,%0.3f -> %0.3f,%0.3f\n", min_lat, min_lon, max_lat, max_lon);
     return (0);
 }
