@@ -139,6 +139,8 @@ static void GetJwAttrs(const XML_Char** attr, SamJw* sam_jw) {
     }
 
     sam_jw->base_name = sam_jw->name;  // for later use when we fabricate names for zero config jetways
+    // sanitize all heading values entering the plugin in order to avoid stalls in fem::RA
+    sam_jw->heading = fmodf(sam_jw->heading, 360.0f);
 }
 
 static void GetLibJwAttrs(const XML_Char** attr, SamLibJw* sam_lib_jw) {
