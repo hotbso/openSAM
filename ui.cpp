@@ -1,7 +1,10 @@
 //
 //    openSAM: manage DGS and jetways for X Plane
 //
-//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
+//    Copyright (C) 2026  Holger Teutsch
+//
+//      based on example code from imgui4xp by William Good
+//      published under MIT license, see README.html for details
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
