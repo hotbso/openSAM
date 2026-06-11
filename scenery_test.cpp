@@ -33,14 +33,16 @@
 
 #include "log_msg.h"
 
+#include "quadtree.h"
+#include "quadtree.inl"
+
 const char *log_msg_prefix = "scenery_test: ";
 
 std::string xp_dir{"E:/X-Plane-12-test"};
 std::vector<SamDrf> SamDrf::sam_drfs;
 unsigned long long stat_sc_last;
 
-int
-main(int argc, char **argv) {
+void scenery_test() {
 
     std::cout << "scenery_test starting\n";
 
@@ -52,14 +54,16 @@ main(int argc, char **argv) {
         int n_stands;
         if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, false, true, n_stands)) {
              LogMsg("WARNING: global apt.dat could not be parsed, no DGS support!");
-            return 0;
+            return;
         } else {
             LogMsg("%d stands with DGS found in global apt.dat", n_stands);
         }
     } catch (const std::exception& ex) {
         LogMsg("fatal error: '%s', bye!", ex.what());
-        return 0;   // bye
+        return;   // bye
     }
+
+    dgs::AptAirport::LoadingFinished();
 
     printf("\n%d sceneries collected\n", (int)Scenery::sceneries.size());
 
@@ -123,7 +127,7 @@ main(int argc, char **argv) {
     }
 
     double min_lat = 90.0, max_lat = -90.0, min_lon = 360.0, max_lon = -360.0;
-    for (const auto& [s, a] : dgs::AptAirport::apt_airports) {
+    for (const auto& [s, a] : dgs::AptAirport::apt_airports_) {
         min_lat = std::min(min_lat, a->bbox_min_.lat);
         max_lat = std::max(max_lat, a->bbox_max_.lat);
         min_lon = std::min(min_lon, a->bbox_min_.lon);
@@ -131,5 +135,18 @@ main(int argc, char **argv) {
     }
 
     printf("\nGlobal Bounding box: %0.3f,%0.3f -> %0.3f,%0.3f\n", min_lat, min_lon, max_lat, max_lon);
-    return (0);
+
+    // dgs::AptAirport::apt_quadtree_.Dump();
+
+    const dgs::AptAirport* arpt = dgs::AptAirport::LocateAirport(fem::LLPos(50.032548, 8.514717));  // EDDF, slightly west inside bbox
+    if (arpt)
+        printf("\nEDDF found by position lookup: %s\n", arpt->icao_.c_str());
+    else
+        printf("\nEDDF not found by position lookup\n");
+}
+
+int
+main(int argc, char **argv) {
+    scenery_test();
+    return 0;
 }

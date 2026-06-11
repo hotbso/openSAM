@@ -27,6 +27,9 @@
 #include <unordered_map>
 
 #include "flat_earth_math.h"
+#include "quadtree.h"
+
+extern void scenery_test();  // for testing purposes, to access private members
 
 namespace dgs {
 
@@ -50,36 +53,51 @@ struct AptRunway {
 };
 
 class AptAirport {
+   protected:
+    friend void ::scenery_test();  // for testing purposes, to access private members
+
+    static constexpr unsigned int kMaxAirportsPerNode = 10;
+    static std::unordered_map<std::string, AptAirport*> apt_airports_;
+    static quadtree::LLQuadTree<double, AptAirport, kMaxAirportsPerNode> apt_quadtree_;  // for fast lookup by position
+
+    bool has_twr_{false};
+    bool ignore_{false};      // e.g. no_autodgs marker present
+
    public:
-    static std::unordered_map<std::string, AptAirport*> apt_airports;
+    bool is_opensam_{false};  // whether this is an openSAM airport
+    std::vector<AptStand> stands_;
+    std::vector<AptRunway> rwys_;
+
+    flat_earth_math::LLPos bbox_min_, bbox_max_;  // bounding box of this airport
+    std::string icao_;
+
+    AptAirport(const AptAirport&) = delete;
+    AptAirport& operator=(const AptAirport&) = delete;
+
+    // parse apt.dat, enter data into apt_airports_, return pointer to (last) parsed airport or nullptr on error
+    // if ignore is true, a dummy airport with that id will be added and marked as ignored
+    // this will also shadow a global airport with the same id, so it won't be found by LocateAirport
+
+    static AptAirport* ParseAptDat(const std::string& fn, bool ignore, bool is_opensam, bool filter_autodgs,
+                                   int& total_stands);
+
+    static int NumAirports() { return apt_airports_.size(); }
+    static void LoadingFinished();  // call after all airports have been loaded to build the quadtree
 
     // lookup by name
     static const AptAirport* LookupAirport(const std::string& airport_id);
     // lookup by position
     static const AptAirport* LocateAirport(const flat_earth_math::LLPos& pos);
 
-    AptAirport(const AptAirport&) = delete;
-    AptAirport& operator=(const AptAirport&) = delete;
-    AptAirport();
-    static int NumAirports() { return apt_airports.size(); }
-
-    // parse apt.dat, enter data into apt_airports, return pointer to (last) parsed airport or nullptr on error
-    // if ignore is true, a dummy airport with that id will be added and marked as ignored
-    // this will also shadow a global airport with the same id, so it won't be found by LocateAirport
-
-    static AptAirport* ParseAptDat(const std::string& fn, bool ignore, bool is_opensam, bool filter_autodgs, int& total_stands);
-
-
-    flat_earth_math::LLPos bbox_min_, bbox_max_;  // bounding box of this airport
-    std::string icao_;
-    bool has_twr_{false};
-    bool ignore_{false};        // e.g. no_autodgs marker present
-    bool is_opensam_{false};      // whether this is an openSAM airport
-    std::vector<AptStand> stands_;
-    std::vector<AptRunway> rwys_;
     AptAirport(const std::string& name) : icao_(name) {}
     void dump() const;
     void ComputeBBox();
+
+    // for quadtree
+    double lon() const { return (bbox_min_.lon + bbox_max_.lon) / 2; }  // center point
+    double lat() const { return (bbox_min_.lat + bbox_max_.lat) / 2; }
+    quadtree::Box<double> bounds() const { return {bbox_min_.lon, bbox_min_.lat, bbox_max_.lon, bbox_max_.lat}; }
+    std::string repr() const { return icao_; }
 };
 
 } // namespace dgs

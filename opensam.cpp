@@ -641,6 +641,8 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         auto duration = std::chrono::duration<double>(t_end - t_start).count();
         LogMsg("Sceneries collected in %0.2fs", duration);
 
+        dgs::AptAirport::LoadingFinished();
+
         JwCtrl::SoundInit();
     } catch (const std::exception& ex) {
         LogMsg("fatal error: '%s', bye!", ex.what());

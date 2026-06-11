@@ -27,9 +27,10 @@
 #include <unordered_map>
 #include <algorithm>
 #include <numbers>
+#include <chrono>
 
 #include "dgs/apt_airport.h"
-
+#include "quadtree.inl"
 #include "log_msg.h"
 
 namespace dgs {
@@ -46,14 +47,11 @@ struct Jetway {
     fem::LLPos cabin;    // = pos + length * dir(hdgt)
 };
 
-std::unordered_map<std::string, AptAirport*> AptAirport::apt_airports;
+std::unordered_map<std::string, AptAirport*> AptAirport::apt_airports_;
+quadtree::LLQuadTree<double, AptAirport, AptAirport::kMaxAirportsPerNode> AptAirport::apt_quadtree_;  // for fast lookup by position
 
 static bool operator<(const AptStand& a, const AptStand& b) {
     return a.name < b.name;
-}
-
-AptAirport::AptAirport() {
-    apt_airports.reserve(8000);
 }
 
 void AptAirport::dump() const {
@@ -107,6 +105,10 @@ void AptAirport::ComputeBBox() {
 
 // go through apt.dat and collect stands
 AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_opensam, bool filter_autodgs, int& total_stands) {
+    if (apt_airports_.empty()) {
+        apt_airports_.reserve(8000);  // avoid too many reallocations
+    }
+
     std::ifstream apt(fn);
     if (apt.fail())
         return nullptr;
@@ -137,7 +139,7 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_
             total_stands += arpt->stands_.size();
             arpt->stands_.shrink_to_fit();
             std::sort(arpt->stands_.begin(), arpt->stands_.end());
-            apt_airports[arpt->icao_] = arpt;
+            apt_airports_[arpt->icao_] = arpt;
             retval = arpt;
             jetways.clear();
             arpt->ComputeBBox();  // compute bounding box for this airport
@@ -199,14 +201,14 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_
             }
 
 
-            if (apt_airports.find(arpt_name) == apt_airports.end()) {
+            if (apt_airports_.find(arpt_name) == apt_airports_.end()) {
                 // does not yet exist
                 arpt = new AptAirport(arpt_name);
                 arpt->is_opensam_ = is_opensam;
                 if (ignore) {
                     // LogMsg("Saving '%s' with ignore", arpt->icao_.c_str());
                     arpt->ignore_ = true;
-                    apt_airports[arpt->icao_] = arpt;
+                    apt_airports_[arpt->icao_] = arpt;
                     arpt = nullptr;
                     arpt_name.clear();
                 } else
@@ -277,10 +279,23 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_
     return retval;
 }
 
+void AptAirport::LoadingFinished() {
+    auto t_start = std::chrono::high_resolution_clock::now();
+    LogMsg("Loaded %d airports, building quadtree ...", (int)apt_airports_.size());
+    for (const auto& [n, a] : apt_airports_) {
+        if (!a->ignore_)
+            apt_quadtree_.Insert(a);
+    }
+
+    auto t_end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration<double>(t_end - t_start).count();
+    LogMsg("Quadtree built in %0.4f s", duration);
+}
+
 const AptAirport* AptAirport::LookupAirport(const std::string& airport_id) {
     const AptAirport* arpt = nullptr;
-    auto it = apt_airports.find(airport_id);
-    if (it != apt_airports.end()) {
+    auto it = apt_airports_.find(airport_id);
+    if (it != apt_airports_.end()) {
         arpt = it->second;
         if (arpt->ignore_)
             arpt = nullptr;
@@ -294,9 +309,28 @@ const AptAirport* AptAirport::LookupAirport(const std::string& airport_id) {
 
 // Locate airport from position -> id
 const AptAirport *AptAirport::LocateAirport(const fem::LLPos& pos) {
-    for (const auto& [n, a] : apt_airports) {
-        if (a->ignore_)
-            continue;
+    std::array<dgs::AptAirport*, kMaxAirportsPerNode> found_airports;
+    int depth;
+
+    unsigned int n_found = apt_quadtree_.Find(pos.lon, pos.lat, found_airports, &depth);
+    if (n_found == 0) {
+        LogMsg("sorry, %0.8f,%0.8f is not on an AptAirport", pos.lat, pos.lon);
+        return nullptr;
+    }
+
+    if (n_found > 1) {
+        LogMsg("warning, %d airports found at %0.8f,%0.8f, taking first one", n_found, pos.lat, pos.lon);
+        for (unsigned int i = 0; i < n_found; i++) {
+            const dgs::AptAirport* a = found_airports[i];
+            LogMsg("Found airport '%s' at %0.8f,%0.8f", a->icao_.c_str(), pos.lat, pos.lon);
+        }
+        n_found = 1;
+    }
+
+    AptAirport* arpt = found_airports[0];
+    LogMsg("Found airport '%s' location %0.8f,%0.8f, depth: %d", arpt->icao_.c_str(), pos.lat, pos.lon, depth);
+    return arpt;
+
 #if 0
         // keep in case we want to use runways
         // check if we are on a runway
@@ -314,14 +348,6 @@ const AptAirport *AptAirport::LocateAirport(const fem::LLPos& pos) {
             }
         }
 #endif
-        if (fem::InRect(pos, a->bbox_min_, a->bbox_max_)) {
-            LogMsg("Found airport '%s' at %0.8f,%0.8f", a->icao_.c_str(), pos.lat, pos.lon);
-            return a;  // found airport, so return pointer
-        }
-    }
-
-    LogMsg("sorry, %0.8f,%0.8f is not on an AptAirport", pos.lat, pos.lon);
-    return nullptr;  // not found
 }
 
 } // namespace dgs
