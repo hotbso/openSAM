@@ -35,7 +35,6 @@
 #include "autodgs_airport.h"
 #include "opensam_airport.h"
 #include "my_plane.h"
-#include "dgs/plane.h"
 #include "seasons.h"
 #include "os_anim.h"
 #include "scenery.h"

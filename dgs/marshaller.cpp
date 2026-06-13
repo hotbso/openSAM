@@ -22,8 +22,9 @@
 #include <cassert>
 #include <cstring>
 
-#include "log_msg.h"
+#include "XPLMInstance.h"
 
+#include "log_msg.h"
 #include "dgs_impl.h"
 
 namespace dgs {

@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include <cstddef>
 #include <vector>
 
 struct SamDrf {

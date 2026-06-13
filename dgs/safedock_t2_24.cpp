@@ -23,6 +23,8 @@
 #include <cmath>
 #include <cstring>
 
+#include "XPLMInstance.h"
+
 #include "simbrief.h"
 #include "log_msg.h"
 #include "dgs_impl.h"

@@ -1,5 +1,5 @@
 //
-//    AutoDGS / openSAM: ManageVDGS
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2026 Holger Teutsch
 //
@@ -19,13 +19,12 @@
 //    USA
 //
 
-#ifndef _DGS_H_
-#define _DGS_H_
+#pragma once
 
 #include <string>
 #include <memory>
 
-#include "XPLMInstance.h"
+#include "XPLMScenery.h"
 #include "XPLMDataAccess.h"
 
 struct Ofp;
@@ -74,5 +73,3 @@ extern float now;
 extern XPLMDataRef acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr, total_running_time_sec_dr, eng_running_dr, beacon_dr, sin_wave_dr;
 extern std::string base_dir;
 extern dgs::EqStatusVal PbbEqStatus();
-
-#endif

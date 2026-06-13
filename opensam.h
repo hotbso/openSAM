@@ -28,7 +28,7 @@
 #include "XPLMUtilities.h"
 #include "XPLMScenery.h"
 
-#include "plane.h"
+struct DoorInfo;
 
 static constexpr float kF2M = 0.3048;                   // 1 ft [m]
 static constexpr float kLat2M = 111120;                 // 1° lat in m

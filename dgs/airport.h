@@ -23,7 +23,6 @@
 
 #include <memory>
 
-#include "dgs/dgs.h"
 #include "dgs/dgs_impl.h"
 #include "dgs/apt_airport.h"
 
@@ -32,6 +31,8 @@
 // AptStand augmented
 namespace dgs {
 
+class DGS;
+
 // AptStand augmented with local coordinates, DGS instance, and related methods
 class Stand {
    protected:
@@ -39,7 +40,7 @@ class Stand {
     const AptStand& as_;
 
     const std::string& arpt_icao_;
-    std::unique_ptr<dgs::DGS> dgs_;
+    std::unique_ptr<DGS> dgs_;
 
     double elevation_;      // ground elevation of stand [m] (starts as an estimate from plane at touchdown)
     bool elevation_is_estimate_;  // whether elevation is still an estimate

@@ -21,12 +21,11 @@
 //
 
 #include <cassert>
-#include <cmath>
-#include <cstring>
 #include <cstdio>
 #include <fstream>
 #include <map>
 #include <algorithm>
+
 #include "XPLMGraphics.h"
 
 #include "opensam.h"
