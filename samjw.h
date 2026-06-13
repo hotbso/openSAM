@@ -1,7 +1,7 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
-//    Copyright (C) 2024, 2025  Holger Teutsch
+//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -19,29 +19,29 @@
 //    USA
 //
 
-#ifndef _SAMJW_H_
-#define _SAMJW_H_
+#pragma once
 
 #include <string>
 #include <vector>
+#include <cmath>
 
-static constexpr float kFarSkip = 5000;     // (m) don't consider jetways farther away
+#include "quadtree.h"
 
 // Context of an instantiated jetway, either in sam.xml or zero config per WED within the scenery
 struct SamJw {
-    bool bad{};       // marked bad, e.g. terrain probe failed
-    bool is_zc_jw{};  // is a zero config jw
-    bool locked{};    // locked by a plane
+    static constexpr float kSam2ObjMax = 2.5;     // m, max delta between coords in sam.xml and object
+    static constexpr float kSam2ObjHdgMax = 5;    // °, likewise for heading
 
-    // local x,z computed from the xml's lat/lon
-    unsigned int xml_ref_gen{};  // only valid if this matches the generation of the ref frame
-    float xml_x, xml_y, xml_z;
+    bool bad{};                 // marked bad, e.g. terrain probe failed
+    bool is_zc_jw{};            // is a zero config jw
+    bool zc_stand_done{};       // for zero config jetways, whether looking for a stand has been attempted
+    bool locked{};              // locked by a plane
 
     // values from the actually drawn object
     unsigned int obj_ref_gen{};  // only valid if this matches the generation of the ref frame
     float x, y, z, psi;
 
-    unsigned int library_id{};  // id of the library jetway this one is configured from, 0 = none
+    int library_id{};  // id of the library jetway this one is configured from, 0 = none
 
     // values fed to the datarefs
     float rotate1, rotate2, rotate3, extent, wheels, wheelrotatec{}, wheelrotater{}, wheelrotatel{},
@@ -58,9 +58,12 @@ struct SamJw {
         minWheels{}, maxWheels{}, initialRot1{}, initialRot2{}, initialRot3{}, initialExtent{};
     int door{};  // 0 = LF1 or default, 1 = LF2
 
+    // bounding box around the anchor point for quick lookup in quadtree, computed from lat/lon and kSam2ObjMax
+    quadtree::Box<double> bbox;
+
     // set wheels height
     void SetWheels() {
-        wheels = tanf(rotate3 * kD2R) * (wheelPos + extent);
+        wheels = std::tan(rotate3 * kD2R) * (wheelPos + extent);
     }
 
     void Reset() {
@@ -77,6 +80,20 @@ struct SamJw {
     void FillLibraryValues(unsigned int id);
 
     static void ResetAll(); // called from various places
+
+    // for the quadtree...
+
+    void ComputeBbox() {
+        static constexpr float kLat2m = 111120;  // 1° lat in m
+        double dlat = SamJw::kSam2ObjMax / kLat2m;
+        double dlon = SamJw::kSam2ObjMax / (kLat2m * std::cos(latitude * kD2R));
+        bbox = {longitude - dlon, latitude - dlat, longitude + dlon, latitude + dlat};
+    }
+
+    double lon() const { return longitude; }
+    double lat() const { return latitude; }
+    quadtree::Box<double> bounds() const { return bbox; }
+    std::string repr() const { return name; }
 };
 
 // Geometry information of a library jetway
@@ -87,8 +104,12 @@ struct SamLibJw {
         minRot3{}, maxRot3{}, minExtent{}, maxExtent{}, minWheels{}, maxWheels{};
 };
 
+// the global quadtree for all sam jetways collected from sam.xml files and zero config jetways
+static constexpr int kMaxJwPerNode = 10;
+extern quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;  // for fast lookup by position
+extern std::vector<SamJw*> sam_jw_list;  // for iterating over all jetways, e.g. for resetting them
+
 // library jetways information from all collected libraryjetways.xml files
 extern std::vector<SamLibJw*> lib_jw;
 
 extern void JwInit(int max_sam_stands);
-#endif

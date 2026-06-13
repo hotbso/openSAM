@@ -1,7 +1,7 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
-//    Copyright (C) 2025  Holger Teutsch
+//    Copyright (C) 2025, 2026  Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -28,8 +28,15 @@
 
 #include "opensam.h"
 #include "my_plane.h"
+#include "opensam_airport.h"
 #include "samjw.h"
 #include "jwctrl.h"
+#include "quadtree.h"
+#include "quadtree.inl"
+#include "log_msg.h"
+
+#include "flat_earth_math.h"
+namespace fem = flat_earth_math;
 
 // from os_read_wav.c
 extern void ReadWav(const std::string& fname, Sound& sound);
@@ -294,13 +301,39 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     float plane_lat = my_plane->lat();
     float plane_lon = my_plane->lon();
 
-    Scenery* sc = Scenery::FindScenery(plane_lat, plane_lon);
-    if (sc == nullptr) {
-        LogMsg("no scenery found for plane lat,lon (%0.4f, %0.4f), no jetways", plane_lat, plane_lon);
+    std::vector<SamJw *> near_jws = jw_quadtree.FindAround(plane_lon, plane_lat, 20);
+    if (near_jws.empty()) {
+        LogMsg("no jetways found around plane position, strange...");
         return 0;
     }
 
-    FilterCandidates(plane, nearest_jws, sc->sam_jws_, avg_di);
+    LogMsg("found %d jetways around plane position", static_cast<int>(near_jws.size()));
+
+    FilterCandidates(plane, nearest_jws, near_jws, avg_di);
+
+    // delayed processing of zc jetways now once os_arpt is available, as we need the stands for that
+    if (os_arpt) {
+        for (auto& njw : nearest_jws) {
+            SamJw* jw = njw.jw_;
+            if (jw->is_zc_jw && !jw->zc_stand_done) {
+                jw->zc_stand_done = true;  // one shot only
+
+                const OsStand* stand = os_arpt->FindStandForJw(jw->x, jw->z);
+                if (stand) {
+                    jw->base_name = stand->name();
+                    // delta = cabin points perpendicular to stand
+                    float delta = fem::RA((stand->hdgt() + 90.0f) - jw->psi);
+                    // randomize
+                    float delta_r = (0.2f + 0.8f * (0.01f * (rand() % 100))) * delta;
+                    jw->initialRot2 = delta_r;
+                    LogMsg(
+                        "delayed processing of zc jetway, jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, "
+                        "initialRot2: %0.1f",
+                        jw->psi, stand->hdgt(), delta, jw->initialRot2);
+                }
+            }
+        }
+    }
 
     // sort for door assignment
     std::sort(nearest_jws.begin(), nearest_jws.end());

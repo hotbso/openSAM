@@ -27,6 +27,9 @@
 #include "samjw.h"      // for CheckRefFrameShift
 #include "os_anim.h"
 
+#include "flat_earth_math.h"
+namespace fem = flat_earth_math;
+
 static constexpr float kSam2ObjMax = 2.5;   // m, max delta between coords in sam.xml and object
 static constexpr float kSam2ObjHdgMax = 5;  // °, likewise for heading
 

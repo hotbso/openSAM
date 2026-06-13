@@ -36,6 +36,9 @@
 
 #include "dgs_variants_generated.h"
 
+#include "flat_earth_math.h"
+namespace fem = flat_earth_math;
+
 static constexpr float kMaxDgs2StandX = 10.0f;  // max offset/distance from DGS to stand
 static constexpr float kMaxDgs2StandZ = 80.0f;
 static constexpr float kMaxDgsHdgtDiff = 10.0f;  // max heading difference between DGS and stand

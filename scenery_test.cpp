@@ -36,11 +36,18 @@
 #include "quadtree.h"
 #include "quadtree.inl"
 
+#include "flat_earth_math.h"
+namespace fem = flat_earth_math;
+
 const char *log_msg_prefix = "scenery_test: ";
 
 std::string xp_dir{"E:/X-Plane-12-test"};
 std::vector<SamDrf> SamDrf::sam_drfs;
 unsigned long long stat_sc_last;
+std::vector<SamJw*> sam_jw_list;
+
+quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;
+std::vector<SamLibJw*> lib_jw;
 
 void scenery_test() {
 
@@ -81,10 +88,6 @@ void scenery_test() {
     }
 
     for (const auto& sc : Scenery::sceneries) {
-        printf("%s: %d jetways collected, bbox: %0.3f,%0.3f -> %0.3f, %0.3f\n",
-               sc.name_.c_str(), (int)sc.sam_jws_.size(),
-               sc.bbox_min_.lat, sc.bbox_min_.lon, sc.bbox_max_.lat, sc.bbox_max_.lon);
-
         puts("\nObjects");
         for (auto& obj : sc.sam_objs_)
             printf("'%s' %5.6f %5.6f %5.6f %5.6f\n", obj.id.c_str(), obj.latitude, obj.longitude,
@@ -96,7 +99,8 @@ void scenery_test() {
                    sc.sam_objs_[anim.obj_idx].id.c_str(), SamDrf::sam_drfs[anim.drf_idx].name.c_str());
 
         puts("\nJetways");
-        for (auto jw : sc.sam_jws_) {
+        for (auto i = sc.jw_idx_start_; i < sc.jw_idx_end_; i++) {
+            const SamJw* jw = sam_jw_list[i];
             printf("%s %5.6f %5.6f door: %d\n", jw->name.c_str(), jw->latitude, jw->longitude, jw->door);
         }
         puts("\n");
@@ -104,17 +108,11 @@ void scenery_test() {
 
     puts("Library jetways");
     for (unsigned int i = 1; i < lib_jw.size(); i++) {
-        SamLibJw *ljw = lib_jw[i];
+        const SamLibJw *ljw = lib_jw[i];
         printf("'%s'; '%s', height: %0.2f, cabinPos: %0.2f\n", ljw->id.c_str(), ljw->name.c_str(), ljw->height, ljw->cabinPos);
     }
 
     printf("\napt.dat collected: %d\n\n", dgs::AptAirport::NumAirports());
-
-    Scenery* sc = Scenery::FindScenery(50.033333, 8.570556);  // EDDF
-    if (sc)
-        printf("Scenery for EDDF found: %s\n", sc->name_.c_str());
-    else
-        printf("Scenery for EDDF not found\n");
 
     const auto eddf = dgs::AptAirport::LookupAirport("EDDF");
     if (eddf) {
@@ -143,6 +141,18 @@ void scenery_test() {
         printf("\nEDDF found by position lookup: %s\n", arpt->icao_.c_str());
     else
         printf("\nEDDF not found by position lookup\n");
+
+    jw_quadtree.Dump();
+
+    printf("\n\nLooking for ~20 jetways around EDDM stand 251A (11.797650, 48.354206)\n");
+    std::vector<SamJw*> found_items = jw_quadtree.FindAround(11.797650, 48.354206, 20);  // EDDM stand 251A
+    if (found_items.empty())
+        printf("\nNo jetways found by FindAround\n");
+    else {
+        for (auto jw : found_items)
+            printf("Found jetway by FindAround: '%s' at %0.6f, %0.6f\n", jw->name.c_str(), jw->latitude,
+                   jw->longitude);
+    }
 }
 
 int

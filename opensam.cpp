@@ -140,7 +140,7 @@ static std::unique_ptr<MpAdapter> mp_adapter;
 std::unordered_map<std::string, DoorInfo> csl_door_info_map;
 std::unordered_map<std::string, std::string> acf_generic_type_map;
 
-unsigned long long stat_sc_far_skip, stat_jw_acc_called, stat_anim_acc_called,
+unsigned long long stat_jw_acc_called, stat_anim_acc_called,
     stat_auto_drf_called, stat_jw_cache_hit, stat_sc_last;
 
 int default_vdgs_type = kVdgsSafedock_T2_24;  // index into default_vdgs_item
@@ -792,7 +792,6 @@ PLUGIN_API void XPluginDisable(void) {
     ui = nullptr;
 
     LogMsg("acc called:           %9llu", stat_jw_acc_called);
-    LogMsg("sc far skip:          %9llu", stat_sc_far_skip);
     LogMsg("sc last match:        %9llu", stat_sc_last);
     LogMsg("stat_jw_cache_hit     %9llu", stat_jw_cache_hit);
     LogMsg("cache hit rate:       %9.2f %%", 100.0f * stat_jw_cache_hit / (stat_jw_acc_called + 1));
@@ -810,8 +809,7 @@ PLUGIN_API int XPluginEnable(void) {
         LogMsg("Can't create terrain probe");
         return 0;
     }
-    stat_sc_far_skip = stat_jw_acc_called = stat_anim_acc_called =
-        stat_auto_drf_called = stat_jw_cache_hit = stat_sc_last = 0;
+    stat_jw_acc_called = stat_anim_acc_called = stat_auto_drf_called = stat_jw_cache_hit = stat_sc_last = 0;
 
     LogMsg("plugin enabled");
     return 1;

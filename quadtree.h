@@ -1,7 +1,7 @@
 //
-//    AutoDGS / openSAM: ManageVDGS
+//    openSAM: manage DGS and jetways for X Plane
 //
-//    Copyright (C) 2026 Holger Teutsch
+//    Copyright (C) 2026  Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -25,6 +25,9 @@
 #include <array>
 #include <string>
 #include <memory>
+#include <algorithm>
+
+// Inspired by: https://pvigier.github.io/2019/08/04/quadtree-collision-detection.html
 
 // A quadtree for 2d points identified by lon,lat working in space (-180, 180] x [-89, 89].
 // It addresses the peculiarity of lon arithmetics around the antimeridian and lat clamping.
@@ -90,16 +93,16 @@ struct Box {
     std::array<Box, 4> Subdivide() const noexcept;
 };
 
-template <typename Float, typename Item, auto kMaxItem>
+template <typename Float, typename Item, int kMaxItem>
 class LLQuadTreeNode;
 
-template <typename Float, typename Item, auto kMaxItem>
+template <typename Float, typename Item, int kMaxItem>
 class LLQuadTree {
     std::unique_ptr<LLQuadTreeNode<Float, Item, kMaxItem>> root_;
 
    protected:
     friend class LLQuadTreeNode<Float, Item, kMaxItem>;
-    unsigned int next_node_id_ = 0;
+    int next_node_id_ = 0;
 
    public:
     LLQuadTree() = default;
@@ -108,9 +111,16 @@ class LLQuadTree {
     ~LLQuadTree() = default;
 
     bool empty() const { return root_ == nullptr; }
+    size_t size() const { return root_ ? root_->n_below_ : 0; }
     void Insert(Item* item);
     int Find(Float lon, Float lat, std::array<Item*, kMaxItem>& items, int* depth = nullptr) const;
-    void Dump();
+
+    // find min_items around the given point, e.g. jetways around a stand
+    // min_items is a hint, so the result can contain more or less items, but it will try to find at least min_items if
+    // possible by expanding the search area
+    std::vector<Item*> FindAround(Float lon, Float lat, int min_items) const;
+
+    void Dump();    // for debugging
 };
 
 };  // namespace quadtree

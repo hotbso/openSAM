@@ -38,6 +38,8 @@
 #define O_BINARY 0
 #endif
 
+#include "quadtree.h"
+#include "quadtree.inl"
 #include "opensam.h"
 #include "samjw.h"
 #include "os_anim.h"
@@ -62,8 +64,6 @@ struct ExpatCtx {
 };
 
 std::vector<Scenery> Scenery::sceneries;
-
-std::vector<SamLibJw*> lib_jw;
 
 static const int BUFSIZE = 4096;
 
@@ -141,6 +141,8 @@ static void GetJwAttrs(const XML_Char** attr, SamJw* sam_jw) {
     sam_jw->base_name = sam_jw->name;  // for later use when we fabricate names for zero config jetways
     // sanitize all heading values entering the plugin in order to avoid stalls in fem::RA
     sam_jw->heading = fmodf(sam_jw->heading, 360.0f);
+
+    sam_jw->ComputeBbox();
 }
 
 static void GetLibJwAttrs(const XML_Char** attr, SamLibJw* sam_lib_jw) {
@@ -207,7 +209,7 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
         GetJwAttrs(attr, jw);
         // simple sanity check, e.g Aerosoft LEBL has bogus values
         if (BETWEEN(jw->latitude, -85.0f, 85.0f) && BETWEEN(jw->longitude, -180.0f, 180.0f))
-            sc->sam_jws_.push_back(jw);
+            sam_jw_list.push_back(jw);
         else {
             LogMsg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude, jw->longitude);
             delete (jw);
@@ -483,25 +485,6 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
-Scenery* Scenery::FindScenery(float lat, float lon) {
-    static Scenery* last_sc = nullptr;
-    fem::LLPos pos(lat, lon);
-
-    if (last_sc && fem::InRect(pos, last_sc->bbox_min_, last_sc->bbox_max_)) {
-        stat_sc_last++;
-        return last_sc;
-    }
-
-    for (auto& sc : sceneries) {
-        if (fem::InRect(pos, sc.bbox_min_, sc.bbox_max_)) {
-            last_sc = &sc;
-            return last_sc;
-        }
-    }
-
-    last_sc = nullptr;
-    return nullptr;
-}
 
 // collect all sceneries
 void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
@@ -518,12 +501,15 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
     }
 
     sceneries.reserve(scp.sc_paths.size());
+    sam_jw_list.reserve(1000);  // avoid too many reallocations, usually there are much more stands than jetways
 
     for (auto& sc_path : scp.sc_paths) {
         ParseSamXml(sc_path + "libraryjetways.xml", lib_jw_map, nullptr);  // always try libraryjetways.xml
 
         Scenery sc;
+        sc.jw_idx_end_ = sc.jw_idx_start_ = sam_jw_list.size();
         bool is_opensam = ParseSamXml(sc_path + "sam.xml", lib_jw_map, &sc);
+        sc.jw_idx_end_ = sam_jw_list.size();
 
         // read stands from apt.dat
         int n_stands = 0;
@@ -545,32 +531,14 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
             continue;
 
         // don't save empty sceneries
-        if (sc.sam_jws_.empty() && n_stands == 0 && sc.sam_anims_.empty())
+        if (n_stands == 0 && sc.sam_anims_.empty())
             continue;
 
         max_sam_stands = std::max(max_sam_stands, n_stands);
 
-        static constexpr double far_skip_dlat = kFarSkip / kLat2M;
-
         // shrink to actual
-        sc.sam_jws_.shrink_to_fit();
         sc.sam_anims_.shrink_to_fit();
         sc.sam_objs_.shrink_to_fit();
-
-        // compute the bounding boxes, start with the airport's bbox
-        sc.bbox_min_ = apt->bbox_min_;
-        sc.bbox_max_ = apt->bbox_max_;
-
-        for (auto jw : sc.sam_jws_) {
-            const double dlon = far_skip_dlat / std::cos(jw->latitude * kD2R);
-            sc.bbox_min_.lat = std::min(sc.bbox_min_.lat, jw->latitude - far_skip_dlat);
-            sc.bbox_max_.lat = std::max(sc.bbox_max_.lat, jw->latitude + far_skip_dlat);
-
-            sc.bbox_min_.lon = std::min(sc.bbox_min_.lon, fem::RA(jw->longitude - dlon));
-            sc.bbox_max_.lon = std::max(sc.bbox_max_.lon, fem::RA(jw->longitude + dlon));
-        }
-
-        // don't consider objects as these may be far away (e.g. Aerosoft LSZH)
 
         sceneries.emplace_back(std::move(sc));
     }
@@ -586,4 +554,13 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
         lib_jw.push_back(sam_lib_jw);
 
     lib_jw.shrink_to_fit();
+
+    // load the quadtree with all jetways from all sceneries for fast lookup by position in the dref accessors
+    for (auto jw : sam_jw_list) {
+        //LogMsg("Inserting jetway '%s' at %0.6f, %0.6f into quadtree", jw->repr().c_str(), jw->lat(), jw->lon());
+        jw_quadtree.Insert(jw);
+        //jw_quadtree.Dump();
+    }
+
+    LogMsg("Finished collecting sceneries, total jetways in quadtree: %u", (unsigned)jw_quadtree.size());
 }

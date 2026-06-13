@@ -25,6 +25,9 @@
 #include "samjw.h"
 #include "jwctrl.h"
 
+#include "flat_earth_math.h"
+namespace fem = flat_earth_math;
+
 bool JwCtrl::SoundDevInit() {
     return true;
 };

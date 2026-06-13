@@ -1,7 +1,7 @@
 //
-//    AutoDGS / openSAM: ManageVDGS
+//    openSAM: manage DGS and jetways for X Plane
 //
-//    Copyright (C) 2026 Holger Teutsch
+//    Copyright (C) 2026  Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -22,6 +22,9 @@
 #pragma once
 
 #include <cassert>
+#include <cmath>
+#include <functional>
+
 #include "quadtree.h"
 #include "log_msg.h"
 
@@ -76,11 +79,13 @@ std::array<Box<Float>, 4> Box<Float>::Subdivide() const noexcept {
              {mid_lon, mid_lat, max_lon, max_lat}}};
 }
 
-
-template <typename Float, typename Item, auto kMaxItem>
+template <typename Float, typename Item, int kMaxItem>
 class LLQuadTreeNode {
+    static constexpr Float kLat2M = 111120;  // 1° lat in m
+    static constexpr Float kD2R = std::numbers::pi_v<Float> / static_cast<Float>(180);
+
     LLQuadTree<Float, Item, kMaxItem>& tree_;
-    const unsigned int id_;
+    const int id_;
 
    protected:
     friend class LLQuadTree<Float, Item, kMaxItem>;
@@ -88,18 +93,18 @@ class LLQuadTreeNode {
     std::vector<Item*> items_;
     std::array<std::unique_ptr<LLQuadTreeNode<Float, Item, kMaxItem>>, 4> children_{};  // sw, se, nw, ne
     static constexpr std::array<const char*, 4> child_labels_{"sw", "se", "nw", "ne"};
-    unsigned int n_below_ = 0;  // number of items in this node and all its children
+    int n_below_ = 0;  // number of items in this node and all its children
 
     bool Verify(const char* label) const;
 
    public:
-    LLQuadTreeNode(LLQuadTree<Float, Item, kMaxItem>& tree, unsigned int id, Box<Float> bounds, Item* item);
+    LLQuadTreeNode(LLQuadTree<Float, Item, kMaxItem>& tree, int id, Box<Float> bounds, Item* item);
     void Insert(Item* item);
     void Dump(const char* label, int indent, bool no_recurse = false) const;
 };
 
-template <typename Float, typename Item, auto kMaxItem>
-LLQuadTreeNode<Float, Item, kMaxItem>::LLQuadTreeNode(LLQuadTree<Float, Item, kMaxItem>& tree, unsigned int id,
+template <typename Float, typename Item, int kMaxItem>
+LLQuadTreeNode<Float, Item, kMaxItem>::LLQuadTreeNode(LLQuadTree<Float, Item, kMaxItem>& tree, int id,
                                                       Box<Float> bounds, Item* item)
     : tree_(tree), id_(id), bounds_(bounds) {
     assert(item != nullptr);
@@ -111,7 +116,7 @@ LLQuadTreeNode<Float, Item, kMaxItem>::LLQuadTreeNode(LLQuadTree<Float, Item, kM
     assert(Verify("post constructor"));
 }
 
-template <typename Float, typename Item, auto kMaxItem>
+template <typename Float, typename Item, int kMaxItem>
 void LLQuadTreeNode<Float, Item, kMaxItem>::Insert(Item* new_item) {
     assert(Verify("pre insert"));
     assert(bounds_.Intersects(new_item->bounds()));  // The item must intersect with the node's bounds
@@ -134,17 +139,16 @@ void LLQuadTreeNode<Float, Item, kMaxItem>::Insert(Item* new_item) {
         }
     };
 
-    // simple case: the item can fit into this node without needing to subdivide
-    bool item_is_fully_contained = new_item->bounds().InsideOf(bounds_);
-    if (!items_.empty() && items_.size() < kMaxItem && item_is_fully_contained) {
+    // simple case: leaf and not full
+    if (!items_.empty() && items_.size() < kMaxItem) {
         items_.push_back(new_item);
         assert(Verify("post insert contained"));
         return;
     }
 
-    // must subdivide this node and push down the existing items if we are at capacity or if the new item cannot fit
-    // into this node
-    if (items_.size() == kMaxItem || (!items_.empty() && !item_is_fully_contained)) {
+    // must subdivide this node and push down the existing items if we are at capacity
+    if (items_.size() == kMaxItem) {
+        //LogMsg("Node %d at capacity with %d items, pushing down to quadrants", id_, (int)items_.size());
         // a full leaf node, push down the existing items
         assert(Verify("pre insert push down"));
         for (Item* it : items_)
@@ -155,20 +159,22 @@ void LLQuadTreeNode<Float, Item, kMaxItem>::Insert(Item* new_item) {
         assert(Verify("post insert push down"));
     }
 
-    // printf("id_ %d, item_: %p, sw_: %d, se_: %d, nw_: %d, ne_: %d\n", id_, item_, sw_, se_, nw_, ne_);
-
     // Insert the new item into the appropriate quadrant
     InsertIntoQuadrants(new_item);
     assert(Verify("post insert"));
 }
 
-template <typename Float, typename Item, auto kMaxItem>
+template <typename Float, typename Item, int kMaxItem>
 void LLQuadTreeNode<Float, Item, kMaxItem>::Dump(const char* label, int indent, bool no_recurse) const {
-    LogMsg("%*sNode %d %s: lon (%.2f, %.2f] - lat (%.2f, %.2f], n_below %d", indent, "", id_, label, bounds_.min_lon,
-           bounds_.max_lon, bounds_.min_lat, bounds_.max_lat, n_below_);
+    Float dlat = bounds_.max_lat - bounds_.min_lat;
+    Float dlon = bounds_.max_lon - bounds_.min_lon;
+    Float dlat_m = dlat * kLat2M;
+    Float dlon_m = dlon * kLat2M * std::cos((bounds_.min_lat + bounds_.max_lat) / 2 * kD2R);
+    LogMsg("%*sNode %d %s: lon (%.3f, %.3f] - lat (%.3f, %.3f], n_below %d, size (%.3f m, %.3f m)", indent, "", id_, label, bounds_.min_lon,
+           bounds_.max_lon, bounds_.min_lat, bounds_.max_lat, n_below_, dlon_m, dlat_m);
     for (Item* item : items_) {
         Float item_lon = item->lon(), item_lat = item->lat();
-        LogMsg("%*sItem at (%.2f, %.2f), '%s'", indent + 2, "", item_lon, item_lat, item->repr().c_str());
+        LogMsg("%*sItem at (%.7f, %.7f), '%s'", indent + 2, "", item_lon, item_lat, item->repr().c_str());
     }
 
     if (!no_recurse) {
@@ -184,15 +190,15 @@ void LLQuadTreeNode<Float, Item, kMaxItem>::Dump(const char* label, int indent, 
     }
 }
 
-template <typename Float, typename Item, auto kMaxItem>
+template <typename Float, typename Item, int kMaxItem>
 bool LLQuadTreeNode<Float, Item, kMaxItem>::Verify(const char* label) const {
     // Verify that all items in this node intersect with the node's bounds
     for (Item* item : items_) {
         if (!bounds_.Intersects(item->bounds())) {
             LogMsg("Item bounds do not intersect with node bounds for node %d", id_);
-            LogMsg("Node bounds: lon (%.2f, %.2f] - lat (%.2f, %.2f]", bounds_.min_lon, bounds_.max_lon, bounds_.min_lat,
+            LogMsg("Node bounds: lon (%.3f, %.3f] - lat (%.3f, %.3f]", bounds_.min_lon, bounds_.max_lon, bounds_.min_lat,
                    bounds_.max_lat);
-            LogMsg("Item bounds: lon (%.2f, %.2f] - lat (%.2f, %.2f]", item->bounds().min_lon, item->bounds().max_lon, item->bounds().min_lat, item->bounds().max_lat);
+            LogMsg("Item bounds: lon (%.3f, %.3f] - lat (%.3f, %.3f]", item->bounds().min_lon, item->bounds().max_lon, item->bounds().min_lat, item->bounds().max_lat);
             goto fail;
         }
     }
@@ -216,7 +222,7 @@ fail:
     return false;
 }
 
-template <typename Float, typename Item, auto kMaxItem>
+template <typename Float, typename Item, int kMaxItem>
 void LLQuadTree<Float, Item, kMaxItem>::Insert(Item* item) {
     if (root_ == nullptr) {
         root_ = std::make_unique<LLQuadTreeNode<Float, Item, kMaxItem>>(*this, next_node_id_++,
@@ -225,7 +231,7 @@ void LLQuadTree<Float, Item, kMaxItem>::Insert(Item* item) {
         root_->Insert(item);
 }
 
-template <typename Float, typename Item, auto kMaxItem>
+template <typename Float, typename Item, int kMaxItem>
 int LLQuadTree<Float, Item, kMaxItem>::Find(Float lon, Float lat, std::array<Item*, kMaxItem>& items,
                                                      int* depth) const {
     if (depth)
@@ -273,7 +279,74 @@ int LLQuadTree<Float, Item, kMaxItem>::Find(Float lon, Float lat, std::array<Ite
     return 0;
 }
 
-template <typename Float, typename Item, auto kMaxItem>
+template <typename Float, typename Item, int kMaxItem>
+std::vector<Item*> LLQuadTree<Float, Item, kMaxItem>::FindAround(Float lon, Float lat, int min_items) const {
+    std::vector<Item*> found_items;
+    if (root_ == nullptr)
+        return found_items;
+
+    std::unordered_map<Item*, bool> found_set;  // to avoid duplicates when items intersect multiple quadrants
+    found_items.reserve(2 * min_items);
+
+    using Node = LLQuadTreeNode<Float, Item, kMaxItem>;
+
+    auto add_item = [&found_items, &found_set](Item* item) {
+        if (!found_set.contains(item)) {
+            found_items.push_back(item);
+            found_set[item] = true;
+        }
+    };
+
+    std::function<void(const Node*)> collect_items = [&collect_items, &add_item](const Node* node) {
+        LogMsg("Collecting items from node %d with n_below %d", node->id_, node->n_below_);
+        if (!node->items_.empty()) {
+            for (Item* item : node->items_)
+                add_item(item);
+            return;
+        }
+
+        // recursively collect items from children
+        for (const auto& child : node->children_) {
+            if (child)
+                collect_items(child.get());
+        }
+    };
+
+    const Node* cur_node = root_.get(), *up_node = nullptr;
+
+    // go down until n_below is less than min_items
+    while (cur_node != nullptr) {
+        if (!cur_node->bounds_.Contains(lon, lat))
+            break;
+
+        if (cur_node->n_below_ <= min_items)
+            break;
+
+        Float mid_lon = (cur_node->bounds_.min_lon + cur_node->bounds_.max_lon) / 2;
+        Float mid_lat = (cur_node->bounds_.min_lat + cur_node->bounds_.max_lat) / 2;
+
+        up_node = cur_node;
+        if (lon < mid_lon && lat < mid_lat) {
+            cur_node = cur_node->children_[0].get();  // sw
+        } else if (lon >= mid_lon && lat < mid_lat) {
+            cur_node = cur_node->children_[1].get();  // se
+        } else if (lon < mid_lon && lat >= mid_lat) {
+            cur_node = cur_node->children_[2].get();  // nw
+        } else {
+            cur_node = cur_node->children_[3].get();  // ne
+        }
+    }
+
+    if (up_node == nullptr)
+        up_node = root_.get();
+
+    up_node->Dump("FindAround node", 2);
+    // add all items in this node and its children
+    collect_items(up_node);
+    return found_items;  // TODO: implement a search that expands the search area until at least min_items are found, or a reasonable max area is reached
+}
+
+template <typename Float, typename Item, int kMaxItem>
 void LLQuadTree<Float, Item, kMaxItem>::Dump() {
     if (root_ == nullptr) {
         LogMsg("Empty QuadTree");

@@ -99,7 +99,7 @@ extern XPLMDataRef lat_ref_dr, lon_ref_dr,
 
 extern XPLMCommandRef toggle_jetway_cmdr;
 
-extern unsigned long long stat_sc_far_skip, stat_jw_acc_called, stat_anim_acc_called, stat_auto_drf_called,
+extern unsigned long long stat_jw_acc_called, stat_anim_acc_called, stat_auto_drf_called,
     stat_jw_cache_hit, stat_sc_last;
 
 extern float now;           // current timestamp

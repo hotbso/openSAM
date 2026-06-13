@@ -25,15 +25,9 @@
 #include <vector>
 #include <memory>
 
-#include "flat_earth_math.h"
-namespace fem = flat_earth_math;
-
 #include "os_anim.h"
 
 static constexpr float kD2R = std::numbers::pi/180.0;
-
-// forwards
-struct SamJw;
 
 struct SceneryPacks {
     std::string openSAM_Library_path;
@@ -48,16 +42,18 @@ class Scenery {
   public:
     static std::vector<Scenery> sceneries;
 
-    fem::LLPos bbox_min_, bbox_max_;  // bounding box of this airport
     std::string name_;
     std::string arpt_icao_;
 
-    std::vector<SamJw*> sam_jws_;       // this may grow dynamically with zero config jetways so we keep pointers to avoid invalidation
     std::vector<SamObj> sam_objs_;
     std::vector<SamAnim> sam_anims_;
 
+    // 'iterators' into the global sam_jw_list for the jetways learned from the scenery's sam.xml
+    // only used for testing and debugging, not for actual lookup, which is done by quadtree
+    int jw_idx_start_ = 0;
+    int jw_idx_end_ = 0;
+
     Scenery() {
-        sam_jws_.reserve(100);
         sam_objs_.reserve(50);
         sam_anims_.reserve(50);
     }
@@ -66,9 +62,6 @@ class Scenery {
     Scenery(const Scenery&) = delete;
     Scenery& operator=(const Scenery&) = delete;
     Scenery(Scenery&&) = default;
-
-    // add a zero config jw to the scenery
-    SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y, float obj_psi);
 
     static Scenery *FindScenery(float lat, float lon);
     // a poor man's factory for creating sceneries, return max # of stands in sam sceneries

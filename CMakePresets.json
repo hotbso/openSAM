@@ -8,10 +8,26 @@
       "generator": "Ninja"
     },
     {
+      "name": "win-tests",
+      "displayName": "MSYS2 GCC Release (tests enabled)",
+      "inherits": "win",
+      "cacheVariables": {
+        "BUILD_TESTS": true
+      }
+    },
+    {
       "name": "lx",
       "displayName": "Linux Native Release",
       "binaryDir": "${sourceDir}/build/lx",
       "generator": "Ninja"
+    },
+    {
+      "name": "lx-tests",
+      "displayName": "Linux Native Release (tests enabled)",
+      "inherits": "lx",
+      "cacheVariables": {
+        "BUILD_TESTS": true
+      }
     },
     {
       "name": "mac",
@@ -19,6 +35,14 @@
       "binaryDir": "${sourceDir}/build/mac",
       "toolchainFile": "${sourceDir}/toolchain-osxcross.cmake",
       "generator": "Ninja"
+    },
+    {
+      "name": "mac-tests",
+      "displayName": "macOS Cross Compile (tests enabled)",
+      "inherits": "mac",
+      "cacheVariables": {
+        "BUILD_TESTS": true
+      }
     }
   ],
   "buildPresets": [
@@ -27,12 +51,33 @@
       "configurePreset": "win"
     },
     {
+      "name": "win-scenery-test",
+      "configurePreset": "win-tests",
+      "targets": [
+        "scenery_test"
+      ]
+    },
+    {
       "name": "lx",
       "configurePreset": "lx"
     },
     {
+      "name": "lx-scenery-test",
+      "configurePreset": "lx-tests",
+      "targets": [
+        "scenery_test"
+      ]
+    },
+    {
       "name": "mac",
       "configurePreset": "mac"
+    },
+    {
+      "name": "mac-scenery-test",
+      "configurePreset": "mac-tests",
+      "targets": [
+        "scenery_test"
+      ]
     }
   ]
 }

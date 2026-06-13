@@ -1,7 +1,7 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
-//    Copyright (C) 2024, 2025  Holger Teutsch
+//    Copyright (C) 2024, 2025, 2026  Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -24,6 +24,7 @@
 #include <ctime>
 #include <cstring>
 #include <cassert>
+#include <array>
 
 #include "opensam.h"
 #include "samjw.h"
@@ -31,9 +32,12 @@
 
 #include "my_plane.h"
 #include "opensam_airport.h"
+#include "quadtree.h"
+#include "quadtree.inl"
+#include "log_msg.h"
 
-static constexpr float kSam2ObjMax = 2.5;     // m, max delta between coords in sam.xml and object
-static constexpr float kSam2ObjHdgMax = 5;    // °, likewise for heading
+#include "flat_earth_math.h"
+namespace fem = flat_earth_math;
 
 // keep in sync with array below !
 enum DrCode {
@@ -60,6 +64,10 @@ static const char *dr_name_jw[] = {
 // The global cache for jetways keyed by (x,z)
 static std::unordered_map<PositionCacheKey, SamJw*, PositionCacheKeyHasher> jw_cache;
 static unsigned int jwc_ref_gen = 0;  // generation # of the reference frame for which the cache is valid
+
+quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;
+std::vector<SamJw*> sam_jw_list;
+std::vector<SamLibJw*> lib_jw;
 
 //
 // fill in values for a library jetway
@@ -110,7 +118,7 @@ void SamJw::FillLibraryValues(unsigned int id) {
 // As all jetways zc jetways should live forever as there can be complex interactions between
 // frame shifts and multiplayer planes with active jetways.
 //
-SamJw* Scenery::AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y, float obj_psi) {
+static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y, float obj_psi) {
     SamJw* jw = new SamJw();
     jw->obj_ref_gen = ref_gen;
     jw->x = obj_x;
@@ -119,14 +127,18 @@ SamJw* Scenery::AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_
     jw->psi = obj_psi;
     jw->is_zc_jw = true;
 
+    // fill the 'sam.xml' related position values
     XPLMLocalToWorld(obj_x, obj_y, obj_z, &jw->latitude,  &jw->longitude, &jw->altitude);
-    jw->xml_ref_gen = ref_gen;
-    jw->xml_x = obj_x;
-    jw->xml_y = obj_y;
-    jw->xml_z = obj_z;
     jw->heading = obj_psi;
 
-    const OsStand* stand = os_arpt->FindStandForJw(jw->x, jw->z);
+    jw->ComputeBbox();
+
+    // try to update stand related parameters or delay that until os_arpt is available
+    const OsStand* stand = nullptr;
+    if (os_arpt) {
+        jw->zc_stand_done = true;   // one shot only
+        stand = os_arpt->FindStandForJw(jw->x, jw->z);
+    }
 
     if (stand) {
         jw->base_name = stand->name();
@@ -151,13 +163,13 @@ SamJw* Scenery::AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_
     jw->FillLibraryValues(id);
     jw->SetWheels();
 
-    if (sam_jws_.size() == 0)
-        sam_jws_.reserve(os_arpt->n_stands());  // should be a good intial estimate
-
-    sam_jws_.push_back(jw);
+    // add to the global stores
+    sam_jw_list.push_back(jw);
+    jw_quadtree.Insert(jw);
 
     LogMsg("added zc jetway, stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
            jw->base_name.c_str(), jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
+
     return jw;
 }
 
@@ -191,7 +203,7 @@ static float JwAnimAcc(void* ref) {
     SamJw* jw = nullptr;
 
     // We cache jetway pointers for quick lookup by position in the local coordinate system.
-    if (jwc_ref_gen != ref_gen) {
+    if (jwc_ref_gen != ref_gen) [[unlikely]] {
         jwc_ref_gen = ref_gen;
         LogMsg("jw cache invalidated by reference frame shift, load factor: %0.2f", jw_cache.load_factor());
         jw_cache.clear();
@@ -199,95 +211,71 @@ static float JwAnimAcc(void* ref) {
 
     PositionCacheKey key{obj_x, obj_z};
     auto it = jw_cache.find(key);
-    if (it != jw_cache.end()) {
+    if (it != jw_cache.end()) [[likely]] {
         stat_jw_cache_hit++;
         jw = it->second;
+        if (jw == nullptr)
+            return 0.0f;  // negative cache entry, object at this position is not a jetway
     } else {
-        const float lat = my_plane->lat();
-        const float lon = my_plane->lon();
-
-        Scenery* sc = Scenery::FindScenery(lat, lon);
-        if (sc == nullptr) {
-            stat_sc_far_skip++;
-            return 0.0f;  // no scenery with jetways in sight, can't do anything
-        }
-
         const float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
-        for (auto tjw : sc->sam_jws_) {
-            if (tjw->bad)
-                continue;
+        double obj_lat, obj_lon, obj_alt;
+        XPLMLocalToWorld(obj_x, obj_y, obj_z, &obj_lat, &obj_lon, &obj_alt);
 
-            if (tjw->xml_ref_gen < ref_gen) {
-                // we must iterate to get the elevation of the jetway
-                //
-                // this stuff runs once when a jw in a scenery comes in sight
-                // so it should not be too costly
-                //
-                double x, y, z;
-                XPLMWorldToLocal(tjw->latitude, tjw->longitude, tjw->altitude, &x, &y, &z);
-                if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
-                    // usually from bogus values in sam.xml
-                    LogMsg("terrain probe 1 failed, jw: '%s', lat,lon: %0.6f, %0.6f, x,y,z: %0.5f, %0.5f, %0.5f",
-                            tjw->name.c_str(), tjw->latitude, tjw->longitude, x, y, z);
-                    LogMsg("jw: '%s' marked BAD", tjw->name.c_str());
-                    tjw->bad = true;
-                    return 0.0f;
-                }
+        std::array<SamJw*, kMaxJwPerNode> candidates;
+        int n_candidates = jw_quadtree.Find(obj_lon, obj_lat, candidates);
+        LogMsg("quadtree lookup for obj at x: %5.3f, z: %5.3f, lat: %0.6f, lon: %0.6f, found %d candidates", obj_x,
+               obj_z, obj_lat, obj_lon, n_candidates);
 
-                // xform back to world to get an approximation for the elevation
-                double lat, lon;
-                XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, &lat, &lon,
-                                    &tjw->altitude);
-                // LogMsg("elevation: %0.2f", tjw->altitude);
-
-                // and again to local with SAM's lat/lon and the approx elevation
-                XPLMWorldToLocal(tjw->latitude, tjw->longitude, tjw->altitude, &x, &y, &z);
-                if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
-                    // should not happen for the second probe
-                    LogMsg("terrain probe 2 failed???");
-                    tjw->bad = true;
-                    return 0.0f;
-                }
-
-                tjw->xml_x = probeinfo.locationX;
-                tjw->xml_z = probeinfo.locationZ;
-                tjw->xml_ref_gen = ref_gen;
+        if (n_candidates == 1) [[likely]] {
+            jw = candidates[0];
+            LogMsg("quadtree candidate: '%s', lat: %0.6f, lon: %0.6f", jw->name.c_str(), jw->latitude, jw->longitude);
+            if (std::abs(fem::RA(jw->heading - obj_psi)) > SamJw::kSam2ObjHdgMax) {
+                LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", jw->name.c_str(),
+                       jw->heading, obj_psi);
+                return 0.0f;
             }
 
-            if (std::abs(obj_x - tjw->xml_x) <= kSam2ObjMax && std::abs(obj_z - tjw->xml_z) <= kSam2ObjMax) {
-                // Heading is likely to match.
-                // We check position first as it's more likely to rule out other jetways
-                // letting us perform less checks to find the right one.
-                if (std::abs(fem::RA(tjw->heading - obj_psi)) > kSam2ObjHdgMax)
-                    continue;
+            jw->obj_ref_gen = ref_gen;
+            jw->x = obj_x;
+            jw->z = obj_z;
+            jw->y = obj_y;
+            jw->psi = obj_psi;
 
-                // have a match
-                if (tjw->obj_ref_gen < ref_gen) {
-                    // use higher precision values of the actually drawn object
-                    tjw->obj_ref_gen = ref_gen;
-                    tjw->x = obj_x;
-                    tjw->z = obj_z;
-                    tjw->y = obj_y;
-                    tjw->psi = obj_psi;
-                }
-
-                jw_cache[key] = jw = tjw;
-                break;
+            jw_cache[key] = jw;
+        } else if (n_candidates > 1) [[unlikely]] {
+            for (int i = 0; i < n_candidates; i++) {
+                SamJw* candidate = candidates[i];
+                LogMsg("candidate %d: '%s', lat: %0.6f, lon: %0.6f", i, candidate->name.c_str(), candidate->latitude,
+                       candidate->longitude);
             }
+            // TODO: find nearest candidate by distance, but for now just reject all if there are multiple candidates to
+            // avoid wrong matches
+            LogMsg("multiple candidates found for obj at x: %5.3f, z: %5.3f, lat: %0.6f, lon: %0.6f, rejecting all",
+                   obj_x, obj_z, obj_lat, obj_lon);
+            jw_cache[key] = nullptr;  // negative cache entry
+            return 0.0f;              // multiple candidates, can't decide which one is correct, reject all
+        } else if (n_candidates == 0 && id == 0) [[unlikely]] {
+            // TODO: try FindAround and search nearest
+            LogMsg("quadtree lookup found no candidates for obj at x: %5.3f, z: %5.3f, lat: %0.6f, lon: %0.6f", obj_x,
+                   obj_z, obj_lat, obj_lon);
+            jw_cache[key] = nullptr;  // negative cache entry
+            return 0.0f;
         }
 
         // obj was not found in the scenery's configured jetways, but maybe it's a zero config library jetway
         if (nullptr == jw && 0 < id && id < lib_jw.size()) {  // unconfigured library jetway
-            if (os_arpt == nullptr)
-                return 0.0f;  // airport not loaded yet, can't do anything
-
-            jw = sc->AddZeroConfigJetway(id, obj_x, obj_z, obj_y, obj_psi);
+            jw = AddZeroConfigJetway(id, obj_x, obj_z, obj_y, obj_psi);
+            if (jw) {
+                jw_cache[key] = jw;
+            }
         }
 
-        if (nullptr == jw)  // still unconfigured -> bad luck
+        if (nullptr == jw) {          // still unconfigured -> bad luck
+            jw_cache[key] = nullptr;  // negative cache entry
             return 0.0f;
-    } // no cache hit
+        }
+    }  // no cache hit
 
     switch (drc) {
         case kRotate1:
@@ -334,9 +322,8 @@ static float JwAnimAcc(void* ref) {
 
 // static method, reset all jetways
 void SamJw::ResetAll() {
-    for (auto& sc : Scenery::sceneries)
-        for (auto& jw : sc.sam_jws_)
-            jw->Reset();
+    for (auto jw : sam_jw_list)
+        jw->Reset();
 }
 
 void JwInit(int max_sam_stands) {
@@ -359,5 +346,5 @@ void JwInit(int max_sam_stands) {
     }
 
     SamJw::ResetAll();
-    srand(time(NULL));
+    srand(time(NULL));  // for random initial values for zero config jetways
 }
