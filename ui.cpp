@@ -24,14 +24,11 @@
 
 #include <string>
 #include <vector>
-#include <algorithm>
 
 #include "XPLMDisplay.h"
-#include "XPLMUtilities.h"
 #include "XPLMProcessing.h"
 
 #include "imgui.h"
-#include "imgui_stdlib.h"
 #include "ImgWindow.h"
 
 #include "opensam.h"
@@ -41,9 +38,11 @@
 #include "dgs/plane.h"
 #include "seasons.h"
 #include "os_anim.h"
+#include "scenery.h"
 #include "version.h"
 
 #include "ui.h"
+#include "log_msg.h"
 
 #include "fa-solid-900.inc"
 #include "IconsFontAwesome5.h"

@@ -22,7 +22,8 @@
 //
 
 #include "opensam.h"
-#include <my_plane.h>
+#include "my_plane.h"
+#include "log_msg.h"
 
 enum {
     API_OPERATION_MODE,

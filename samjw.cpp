@@ -22,15 +22,12 @@
 #include <cstdlib>
 #include <cmath>
 #include <ctime>
-#include <cstring>
-#include <cassert>
 #include <array>
+
+#include "XPLMGraphics.h"
 
 #include "opensam.h"
 #include "samjw.h"
-#include "jwctrl.h"
-
-#include "my_plane.h"
 #include "opensam_airport.h"
 #include "quadtree.h"
 #include "quadtree.inl"

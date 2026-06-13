@@ -23,9 +23,12 @@
 #include <cstdio>
 #include <cstring>
 
+#include "XPLMGraphics.h"
+
 #include "opensam.h"
-#include "samjw.h"      // for CheckRefFrameShift
+#include "scenery.h"
 #include "os_anim.h"
+#include "log_msg.h"
 
 #include "flat_earth_math.h"
 namespace fem = flat_earth_math;

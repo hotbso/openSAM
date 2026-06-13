@@ -26,6 +26,7 @@
 #include <fstream>
 #include <map>
 #include <algorithm>
+#include "XPLMGraphics.h"
 
 #include "opensam.h"
 #include "autodgs_airport.h"
@@ -34,7 +35,7 @@
 #include "dgs/dgs.h"
 #include "dgs/plane.h"
 
-#include "XPLMGraphics.h"
+#include "log_msg.h"
 
 static constexpr float kVdgsDefaultDist = 15.0;  // m
 static constexpr float kMarshallerDefaultDist = 25.0;

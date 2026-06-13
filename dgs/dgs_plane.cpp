@@ -19,7 +19,6 @@
 //    USA
 //
 
-#include <iostream>
 #include <fstream>
 #include <string>
 #include <unordered_map>
@@ -30,7 +29,6 @@
 
 #include "airport.h"
 #include "plane.h"
-#include "dgs_impl.h"
 
 #include "log_msg.h"
 

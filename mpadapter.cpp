@@ -20,6 +20,7 @@
 //
 
 #include <cassert>
+
 #include "opensam.h"
 #include "plane.h"
 

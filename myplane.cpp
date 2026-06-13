@@ -20,18 +20,17 @@
 //
 
 #include <cstdlib>
-#include <cstring>
 #include <cassert>
-#include <fstream>
 
 #include "opensam.h"
-#include "XPLMPlanes.h"
 #include "XPLMNavigation.h"
 
 #include "my_plane.h"
 #include "samjw.h"
 
 #include "dgs/plane.h"
+
+#include "log_msg.h"
 
 std::shared_ptr<MyPlane> my_plane;
 

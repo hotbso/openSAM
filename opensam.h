@@ -21,20 +21,12 @@
 
 #pragma once
 
-#include <cmath>
-#include <numbers>
 #include <string>
-#include <vector>
 #include <unordered_map>
 
 #include "XPLMDataAccess.h"
-#include "XPLMMenus.h"
-#include "XPLMGraphics.h"
+#include "XPLMUtilities.h"
 #include "XPLMScenery.h"
-
-#include "scenery.h"
-#include "dgs/apt_airport.h"
-#include "log_msg.h"
 
 static constexpr float kF2M = 0.3048;                   // 1 ft [m]
 static constexpr float kLat2M = 111120;                 // 1° lat in m
@@ -92,10 +84,9 @@ extern std::string base_dir;        // base directory of openSAM
 extern std::string sys_cfg_dir;
 extern std::string user_cfg_dir;
 
-extern XPLMDataRef lat_ref_dr, lon_ref_dr,
-    draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr,
-    total_running_time_sec_dr, sin_wave_dr,  acf_cg_y_dr, acf_cg_z_dr,
-    vr_enabled_dr, plane_x_dr, plane_y_dr, plane_z_dr, plane_elevation_dr, plane_true_psi_dr, parkbrake_dr;
+extern XPLMDataRef draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, total_running_time_sec_dr,
+    sin_wave_dr, acf_cg_y_dr, acf_cg_z_dr, vr_enabled_dr, plane_x_dr, plane_y_dr, plane_z_dr, plane_elevation_dr,
+    plane_true_psi_dr, parkbrake_dr;
 
 extern XPLMCommandRef toggle_jetway_cmdr;
 
@@ -105,8 +96,6 @@ extern unsigned long long stat_jw_acc_called, stat_anim_acc_called, stat_auto_dr
 extern float now;           // current timestamp
 extern bool error_disabled; // set this on severe errors to disable openSAM and hopefully allow XP to continue
 
-// detect shifts of the reference frame
-extern float lat_ref, lon_ref;
 // generation # of reference frame
 // init with 1 so jetways never seen by the accessor won't be considered in JwCtrl::FindNearestJetways()
 extern unsigned int ref_gen;

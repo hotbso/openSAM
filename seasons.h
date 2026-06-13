@@ -19,10 +19,7 @@
 //    USA
 //
 
-#ifndef SEASONS_H
-#define SEASONS_H
-
-#include "XPLMMenus.h"
+#pragma once
 
 // support for legacy SAM seasons
 namespace Seasons {
@@ -33,5 +30,3 @@ namespace Seasons {
     void InitDataRefs();
     void SetAuto();
 }
-
-#endif // SEASONS_H

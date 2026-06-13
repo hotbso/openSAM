@@ -19,25 +19,25 @@
 //    USA
 //
 
-#include <cassert>
 #include <cmath>
 #include <unordered_map>
-#include <stdexcept>
+
+#include "XPLMGraphics.h"
 
 #include "opensam.h"
 #include "opensam_airport.h"
 #include "my_plane.h"
 
 #include "dgs/dgs.h"
-#include "dgs/plane.h"
 #include "sam1_dgs.h"
-
-#include "XPLMGraphics.h"
+#include "log_msg.h"
 
 #include "dgs_variants_generated.h"
 
 #include "flat_earth_math.h"
 namespace fem = flat_earth_math;
+
+static constexpr float kD2R = std::numbers::pi/180.0;
 
 static constexpr float kMaxDgs2StandX = 10.0f;  // max offset/distance from DGS to stand
 static constexpr float kMaxDgs2StandZ = 80.0f;

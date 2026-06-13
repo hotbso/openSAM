@@ -21,12 +21,14 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <stdexcept>
 #include <cassert>
 
 #include "opensam.h"
 #include "my_plane.h"
 #include "mpadapter_tgxp.h"
+#include "log_msg.h"
+
+static constexpr float kD2R = std::numbers::pi/180.0;
 
 constexpr int kSpawnPerRun = 10;    // new Planes per update run
 

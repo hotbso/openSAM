@@ -19,14 +19,12 @@
 //    USA
 //
 
-#ifndef _JWCTRL_H
-#define _JWCTRL_H
+#pragma once
 
 #include <array>
+#include "XPLMSound.h"
 
 #include "samjw.h"
-
-#include "XPLMSound.h"
 
 struct Sound {
     void *data;
@@ -152,4 +150,3 @@ static_assert(std::is_trivially_copyable_v<JwCtrl> &&
 
 // from ReadWav.cpp
 extern void ReadWav(const std::string& fname, Sound& sound);
-#endif

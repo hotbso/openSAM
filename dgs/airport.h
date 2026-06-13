@@ -19,19 +19,15 @@
 //    USA
 //
 
-#ifndef _DGS_AIRPORT_H_
-#define _DGS_AIRPORT_H_
+#pragma once
 
 #include <memory>
-#include <tuple>
 
 #include "dgs/dgs.h"
 #include "dgs/dgs_impl.h"
 #include "dgs/apt_airport.h"
 
 #include "XPLMUtilities.h"
-
-class AdgsAirport;  // forward declaration for dgs::Stand
 
 // AptStand augmented
 namespace dgs {
@@ -166,5 +162,3 @@ void CheckRefFrameShift();
 extern unsigned int ref_gen;
 
 extern XPLMProbeRef probe_ref;
-
-#endif

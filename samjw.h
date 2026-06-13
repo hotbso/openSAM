@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include <numbers>
 #include <string>
 #include <vector>
 #include <cmath>
@@ -29,6 +30,7 @@
 
 // Context of an instantiated jetway, either in sam.xml or zero config per WED within the scenery
 struct SamJw {
+    static constexpr float kD2R = std::numbers::pi/180.0;
     static constexpr float kSam2ObjMax = 2.5;     // m, max delta between coords in sam.xml and object
     static constexpr float kSam2ObjHdgMax = 5;    // °, likewise for heading
 

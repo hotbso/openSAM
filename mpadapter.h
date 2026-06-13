@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2025, 2026  Holger Teutsch
 //
@@ -19,13 +19,10 @@
 //    USA
 //
 
-#ifndef _MPADAPTER_H_
-#define _MPADAPTER_H_
+#pragma once
 
 #include <unordered_map>
 #include <memory>
-
-#include "plane.h"
 
 // Wrapper around the different plugins providing multiplayer planes
 // xPilot, TGXP, liveTraffic, ...
@@ -44,4 +41,4 @@ class MpAdapter {
 
 // hopefully will detect which plugin is active and returns the appropriate service
 extern std::unique_ptr<MpAdapter> MpAdapter_factory();  // no supported MP plugin -> nullptr
-#endif
+

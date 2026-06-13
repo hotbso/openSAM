@@ -20,13 +20,12 @@
 //
 
 #include <cstdlib>
-#include <cstring>
-#include <stdexcept>
 #include <cassert>
 
 #include "opensam.h"
 #include "my_plane.h"
 #include "mpadapter_xpilot.h"
+#include "log_msg.h"
 
 static XPLMDataRef modeS_id_dr, icao_type_dr, flight_id_dr,  // identity
     x_dr, y_dr, z_dr, psi_dr,                                // position

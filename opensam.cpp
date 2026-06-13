@@ -19,10 +19,8 @@
 //    USA
 //
 
-#include <cstdlib>
 #include <cstdio>
 #include <cstring>
-#include <cmath>
 #include <cassert>
 #include <string>
 #include <vector>
@@ -31,8 +29,12 @@
 #include <filesystem>
 #include <chrono>
 
+#include "XPLMPlugin.h"
+#include "XPLMProcessing.h"
+#include "XPLMDataAccess.h"
+#include "XPLMMenus.h"
+
 #include "opensam.h"
-#include "plane.h"
 #include "samjw.h"
 #include "jwctrl.h"
 #include "os_anim.h"
@@ -40,15 +42,14 @@
 #include "mpadapter.h"
 #include "opensam_airport.h"
 #include "autodgs_airport.h"
-#include <dgs/plane.h>
-#include <sam1_dgs.h>
+#include "dgs/plane.h"
+#include "sam1_dgs.h"
+#include "scenery.h"
 
 #include "flat_earth_math.h"
 #include "seasons.h"
 #include "ui.h"
-
-#include "XPLMPlugin.h"
-#include "XPLMProcessing.h"
+#include "log_msg.h"
 
 #include "version.h"
 
@@ -120,14 +121,15 @@ static const char* toggle_mp_support_txt = "Toggle Multiplayer Support";
 static int airport_loaded;
 static int sam_library_installed;   // int, is served to a dataref accessor, 0 or 1
 
-XPLMDataRef lat_ref_dr, lon_ref_dr, draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr,
+XPLMDataRef draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr,
     total_running_time_sec_dr, vr_enabled_dr, plane_x_dr, plane_y_dr, plane_z_dr, plane_elevation_dr,
     plane_true_psi_dr, parkbrake_dr, sin_wave_dr, acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr,
     eng_running_dr, beacon_dr, is_helicopter_dr;
 
+static XPLMDataRef lat_ref_dr, lon_ref_dr;
 XPLMCommandRef toggle_jetway_cmdr, activate_cmdr, toggle_ui_cmdr;
 
-float lat_ref{-1000}, lon_ref{-1000};
+static float lat_ref{-1000}, lon_ref{-1000};
 unsigned int ref_gen{1};
 
 static int pref_auto_mode;

@@ -28,6 +28,8 @@
 #include "flat_earth_math.h"
 namespace fem = flat_earth_math;
 
+static constexpr float kD2R = std::numbers::pi/180.0;
+
 bool JwCtrl::SoundDevInit() {
     return true;
 };

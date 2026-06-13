@@ -19,19 +19,12 @@
 //    USA
 //
 
-#include <cstdlib>
-#include <cmath>
-#include <ctime>
-#include <cstring>
 #include <cassert>
-#include <fstream>
-
 #include "opensam.h"
-#include "XPLMPlanes.h"
-#include "XPLMNavigation.h"
 
 #include "plane.h"
 #include "samjw.h"
+#include "log_msg.h"
 
 int Plane::id_base_;
 

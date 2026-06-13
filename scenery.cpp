@@ -21,15 +21,12 @@
 
 #include <cstddef>
 #include <cstdlib>
-#include <cstdio>
 #include <cstring>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <iostream>
 #include <fstream>
 #include <filesystem>
-#include <exception>
 #include <unordered_map>
 
 #include <expat.h>
@@ -38,6 +35,8 @@
 #define O_BINARY 0
 #endif
 
+#include "scenery.h"
+#include "dgs/apt_airport.h"
 #include "quadtree.h"
 #include "quadtree.inl"
 #include "opensam.h"

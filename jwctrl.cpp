@@ -21,10 +21,8 @@
 
 #include <cstdlib>
 #include <cmath>
-#include <ctime>
 #include <cstring>
 #include <algorithm>
-#include <exception>
 
 #include "opensam.h"
 #include "my_plane.h"
@@ -37,6 +35,8 @@
 
 #include "flat_earth_math.h"
 namespace fem = flat_earth_math;
+
+static constexpr float kD2R = std::numbers::pi/180.0;
 
 // from os_read_wav.c
 extern void ReadWav(const std::string& fname, Sound& sound);
