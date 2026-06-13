@@ -52,6 +52,9 @@ static float marshaller_pe_dist = kMarshallerDefaultDist;
 
 std::unique_ptr<AdgsAirport> adgs_arpt;
 
+opmode_t operation_mode = MODE_AUTO;
+const char* const opmode_str[] = { "Automatic", "Manual" };
+
 AdgsStand::AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation, int dgs_type, float dgs_dist)
     : dgs::Stand(as, arpt_icao, elevation) {
 

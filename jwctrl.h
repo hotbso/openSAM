@@ -26,6 +26,9 @@
 
 #include "samjw.h"
 
+class Plane;
+class DoorInfo;
+
 struct Sound {
     void *data;
     int size;

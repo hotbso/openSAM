@@ -28,29 +28,10 @@
 #include "XPLMUtilities.h"
 #include "XPLMScenery.h"
 
+#include "plane.h"
+
 static constexpr float kF2M = 0.3048;                   // 1 ft [m]
 static constexpr float kLat2M = 111120;                 // 1° lat in m
-
-// DGS types per stand, AutoDGS mode
-static constexpr int kMarshaller = 0;
-static constexpr int kVDGS = 1;
-static constexpr int kAutomatic = 2;
-
-enum VDgsType {
-    kVdgsSafedock_T2_24,
-    kVdgsSafedock_X
-};
-
-extern int default_vdgs_type;
-
-typedef enum { MODE_AUTO, MODE_MANUAL } opmode_t;
-extern const char * const opmode_str[];
-extern opmode_t operation_mode;
-
-static constexpr int kMaxDoor = 3;
-struct DoorInfo {
-    float x, y, z;
-};
 
 // for quick lookup of objects by position (x/y/z)
 struct PositionCacheKey {

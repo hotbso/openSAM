@@ -22,6 +22,7 @@
 //
 
 #include "opensam.h"
+#include "autodgs_airport.h"
 #include "my_plane.h"
 #include "log_msg.h"
 

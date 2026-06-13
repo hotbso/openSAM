@@ -169,7 +169,7 @@ if(BUILD_TESTS)
         ${SDK}/CHeaders/XPLM
     )
     target_compile_definitions(scenery_test PRIVATE
-        XPLM200 XPLM210 XPLM300 XPLM301
+        XPLM200 XPLM210 XPLM300 XPLM301 XPLM400
         LOCAL_DEBUGSTRING
         $<IF:$<BOOL:${WIN32}>,WINDOWS WIN32 IBM=1,>
         $<IF:$<BOOL:${APPLE}>,APL=1,>

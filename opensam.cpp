@@ -38,6 +38,7 @@
 #include "samjw.h"
 #include "jwctrl.h"
 #include "os_anim.h"
+#include "plane.h"
 #include "my_plane.h"
 #include "mpadapter.h"
 #include "opensam_airport.h"
@@ -110,9 +111,6 @@ std::string xp_dir;
 std::string sys_cfg_dir;    // <base_dir>/cfg
 std::string user_cfg_dir;   // <xp_dir>/Output/openSAM
 static std::string pref_path;
-
-opmode_t operation_mode = MODE_AUTO;
-const char* const opmode_str[] = { "Automatic", "Manual" };
 
 static XPLMMenuID os_menu;
 static int toggle_mp_item;

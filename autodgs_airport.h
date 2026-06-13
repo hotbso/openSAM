@@ -1,5 +1,5 @@
 //
-//    AutoDGS: Show Marshaller or VDGS at default airports
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2006-2013 Jonathan Harris
 //    Copyright (C) 2023, 2025 Holger Teutsch
@@ -20,13 +20,28 @@
 //    USA
 //
 
-#ifndef _AIRPORT_H_
-#define _AIRPORT_H_
+#pragma once
 
 #include <memory>
 #include <tuple>
 
 #include "dgs/airport.h"
+
+// DGS types per stand, AutoDGS mode
+static constexpr int kMarshaller = 0;
+static constexpr int kVDGS = 1;
+static constexpr int kAutomatic = 2;
+
+enum VDgsType {
+    kVdgsSafedock_T2_24,
+    kVdgsSafedock_X
+};
+
+extern int default_vdgs_type;
+
+typedef enum { MODE_AUTO, MODE_MANUAL } opmode_t;
+extern const char * const opmode_str[];
+extern opmode_t operation_mode;
 
 class AdgsAirport;  // forward declaration for dgs::Stand
 
@@ -88,5 +103,3 @@ class AdgsAirport : public dgs::Airport {
 };
 
 extern std::unique_ptr<AdgsAirport> adgs_arpt;
-
-#endif

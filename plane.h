@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2024, 2025, 2026  Holger Teutsch
 //
@@ -19,8 +19,7 @@
 //    USA
 //
 
-#ifndef _PLANE_H_
-#define _PLANE_H_
+#pragma once
 
 #include <unordered_map>
 #include <memory>
@@ -29,6 +28,11 @@
 
 static constexpr int kNearJwLimit = 3;     // max # of jetways we consider for docking
 static constexpr float kMpMaxDist = 2000;  // (m) max dist we consider MP planes
+
+static constexpr int kMaxDoor = 3;
+struct DoorInfo {
+    float x, y, z;
+};
 
 //
 // Generic class that provides all plane related values for jetway animation.
@@ -113,4 +117,3 @@ class Plane {
     // hook into flight loop
     float JwStateMachine();
 };
-#endif
