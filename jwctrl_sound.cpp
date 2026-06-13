@@ -20,8 +20,8 @@
 //
 
 #include <cstddef>
+#include <cmath>
 
-#include "opensam.h"
 #include "samjw.h"
 #include "jwctrl.h"
 

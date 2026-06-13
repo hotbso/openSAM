@@ -23,7 +23,6 @@
 #include <cstdio>
 #include <cstring>
 
-#include "opensam.h"
 #include "jwctrl.h"
 #include "log_msg.h"
 

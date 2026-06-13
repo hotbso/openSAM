@@ -21,15 +21,14 @@
 
 #pragma once
 
-#include <array>
 #include <string>
 #include <vector>
 
 #include "XPLMSound.h"
 
 struct SamJw;
-class Plane;
 struct DoorInfo;
+class Plane;
 
 struct Sound {
     void *data;
@@ -37,8 +36,6 @@ struct Sound {
     int num_channels;
     int sample_rate;
 };
-
-class Plane;
 
 struct Vec2 {
     float x, z;

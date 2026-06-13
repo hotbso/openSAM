@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>

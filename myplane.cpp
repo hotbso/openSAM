@@ -21,6 +21,8 @@
 
 #include <cstdlib>
 #include <cassert>
+#include <cmath>
+#include <cstdio>
 
 #include "opensam.h"
 #include "XPLMNavigation.h"

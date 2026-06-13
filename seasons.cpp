@@ -22,7 +22,6 @@
 #include "XPLMDataAccess.h"
 
 #include "seasons.h"
-#include "opensam.h"
 #include "log_msg.h"
 
 // support for legacy SAM seasons

@@ -21,9 +21,6 @@
 
 #pragma once
 
-#include <unordered_map>
-#include <memory>
-
 #include "jwctrl.h"
 
 static constexpr int kNearJwLimit = 3;     // max # of jetways we consider for docking

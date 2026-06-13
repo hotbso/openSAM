@@ -22,7 +22,6 @@
 #include "sam1_dgs.h"
 
 #include <cassert>
-#include <cstring>
 
 #include "dgs/dgs_impl.h"
 #include "log_msg.h"
