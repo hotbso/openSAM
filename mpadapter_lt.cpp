@@ -19,8 +19,9 @@
 //    USA
 //
 
-#include <stdexcept>
 #include <cassert>
+#include <numbers>
+#include <cmath>
 
 #include "opensam.h"
 #include "my_plane.h"

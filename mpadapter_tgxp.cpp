@@ -22,6 +22,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
+#include <numbers>
+#include <cmath>
 
 #include "opensam.h"
 #include "my_plane.h"

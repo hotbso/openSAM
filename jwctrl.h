@@ -22,12 +22,14 @@
 #pragma once
 
 #include <array>
+#include <string>
+#include <vector>
+
 #include "XPLMSound.h"
 
-#include "samjw.h"
-
+struct SamJw;
 class Plane;
-class DoorInfo;
+struct DoorInfo;
 
 struct Sound {
     void *data;

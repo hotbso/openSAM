@@ -39,6 +39,7 @@
 #include "seasons.h"
 #include "os_anim.h"
 #include "scenery.h"
+#include "samjw.h"
 #include "version.h"
 
 #include "ui.h"

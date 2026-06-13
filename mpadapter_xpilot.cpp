@@ -21,6 +21,7 @@
 
 #include <cstdlib>
 #include <cassert>
+#include <cmath>
 
 #include "opensam.h"
 #include "my_plane.h"
