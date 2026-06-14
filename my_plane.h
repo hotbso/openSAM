@@ -41,7 +41,6 @@ class MyPlane : public Plane, public dgs::Plane {
     unsigned parked_ngen_{};
 
     bool auto_mode_{}, dock_requested_{}, undock_requested_{}, toggle_requested_{};
-    bool ui_unlocked_{};  // the ui is unlocked for jw_selection
 
     float elevation_{};
 

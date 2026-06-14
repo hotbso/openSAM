@@ -96,7 +96,6 @@ MyPlane::MyPlane() {
 
     acf_icao_ = "0000";
     ResetBeacon();
-    ui_unlocked_ = false;
     state_ = IDLE;
 
     plane_lat_dr_ = XPLMFindDataRef("sim/flightmodel/position/latitude");
