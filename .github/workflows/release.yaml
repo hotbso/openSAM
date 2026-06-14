@@ -81,15 +81,30 @@ jobs:
           if [ -n "$TAG" ]; then
             echo "VERSION=$TAG" > version.mak
           fi
+          CMAKE_EXTRA_ARGS=""
           if [ "$RUNNER_OS" = "Linux" ]; then
             export CC=gcc-14
             export CXX=g++-14
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            CMAKE_EXTRA_ARGS='-DCMAKE_OSX_ARCHITECTURES=x86_64;arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0'
           fi
           cmake -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTS=OFF \
+            ${CMAKE_EXTRA_ARGS} \
             -S . -B build
           cmake --build build
           cmake --install build
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            BIN_PATH=$(find openSAM-pkg/openSAM/mac_x64 -name "*.xpl" | head -n 1)
+            if [ -z "$BIN_PATH" ]; then
+              echo "No macOS plugin binary found in openSAM-pkg/openSAM/mac_x64"
+              exit 1
+            fi
+            LIPO_INFO=$(lipo -info "$BIN_PATH")
+            echo "$LIPO_INFO"
+            echo "$LIPO_INFO" | grep -q "x86_64"
+            echo "$LIPO_INFO" | grep -q "arm64"
+          fi
           tar cvf binary.tar openSAM-pkg/openSAM/*_x64
 
       - name: Upload Build Artifact
