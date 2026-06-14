@@ -137,7 +137,9 @@ class JwCtrl {
     bool DockDrive();
     bool UndockDrive();
 
-    void Reset();
+    void UnlockJw();           // unlock the jetway controled by this controller
+    void ResetJw();              // reset the jetway controlled by this controller to the initial position
+    const char* name() const;  // name of jetway controlled by this controller
 
     friend bool operator<(const JwCtrl&, const JwCtrl&);
 

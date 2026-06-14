@@ -21,7 +21,6 @@
 
 #include <cassert>
 #include "opensam.h"
-
 #include "plane.h"
 #include "samjw.h"
 #include "log_msg.h"
@@ -37,7 +36,7 @@ Plane::~Plane() {
     LogMsg("pid=%02d, Plane destructor, state: %s, active_jws: %d", id_, state_str_[state_], (int)active_jws_.size());
     if (IDLE <= state_) {
         for (auto& ajw : active_jws_)
-            ajw.Reset();
+            ajw.ResetJw();
         active_jws_.clear();
     }
 
@@ -74,7 +73,7 @@ void Plane::AutoSelectJws() {
         nearest_jws_[i_jw].door_ = i_door;
         nearest_jws_[i_jw].selected_ = true;
         active_jws_.push_back(nearest_jws_[i_jw]);
-        LogMsg("active jetway for door %d: %s", i_door, active_jws_.back().jw_->name.c_str());
+        LogMsg("active jetway for door %d: %s", i_door, active_jws_.back().name());
         i_door++;
         if (i_door >= n_doors_)
             break;
@@ -105,7 +104,7 @@ float Plane::JwStateMachine() {
         state_change_ts_ = now;
 
         for (auto& ajw : active_jws_)
-            ajw.Reset();
+            ajw.ResetJw();
 
         nearest_jws_.clear();
         active_jws_.clear();
@@ -119,10 +118,10 @@ float Plane::JwStateMachine() {
             if (prev_state_ != IDLE) {
                 // from anywhere to idle nullifies all selections and locks
                 for (auto& njw : nearest_jws_)
-                    njw.jw_->locked = false;
+                    njw.UnlockJw();
 
                 for (auto& ajw : active_jws_)
-                    ajw.Reset();
+                    ajw.ResetJw();
 
                 active_jws_.clear();
                 nearest_jws_.clear();
@@ -164,7 +163,7 @@ float Plane::JwStateMachine() {
                 AutoSelectJws();
                 if (active_jws_.empty()) {  // e.g. collisions, locked jws
                     for (auto& njw : nearest_jws_)
-                        njw.jw_->locked = false;
+                        njw.UnlockJw();
 
                     new_state = CANT_DOCK;
                     break;
@@ -184,7 +183,7 @@ float Plane::JwStateMachine() {
                 // unlock jws that were not selected as active jw
                 for (auto& njw : nearest_jws_)
                     if (!njw.selected_)
-                        njw.jw_->locked = false;
+                        njw.UnlockJw();
 
                 new_state = CAN_DOCK;
             }

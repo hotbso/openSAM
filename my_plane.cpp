@@ -27,7 +27,6 @@
 #include "XPLMNavigation.h"
 
 #include "my_plane.h"
-#include "samjw.h"
 
 #include "dgs/plane.h"
 
@@ -158,7 +157,7 @@ void MyPlane::AutoModeSet(bool auto_mode) {
 
     if (state_ == DOCKING || state_ == UNDOCKING) {
         for (auto& ajw : active_jws_)
-            ajw.Reset();  // an animation might be ongoing
+            ajw.ResetJw();  // an animation might be ongoing
         state_ = IDLE;
         return;
     }
@@ -168,7 +167,7 @@ void MyPlane::AutoModeSet(bool auto_mode) {
 
     if (!auto_mode && state_ == CAN_DOCK) {
         for (auto& ajw : active_jws_)
-            ajw.jw_->locked = false;
+            ajw.UnlockJw();  // unlock jws that were selected by auto mode
         active_jws_.clear();
         state_ = PARKED;
         return;

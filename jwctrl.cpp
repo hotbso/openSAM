@@ -842,7 +842,15 @@ void JwCtrl::SetupDockUndock(float start_time, bool with_sound) {
     jw_->warnlight = 1;
 }
 
-void JwCtrl::Reset() {
+void JwCtrl::UnlockJw() {
+    jw_->locked = false;
+}
+
+const char* JwCtrl::name() const {
+    return jw_->name.c_str();
+}
+
+void JwCtrl::ResetJw() {
     AlertOff();
     jw_->Reset();
 }

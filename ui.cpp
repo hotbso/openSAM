@@ -34,11 +34,11 @@
 #include "opensam.h"
 #include "autodgs_airport.h"
 #include "opensam_airport.h"
+#include "jwctrl.h"
 #include "my_plane.h"
 #include "seasons.h"
 #include "os_anim.h"
 #include "scenery.h"
-#include "samjw.h"
 #include "version.h"
 
 #include "ui.h"
@@ -368,7 +368,7 @@ void Ui::BuildInterface() {
         ImGui::Separator();
         int id = 0;
         for (int j = 0; j < n_jws; j++) {
-            ImGui::TextUnformatted(my_plane->nearest_jws_[j].jw_->name.c_str());
+            ImGui::TextUnformatted(my_plane->nearest_jws_[j].name());
             ImGui::NextColumn();
             for (int d = 0; d < n_doors; d++) {
                 ImGui::PushID(id++);  // ensure unique ID for each checkbox
@@ -437,7 +437,7 @@ void Ui::BuildInterface() {
         }
         ImGui::Separator();
         for (int j = 0; j < n_jws; j++) {
-            ImGui::TextUnformatted(my_plane->nearest_jws_[j].jw_->name.c_str());
+            ImGui::TextUnformatted(my_plane->nearest_jws_[j].name());
             ImGui::NextColumn();
             for (int d = 0; d < n_doors; d++) {
                 for (const auto& ajw : my_plane->active_jws_) {
