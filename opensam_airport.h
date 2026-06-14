@@ -81,8 +81,9 @@ class OsAirport : public dgs::Airport {
     // the draw loop context.
     std::vector<DgsCtx> pending_dgs_;
 
-    void ProcessPendingDgs(DgsCtx& ctx);  // process a newly identified DGS, e.g. by instancing it and associating it with a stand
-    int FindStandForObj(float obj_x, float obj_z, float obj_psi); // returns index in stands_ or -1 if not found
+    // process a newly identified DGS, e.g. by instancing it and associating it with a stand
+    void ProcessPendingDgs(DgsCtx& ctx);
+    int FindStandForObj(const DgsCtx& ctx);  // returns index in stands_ or -1 if not found
 
    public:
     static std::unique_ptr<OsAirport> LoadAirport(const dgs::AptAirport* arpt);

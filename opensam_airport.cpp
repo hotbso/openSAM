@@ -38,6 +38,7 @@
 
 static constexpr float kMaxDgs2StandX = 10.0f;  // max offset/distance from DGS to stand
 static constexpr float kMaxDgs2StandZ = 80.0f;
+static constexpr float kMaxDgsHdgtDiff = 10.0f;  // max heading difference between DGS and stand
 static constexpr float kExtraDz = 0.05f;  // extra pull forward of displays in z direction to account for precision loss
 
 std::unique_ptr<OsAirport> os_arpt;
@@ -147,7 +148,7 @@ const OsStand* OsAirport::FindStandForJw(float jw_x, float jw_z) {
     return min_stand;
 }
 
-int OsAirport::FindStandForObj(float obj_x, float obj_z, float obj_psi) {
+int OsAirport::FindStandForObj(const DgsCtx& ctx) {
     // find a stand for an DGS object with the given local coordinates and heading in the current ref frame,
     // return index in stands_ or -1 if not found
 
@@ -160,19 +161,28 @@ int OsAirport::FindStandForObj(float obj_x, float obj_z, float obj_psi) {
 
         // to stand local
         float obj_x_sl, obj_z_sl;
-        stand->Local2Stand(obj_x, obj_z, obj_x_sl, obj_z_sl);
+        stand->Local2Stand(ctx.obj_x, ctx.obj_z, obj_x_sl, obj_z_sl);
 
         // must be in a box +- kMaxDgs2StandX, kMaxDgs2StandZ
         // and reasonably aligned with stand (or for SAM1 anti aligned)
-        if (std::fabs(obj_x_sl) > kMaxDgs2StandX || obj_z_sl < -kMaxDgs2StandZ || obj_z_sl > -5.0f ||
-            BETWEEN(std::fabs(fem::RA(stand->hdgt() - obj_psi)), 10.0f, 170.0f))
+        float dh = std::abs(fem::RA(stand->hdgt() - ctx.obj_psi));
+        bool aligned;
+        aligned = dh < kMaxDgsHdgtDiff;
+        if (ctx.dgs_type == kDgsType_SAM1_Legacy)
+            aligned = (dh < kMaxDgsHdgtDiff || dh > (180.0f - kMaxDgsHdgtDiff));  // SAM1 legacy DGS can be turned 180°
+        else if (ctx.turn_180)  // we know it's anti aligned
+            aligned = dh > (180.0f - kMaxDgsHdgtDiff);
+        else
+            aligned = dh < kMaxDgsHdgtDiff;
+
+        if (obj_z_sl < -kMaxDgs2StandZ || obj_z_sl > -5.0f || std::abs(obj_x_sl) > kMaxDgs2StandX || !aligned) [[likely]]
             continue;
 
         // closest to center line, nearest to stand, closer to cl takes precedence
-        if (((std::fabs(obj_x_sl) < min_x - 2.0f) && (obj_z_sl > max_z - 8.0f)) ||
-            ((std::fabs(obj_x_sl) < min_x - 1.0f) && (obj_z_sl > max_z - 2.0f)) ||
-            (((std::fabs(obj_x_sl) < min_x) && (obj_z_sl > max_z)))) {
-            min_x = std::fabs(obj_x_sl);
+        if (((std::abs(obj_x_sl) < min_x - 2.0f) && (obj_z_sl > max_z - 8.0f)) ||
+            ((std::abs(obj_x_sl) < min_x - 1.0f) && (obj_z_sl > max_z - 2.0f)) ||
+            (((std::abs(obj_x_sl) < min_x) && (obj_z_sl > max_z)))) {
+            min_x = std::abs(obj_x_sl);
             max_z = obj_z_sl;
             imin = i;
         }
@@ -200,7 +210,7 @@ void OsAirport::ProcessPendingDgs(DgsCtx& ctx) {
         LogMsg("retransformed DGS to new ref frame: obj_x %.2f, obj_y %.2f, obj_z %.2f", ctx.obj_x, ctx.obj_y, ctx.obj_z);
     }
 
-    int istand = FindStandForObj(ctx.obj_x, ctx.obj_z, ctx.obj_psi);
+    int istand = FindStandForObj(ctx);
 
     if (istand < 0) {
         LogMsg("No stand found for DGS at lat %.6f, lon %.6f, altitude %.2f", ctx.lat, ctx.lon, ctx.altitude);
