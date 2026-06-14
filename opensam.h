@@ -22,43 +22,13 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 
 #include "XPLMDataAccess.h"
 #include "XPLMUtilities.h"
 #include "XPLMScenery.h"
 
-struct DoorInfo;
-
 static constexpr float kF2M = 0.3048;                   // 1 ft [m]
 static constexpr float kLat2M = 111120;                 // 1° lat in m
-
-// for quick lookup of objects by position (x/y/z)
-struct PositionCacheKey {
-    // x, z are obj_x/z coordinates of an object, used for quick lookup of object by position
-    float x, z;
-
-    bool operator==(const PositionCacheKey &other) const {
-        return (x == other.x) && (z == other.z);
-    }
-};
-
-struct PositionCacheKeyHasher {
-    std::size_t operator()(const PositionCacheKey& key) const {
-        // x, z should be enough to identify an object
-        int64_t x_int = (int64_t)(key.x * 100.0f);  // scale to preserve 2 decimal places
-        int64_t z_int = (int64_t)(key.z * 100.0f);
-        // 0x9e3779b9 is the Golden Ratio constant used to prevent bit clustering
-        std::size_t seed = std::hash<int64_t>{}(x_int);
-        seed ^= std::hash<int64_t>{}(z_int) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        return seed;
-    }
-};
-
-// key is icao + <door num in ascii>
-extern std::unordered_map<std::string, DoorInfo> csl_door_info_map;
-// key is icao or iata -> icao
-extern std::unordered_map<std::string, std::string> acf_generic_type_map;
 
 extern std::string xp_dir;
 extern std::string base_dir;        // base directory of openSAM

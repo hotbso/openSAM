@@ -42,3 +42,7 @@ class MpAdapter {
 // hopefully will detect which plugin is active and returns the appropriate service
 extern std::unique_ptr<MpAdapter> MpAdapter_factory();  // no supported MP plugin -> nullptr
 
+// key is icao + <door num in ascii>
+extern std::unordered_map<std::string, DoorInfo> csl_door_info_map;
+// key is icao or iata -> icao
+extern std::unordered_map<std::string, std::string> acf_generic_type_map;

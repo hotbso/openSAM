@@ -52,6 +52,8 @@ static float marshaller_pe_dist = kMarshallerDefaultDist;
 
 std::unique_ptr<AdgsAirport> adgs_arpt;
 
+int default_vdgs_type = kVdgsSafedock_T2_24;
+
 opmode_t operation_mode = MODE_AUTO;
 const char* const opmode_str[] = { "Automatic", "Manual" };
 

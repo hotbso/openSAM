@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2026  Holger Teutsch
 //
@@ -19,12 +19,12 @@
 //    USA
 //
 
-#ifndef _OS_AIRPORT_H_
-#define _OS_AIRPORT_H_
+#pragma once
 
 #include <memory>
 #include <unordered_map>
 
+#include "position_cache_key.h"
 #include "dgs/airport.h"
 
 enum DgsType {
@@ -109,4 +109,3 @@ class OsAirport : public dgs::Airport {
 };
 
 extern std::unique_ptr<OsAirport> os_arpt;
-#endif

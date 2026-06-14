@@ -20,6 +20,8 @@
 //
 
 #include <cassert>
+#include <unordered_map>
+#include <memory>
 
 #include "opensam.h"
 #include "plane.h"
@@ -28,6 +30,9 @@
 #include "mpadapter_xpilot.h"
 #include "mpadapter_tgxp.h"
 #include "mpadapter_lt.h"
+
+std::unordered_map<std::string, DoorInfo> csl_door_info_map;
+std::unordered_map<std::string, std::string> acf_generic_type_map;
 
 static bool active;
 

@@ -31,6 +31,7 @@
 #include "opensam_airport.h"
 #include "quadtree.h"
 #include "quadtree.inl"
+#include "position_cache_key.h"
 #include "log_msg.h"
 
 #include "flat_earth_math.h"

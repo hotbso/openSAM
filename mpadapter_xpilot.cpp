@@ -23,7 +23,6 @@
 #include <cassert>
 #include <cmath>
 
-#include "opensam.h"
 #include "my_plane.h"
 #include "mpadapter_xpilot.h"
 #include "log_msg.h"

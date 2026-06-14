@@ -137,13 +137,8 @@ std::string base_dir;  // base directory of openSAM
 
 static std::unique_ptr<MpAdapter> mp_adapter;
 
-std::unordered_map<std::string, DoorInfo> csl_door_info_map;
-std::unordered_map<std::string, std::string> acf_generic_type_map;
-
 unsigned long long stat_jw_acc_called, stat_anim_acc_called,
     stat_auto_drf_called, stat_jw_cache_hit, stat_sc_last;
-
-int default_vdgs_type = kVdgsSafedock_T2_24;  // index into default_vdgs_item
 
 // 'emulate' a connection status dataref for XP12's jetway, toggled by intercepting XP12's standard cmd
 bool xp12_jw_connected;
