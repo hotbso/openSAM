@@ -230,6 +230,7 @@ static float JwAnimAcc(void* ref) {
             if (std::abs(fem::RA(jw->heading - obj_psi)) > SamJw::kSam2ObjHdgMax) {
                 LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", jw->name.c_str(),
                        jw->heading, obj_psi);
+                jw_cache[key] = nullptr;  // negative cache entry
                 return 0.0f;
             }
 
@@ -263,9 +264,7 @@ static float JwAnimAcc(void* ref) {
         // obj was not found in the scenery's configured jetways, but maybe it's a zero config library jetway
         if (nullptr == jw && 0 < id && id < lib_jw.size()) {  // unconfigured library jetway
             jw = AddZeroConfigJetway(id, obj_x, obj_z, obj_y, obj_psi);
-            if (jw) {
-                jw_cache[key] = jw;
-            }
+            jw_cache[key] = jw;
         }
 
         if (nullptr == jw) {          // still unconfigured -> bad luck
