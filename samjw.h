@@ -81,8 +81,6 @@ struct SamJw {
 
     void FillLibraryValues(unsigned int id);
 
-    static void ResetAll(); // called from various places
-
     // for the quadtree...
 
     void ComputeBbox() {

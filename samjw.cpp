@@ -317,14 +317,8 @@ static float JwAnimAcc(void* ref) {
     return 0.0f;
 }
 
-// static method, reset all jetways
-void SamJw::ResetAll() {
-    for (auto jw : sam_jw_list)
-        jw->Reset();
-}
-
 void JwInit(int max_sam_stands) {
-    jw_cache.reserve(max_sam_stands);   // usually there are much more stands than jetways
+    jw_cache.reserve(max_sam_stands);  // usually there are much more stands than jetways
 
     // create the jetway animation datarefs
     for (int drc = kRotate1; drc < kNumDrCodes; drc++) {
@@ -342,6 +336,8 @@ void JwInit(int max_sam_stands) {
         }
     }
 
-    SamJw::ResetAll();
+    for (auto jw : sam_jw_list)
+        jw->Reset();
+
     srand(time(NULL));  // for random initial values for zero config jetways
 }

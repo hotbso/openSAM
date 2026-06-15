@@ -22,7 +22,6 @@
 #include <cassert>
 #include "opensam.h"
 #include "plane.h"
-#include "samjw.h"
 #include "log_msg.h"
 
 int Plane::id_base_;
@@ -98,17 +97,21 @@ float Plane::JwStateMachine() {
 
     State new_state{state_};
 
+    // only MyPlane has a meaningful CheckTeleportation() implementation
     if (state_ > IDLE && CheckTeleportation()) {
         LogMsg("teleportation detected!");
         state_ = new_state = IDLE;
         state_change_ts_ = now;
 
-        for (auto& ajw : active_jws_)
-            ajw.ResetJw();
+        // someone moved us violently, reset all 'owned' jetways to be safe
+        for (auto& jw : active_jws_)
+            jw.ResetJw();
+
+        for (auto& jw : nearest_jws_)
+            jw.UnlockJw();
 
         nearest_jws_.clear();
         active_jws_.clear();
-        SamJw::ResetAll();
     }
 
     unsigned n_done;
