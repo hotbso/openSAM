@@ -34,9 +34,8 @@ const char* const Plane::state_str_[] = {"DISABLED", "IDLE",   "PARKED",    "SEL
 Plane::~Plane() {
     LogMsg("pid=%02d, Plane destructor, state: %s, active_jws: %d", id_, state_str_[state_], (int)active_jws_.size());
     if (IDLE <= state_) {
-        for (auto& ajw : active_jws_)
-            ajw.ResetJw();
-        active_jws_.clear();
+        for (int ajw_idx : active_jws_)
+            nearest_jws_[ajw_idx].ResetJw();
     }
 
     LogMsg("pid=%02d, Plane destructor finished", id_);
@@ -71,8 +70,8 @@ void Plane::AutoSelectJws() {
 
         nearest_jws_[i_jw].door_ = i_door;
         nearest_jws_[i_jw].selected_ = true;
-        active_jws_.push_back(nearest_jws_[i_jw]);
-        LogMsg("active jetway for door %d: %s", i_door, active_jws_.back().name());
+        active_jws_.push_back(i_jw);
+        LogMsg("active jetway for door %d: %s", i_door, nearest_jws_[i_jw].name());
         i_door++;
         if (i_door >= n_doors_)
             break;
@@ -103,15 +102,11 @@ float Plane::JwStateMachine() {
         state_ = new_state = IDLE;
         state_change_ts_ = now;
 
-        // someone moved us violently, reset all 'owned' jetways to be safe
-        for (auto& jw : active_jws_)
-            jw.ResetJw();
-
-        for (auto& jw : nearest_jws_)
-            jw.UnlockJw();
+        for (int ajw_idx : active_jws_)
+            nearest_jws_[ajw_idx].ResetJw();
+        active_jws_.clear();
 
         nearest_jws_.clear();
-        active_jws_.clear();
     }
 
     unsigned n_done;
@@ -120,13 +115,10 @@ float Plane::JwStateMachine() {
         case IDLE:
             if (prev_state_ != IDLE) {
                 // from anywhere to idle nullifies all selections and locks
-                for (auto& njw : nearest_jws_)
-                    njw.UnlockJw();
-
-                for (auto& ajw : active_jws_)
-                    ajw.ResetJw();
-
+                for (int ajw_idx : active_jws_)
+                    nearest_jws_[ajw_idx].ResetJw();
                 active_jws_.clear();
+
                 nearest_jws_.clear();
             }
 
@@ -165,9 +157,7 @@ float Plane::JwStateMachine() {
             if (auto_mode()) {
                 AutoSelectJws();
                 if (active_jws_.empty()) {  // e.g. collisions, locked jws
-                    for (auto& njw : nearest_jws_)
-                        njw.UnlockJw();
-
+                    nearest_jws_.clear();
                     new_state = CANT_DOCK;
                     break;
                 }
@@ -175,7 +165,8 @@ float Plane::JwStateMachine() {
 
             // or wait for GUI selection
             if (active_jws_.size()) {
-                for (auto& ajw : active_jws_) {
+                for (int ajw_idx : active_jws_) {
+                    JwCtrl& ajw = nearest_jws_[ajw_idx];
                     LogMsg("pid=%02d, setting up active jw for door: %d", id_, ajw.door_);
                     ajw.SetupForDoor(door_info_[ajw.door_]);
 
@@ -203,10 +194,10 @@ float Plane::JwStateMachine() {
                 LogMsg("pid=%02d, docking requested", id_);
 
                 float start_ts = now + active_jws_.size() * 5.0f;
-                for (auto& ajw : active_jws_) {
+                for (int ajw_idx : active_jws_) {
                     // staggered start for docking high to low
                     start_ts -= 5.0f;
-                    ajw.SetupDockUndock(start_ts, with_alert_sound());
+                    nearest_jws_[ajw_idx].SetupDockUndock(start_ts, with_alert_sound());
                 }
 
                 new_state = DOCKING;
@@ -222,8 +213,8 @@ float Plane::JwStateMachine() {
 
         case DOCKING:
             n_done = 0;
-            for (auto& ajw : active_jws_) {
-                if (ajw.DockDrive())
+            for (int ajw_idx : active_jws_) {
+                if (nearest_jws_[ajw_idx].DockDrive())
                     n_done++;
             }
 
@@ -253,10 +244,10 @@ float Plane::JwStateMachine() {
                 LogMsg("undocking requested");
 
                 float start_ts = now + active_jws_.size() * 5.0f;
-                for (auto& ajw : active_jws_) {
+                for (int ajw_idx : active_jws_) {
                     // staggered start for undocking high to low
                     start_ts -= 5.0f;
-                    ajw.SetupDockUndock(start_ts, with_alert_sound());
+                    nearest_jws_[ajw_idx].SetupDockUndock(start_ts, with_alert_sound());
                 }
 
                 if (call_pre_post_dock_cmd()) {
@@ -271,8 +262,8 @@ float Plane::JwStateMachine() {
 
         case UNDOCKING:
             n_done = 0;
-            for (auto& ajw : active_jws_) {
-                if (ajw.UndockDrive())
+            for (int ajw_idx : active_jws_) {
+                if (nearest_jws_[ajw_idx].UndockDrive())
                     n_done++;
             }
 
