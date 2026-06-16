@@ -24,6 +24,8 @@
 #include <cstring>
 #include <algorithm>
 
+#include "XPLMGraphics.h"
+
 #include "opensam.h"
 #include "my_plane.h"
 #include "opensam_airport.h"
@@ -132,7 +134,8 @@ JwCtrl::JwCtrl(SamJw* jw, const Plane& plane) : jw_(jw) {
 }
 
 JwCtrl::~JwCtrl() {
-    jw_->locked = false;  // unlock jetway when ctrl is destroyed, e.g. when plane is deselected
+    if (jw_->is_locked())
+        jw_->Unlock();
 }
 
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be nullptr
@@ -223,10 +226,8 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
             continue;
         }
 
-        if (jw->locked) {
-            LogMsg("pid=%02d, %s is locked", plane.id_, jw->name.c_str());
+        if (jw->is_locked())
             continue;
-        }
 
         // LogMsg("pid=%02d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
         //         plane.id_, jw->name.c_str(), jw->door, jw->x, jw->z, jw->y, jw->psi);
@@ -265,7 +266,7 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
             plane.id_, jw->name.c_str(), jw->library_id, jw->door, njw.x_, njw.z_, njw.y_, njw.psi_, njw.docked_rot1_,
             njw.docked_extent_);
 
-        nearest_jws.push_back(njw);
+        nearest_jws.push_back(std::move(njw));
     }
 
     if (invisible_jws > 0)
@@ -301,8 +302,8 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
 
     nearest_jws.clear();
 
-    float plane_lat = my_plane->lat();
-    float plane_lon = my_plane->lon();
+    double plane_lat, plane_lon, plane_alt;
+    XPLMLocalToWorld(plane.x(), plane.y(), plane.z(), &plane_lat, &plane_lon, &plane_alt);
 
     std::vector<SamJw *> near_jws = jw_quadtree.FindAround(plane_lon, plane_lat, 20);
     if (near_jws.empty()) {
@@ -380,11 +381,8 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     if (nearest_jws.size() > max_njws)
         nearest_jws.erase(nearest_jws.begin() + max_njws, nearest_jws.end());   // we don't have a default constructor -> can't just resize
 
-    // lock all nearest_jws
-    for (auto& njw : nearest_jws) {
-        njw.jw_->locked = true;
-        LogMsg("pid=%02d, locking nearest jw %s for door assignment", plane.id_, njw.jw_->name.c_str());
-    }
+    for (const auto& njw : nearest_jws)
+        njw.jw_->Lock(plane.id_);
 
     return nearest_jws.size();
 }
@@ -833,7 +831,7 @@ bool JwCtrl::UndockDrive() {
             jw_->warnlight = 0;
             AlertOff();
             LogMsg("park position reached");
-            jw_->locked = false;
+            jw_->Unlock();
             return true;  // done
         }
     }
@@ -853,7 +851,7 @@ void JwCtrl::SetupDockUndock(float start_time, bool with_sound) {
 }
 
 void JwCtrl::UnlockJw() {
-    jw_->locked = false;
+    jw_->Unlock();
 }
 
 const char* JwCtrl::name() const {
