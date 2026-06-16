@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2025  Holger Teutsch
 //
@@ -19,11 +19,9 @@
 //    USA
 //
 
-#ifndef _JWCTRL_H
-#define _JWCTRL_H
+#pragma once
 
 #include <array>
-
 #include "samjw.h"
 
 #include "XPLMSound.h"
@@ -37,16 +35,11 @@ struct Sound {
 
 class Plane;
 
-struct Vec2 {
-    float x, z;
-};
-
 // JwCtrl
 // The jetway controller is the glue between a plane and its doors and sam jetways.
 // It has support functions to find appropriate jetways for a plane and does the animation
 // by updating values for the animation datarefs in the corresponding SamJw class.
 
-// *** This must stay a POD *** (or change the code...)
 class JwCtrl {
    private:
     static Sound alert_;
@@ -65,15 +58,15 @@ class JwCtrl {
         TO_PARK
     };
 
-    bool selected_;  // nearest jw was selected as an active jw
-    int door_;       // active JwCtrl associated with door #
+    bool selected_{false};  // nearest jw was selected as an active jw
+    int door_{};       // active JwCtrl associated with door #
     SamJw* jw_;
-    JwCtrlState state_;
+    JwCtrlState state_{PARKED};
 
     // everything in plane local coordinates
     float x_, y_, z_, psi_;
 
-    int soft_match_;  // does not really fulfill matching criteria
+    int soft_match_{};  // does not really fulfill matching criteria
 
     // parked position of jw
     float parked_x_, parked_z_;
@@ -123,6 +116,7 @@ class JwCtrl {
     JwCtrl& operator=(const JwCtrl&) = default;
 
     JwCtrl(SamJw* jw, const Plane& plane);
+    ~JwCtrl() {jw_->locked = false;}  // unlock jetway when ctrl is destroyed, e.g. when plane is deselected
 
     // find nearest jetways, order by z (= door number, hopefully)
     static int FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws);
@@ -146,10 +140,5 @@ class JwCtrl {
     static void Init();       // registers dref accessors
 };
 
-static_assert(std::is_trivially_copyable_v<JwCtrl> &&
-              std::is_standard_layout_v<JwCtrl>,
-              "JwCtrl must be Trivial and Standard Layout (POD equivalent)");
-
 // from ReadWav.cpp
 extern void ReadWav(const std::string& fname, Sound& sound);
-#endif

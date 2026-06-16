@@ -78,12 +78,14 @@ int MyPlane::JwDoorStatusAcc([[maybe_unused]] void* ref, int* values, int ofs, i
         values[i] = 0;
     }
 
-    for (auto& ajw : my_plane->active_jws_)
+    for (auto& ajw_idx : my_plane->active_jws_) {
+        JwCtrl& ajw = my_plane->nearest_jws_[ajw_idx];
         if (ajw.state_ == JwCtrl::DOCKED) {
             int i = ajw.door_ - ofs;
             if (0 <= i && i < n)
                 values[i] = 1;
         }
+    }
 
     return n;
 }
@@ -158,8 +160,10 @@ void MyPlane::AutoModeSet(bool auto_mode) {
     auto_mode_ = auto_mode;
 
     if (state_ == DOCKING || state_ == UNDOCKING) {
-        for (auto& ajw : active_jws_)
+        for (auto& ajw_idx : active_jws_) {
+            JwCtrl& ajw = nearest_jws_[ajw_idx];
             ajw.Reset();  // an animation might be ongoing
+        }
         state_ = IDLE;
         return;
     }
@@ -168,8 +172,10 @@ void MyPlane::AutoModeSet(bool auto_mode) {
         return;
 
     if (!auto_mode && state_ == CAN_DOCK) {
-        for (auto& ajw : active_jws_)
+        for (auto& ajw_idx : active_jws_) {
+            JwCtrl& ajw = nearest_jws_[ajw_idx];
             ajw.jw_->locked = false;
+        }
         active_jws_.clear();
         state_ = PARKED;
         return;

@@ -417,7 +417,7 @@ void Ui::BuildInterface() {
                             auto& njw = my_plane->nearest_jws_[j];
                             njw.selected_ = true;
                             njw.door_ = i;
-                            my_plane->active_jws_.push_back(njw);
+                            my_plane->active_jws_.push_back(j);
                             LogMsg("JW %d door %d selected for docking", j + 1, i + 1);
                         }
                     }
@@ -441,8 +441,8 @@ void Ui::BuildInterface() {
             ImGui::TextUnformatted(my_plane->nearest_jws_[j].jw_->name.c_str());
             ImGui::NextColumn();
             for (int d = 0; d < n_doors; d++) {
-                for (const auto& ajw : my_plane->active_jws_) {
-                    if (ajw.jw_ == my_plane->nearest_jws_[j].jw_ && ajw.door_ == d) {
+                for (const auto& ajw_idx : my_plane->active_jws_) {
+                    if (ajw_idx == j && my_plane->nearest_jws_[j].door_ == d) {
                         ImGui::TextUnformatted((const char*)ICON_FA_CHECK);
                         ImGui::SameLine();
                         break;

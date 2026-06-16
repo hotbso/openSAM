@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2024, 2025  Holger Teutsch
 //
@@ -19,8 +19,7 @@
 //    USA
 //
 
-#ifndef _SAMJW_H_
-#define _SAMJW_H_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -91,4 +90,3 @@ struct SamLibJw {
 extern std::vector<SamLibJw*> lib_jw;
 
 extern void JwInit(int max_sam_stands);
-#endif

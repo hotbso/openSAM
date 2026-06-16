@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2024, 2025, 2026  Holger Teutsch
 //
@@ -19,8 +19,7 @@
 //    USA
 //
 
-#ifndef _PLANE_H_
-#define _PLANE_H_
+#pragma once
 
 #include <unordered_map>
 #include <memory>
@@ -48,8 +47,8 @@ class Plane {
     std::string icao_;
     float x_, y_, z_, psi_;
 
-    std::vector<JwCtrl> active_jws_;
     std::vector<JwCtrl> nearest_jws_;
+    std::vector<int> active_jws_;
     int nearest_jws_seqno_{0};  // for detecting changes in the nearest jetway list by the UI
 
     static int id_base_;
@@ -113,4 +112,3 @@ class Plane {
     // hook into flight loop
     float JwStateMachine();
 };
-#endif
