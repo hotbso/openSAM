@@ -50,6 +50,10 @@ static constexpr float kCanopyCloseTime = 5.0f;  // s, time to close canopy afte
 
 Sound JwCtrl::alert_;
 
+struct Vec2 {
+    float x, z;
+};
+
 static inline Vec2 operator-(const Vec2& a, const Vec2& b) {
     return {a.x - b.x, a.z - b.z};
 }
@@ -106,11 +110,7 @@ bool CollisionCheck(const Vec2& S1, const Vec2& E1, const Vec2& S2, const Vec2& 
 }
 
 // fill in all values that are independent of the door
-JwCtrl::JwCtrl(SamJw* jw, const Plane& plane) {
-    memset(this, 0, sizeof(JwCtrl));    // yes, it's a POD, so this is ok
-
-    jw_ = jw;
-
+JwCtrl::JwCtrl(SamJw* jw, const Plane& plane) : jw_(jw) {
     // rotate into plane local frame
     float dx = jw_->x - plane.x();
     float dz = jw_->z - plane.z();
@@ -129,6 +129,10 @@ JwCtrl::JwCtrl(SamJw* jw, const Plane& plane) {
     float r = jw_->initialExtent + jw_->cabinPos;
     parked_x_ = x_ + r * std::cos(rot1_d * kD2R);
     parked_z_ = z_ + r * std::sin(rot1_d * kD2R);
+}
+
+JwCtrl::~JwCtrl() {
+    jw_->locked = false;  // unlock jetway when ctrl is destroyed, e.g. when plane is deselected
 }
 
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be nullptr
@@ -229,7 +233,6 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
 
         // set up a tentative JwCtrl ...
         JwCtrl njw(jw, plane);
-        njw.jw_ = jw;
         njw.SetupForDoor(door_info);
 
         // ... and send it through the filters ...
@@ -372,9 +375,16 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
         i++;
     }
 
+    // trim to a reasonable number of candidates, we don't want to lock too many jetways
+    unsigned int max_njws = plane.n_doors_ + 2;  // we allow for 2 extra jetways for the case that the nearest ones are not a good match
+    if (nearest_jws.size() > max_njws)
+        nearest_jws.erase(nearest_jws.begin() + max_njws, nearest_jws.end());   // we don't have a default constructor -> can't just resize
+
     // lock all nearest_jws
-    for (auto& njw : nearest_jws)
+    for (auto& njw : nearest_jws) {
         njw.jw_->locked = true;
+        LogMsg("pid=%02d, locking nearest jw %s for door assignment", plane.id_, njw.jw_->name.c_str());
+    }
 
     return nearest_jws.size();
 }
