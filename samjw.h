@@ -30,15 +30,18 @@
 
 // Context of an instantiated jetway, either in sam.xml or zero config per WED within the scenery
 struct SamJw {
+   private:
+    int locked{};          // locked by a plane
+    int lock_pid{-1};        // id of the plane that has locked this jetway, for logging purposes
+
+   public:
     static constexpr float kD2R = std::numbers::pi/180.0;
     static constexpr float kSam2ObjMax = 2.5;     // m, max delta between coords in sam.xml and object
     static constexpr float kSam2ObjHdgMax = 5;    // °, likewise for heading
 
-    bool bad{};                 // marked bad, e.g. terrain probe failed
-    bool is_zc_jw{};            // is a zero config jw
-    bool zc_stand_done{};       // for zero config jetways, whether looking for a stand has been attempted
-    bool locked{};              // locked by a plane
-
+    bool bad{};            // marked bad, e.g. terrain probe failed
+    bool is_zc_jw{};       // is a zero config jw
+    bool zc_stand_done{};  // for zero config jetways, whether looking for a stand has been attempted
     // values from the actually drawn object
     unsigned int obj_ref_gen{};  // only valid if this matches the generation of the ref frame
     float x, y, z, psi;
@@ -63,13 +66,17 @@ struct SamJw {
     // bounding box around the anchor point for quick lookup in quadtree, computed from lat/lon and kSam2ObjMax
     quadtree::Box<double> bbox;
 
+    bool Lock(int pid); // -> whether lock could be aquired
+    void Unlock();
+
     // set wheels height
     void SetWheels() {
         wheels = std::tan(rotate3 * kD2R) * (wheelPos + extent);
     }
 
     void Reset() {
-        locked = false;
+        locked = 0;
+        lock_pid = -1;
         rotate1 = initialRot1;
         rotate2 = initialRot2;
         rotate3 = initialRot3;

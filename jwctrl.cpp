@@ -132,7 +132,7 @@ JwCtrl::JwCtrl(SamJw* jw, const Plane& plane) : jw_(jw) {
 }
 
 JwCtrl::~JwCtrl() {
-    jw_->locked = false;  // unlock jetway when ctrl is destroyed, e.g. when plane is deselected
+    jw_->Unlock();
 }
 
 // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 can be nullptr
@@ -223,10 +223,8 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
             continue;
         }
 
-        if (jw->locked) {
-            LogMsg("pid=%02d, %s is locked", plane.id_, jw->name.c_str());
+        if (!jw->Lock(plane.id_))
             continue;
-        }
 
         // LogMsg("pid=%02d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
         //         plane.id_, jw->name.c_str(), jw->door, jw->x, jw->z, jw->y, jw->psi);
@@ -379,12 +377,6 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     unsigned int max_njws = plane.n_doors_ + 2;  // we allow for 2 extra jetways for the case that the nearest ones are not a good match
     if (nearest_jws.size() > max_njws)
         nearest_jws.erase(nearest_jws.begin() + max_njws, nearest_jws.end());   // we don't have a default constructor -> can't just resize
-
-    // lock all nearest_jws
-    for (auto& njw : nearest_jws) {
-        njw.jw_->locked = true;
-        LogMsg("pid=%02d, locking nearest jw %s for door assignment", plane.id_, njw.jw_->name.c_str());
-    }
 
     return nearest_jws.size();
 }
@@ -833,7 +825,7 @@ bool JwCtrl::UndockDrive() {
             jw_->warnlight = 0;
             AlertOff();
             LogMsg("park position reached");
-            jw_->locked = false;
+            jw_->Unlock();
             return true;  // done
         }
     }
@@ -853,7 +845,7 @@ void JwCtrl::SetupDockUndock(float start_time, bool with_sound) {
 }
 
 void JwCtrl::UnlockJw() {
-    jw_->locked = false;
+    jw_->Unlock();
 }
 
 const char* JwCtrl::name() const {

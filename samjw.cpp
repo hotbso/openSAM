@@ -67,6 +67,32 @@ quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;
 std::vector<SamJw*> sam_jw_list;
 std::vector<SamLibJw*> lib_jw;
 
+bool SamJw::Lock(int pid) {  // -> whether lock could be aquired
+    if (locked > 0 && lock_pid != pid) {
+        LogMsg("pid=%02d, failed to lock jw '%s', already locked by pid=%02d", pid, name.c_str(), lock_pid);
+        return false;
+    }
+
+    if (locked == 0)
+        LogMsg("pid=%02d, jw '%s' locked", pid, name.c_str());
+
+    locked++;
+    lock_pid = pid;
+    return true;
+}
+
+void SamJw::Unlock() {
+    locked--;
+    if (locked == 0) {
+        LogMsg("pid=%02d, jw '%s' unlocked", lock_pid, name.c_str());
+        lock_pid = 0;
+    } else if (locked < 0) {
+        LogMsg("jw '%s' unlocked too many times, locked: %d", name.c_str(), locked);
+        locked = 0;
+        lock_pid = -1;
+    }
+}
+
 //
 // fill in values for a library jetway
 //
