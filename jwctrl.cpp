@@ -276,7 +276,7 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
 // find nearest jetways, order by z (= door number, hopefully)
 // static member, called by Plane
 int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
-    int n_doors = plane.n_doors_;
+    int n_doors = plane.door_info_.size();
     if (n_doors == 0) {
         LogMsg("acf has no doors!");
         return 0;
@@ -342,7 +342,7 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     // sort for door assignment
     std::sort(nearest_jws.begin(), nearest_jws.end());
 
-    if (nearest_jws.size() >= 2 && plane.n_doors_ >= 2) {
+    if (nearest_jws.size() >= 2 && plane.door_info_.size() >= 2) {
         nearest_jws[0].SetupForDoor(plane.door_info_[0]);
         nearest_jws[1].SetupForDoor(plane.door_info_[1]);
         Vec2 start0{nearest_jws[0].x_, nearest_jws[0].z_};
@@ -377,7 +377,7 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     }
 
     // trim to a reasonable number of candidates, we don't want to lock too many jetways
-    unsigned int max_njws = plane.n_doors_ + 2;  // we allow for 2 extra jetways for the case that the nearest ones are not a good match
+    unsigned int max_njws = plane.door_info_.size() + 2;  // we allow for 2 extra jetways for the case that the nearest ones are not a good match
     if (nearest_jws.size() > max_njws)
         nearest_jws.erase(nearest_jws.begin() + max_njws, nearest_jws.end());   // we don't have a default constructor -> can't just resize
 

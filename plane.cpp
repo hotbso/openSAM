@@ -43,7 +43,7 @@ Plane::~Plane() {
 
 // auto select active jetways
 void Plane::AutoSelectJws() {
-    if (n_doors_ == 0)
+    if (door_info_.empty())
         return;
 
     bool have_hard_match = false;
@@ -61,7 +61,7 @@ void Plane::AutoSelectJws() {
 
         // skip over collisions
         for (unsigned j = i_jw + 1; j < nearest_jws_.size(); j++) {
-            assert(i_door < n_doors_);
+            assert(i_door < door_info_.size());
             nearest_jws_[i_jw].SetupForDoor(door_info_[i_door]);
             nearest_jws_[j].SetupForDoor(door_info_[i_door]);
             if (nearest_jws_[i_jw].CollisionCheck(nearest_jws_[j]))
@@ -73,7 +73,7 @@ void Plane::AutoSelectJws() {
         active_jws_.push_back(i_jw);
         LogMsg("active jetway for door %d: %s", i_door, nearest_jws_[i_jw].name());
         i_door++;
-        if (i_door >= n_doors_)
+        if (i_door >= door_info_.size())
             break;
 
     skip:

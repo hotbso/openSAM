@@ -186,29 +186,30 @@ void MyPlane::PlaneLoadedCb() {
     // reinit all that stuff as this may be a different plane now
     on_ground_ = false;
     on_ground_ts_ = 0.0f;
-    n_doors_ = 0;
 
     // check whether door info is overridden in the config file
+    door_info_.clear();
     auto it = cfg_.find("door_1");
     if (it != cfg_.end()) {
+        DoorInfo di{};
         const std::string& val = it->second;
-        if (3 != sscanf(val.c_str(), "%f %f %f", &door_info_[0].x, &door_info_[0].y, &door_info_[0].z)) {
+        if (3 != sscanf(val.c_str(), "%f %f %f", &di.x, &di.y, &di.z)) {
             LogMsg("invalid door_1 format in cfg_: '%s'", val.c_str());
         } else {
-            n_doors_++;
+            door_info_.push_back(di);
             LogMsg("using pos for door 1 from cfg_: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[0].x, door_info_[0].y,
                    door_info_[0].z);
         }
     }
 
     // always continue with 1 door, right or wrong
-    if (n_doors_ == 0) {
-        door_info_[0].x = XPLMGetDataf(acf_door_x_dr_);
-        door_info_[0].y = XPLMGetDataf(acf_door_y_dr_);
-        door_info_[0].z = XPLMGetDataf(acf_door_z_dr_);
+    if (door_info_.empty()) {
+        DoorInfo di{};
+        di.x = XPLMGetDataf(acf_door_x_dr_);
+        di.y = XPLMGetDataf(acf_door_y_dr_);
+        di.z = XPLMGetDataf(acf_door_z_dr_);
+        door_info_.push_back(di);
     }
-
-    n_doors_ = 1;
 
     LogMsg("plane loaded: %s, door 1: x: %1.2f, y: %1.2f, z: %1.2f",
            acf_icao_.c_str(), door_info_[0].x, door_info_[0].y, door_info_[0].z);
@@ -217,12 +218,12 @@ void MyPlane::PlaneLoadedCb() {
     // data in the acf file is often bogus, so check our own config file first
     it = cfg_.find("door_2");
     if (it != cfg_.end()) {
+        DoorInfo di{};
         const std::string& val = it->second;
-        if (3 != sscanf(val.c_str(), "%f %f %f", &door_info_[1].x, &door_info_[1].y, &door_info_[1].z)) {
+        if (3 != sscanf(val.c_str(), "%f %f %f", &di.x, &di.y, &di.z)) {
             LogMsg("invalid door_2 format in cfg_: '%s'", val.c_str());
-            door_info_[1] = {};
         } else {
-            n_doors_++;
+            door_info_.push_back(di);
             LogMsg("found door 2 in cfg_: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[1].x, door_info_[1].y,
                    door_info_[1].z);
         }
@@ -281,8 +282,10 @@ void MyPlane::MemorizeParkedPos() {
 
     LogMsg("A321 detected, checking door config");
     if (auto door_dr = XPLMFindDataRef("AirbusFBW/A321ExitConfig")) {
-        n_doors_ = XPLMGetDatai(door_dr) == 0 ? 2 : 1;  // 0 = CLASSIC = 2 doors
-        LogMsg("n_door from dataref: %d", n_doors_);
+        if (XPLMGetDatai(door_dr) != 0) {  // 0 = CLASSIC = 2 doors, 1 = MODERN = 1 door
+            door_info_.resize(1);  // only one door supported in this config, remove the second one if it was there
+            LogMsg("n_door from dataref: %d", (int)door_info_.size());
+        }
     }
 }
 

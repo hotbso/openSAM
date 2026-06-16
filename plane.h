@@ -23,6 +23,7 @@
 
 #include <unordered_map>
 #include <memory>
+#include <vector>
 
 #include "jwctrl.h"
 
@@ -62,12 +63,12 @@ class Plane {
     const int id_;  // id for logging
 
     // loaded for my_plane on start, updated on the fly for MP planes
-    unsigned n_doors_{0};
-    DoorInfo door_info_[kMaxDoor];
+    std::vector<DoorInfo> door_info_;
 
     Plane() : id_(id_base_++) {
         nearest_jws_.reserve(20);
         active_jws_.reserve(kMaxDoor);
+        door_info_.reserve(kMaxDoor);
     }
 
     virtual ~Plane() = 0;

@@ -356,7 +356,7 @@ void Ui::BuildInterface() {
         }
 
         int n_jws = my_plane->nearest_jws_.size();
-        int n_doors = my_plane->n_doors_;
+        int n_doors = my_plane->door_info_.size();
 
         ImGui::Spacing();
         ImGui::Columns(n_doors + 1);
@@ -426,7 +426,7 @@ void Ui::BuildInterface() {
         }
     } else if (my_plane->state() == Plane::CAN_DOCK) {
         int n_jws = my_plane->nearest_jws_.size();
-        int n_doors = my_plane->n_doors_;
+        int n_doors = my_plane->door_info_.size();
 
         ImGui::Spacing();
         ImGui::Columns(n_doors + 1);
