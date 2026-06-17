@@ -28,7 +28,12 @@
 
 struct SamJw;
 struct DoorInfo;
-class Plane;
+
+struct JwCtrlPlaneInfo {
+    int id;
+    float x, y, z, psi;
+    std::vector<DoorInfo> door_info;
+};
 
 struct Sound {
     void *data;
@@ -117,11 +122,11 @@ class JwCtrl {
     JwCtrl(const JwCtrl&) = default;
     JwCtrl& operator=(const JwCtrl&) = default;
 
-    JwCtrl(SamJw* jw, const Plane& plane);
+    JwCtrl(SamJw* jw, const JwCtrlPlaneInfo& plane_info);
     ~JwCtrl();
 
     // find nearest jetways, order by z (= door number, hopefully)
-    static int FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws);
+    static int FindNearestJetways(JwCtrlPlaneInfo plane_info, std::vector<JwCtrl>& nearest_jws);
 
     // check whether extended nearest njw would crash into parked njw2
     bool CollisionCheck(const JwCtrl& njw2);

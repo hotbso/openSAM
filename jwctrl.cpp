@@ -27,6 +27,7 @@
 #include "XPLMGraphics.h"
 
 #include "opensam.h"
+#include "door_info.h"
 #include "plane.h"
 #include "opensam_airport.h"
 #include "samjw.h"
@@ -112,18 +113,18 @@ bool CollisionCheck(const Vec2& S1, const Vec2& E1, const Vec2& S2, const Vec2& 
 }
 
 // fill in all values that are independent of the door
-JwCtrl::JwCtrl(SamJw* jw, const Plane& plane) : jw_(jw) {
+JwCtrl::JwCtrl(SamJw* jw, const JwCtrlPlaneInfo& plane_info) : jw_(jw) {
     // rotate into plane local frame
-    float dx = jw_->x - plane.x();
-    float dz = jw_->z - plane.z();
-    float plane_psi = plane.psi();
+    float dx = jw_->x - plane_info.x;
+    float dz = jw_->z - plane_info.z;
+    float plane_psi = plane_info.psi;
 
     float sin_psi = std::sin(kD2R * plane_psi);
     float cos_psi = std::cos(kD2R * plane_psi);
 
     x_ =  cos_psi * dx + sin_psi * dz;
     z_ = -sin_psi * dx + cos_psi * dz;
-    y_ = (jw_->y + jw_->height) - plane.y();
+    y_ = (jw_->y + jw_->height) - plane_info.y;
     psi_ = fem::RA(jw_->psi - plane_psi);
 
     // parked position
@@ -214,7 +215,7 @@ bool operator<(const JwCtrl& a, const JwCtrl& b) {
 }
 
 // filter list of jetways jws[]for candidates and add them to nearest_jws[]
-static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std::vector<SamJw*>& jws,
+static void FilterCandidates(JwCtrlPlaneInfo& plane_info, std::vector<JwCtrl>& nearest_jws, std::vector<SamJw*>& jws,
                              const DoorInfo& door_info) {
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
     // So we find the nearest jetways on the left and do some heuristics
@@ -233,7 +234,7 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
         //         plane.id_, jw->name.c_str(), jw->door, jw->x, jw->z, jw->y, jw->psi);
 
         // set up a tentative JwCtrl ...
-        JwCtrl njw(jw, plane);
+        JwCtrl njw(jw, plane_info);
         njw.SetupForDoor(door_info);
 
         // ... and send it through the filters ...
@@ -242,7 +243,7 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
             njw.x_ < -80.0f || std::abs(njw.z_) > 80.0f) {                 // or far away
             if (std::abs(njw.x_) < 120.0f && std::abs(njw.z_) < 120.0f)       // don't pollute the log with jws VERY far away
                 LogMsg("pid=%02d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initialRot1): %0.1f",
-                       plane.id_, jw->name.c_str(), njw.x_, njw.z_, njw.psi_ + jw->initialRot1);
+                       plane_info.id, jw->name.c_str(), njw.x_, njw.z_, njw.psi_ + jw->initialRot1);
             continue;
         }
 
@@ -263,7 +264,7 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
         LogMsg(
             "--> pid=%02d, candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
             "rot1: %0.1f, extent: %.1f",
-            plane.id_, jw->name.c_str(), jw->library_id, jw->door, njw.x_, njw.z_, njw.y_, njw.psi_, njw.docked_rot1_,
+            plane_info.id, jw->name.c_str(), jw->library_id, jw->door, njw.x_, njw.z_, njw.y_, njw.psi_, njw.docked_rot1_,
             njw.docked_extent_);
 
         nearest_jws.push_back(std::move(njw));
@@ -275,8 +276,8 @@ static void FilterCandidates(Plane& plane, std::vector<JwCtrl>& nearest_jws, std
 
 // find nearest jetways, order by z (= door number, hopefully)
 // static member, called by Plane
-int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
-    int n_doors = plane.door_info_.size();
+int JwCtrl::FindNearestJetways(JwCtrlPlaneInfo plane_info, std::vector<JwCtrl>& nearest_jws) {
+    int n_doors = plane_info.door_info.size();
     if (n_doors == 0) {
         LogMsg("acf has no doors!");
         return 0;
@@ -292,18 +293,18 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     avg_di.x = 0.0f;
     avg_di.z = 0.0f;
     for (int i = 0; i < n_doors; i++) {
-        avg_di.x += plane.door_info_[i].x;
-        avg_di.z += plane.door_info_[i].z;
+        avg_di.x += plane_info.door_info[i].x;
+        avg_di.z += plane_info.door_info[i].z;
     }
 
     avg_di.x /= n_doors;
     avg_di.z /= n_doors;
-    avg_di.y = plane.door_info_[0].y;
+    avg_di.y = plane_info.door_info[0].y;
 
     nearest_jws.clear();
 
     double plane_lat, plane_lon, plane_alt;
-    XPLMLocalToWorld(plane.x(), plane.y(), plane.z(), &plane_lat, &plane_lon, &plane_alt);
+    XPLMLocalToWorld(plane_info.x, plane_info.y, plane_info.z, &plane_lat, &plane_lon, &plane_alt);
 
     std::vector<SamJw *> near_jws = jw_quadtree.FindAround(plane_lon, plane_lat, 20);
     if (near_jws.empty()) {
@@ -313,7 +314,7 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
 
     LogMsg("found %d jetways around plane position", static_cast<int>(near_jws.size()));
 
-    FilterCandidates(plane, nearest_jws, near_jws, avg_di);
+    FilterCandidates(plane_info, nearest_jws, near_jws, avg_di);
 
     // delayed processing of zc jetways now once os_arpt is available, as we need the stands for that
     if (os_arpt) {
@@ -342,9 +343,9 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     // sort for door assignment
     std::sort(nearest_jws.begin(), nearest_jws.end());
 
-    if (nearest_jws.size() >= 2 && plane.door_info_.size() >= 2) {
-        nearest_jws[0].SetupForDoor(plane.door_info_[0]);
-        nearest_jws[1].SetupForDoor(plane.door_info_[1]);
+    if (nearest_jws.size() >= 2 && plane_info.door_info.size() >= 2) {
+        nearest_jws[0].SetupForDoor(plane_info.door_info[0]);
+        nearest_jws[1].SetupForDoor(plane_info.door_info[1]);
         Vec2 start0{nearest_jws[0].x_, nearest_jws[0].z_};
         Vec2 end0{nearest_jws[0].docked_x_, nearest_jws[0].docked_z_};
 
@@ -377,12 +378,12 @@ int JwCtrl::FindNearestJetways(Plane& plane, std::vector<JwCtrl>& nearest_jws) {
     }
 
     // trim to a reasonable number of candidates, we don't want to lock too many jetways
-    unsigned int max_njws = plane.door_info_.size() + 2;  // we allow for 2 extra jetways for the case that the nearest ones are not a good match
+    unsigned int max_njws = plane_info.door_info.size() + 2;  // we allow for 2 extra jetways for the case that the nearest ones are not a good match
     if (nearest_jws.size() > max_njws)
         nearest_jws.erase(nearest_jws.begin() + max_njws, nearest_jws.end());   // we don't have a default constructor -> can't just resize
 
     for (const auto& njw : nearest_jws)
-        njw.jw_->Lock(plane.id_);
+        njw.jw_->Lock(plane_info.id);
 
     return nearest_jws.size();
 }

@@ -136,7 +136,7 @@ float Plane::JwStateMachine() {
             break;
 
         case PARKED:
-            if (!JwCtrl::FindNearestJetways(*this, nearest_jws_)) {
+            if (!JwCtrl::FindNearestJetways({id_, x_, y_, z_, psi_, door_info_}, nearest_jws_)) {
                 new_state = CANT_DOCK;
                 break;
             }

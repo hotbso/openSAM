@@ -24,15 +24,11 @@
 #include <string>
 #include <vector>
 
+#include "door_info.h"
 #include "jwctrl.h"
 
 static constexpr int kNearJwLimit = 3;     // max # of jetways we consider for docking
 static constexpr float kMpMaxDist = 2000;  // (m) max dist we consider MP planes
-
-static constexpr int kMaxDoor = 3;
-struct DoorInfo {
-    float x, y, z;
-};
 
 //
 // Generic class that provides all plane related values for jetway animation.
