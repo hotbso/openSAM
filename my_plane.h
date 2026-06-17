@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2024, 2025, 2026  Holger Teutsch
 //
@@ -19,11 +19,12 @@
 //    USA
 //
 
-#ifndef _MY_PLANE_H_
-#define _MY_PLANE_H_
+#pragma once
 
-#include "plane.h"
+#include "XPLMDataAccess.h"
+
 #include "dgs/plane.h"
+#include "plane.h"
 
 //
 // Derived class that represents the XP-pilot's plane.
@@ -87,4 +88,3 @@ class MyPlane : public Plane, public dgs::Plane {
 };
 
 extern std::shared_ptr<MyPlane> my_plane;
-#endif

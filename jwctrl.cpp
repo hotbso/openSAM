@@ -27,7 +27,7 @@
 #include "XPLMGraphics.h"
 
 #include "opensam.h"
-#include "my_plane.h"
+#include "plane.h"
 #include "opensam_airport.h"
 #include "samjw.h"
 #include "jwctrl.h"
