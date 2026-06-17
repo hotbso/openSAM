@@ -92,7 +92,7 @@ class JwCtrl {
     float last_step_ts_;
     float timeout_;  // so we don't get stuck
 
-    FMOD_CHANNEL* alert_chn_;
+    FMOD_CHANNEL* alert_chn_ = nullptr;
 
     void SetupForDoor(const DoorInfo& door_info);
 
