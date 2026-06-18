@@ -59,4 +59,7 @@ extern XPLMProbeRef probe_ref;
 extern void create_api_drefs();
 extern void CheckRefFrameShift();
 
-#define BETWEEN(x, a, b) ((a) <= (x) && (x) <= (b))
+template<typename T>
+bool is_between(T x, T a, T b) {
+    return (a <= x && x <= b);
+}

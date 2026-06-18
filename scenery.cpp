@@ -208,7 +208,7 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
         SamJw* jw = new SamJw();
         GetJwAttrs(attr, jw);
         // simple sanity check, e.g Aerosoft LEBL has bogus values
-        if (BETWEEN(jw->latitude, -85.0f, 85.0f) && BETWEEN(jw->longitude, -180.0f, 180.0f))
+        if (is_between(jw->latitude, -85.0, 85.0) && is_between(jw->longitude, -180.0, 180.0))
             sam_jw_list.push_back(jw);
         else {
             LogMsg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude, jw->longitude);

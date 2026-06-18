@@ -104,7 +104,7 @@ bool CollisionCheck(const Vec2& S1, const Vec2& E1, const Vec2& S2, const Vec2& 
            S1.x, S1.z, E1.x, E1.z, S2.x, S2.z, E2.x, E2.z, s, t);
 
     // we allow a bit of leeway for the start and end points
-    if (BETWEEN(t, -0.1f, 1.1f) && BETWEEN(s, -0.1f, 1.1f)) {
+    if (is_between(t, -0.1f, 1.1f) && is_between(s, -0.1f, 1.1f)) {
         LogMsg("collision detected");
         return true;
     }
@@ -239,7 +239,7 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCt
 
         // ... and send it through the filters ...
         if (njw.x_ > 1.0f ||
-            BETWEEN(fem::RA(njw.psi_ + jw->initialRot1), -130.0f, 20.0f) ||  // on the right side or pointing away
+            is_between(fem::RA(njw.psi_ + jw->initialRot1), -130.0f, 20.0f) ||  // on the right side or pointing away
             njw.x_ < -80.0f || std::abs(njw.z_) > 80.0f) {                 // or far away
             if (std::abs(njw.x_) < 120.0f && std::abs(njw.z_) < 120.0f)       // don't pollute the log with jws VERY far away
                 LogMsg("pid=%02d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initialRot1): %0.1f",
@@ -247,8 +247,8 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCt
             continue;
         }
 
-        if (!(BETWEEN(njw.docked_rot1_, jw->minRot1, jw->maxRot1) && BETWEEN(njw.docked_rot2_, jw->minRot2, jw->maxRot2) &&
-              BETWEEN(njw.docked_extent_, jw->minExtent, jw->maxExtent))) {
+        if (!(is_between(njw.docked_rot1_, jw->minRot1, jw->maxRot1) && is_between(njw.docked_rot2_, jw->minRot2, jw->maxRot2) &&
+              is_between(njw.docked_extent_, jw->minExtent, jw->maxExtent))) {
             LogMsg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f", jw->name.c_str(), jw->door,
                    njw.docked_rot1_, njw.docked_rot2_, njw.docked_rot3_, njw.docked_extent_);
             LogMsg("  does not fulfil min max criteria in sam.xml");
