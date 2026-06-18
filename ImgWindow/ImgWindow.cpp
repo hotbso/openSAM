@@ -393,13 +393,6 @@ ImgWindow::updateImgui()
 	// in boxels, we're always scale 1, 1.
 	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
-    // X-Plane does not make a reliable callback when the mouse leaves a Window so we query the mouse here and feed it to ImGui.
-    int m_x, m_y;
-    XPLMGetMouseLocationGlobal(&m_x, &m_y);
-	float outX, outY;
-	translateToImguiSpace(m_x, m_y, outX, outY);
-	io.AddMousePosEvent(outX, outY);
-
     ImGui::NewFrame();
 
 	ImGui::SetNextWindowPos(ImVec2((float) 0.0, (float) 0.0), ImGuiCond_Always);
@@ -420,6 +413,13 @@ ImgWindow::updateImgui()
 		// reset keysdown otherwise we'll think any keys used to defocus the keyboard are still down!
 		io.ClearInputKeys();
 	}
+
+    // X-Plane does not make a reliable callback when the mouse leaves a Window so we query the mouse here and feed it to ImGui.
+    int m_x, m_y;
+    XPLMGetMouseLocationGlobal(&m_x, &m_y);
+	float outX, outY;
+	translateToImguiSpace(m_x, m_y, outX, outY);
+	io.AddMousePosEvent(outX, outY);
 
 	mFirstRender = false;
 }
