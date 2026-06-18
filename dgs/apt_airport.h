@@ -64,7 +64,8 @@ class AptAirport {
     bool ignore_{false};      // e.g. no_autodgs marker present
 
    public:
-    bool is_opensam_{false};  // whether this is an openSAM airport
+    bool is_opensam_{false};    // whether this is an openSAM airport
+    bool has_xp12_jws_{false};  // whether this airport has XP12 jetways, from apt.dat
     std::vector<AptStand> stands_;
     std::vector<AptRunway> rwys_;
 

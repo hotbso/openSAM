@@ -239,6 +239,7 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_
         // jetway
         // 1500 60.3161845 24.9597493 234.4 2 1 234.4 16.17 253.2
         if (line.starts_with("1500 ")) {
+            arpt->has_xp12_jws_ = true;
             Jetway jw;
             sscanf(line.c_str(), "%*d %lf %lf %f %*d %*d %*f %f", &jw.pos.lat, &jw.pos.lon, &jw.hdgt, &jw.length);
             fem::Vec2 dir{cosf((90.0f - jw.hdgt) * kD2R), sinf((90.0f - jw.hdgt) * kD2R)};

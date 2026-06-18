@@ -198,6 +198,7 @@ Airport::Airport(const AptAirport& apt_airport) : seqno_(++seqno_base) {
 
     timestamp_ = dgs_params_.distance = sin_wave_prev_ = 0.0f;
     departure_stand_ts_ = nearest_stand_ts_ = update_dgs_log_ts_ = 0.0f;
+    has_xp12_jws_ = apt_airport.has_xp12_jws_;
 }
 
 Airport::~Airport() {

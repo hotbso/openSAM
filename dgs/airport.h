@@ -112,6 +112,8 @@ class Airport {
     std::string name_;
     State state_;
 
+    bool has_xp12_jws_;  // whether any stand has XP12 jetways, from apt.dat
+
     std::vector<std::unique_ptr<Stand>> stands_;
     int active_stand_;      // -1 or index into stands_
     int selected_stand_;

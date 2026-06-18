@@ -200,12 +200,21 @@ void Ui::BuildInterface() {
     ImGui::Spacing();
 
     dgs::Airport* dgs_arpt = nullptr;
+    float col_2 = ImGui::GetCursorPosX() + 0.6f * kFontSize * 16.0f;
+
     if (adgs_arpt) {
         dgs_arpt = adgs_arpt.get();
-        ImGui::Text("AutoDGS Airport: '%s'", dgs_arpt->name().c_str());
+        ImGui::TextUnformatted("AutoDGS Airport:");
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(col_2);
+        ImGui::Text("'%s'", dgs_arpt->name().c_str());
     } else if (os_arpt) {
         dgs_arpt = os_arpt.get();
-        ImGui::Text("SAM Airport:     '%s'", dgs_arpt->name().c_str());
+        const char* xp12_jw_str = os_arpt->has_xp12_jws() ? ", has (some) XP12 default jetways" : "";
+        ImGui::TextUnformatted("SAM Airport:");
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(col_2);
+        ImGui::Text("'%s'%s", dgs_arpt->name().c_str(), xp12_jw_str);
     } else {
         ImGui::Text("No airport loaded");
         return;
@@ -233,23 +242,39 @@ void Ui::BuildInterface() {
         arpt_seqno_ = dgs_arpt->seqno_;
     }
 
-    ImGui::TextUnformatted("DGS state:      ");
+    ImGui::Spacing();
+    ImGui::TextUnformatted("DGS state:");
     ImGui::SameLine();
+    ImGui::SetCursorPosX(col_2);
     ImVec4 red = ImColor(255, 0, 0, 255);
     ImGui::PushStyleColor(ImGuiCol_Text, red);
     ImGui::TextUnformatted(dgs_arpt->state_str());
     ImGui::PopStyleColor();
 
+    if (dgs_arpt->state() == dgs::Airport::kIdle) {
+        int pax_no = my_plane->PaxNo();
+        if (pax_no > 0) {
+            ImGui::SameLine();
+            ImGui::Text("  (Pax on board: %d)", pax_no);
+        }
+    }
+
     int as = dgs_arpt->active_stand();
     int ss = dgs_arpt->selected_stand();
     if (as >= 0) {
         const auto& stand = dgs_arpt->stand(as);
-        ImGui::Text("Active stand:    '%s'", stand.name().c_str());
+        ImGui::TextUnformatted("Active stand:");
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(col_2);
+        ImGui::Text("'%s'", stand.name().c_str());
     }
 
     if (ss >= 0 && ss != as) {
         const auto& stand = dgs_arpt->stand(ss);
-        ImGui::Text("Selected stand:  '%s'", stand.name().c_str());
+        ImGui::TextUnformatted("Selected stand:");
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(col_2);
+        ImGui::Text("'%s'", stand.name().c_str());
     }
 
     ImGui::Spacing();
