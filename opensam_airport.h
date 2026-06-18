@@ -98,7 +98,7 @@ class OsAirport : public dgs::Airport {
 
     float StateMachine(); // augment dgs::Airport's state machine with openSAM specific logic
 
-    void ResetState(state_t new_state);
+    void ResetState(State new_state);
 
     size_t n_stands() const { return stands_.size(); }
     const OsStand* FindStandForJw(float jw_x, float jw_z);

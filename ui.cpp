@@ -256,7 +256,7 @@ void Ui::BuildInterface() {
     ImGui::Separator();
     ImGui::Spacing();
 
-    if (dgs_arpt->state() == dgs::Airport::INACTIVE && my_plane->beacon_on()) {
+    if (dgs_arpt->state() == dgs::Airport::kIdle && my_plane->beacon_on()) {
         if (ImGui::Button("Set mode ARRIVAL")) {
             set_mode_arrival_requested_ = true;
             XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
@@ -298,7 +298,7 @@ void Ui::BuildInterface() {
         }
     }
 
-    if (dgs::Airport::ARRIVAL <= dgs_arpt->state() && dgs_arpt->state() <= dgs::Airport::BAD) {
+    if (dgs::Airport::kArrival <= dgs_arpt->state() && dgs_arpt->state() <= dgs::Airport::kBad) {
         lb_item_ = dgs_arpt->selected_stand() + 1;  // +1 due to "<automatic>"
 
         int height = ImGui::GetContentRegionAvail().y;
@@ -348,7 +348,7 @@ void Ui::BuildInterface() {
         XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
     }
 
-    if (my_plane->state() == Plane::SELECT_JWS) {
+    if (my_plane->state() == Plane::kSelectJws) {
         if (nearest_jws_seqno_ != my_plane->nearest_jws_seqno_) {
             // nearest jetway list has changed since last time, so we reset the selection
             memset(jw_selected_, 0, sizeof(jw_selected_));
@@ -424,7 +424,7 @@ void Ui::BuildInterface() {
                 my_plane->dock_requested_ = true;
             }
         }
-    } else if (my_plane->state() == Plane::CAN_DOCK) {
+    } else if (my_plane->state() == Plane::kCanDock) {
         int n_jws = my_plane->nearest_jws_.size();
         int n_doors = my_plane->door_info_.size();
 
@@ -457,13 +457,13 @@ void Ui::BuildInterface() {
 
         if (ImGui::Button("Dock"))
             my_plane->dock_requested_ = true;
-    } else if (my_plane->state() == Plane::CANT_DOCK) {
+    } else if (my_plane->state() == Plane::kCantDock) {
         ImGui::TextUnformatted("Cannot dock: no suitable jetways found!");
-    } else if (my_plane->state() == Plane::DOCKING) {
+    } else if (my_plane->state() == Plane::kDocking) {
         ImGui::TextUnformatted("Docking in progress...");
-    } else if (my_plane->state() == Plane::UNDOCKING) {
+    } else if (my_plane->state() == Plane::kUndocking) {
         ImGui::TextUnformatted("Undocking in progress...");
-    } else if (my_plane->state() == Plane::DOCKED) {
+    } else if (my_plane->state() == Plane::kDocked) {
         if (ImGui::Button("Undock"))
             my_plane->undock_requested_ = true;
     }

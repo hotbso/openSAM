@@ -35,13 +35,23 @@ static constexpr float kMpMaxDist = 2000;  // (m) max dist we consider MP planes
 //
 class Plane {
    public:
-    enum State { DISABLED = 0, IDLE, PARKED, SELECT_JWS, CAN_DOCK, DOCKING, DOCKED, UNDOCKING, CANT_DOCK };
+    enum State {
+        kDisabled = 0,
+        kIdle,
+        kParked,
+        kSelectJws,
+        kCanDock,
+        kDocking,
+        kDocked,
+        kUndocking,
+        kCantDock
+    };
 
     static const char* const state_str_[];
 
    protected:
     float state_machine_next_ts_{0};  // ts for the next run of the state machine
-    State state_{DISABLED}, prev_state_{DISABLED};
+    State state_{kDisabled}, prev_state_{kDisabled};
     float state_change_ts_{0};
 
     bool beacon_on_{false}, engines_on_{false}, on_ground_{false}, parkbrake_set_{false};
@@ -101,7 +111,7 @@ class Plane {
     virtual bool call_pre_post_dock_cmd() { return false; }
 
     // in general no sound on (mass-) docking
-    virtual bool with_alert_sound() { return (state_ == DOCKED); }
+    virtual bool with_alert_sound() { return (state_ == kDocked); }
 
     virtual void MemorizeParkedPos() {}  // for teleportation detection
 

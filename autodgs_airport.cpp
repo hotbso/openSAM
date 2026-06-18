@@ -54,7 +54,7 @@ std::unique_ptr<AdgsAirport> adgs_arpt;
 
 int default_vdgs_type = kVdgsSafedock_T2_24;
 
-opmode_t operation_mode = MODE_AUTO;
+OperationMode operation_mode = kAuto;
 const char* const opmode_str[] = { "Automatic", "Manual" };
 
 AdgsStand::AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation, int dgs_type, float dgs_dist)
@@ -323,9 +323,9 @@ int AdgsAirport::GetDgsType() const {
     return kMarshaller;
 }
 
-void AdgsAirport::ResetState(state_t new_state) {
+void AdgsAirport::ResetState(State new_state) {
     dgs::Airport::ResetState(new_state);
-    if (new_state == INACTIVE)
+    if (new_state == kIdle)
         FlushUserCfg();
 
     marshaller_pe_dist_updated = false;
@@ -340,7 +340,7 @@ void AdgsAirport::CycleDgsType() {
 }
 
 bool AdgsAirport::auto_post_parkbrake() const {
-     return operation_mode == MODE_AUTO && !dgs::plane->dont_connect_jetway_;
+    return operation_mode == kAuto && !dgs::plane->dont_connect_jetway_;
  }
 
 void AdgsAirport::ConnectJetway() {

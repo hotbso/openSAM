@@ -27,8 +27,8 @@
 #include "log_msg.h"
 
 enum {
-    API_OPERATION_MODE,
-    API_ON_GROUND,
+    kApiOperationMode,
+    kApiOnGround,
 };
 
 // API accessor routines
@@ -36,9 +36,9 @@ static int
 api_getint(XPLMDataRef ref)
 {
     switch ((long long)ref) {
-        case API_OPERATION_MODE:
+        case kApiOperationMode:
             return operation_mode;
-        case API_ON_GROUND:
+        case kApiOnGround:
             return my_plane->on_ground() ? 1 : 0;
     }
 
@@ -49,10 +49,10 @@ static void
 api_setint(XPLMDataRef ref, int val)
 {
     switch ((long long)ref) {
-        case API_OPERATION_MODE:
+        case kApiOperationMode:
             ; // required by some gcc versions
-            opmode_t mode = (opmode_t)val;
-            if (mode != MODE_AUTO && mode != MODE_MANUAL) {
+            OperationMode mode = static_cast<OperationMode>(val);
+            if (mode != kAuto && mode != kManual) {
                 LogMsg("API: trying to set invalid operation_mode %d, ignored", val);
                 return;
             }
@@ -73,9 +73,9 @@ create_api_drefs()
         // API datarefs
     XPLMRegisterDataAccessor("AutoDGS/operation_mode", xplmType_Int, 1, api_getint, api_setint, NULL,
                              NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                             (void *)API_OPERATION_MODE, (void *)API_OPERATION_MODE);
+                             (void *)kApiOperationMode, (void *)kApiOperationMode);
 
     XPLMRegisterDataAccessor("AutoDGS/on_ground", xplmType_Int, 0, api_getint, NULL, NULL,
                              NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                             (void *)API_ON_GROUND, NULL);
+                             (void *)kApiOnGround, NULL);
 }

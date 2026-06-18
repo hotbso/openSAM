@@ -39,9 +39,9 @@ enum VDgsType {
 
 extern int default_vdgs_type;
 
-typedef enum { MODE_AUTO, MODE_MANUAL } opmode_t;
+enum OperationMode { kAuto, kManual };
 extern const char * const opmode_str[];
-extern opmode_t operation_mode;
+extern OperationMode operation_mode;
 
 class AdgsAirport;  // forward declaration for dgs::Stand
 
@@ -87,7 +87,7 @@ class AdgsAirport : public dgs::Airport {
     AdgsAirport(const dgs::AptAirport&);
     ~AdgsAirport();
 
-    void ResetState(state_t new_state);
+    void ResetState(State new_state);
 
     std::tuple<int, const std::string> GetStand(int idx) const;  // dgs_type, name
 

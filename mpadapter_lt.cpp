@@ -86,7 +86,7 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao, fl
                door_info_[0].x, door_info_[0].y, door_info_[0].z);
     } catch (const std::out_of_range& ex) {
         LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
-        state_ = DISABLED;
+        state_ = kDisabled;
         return;
     }
 
@@ -97,11 +97,11 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao, fl
     } catch (const std::out_of_range& ex) {
     }
 
-    state_ = IDLE;
+    state_ = kIdle;
 }
 
 void MpPlane_lt::update(bool beacon) {
-    if (state_ == DISABLED)
+    if (state_ == kDisabled)
         return;
 
     beacon_on_ = beacon;
@@ -109,8 +109,8 @@ void MpPlane_lt::update(bool beacon) {
     // Jetways are only dockable if they were rendered once.
     // As they come in view over time we just retry a docking attempt if the plane is stuck
     // in CANT_DOCK.
-    if (!beacon_on_ && state_ == CANT_DOCK && now > state_change_ts_ + 60.0f)
-        state_ = PARKED;
+    if (!beacon_on_ && state_ == kCantDock && now > state_change_ts_ + 60.0f)
+        state_ = kParked;
 
     LogMsg("MP update: pid=%02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, state: %s", id_, icao_.c_str(),
            flight_id_.c_str(), beacon_on_, parkbrake_set_, state_str_[state_]);

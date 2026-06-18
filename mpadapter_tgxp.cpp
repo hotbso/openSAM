@@ -113,7 +113,7 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
 
     if (type_code.size() == 0) {
         LogMsg("pid=%d, could not extract type code from '%s'", id_, acf_type.c_str());
-        state_ = DISABLED;
+        state_ = kDisabled;
         return;
     }
 
@@ -147,7 +147,7 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
                door_info_[0].x, door_info_[0].y, door_info_[0].z);
     } else {
         LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, type_code.c_str());
-        state_ = DISABLED;
+        state_ = kDisabled;
         return;
     }
 
@@ -160,11 +160,11 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     if (it3 != csl_door_info_map.end())
         door_info_.push_back(it3->second);
 
-    state_ = IDLE;
+    state_ = kIdle;
 }
 
 void MpPlane_tgxp::update(bool beacon) {
-    if (state_ == DISABLED)
+    if (state_ == kDisabled)
         return;
 
     beacon_on_ = beacon;
@@ -172,8 +172,8 @@ void MpPlane_tgxp::update(bool beacon) {
     // Jetways are only dockable if they were rendered once.
     // As they come in view over time we just retry a docking attempt if the plane is stuck
     // in CANT_DOCK.
-    if (!beacon_on_ && state_ == CANT_DOCK && now > state_change_ts_ + 60.0f)
-        state_ = PARKED;
+    if (!beacon_on_ && state_ == kCantDock && now > state_change_ts_ + 60.0f)
+        state_ = kParked;
 
     LogMsg("MP update: pid=%02d, slot: %02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, state: %s", id_, slot_,
            icao_.c_str(), flight_id_.c_str(), beacon_on_, parkbrake_set_, state_str_[state_]);

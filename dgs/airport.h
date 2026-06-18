@@ -86,12 +86,23 @@ class Stand {
 
 class Airport {
    public:
-    typedef enum {
-        INACTIVE = 0, DEPARTURE, BOARDING,
-        ARRIVAL, ENGAGED, TRACK, GOOD, BAD, PARKBRAKE_SET, BEACON_OFF, PARKED, DEBOARDING, DONE
-    } state_t;
+    enum State {
+        kIdle = 0,
+        kDeparture,
+        kBoarding,
+        kArrival,
+        kEngaged,
+        kTrack,
+        kGood,
+        kBad,
+        kParkBrakeSet,
+        kBeaconOff,
+        kParked,
+        kDeboarding,
+        kDone
+    };
 
-    static const char * const state_str_[];
+    static const char* const state_str_[];
 
     const int seqno_;  // sequence number
 
@@ -99,7 +110,7 @@ class Airport {
     unsigned int ref_gen_;    // reference frame generation number
 
     std::string name_;
-    state_t state_;
+    State state_;
 
     std::vector<std::unique_ptr<Stand>> stands_;
     int active_stand_;      // -1 or index into stands_
@@ -123,7 +134,7 @@ class Airport {
 
     int nstands() const { return stands_.size(); }
 
-    void ResetState(state_t new_state);
+    void ResetState(State new_state);
     void SetArrival();  // kick off guidance when we arrive at the airport
     void SetSelectedStand(int selected_stand);
     float StateMachine();
@@ -136,7 +147,7 @@ class Airport {
     virtual bool auto_post_parkbrake() const = 0;
 
     const std::string& name() const { return name_; }
-    state_t state() const { return state_; }
+    State state() const { return state_; }
     const char* state_str() const { return state_str_[state_]; }
     int active_stand() const { return active_stand_; }
     int selected_stand() const { return selected_stand_; }

@@ -33,7 +33,7 @@ const char* const Plane::state_str_[] = {"DISABLED", "IDLE",   "PARKED",    "SEL
 
 Plane::~Plane() {
     LogMsg("pid=%02d, Plane destructor, state: %s, active_jws: %d", id_, state_str_[state_], (int)active_jws_.size());
-    if (IDLE <= state_) {
+    if (kIdle <= state_) {
         for (int ajw_idx : active_jws_)
             nearest_jws_[ajw_idx].ResetJw();
     }
@@ -86,7 +86,7 @@ void Plane::AutoSelectJws() {
 
 // the state machine called from the flight loop
 float Plane::JwStateMachine() {
-    if (state_ == DISABLED) {
+    if (state_ == kDisabled) {
         state_machine_next_ts_ = ::now + 2.0f;
         return 2.0f;
     }
@@ -97,10 +97,10 @@ float Plane::JwStateMachine() {
     State new_state{state_};
 
     // only MyPlane has a meaningful CheckTeleportation() implementation
-    if (state_ > IDLE && CheckParkedTeleportation()) {
+    if (state_ > kIdle && CheckParkedTeleportation()) {
         LogMsg("teleportation detected!");
         prev_state_ = state_;
-        state_ = new_state = IDLE;
+        state_ = new_state = kIdle;
         state_change_ts_ = now;
         LogMsg("pid=%02d, new state: IDLE after teleportation", id_);
         // FALLTHROUGH into IDLE below
@@ -109,8 +109,8 @@ float Plane::JwStateMachine() {
     unsigned n_done;
 
     switch (state_) {
-        case IDLE:
-            if (prev_state_ != IDLE) {
+        case kIdle:
+            if (prev_state_ != kIdle) {
                 // from anywhere to idle nullifies all selections and locks
                 for (int ajw_idx : active_jws_)
                     nearest_jws_[ajw_idx].ResetJw();
@@ -128,26 +128,26 @@ float Plane::JwStateMachine() {
                 undock_requested();
                 toggle_requested();
 
-                new_state = PARKED;
+                new_state = kParked;
             }
             break;
 
-        case PARKED:
+        case kParked:
             if (!JwCtrl::FindNearestJetways({id_, x_, y_, z_, psi_, door_info_}, nearest_jws_)) {
-                new_state = CANT_DOCK;
+                new_state = kCantDock;
                 break;
             }
 
             // falling through adds much concurrency to the MP case as unused jetways get unlocked much earlier
             nearest_jws_seqno_++;  // for detecting changes in the nearest jetway list by the UI
-            new_state = state_ = SELECT_JWS;
+            new_state = state_ = kSelectJws;
             LogMsg("pid=%02d, new state: SELECT_JWS", id_);
             // FALLTHROUGH
 
-        case SELECT_JWS:
+        case kSelectJws:
             if (beacon_on_) {
                 LogMsg("SELECT_JWS and beacon goes on");
-                new_state = IDLE;
+                new_state = kIdle;
                 break;
             }
 
@@ -155,7 +155,7 @@ float Plane::JwStateMachine() {
                 AutoSelectJws();
                 if (active_jws_.empty()) {  // e.g. collisions, locked jws
                     nearest_jws_.clear();
-                    new_state = CANT_DOCK;
+                    new_state = kCantDock;
                     break;
                 }
             }
@@ -176,14 +176,14 @@ float Plane::JwStateMachine() {
                     if (!njw.selected_)
                         njw.UnlockJw();
 
-                new_state = CAN_DOCK;
+                new_state = kCanDock;
             }
             break;
 
-        case CAN_DOCK:
+        case kCanDock:
             if (beacon_on_) {
                 LogMsg("CAN_DOCK and beacon goes on");
-                new_state = IDLE;
+                new_state = kIdle;
             }
 
             // mp planes always dock directly
@@ -197,18 +197,18 @@ float Plane::JwStateMachine() {
                     nearest_jws_[ajw_idx].SetupDockUndock(start_ts, with_alert_sound());
                 }
 
-                new_state = DOCKING;
+                new_state = kDocking;
             }
             break;
 
-        case CANT_DOCK:
+        case kCantDock:
             if (!on_ground_ || beacon_on_) {
-                new_state = IDLE;
+                new_state = kIdle;
                 break;
             }
             break;
 
-        case DOCKING:
+        case kDocking:
             n_done = 0;
             for (int ajw_idx : active_jws_) {
                 if (nearest_jws_[ajw_idx].DockDrive())
@@ -221,16 +221,16 @@ float Plane::JwStateMachine() {
                     if (cmdr)
                         XPLMCommandOnce(cmdr);
                 }
-                new_state = DOCKED;
+                new_state = kDocked;
             } else {
                 state_machine_next_ts_ = 0.0f;
                 return kAnimInterval;
             }
             break;
 
-        case DOCKED:
+        case kDocked:
             if (!on_ground_) {
-                new_state = IDLE;
+                new_state = kIdle;
                 break;
             }
 
@@ -253,11 +253,11 @@ float Plane::JwStateMachine() {
                         XPLMCommandOnce(cmdr);
                 }
 
-                new_state = UNDOCKING;
+                new_state = kUndocking;
             }
             break;
 
-        case UNDOCKING:
+        case kUndocking:
             n_done = 0;
             for (int ajw_idx : active_jws_) {
                 if (nearest_jws_[ajw_idx].UndockDrive())
@@ -265,7 +265,7 @@ float Plane::JwStateMachine() {
             }
 
             if (n_done == active_jws_.size())
-                new_state = IDLE;
+                new_state = kIdle;
             else {
                 state_machine_next_ts_ = 0.0f;
                 return kAnimInterval;
@@ -274,7 +274,7 @@ float Plane::JwStateMachine() {
 
         default:
             LogMsg("Bad state %d", state_);
-            new_state = DISABLED;
+            new_state = kDisabled;
             break;
     }
 

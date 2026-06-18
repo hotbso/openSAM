@@ -51,10 +51,10 @@ int MyPlane::JwStatusAcc(void* ref) {
     if (0 == my_plane->active_jws_.size())
         return 0;
 
-    if (CAN_DOCK == my_plane->state_)
+    if (kCanDock == my_plane->state_)
         return 1;
 
-    if (DOCKED == my_plane->state_)
+    if (kDocked == my_plane->state_)
         return 2;
 
     return -1;
@@ -79,7 +79,7 @@ int MyPlane::JwDoorStatusAcc([[maybe_unused]] void* ref, int* values, int ofs, i
 
     for (auto ajw_idx : my_plane->active_jws_) {
         JwCtrl& ajw = my_plane->nearest_jws_[ajw_idx];
-        if (ajw.state_ == JwCtrl::DOCKED) {
+        if (ajw.state_ == JwCtrl::kDocked) {
             int i = ajw.door_ - ofs;
             if (0 <= i && i < n)
                 values[i] = 1;
@@ -97,7 +97,7 @@ MyPlane::MyPlane() {
 
     acf_icao_ = "0000";
     ResetBeacon();
-    state_ = IDLE;
+    state_ = kIdle;
 
     plane_lat_dr_ = XPLMFindDataRef("sim/flightmodel/position/latitude");
     assert(plane_lat_dr_ != nullptr); // these are all standard SDK datarefs, just check one
@@ -119,17 +119,17 @@ MyPlane::MyPlane() {
 }
 
 void MyPlane::RequestDock() {
-    if (state_ == CAN_DOCK)
+    if (state_ == kCanDock)
         dock_requested_ = true;
 }
 
 void MyPlane::RequestUndock() {
-    if (state_ == DOCKED)
+    if (state_ == kDocked)
         undock_requested_ = true;
 }
 
 void MyPlane::RequestToggle() {
-    if (state_ == CAN_DOCK || state_ == DOCKED)
+    if (state_ == kCanDock || state_ == kDocked)
         toggle_requested_ = true;
 }
 
@@ -157,23 +157,23 @@ void MyPlane::AutoModeSet(bool auto_mode) {
 
     auto_mode_ = auto_mode;
 
-    if (state_ == DOCKING || state_ == UNDOCKING) {
+    if (state_ == kDocking || state_ == kUndocking) {
         for (auto ajw_idx : active_jws_)
             nearest_jws_[ajw_idx].ResetJw();
 
-        state_ = IDLE;
+        state_ = kIdle;
         return;
     }
 
-    if (auto_mode && state_ == SELECT_JWS)
+    if (auto_mode && state_ == kSelectJws)
         return;
 
-    if (!auto_mode && state_ == CAN_DOCK) {
+    if (!auto_mode && state_ == kCanDock) {
         for (auto ajw_idx : active_jws_)
             nearest_jws_[ajw_idx].UnlockJw();  // unlock jetway for manual selection
 
         active_jws_.clear();
-        state_ = PARKED;
+        state_ = kParked;
         return;
     }
 }

@@ -54,21 +54,21 @@ class JwCtrl {
 
    public:
     enum JwCtrlState {
-        PARKED,
-        TO_AP,
-        AT_AP,
-        TO_DOOR,
-        AT_DOOR,
-        DOCKED,  // sequence for docking
+        kParked,
+        kToAp,
+        kAtAp,
+        kToDoor,
+        kAtDoor,
+        kDocked,  // sequence for docking
 
-        // TO_AP,                       // sequence for undocking
-        TO_PARK
+        // kToAp,                       // sequence for undocking
+        kToPark
     };
 
     bool selected_{false};  // nearest jw was selected as an active jw
     int door_{};       // active JwCtrl associated with door #
     SamJw* jw_;
-    JwCtrlState state_{PARKED};
+    JwCtrlState state_{kParked};
 
     // everything in plane local coordinates
     float x_, y_, z_, psi_;

@@ -74,15 +74,15 @@ MpPlane_xPilot::MpPlane_xPilot(int slot, const std::string& flight_id, const std
                door_info_[0].y, door_info_[0].z);
     } else {
         LogMsg("pid=%02d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
-        state_ = DISABLED;
+        state_ = kDisabled;
         return;
     }
 
-    state_ = IDLE;
+    state_ = kIdle;
 }
 
 void MpPlane_xPilot::update(float x, float y, float z, float psi, float throttle, int lights) {
-    if (state_ == DISABLED)
+    if (state_ == kDisabled)
         return;
 
     x_ = x;

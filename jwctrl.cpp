@@ -538,7 +538,7 @@ void JwCtrl::AnimateWheels(float ds) {
 // drive jetway to the door
 // return 1 when done
 bool JwCtrl::DockDrive() {
-    if (state_ == DOCKED)
+    if (state_ == kDocked)
         return true;
 
     if (now < start_ts_)
@@ -547,7 +547,7 @@ bool JwCtrl::DockDrive() {
     // guard against a hung animation
     if (now > timeout_) {
         LogMsg("dock_drive() timeout!");
-        state_ = DOCKED;
+        state_ = kDocked;
         jw_->rotate1 = docked_rot1_;
         jw_->rotate2 = docked_rot2_;
         jw_->rotate3 = docked_rot3_;
@@ -565,7 +565,7 @@ bool JwCtrl::DockDrive() {
     // float wheel_x = x_ + (jw_->extent + jw_->wheelPos) * std::cos(rot1_d * kD2R);
     // float wheel_z = z_ + (jw_->extent + jw_->wheelPos) * std::sin(rot1_d * kD2R);
 
-    if (state_ == TO_AP) {
+    if (state_ == kToAp) {
         if (wait_wb_rot_) {
             // LogMsg("TO_AP: waiting for wb rotation");
             if (!RotateWheelBase(dt))
@@ -579,7 +579,7 @@ bool JwCtrl::DockDrive() {
         float eps = std::max(2.0f * dt * kDriveSpeed, 0.1f);
         // LogMsg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x_), fabs(tgt_z - cabin_z_));
         if (fabs(tgt_x - cabin_x_) < eps && fabs(tgt_z - cabin_z_) < eps) {
-            state_ = AT_AP;
+            state_ = kAtAp;
             LogMsg("align point reached reached");
             return false;
         }
@@ -625,17 +625,17 @@ bool JwCtrl::DockDrive() {
         AnimateWheels(ds);
     }
 
-    if (state_ == AT_AP) {
+    if (state_ == kAtAp) {
         // use the time to rotate the wheel base towards the door
         wb_rot_ = fem::RA(-rot1_d);
         RotateWheelBase(dt);
 
         // rotation 2 + 3 must be at target now
         if (Rotate2(docked_rot2_, dt) && Rotate3(docked_rot3_, dt))
-            state_ = TO_DOOR;
+            state_ = kToDoor;
     }
 
-    if (state_ == TO_DOOR) {
+    if (state_ == kToDoor) {
         if (wait_wb_rot_) {
             // LogMsg("TO_AP: waiting for wb rotation");
             if (!RotateWheelBase(dt))
@@ -671,7 +671,7 @@ bool JwCtrl::DockDrive() {
         float eps = std::max(2.0f * dt * kDriveSpeed, 0.05f);
         // LogMsg("eps: %0.3f, d_x: %0.3f", eps, fabs(tgt_x - cabin_x_));
         if (fabs(tgt_x - cabin_x_) < eps) {
-            state_ = AT_DOOR;
+            state_ = kAtDoor;
             LogMsg("door reached");
             jw_->warnlight = 0;
             AlertOff();
@@ -679,7 +679,7 @@ bool JwCtrl::DockDrive() {
         }
     }
 
-    if (state_ == AT_DOOR) {
+    if (state_ == kAtDoor) {
         // close canopy
         if (jw_->canopy < 0.98f) {
             jw_->canopy += dt / kCanopyCloseTime;
@@ -690,7 +690,7 @@ bool JwCtrl::DockDrive() {
         }
 
         jw_->canopy = 1.0f;
-        state_ = DOCKED;
+        state_ = kDocked;
         LogMsg("docked");
         return true;
     }
@@ -701,7 +701,7 @@ bool JwCtrl::DockDrive() {
 
 // drive jetway to parked position
 bool JwCtrl::UndockDrive() {
-    if (state_ == PARKED)
+    if (state_ == kParked)
         return true;
 
     if (now < start_ts_)
@@ -710,7 +710,7 @@ bool JwCtrl::UndockDrive() {
     // guard against a hung animation
     if (now > timeout_) {
         LogMsg("UndockDrive() timeout!");
-        state_ = PARKED;
+        state_ = kParked;
         jw_->Reset();
         AlertOff();
         return true;  // -> done
@@ -724,7 +724,7 @@ bool JwCtrl::UndockDrive() {
     // float wheel_x = x + (jw_->extent + jw_->wheelPos) * std::cos(rot1_d * kD2R);
     // float wheel_z = z + (jw_->extent + jw_->wheelPos) * std::sin(rot1_d * kD2R);
 
-    if (state_ == TO_AP) {
+    if (state_ == kToAp) {
         // first step: open canopy
         if (jw_->canopy > 0.02f) {
             jw_->canopy -= dt / kCanopyCloseTime;
@@ -751,7 +751,7 @@ bool JwCtrl::UndockDrive() {
         float eps = std::max(2.0f * dt * kDriveSpeed, 0.1f);
         // LogMsg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x_), fabs(tgt_z - cabin_z_));
         if (fabs(tgt_x - cabin_x_) < eps && fabs(tgt_z - cabin_z_) < eps) {
-            state_ = AT_AP;
+            state_ = kAtAp;
             LogMsg("align point reached reached");
             return false;
         }
@@ -776,12 +776,12 @@ bool JwCtrl::UndockDrive() {
         AnimateWheels(ds);
     }
 
-    if (state_ == AT_AP) {
+    if (state_ == kAtAp) {
         // nothing for now
-        state_ = TO_PARK;
+        state_ = kToPark;
     }
 
-    if (state_ == TO_PARK) {
+    if (state_ == kToPark) {
         if (wait_wb_rot_) {
             // LogMsg("TO_AP: waiting for wb rotation");
             if (!RotateWheelBase(dt)) {
@@ -828,7 +828,7 @@ bool JwCtrl::UndockDrive() {
         float eps = std::max(2.0f * dt * kDriveSpeed, 0.1f);
         // LogMsg("eps: %0.3f, %0.3f, %0.3f", eps, fabs(tgt_x - cabin_x_), fabs(tgt_z - cabin_z_));
         if (fabs(tgt_x - cabin_x_) < eps && fabs(tgt_z - cabin_z_) < eps) {
-            state_ = PARKED;
+            state_ = kParked;
             jw_->warnlight = 0;
             AlertOff();
             LogMsg("park position reached");
@@ -842,7 +842,7 @@ bool JwCtrl::UndockDrive() {
 }
 
 void JwCtrl::SetupDockUndock(float start_time, bool with_sound) {
-    state_ = TO_AP;
+    state_ = kToAp;
     start_ts_ = start_time;
     last_step_ts_ = start_ts_;
     timeout_ = start_ts_ + kAnimTimeout;
