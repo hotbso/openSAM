@@ -1,5 +1,14 @@
 {
     "C_Cpp.errorSquiggles": "disabled",
     "editor.acceptSuggestionOnEnter": "off",
-    "editor.inlineSuggest.minShowDelay": 750
+    "editor.inlineSuggest.minShowDelay": 750,
+    // Disables VS Code from guessing completions based on random words in the file
+    "editor.wordBasedSuggestions": "off",
+    // Optional but highly recommended: Stops VS Code from suggesting words inside
+    // your comments or strings when you are just trying to write text.
+    "editor.quickSuggestions": {
+        "other": true,
+        "comments": false,
+        "strings": false
+    }
 }
