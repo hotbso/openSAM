@@ -97,16 +97,13 @@ float Plane::JwStateMachine() {
     State new_state{state_};
 
     // only MyPlane has a meaningful CheckTeleportation() implementation
-    if (state_ > IDLE && CheckTeleportation()) {
+    if (state_ > IDLE && CheckParkedTeleportation()) {
         LogMsg("teleportation detected!");
+        prev_state_ = state_;
         state_ = new_state = IDLE;
         state_change_ts_ = now;
-
-        for (int ajw_idx : active_jws_)
-            nearest_jws_[ajw_idx].ResetJw();
-        active_jws_.clear();
-
-        nearest_jws_.clear();
+        LogMsg("pid=%02d, new state: IDLE after teleportation", id_);
+        // FALLTHROUGH into IDLE below
     }
 
     unsigned n_done;

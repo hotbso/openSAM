@@ -215,7 +215,7 @@ bool operator<(const JwCtrl& a, const JwCtrl& b) {
 }
 
 // filter list of jetways jws[]for candidates and add them to nearest_jws[]
-static void FilterCandidates(JwCtrlPlaneInfo& plane_info, std::vector<JwCtrl>& nearest_jws, std::vector<SamJw*>& jws,
+static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCtrl>& nearest_jws, std::vector<SamJw*>& jws,
                              const DoorInfo& door_info) {
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
     // So we find the nearest jetways on the left and do some heuristics
@@ -276,7 +276,7 @@ static void FilterCandidates(JwCtrlPlaneInfo& plane_info, std::vector<JwCtrl>& n
 
 // find nearest jetways, order by z (= door number, hopefully)
 // static member, called by Plane
-int JwCtrl::FindNearestJetways(JwCtrlPlaneInfo plane_info, std::vector<JwCtrl>& nearest_jws) {
+int JwCtrl::FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<JwCtrl>& nearest_jws) {
     int n_doors = plane_info.door_info.size();
     if (n_doors == 0) {
         LogMsg("acf has no doors!");

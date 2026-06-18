@@ -289,7 +289,7 @@ void MyPlane::MemorizeParkedPos() {
     }
 }
 
-bool MyPlane::CheckTeleportation() {
+bool MyPlane::CheckParkedTeleportation() {
     if (!on_ground())
         return false;
 

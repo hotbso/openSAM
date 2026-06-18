@@ -344,6 +344,8 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
         // if we go 3 * supersonic it's a teleportation, e.g. a ToLiss situation reload
         if (fem::len(plane_pos - plane_pos_prev) > inElapsedSinceLastCall * 3.0f * 340.0f) {
             LogMsg("teleportation detected, resetting airport");
+            if (mp_adapter)
+                mp_adapter->Reset();
             os_arpt = nullptr;
             adgs_arpt = nullptr;
             on_ground_prev = false;  // to trigger airport identification on next loop

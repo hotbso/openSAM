@@ -106,7 +106,7 @@ class Plane {
     virtual void MemorizeParkedPos() {}  // for teleportation detection
 
     // make it clear that this is a plane specific check, not the global one
-    virtual bool CheckTeleportation() { return false; }
+    virtual bool CheckParkedTeleportation() { return false; }
 
     // auto select jetways
     void AutoSelectJws();

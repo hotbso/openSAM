@@ -55,7 +55,7 @@ class MyPlane : public Plane, public dgs::Plane {
     void Update();
 
     void MemorizeParkedPos() override;  // for teleportation detection
-    bool CheckTeleportation() override;
+    bool CheckParkedTeleportation() override;
 
     // these 3 are called without prior update() call -> direct read from drefs
     float lat() { return XPLMGetDataf(plane_lat_dr_); }

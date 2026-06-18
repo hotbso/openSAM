@@ -29,6 +29,7 @@
 #include "mpadapter_xpilot.h"
 #include "mpadapter_tgxp.h"
 #include "mpadapter_lt.h"
+#include "log_msg.h"
 
 std::unordered_map<std::string, DoorInfo> csl_door_info_map;
 std::unordered_map<std::string, std::string> acf_generic_type_map;
@@ -62,4 +63,9 @@ float MpAdapter::JwStateMachine() {
     for (auto& p : mp_planes_)
         jw_loop_delay = std::min(p.second->JwStateMachine(), jw_loop_delay);
     return jw_loop_delay;
+}
+
+void MpAdapter::Reset() {
+    LogMsg("MpAdapter::Reset() called, clearing MP planes");
+    mp_planes_.clear();
 }

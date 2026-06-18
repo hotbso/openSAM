@@ -37,6 +37,7 @@ class MpAdapter {
 
     virtual float update() = 0;     // update status of MP planes
     float JwStateMachine();       // return delay to next call
+    void Reset();
 };
 
 // hopefully will detect which plugin is active and returns the appropriate service
