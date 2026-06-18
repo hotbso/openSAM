@@ -298,7 +298,7 @@ std::vector<Item*> LLQuadTree<Float, Item, kMaxItem>::FindAround(Float lon, Floa
     };
 
     std::function<void(const Node*)> collect_items = [&collect_items, &add_item](const Node* node) {
-        LogMsg("Collecting items from node %d with n_below %d", node->id_, node->n_below_);
+        //LogMsg("Collecting items from node %d with n_below %d", node->id_, node->n_below_);
         if (!node->items_.empty()) {
             for (Item* item : node->items_)
                 add_item(item);
@@ -340,7 +340,7 @@ std::vector<Item*> LLQuadTree<Float, Item, kMaxItem>::FindAround(Float lon, Floa
     if (up_node == nullptr)
         up_node = root_.get();
 
-    up_node->Dump("FindAround node", 2);
+    //up_node->Dump("FindAround node", 2);
     // add all items in this node and its children
     collect_items(up_node);
     return found_items;  // TODO: implement a search that expands the search area until at least min_items are found, or a reasonable max area is reached
