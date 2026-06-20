@@ -27,9 +27,23 @@ EXPORT  openSAM/dgs/Safedock-T2-24_pole.obj		dgs/Safedock-T2-24_0.0m_pole.obj
 EXPORT  openSAM/dgs/Safedock-X.obj		        dgs/Safedock-X.obj
 EXPORT  openSAM/dgs/Safedock-X-pole.obj		    dgs/Safedock-X-pole.obj
 
+# jetways
+EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Modern_4m.obj	MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
+EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Modern_5m.obj	MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
+EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Modern_7m.obj	MisterX/libjw/Jetway_Steel_Modern_7m_ljw.obj
+EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Old_4m.obj	    MisterX/libjw/Jetway_Steel_Old_4m_ljw.obj
+EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Old_5m.obj	    MisterX/libjw/Jetway_Steel_Old_5m_ljw.obj
+EXPORT	openSAM/MisterX/libjw/Pillar_4m.obj	                MisterX/libjw/Pillar_4m.obj
+EXPORT	openSAM/MisterX/libjw/Pillar_5m.obj	                MisterX/libjw/Pillar_5m.obj
+EXPORT	openSAM/MisterX/libjw/Pillar_7m.obj	                MisterX/libjw/Pillar_7m.obj
+EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_4m.fac	MisterX/libjw/Tunnel_Steel_Modern_4m.fac
+EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_5m.fac	MisterX/libjw/Tunnel_Steel_Modern_5m.fac
+EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_7m.fac	MisterX/libjw/Tunnel_Steel_Modern_7m.fac
+EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_4m.fac	    MisterX/libjw/Tunnel_Steel_Old_4m.fac
+EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_5m.fac	    MisterX/libjw/Tunnel_Steel_Old_5m.fac
+
 # stuff below should not show up in WED
 DEPRECATED
-
 EXPORT  openSAM/dgs/Safedock-T2_2.5m.obj		dgs/Safedock-T2-24_2.5m.obj
 EXPORT  openSAM/dgs/Safedock-T2_3.0m.obj		dgs/Safedock-T2-24_3.0m.obj
 EXPORT  openSAM/dgs/Safedock-T2_3.5m.obj		dgs/Safedock-T2-24_3.5m.obj
@@ -46,19 +60,6 @@ EXPORT  openSAM/dgs/Safedock-T2_3.5m_pole.obj	dgs/Safedock-T2-24_3.5m_pole.obj
 EXPORT  openSAM/dgs/Safedock-T2_4.0m_pole.obj	dgs/Safedock-T2-24_4.0m_pole.obj
 EXPORT  openSAM/dgs/Safedock-T2_4.5m_pole.obj	dgs/Safedock-T2-24_4.5m_pole.obj
 EXPORT  openSAM/dgs/Safedock-T2_5.0m_pole.obj	dgs/Safedock-T2-24_5.0m_pole.obj
-EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Modern_4m.obj	MisterX/libjw/Jetway_Steel_Modern_4m_ljw.obj
-EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Modern_5m.obj	MisterX/libjw/Jetway_Steel_Modern_5m_ljw.obj
-EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Modern_7m.obj	MisterX/libjw/Jetway_Steel_Modern_7m_ljw.obj
-EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Old_4m.obj	    MisterX/libjw/Jetway_Steel_Old_4m_ljw.obj
-EXPORT	openSAM/MisterX/libjw/Jetway_Steel_Old_5m.obj	    MisterX/libjw/Jetway_Steel_Old_5m_ljw.obj
-EXPORT	openSAM/MisterX/libjw/Pillar_4m.obj	                MisterX/libjw/Pillar_4m.obj
-EXPORT	openSAM/MisterX/libjw/Pillar_5m.obj	                MisterX/libjw/Pillar_5m.obj
-EXPORT	openSAM/MisterX/libjw/Pillar_7m.obj	                MisterX/libjw/Pillar_7m.obj
-EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_4m.fac	MisterX/libjw/Tunnel_Steel_Modern_4m.fac
-EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_5m.fac	MisterX/libjw/Tunnel_Steel_Modern_5m.fac
-EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Modern_7m.fac	MisterX/libjw/Tunnel_Steel_Modern_7m.fac
-EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_4m.fac	    MisterX/libjw/Tunnel_Steel_Old_4m.fac
-EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_5m.fac	    MisterX/libjw/Tunnel_Steel_Old_5m.fac
 
 # SAM3
 
