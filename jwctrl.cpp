@@ -135,6 +135,9 @@ JwCtrl::JwCtrl(SamJw* jw, const JwCtrlPlaneInfo& plane_info) : jw_(jw) {
 }
 
 JwCtrl::~JwCtrl() {
+    // Play it safe. Sound is asynchronous and uses context that we are just going to destroy.
+    AlertOff();
+
     if (jw_->is_locked())
         jw_->Unlock();
 }
