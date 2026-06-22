@@ -37,6 +37,10 @@
 static constexpr float kF2M = 0.3048;               // 1 ft [m]
 
 namespace dgs {
+using Dict = std::unordered_map<std::string, std::string>;
+
+// Per item fallback config
+Dict fallback_cfg;
 
 void FlexDref::MapDref() {
     if (mapped_)
@@ -117,12 +121,20 @@ int FlexDref::GetTriggered() {
 float FlexDref::GetValue() {
     MapDref();
     float value;
-    if (type_id_ == xplmType_Int) {
+    if (type_id_ & xplmType_Int) {
         value = XPLMGetDatai(dr_);
-    } else if (type_id_ == xplmType_Float) {
+    } else if (type_id_ & xplmType_Float) {
         value = XPLMGetDataf(dr_);
+    } else if (type_id_ & xplmType_Double) {
+        value = static_cast<float>(XPLMGetDatad(dr_));
+    } else if (type_id_ & xplmType_IntArray) {
+        int v;
+        XPLMGetDatavi(dr_, &v, 0, 1);
+        value = v;
+    } else if (type_id_ & xplmType_FloatArray) {
+        XPLMGetDatavf(dr_, &value, 0, 1);
     } else {
-        LogMsg("unsupported dataref type for '%s'", name_.c_str());
+        LogMsg("unsupported dataref type for '%s': %d", name_.c_str(), type_id_);
         throw std::runtime_error("config error, unsupported dataref type");
     }
 
@@ -195,12 +207,12 @@ void FlexCmd::Execute() {
         XPLMCommandOnce(cmd_);
     } else {
         XPLMDataTypeID type_id = XPLMGetDataRefTypes(dr_);
-        if (type_id == xplmType_Int) {
+        if (type_id & xplmType_Int) {
             XPLMSetDatai(dr_, (int)dr_value_);
-        } else if (type_id == xplmType_Float) {
+        } else if (type_id & xplmType_Float) {
             XPLMSetDataf(dr_, dr_value_);
         } else {
-            LogMsg("unsupported dataref type for '%s'", name_.c_str());
+            LogMsg("unsupported dataref type for '%s': %d", name_.c_str(), type_id);
             throw std::runtime_error("config error, unsupported dataref type");
         }
     }
@@ -264,7 +276,8 @@ int Plane::PaxNo() {
 
 void Plane::GetEqStatus(dgs::EqStatus& eq_status) {
     // chocks, gpu, pca, pbb status
-    eq_status.chocks = eq_status.gpu = eq_status.pca = eq_status.pbb = dgs::kEqUnknown;
+    // As we now have resonable defaults in planes.cfg we initialize with Off instead of Unknown.
+    eq_status.chocks = eq_status.gpu = eq_status.pca = eq_status.pbb = dgs::kEqOff;
 
     static_assert(dgs::kEqUnknown == 0 && dgs::kEqOff == 1 && dgs::kEqOn == 2, "unexpected EqStatus values");
 
@@ -289,45 +302,41 @@ static void trim(std::string& s) {
 };
 
 // Helper to extract config variables for the current plane from planes.cfg, e.g. chocks dref, door pos, etc.
-void Plane::GetPlaneConfig(const std::string& filepath, const std::string& target_icao,
+Dict GetPlaneConfig(const std::string& filepath, const std::string& target_icao,
                            const std::string& target_studio) {
-    cfg_.clear();
     std::ifstream file(filepath);
     if (!file.is_open()) {
         LogMsg("Can't open plane config file '%s'", filepath.c_str());
-        return;
+        return {};
     }
 
     std::string line;
     line.reserve(256);
-
+    Dict cfg;
     // Helper to check if current block matches criteria
     auto block_matches = [&]() -> bool {
-        if (cfg_.empty())
+        if (cfg.empty())
             return false;
 
         bool icao_matches = false;
         bool studio_matches = true;
 
         // Evaluate RegEx for ICAO match
-        if (cfg_.count("icao")) {
+        if (cfg.contains("icao")) {
             try {
                 // e.g. "A[0-9N]+"
-                std::regex icao_regex(cfg_["icao"]);
+                std::regex icao_regex(cfg["icao"]);
                 icao_matches = std::regex_match(target_icao, icao_regex);
             } catch (const std::regex_error& e) {
-                LogMsg("Invalid regex in planes.cfg for icao: '%s', error: %s", cfg_["icao"].c_str(), e.what());
+                LogMsg("Invalid regex in planes.cfg for icao: '%s', error: %s", cfg["icao"].c_str(), e.what());
                 // Skip on malformed regex
                 icao_matches = false;
             }
         }
 
         // Evaluate Studio match (if defined in the block)
-        if (cfg_.count("studio")) {
-            if (cfg_["studio"] != target_studio) {
-                studio_matches = false;
-            }
-        }
+        if (cfg.contains("studio"))
+            studio_matches = target_studio.starts_with(cfg["studio"]);
 
         return icao_matches && studio_matches;
     };
@@ -337,9 +346,9 @@ void Plane::GetPlaneConfig(const std::string& filepath, const std::string& targe
         // Blocks are separated by empty lines or comments
         if (line.empty() || line[0] == '#') {
             if (block_matches()) {
-                return;
+                return cfg;
             }
-            cfg_.clear();
+            cfg.clear();
             continue;
         }
 
@@ -348,24 +357,31 @@ void Plane::GetPlaneConfig(const std::string& filepath, const std::string& targe
             std::string key = line.substr(0, separator_pos);
             std::string value = line.substr(separator_pos + 1);
             trim(value);
-            cfg_[key] = value;
+            cfg[key] = value;
         } else {
             // Cases where an option might not have a value provided
-            cfg_[line] = "";
+            cfg[line] = "";
         }
     }
 
     // Checking last block if file does not end with an empty line
     if (block_matches()) {
-        return;
+        return cfg;
     }
 
     // Return empty map if no block matched
-    cfg_.clear();
-    return;
+    return {};
 }
 
 void Plane::PlaneLoadedCb() {
+    if (fallback_cfg.empty()) {
+        // load fallback config once
+        fallback_cfg = GetPlaneConfig(base_dir + "planes.cfg", "fallback", "openSAM");
+        LogMsg("Fallback plane config loaded, %d entries", (int)fallback_cfg.size());
+        for (const auto& [k, v] : fallback_cfg)
+            LogMsg("  %s: %s", k.c_str(), v.c_str());
+    }
+
     pax_no_fdr_.Clear();
     chk_fdr_.Clear();
     gpu_fdr_.Clear();
@@ -459,14 +475,14 @@ void Plane::PlaneLoadedCb() {
         }
     }
 
-    GetPlaneConfig(base_dir + "planes.cfg", acf_icao_, studio);
-    LogMsg("Plane config loaded for %s, studio: %s", acf_icao_.c_str(), studio.c_str());
+    cfg_ = GetPlaneConfig(base_dir + "planes.cfg", acf_icao_, studio);
+    LogMsg("Plane config loaded for %s, studio: '%s'", acf_icao_.c_str(), studio.c_str());
     for (const auto& [k, v] : cfg_)
         LogMsg("  %s: %s", k.c_str(), v.c_str());
 
     // check flags from planes.cfg
-    use_engines_on_ = cfg_.count("use_engines_on") > 0;
-    dont_connect_jetway_ = cfg_.count("dont_connect_jetway") > 0;
+    use_engines_on_ = cfg_.contains("use_engines_on");
+    dont_connect_jetway_ = cfg_.contains("dont_connect_jetway");
 
     LogMsg("use_engines_on: %d, dont_connect_jetway: %d", use_engines_on_, dont_connect_jetway_);
 
@@ -479,18 +495,38 @@ void Plane::PlaneLoadedCb() {
 
     if (auto it = cfg_.find("pax_no_dref"); it != cfg_.end())
         pax_no_fdr_.Set(it->second);
+    else if (auto it = fallback_cfg.find("pax_no_dref"); it != fallback_cfg.end()) {
+        LogMsg("Using fallback config for pax_no_dref: %s", it->second.c_str());
+        pax_no_fdr_.Set(it->second);
+    }
 
     if (auto it = cfg_.find("chk_dref"); it != cfg_.end())
         chk_fdr_.Set(it->second);
+    else if (auto it = fallback_cfg.find("chk_dref"); it != fallback_cfg.end()) {
+        LogMsg("Using fallback config for chk_dref: %s", it->second.c_str());
+        chk_fdr_.Set(it->second);
+    }
 
     if (auto it = cfg_.find("gpu_dref"); it != cfg_.end())
         gpu_fdr_.Set(it->second);
+    else if (auto it = fallback_cfg.find("gpu_dref"); it != fallback_cfg.end()) {
+        LogMsg("Using fallback config for gpu_dref: %s", it->second.c_str());
+        gpu_fdr_.Set(it->second);
+    }
 
     if (auto it = cfg_.find("pca_dref"); it != cfg_.end())
         pca_fdr_.Set(it->second);
+    else if (auto it = fallback_cfg.find("pca_dref"); it != fallback_cfg.end()) {
+        LogMsg("Using fallback config for pca_dref: %s", it->second.c_str());
+        pca_fdr_.Set(it->second);
+    }
 
     if (auto it = cfg_.find("chk_set"); it != cfg_.end())
         set_chocks_fcmdr_.Set(it->second);
+    else if (auto it = fallback_cfg.find("chk_set"); it != fallback_cfg.end()) {
+        LogMsg("Using fallback config for chk_set: %s", it->second.c_str());
+        set_chocks_fcmdr_.Set(it->second);
+    }
 
     // the VDGS object does not like letters in the last position
     if (acf_icao_ == "A20N")

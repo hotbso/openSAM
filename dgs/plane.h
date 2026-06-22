@@ -19,8 +19,7 @@
 //    USA
 //
 
-#ifndef _DGS_PLANE_H_
-#define _DGS_PLANE_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -33,10 +32,11 @@
 
 namespace dgs {
 
-// a helper class to manage flexible datarefs, e.g. for pca, chocks etc, which can be configured in planes.cfg
-// we use late mapping as often these are defined late and are not yet available in the plane loaded callback.
+// A helper class to manage flexible datarefs, e.g. for pca, chocks etc, which can be configured in planes.cfg .
+// We use late mapping as often these are defined late and are not yet available in the plane loaded callback.
 //
-// All config aand conversion errors are thrown as these are configuration errors and should be fixed by the user, not silently ignored.
+// All config and conversion errors are thrown as these are configuration errors and should be fixed by the user, not
+// silently ignored.
 //
 class FlexDref {
     std::string name_;
@@ -82,22 +82,20 @@ class FlexCmd {
     void Execute();
 };
 
-// a container of flags and query functions related to the plane, e.g. beacon state, chocks, gpu, pca, pbb status
-// and a BeaconOn debounced of power transitions
+// A container of flags and query functions related to the plane, e.g. beacon state, chocks, gpu, pca, pbb status
+// and a BeaconOn debounced of power transients.
 class Plane {
     int beacon_state_{}, beacon_last_pos_{};  // beacon state, last switch_pos, ts of last switch actions
     float beacon_off_ts_{}, beacon_on_ts_{};
 
     FlexDref pax_no_fdr_, chk_fdr_, gpu_fdr_, pca_fdr_;  // for flexible datarefs configured in planes.cfg
-    FlexCmd set_chocks_fcmdr_;  // for flexible chocks command configured in planes.cfg
+    FlexCmd set_chocks_fcmdr_;                           // for flexible chocks command configured in planes.cfg
 
    protected:
-     // plane specific config from planes.cfg, e.g. chocks dref, door pos, etc.
+    // plane specific config from planes.cfg, e.g. chocks dref, door pos, etc.
     std::unordered_map<std::string, std::string> cfg_;
 
-    void GetPlaneConfig(const std::string& filepath, const std::string& target_icao, const std::string& target_studio);
-
-   public:
+    public:
     std::string acf_icao_;
     bool use_engines_on_{};       // instead of beacon, e.g. MD11
     bool dont_connect_jetway_{};  // e.g. for ZIBO with own ground service
@@ -125,4 +123,3 @@ class Plane {
 extern std::shared_ptr<Plane> plane;
 
 } // namespace dgs
-#endif
