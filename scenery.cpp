@@ -449,12 +449,10 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
         if (!line.starts_with("SCENERY_PACK ") || line.contains("*GLOBAL_AIRPORTS*"))
             continue;
 
-        // autoortho pretends every file exists but
-        // reads give errors
-        if (line.contains("/z_ao_"))
+        line.erase(0, 13);
+        if (line.empty())   // be paranoid
             continue;
 
-        line.erase(0, 13);
         std::string sc_path;
         bool is_absolute = (line[0] == '/' || line.contains(':'));
         if (is_absolute)
@@ -466,6 +464,11 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
         for (unsigned i = 0; i < sc_path.size(); i++)
             if (sc_path[i] == '\\')
                 sc_path[i] = '/';
+
+        // autoortho pretends every file exists but
+        // reads give errors. And likely XPME isn't better.
+        if (line.contains("/z_ao_") || line.contains("/XPME_"))
+            continue;
 
         if (sc_path.contains("/openSAM_Library/")) {
             openSAM_Library_path = sc_path;
