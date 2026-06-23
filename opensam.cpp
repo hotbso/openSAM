@@ -710,7 +710,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     ImgWindowIni();
 
     // own commands
-    XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Manually activate searching for DGS");
+    XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Set mode to ARRIVAL");
     XPLMRegisterCommandHandler(activate_cmdr, CmdActivateCb, 0, NULL);
 
     XPLMCommandRef toggle_ui_cmdr = XPLMCreateCommand("openSAM/ToggleUI", "Toggle UI");
@@ -749,7 +749,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     XPLMAppendMenuItemWithCommand(os_menu, "Toggle UI", toggle_ui_cmdr);
     XPLMAppendMenuSeparator(os_menu);
 
-    XPLMAppendMenuItemWithCommand(os_menu, "Manually activate searching for DGS", activate_cmdr);
+    XPLMAppendMenuItemWithCommand(os_menu, "Set mode to ARRIVAL", activate_cmdr);
 
     XPLMAppendMenuSeparator(os_menu);
 
