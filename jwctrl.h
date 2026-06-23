@@ -50,7 +50,6 @@ struct Sound {
 class JwCtrl {
    private:
     static Sound alert_;
-    static bool SoundDevInit();
 
    public:
     enum JwCtrlState {

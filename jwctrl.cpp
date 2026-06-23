@@ -867,6 +867,43 @@ void JwCtrl::ResetJw() {
     jw_->Reset();
 }
 
+static void AlertComplete(void* ref, [[maybe_unused]] FMOD_RESULT status) {
+    JwCtrl* ajw = (JwCtrl*)ref;
+    ajw->alert_chn_ = NULL;
+}
+
+void JwCtrl::AlertOn() {
+    if (alert_chn_)
+        return;
+    alert_chn_ = XPLMPlayPCMOnBus(alert_.data, alert_.size, FMOD_SOUND_FORMAT_PCM16, alert_.sample_rate,
+                                  alert_.num_channels, 1, xplm_AudioExteriorEnvironment, AlertComplete, this);
+
+    AlertSetpos();
+    XPLMSetAudioVolume(alert_chn_, 2.0f);
+    XPLMSetAudioFadeDistance(alert_chn_, 10.0f, 10000.0f);
+}
+
+void JwCtrl::AlertOff() {
+    if (alert_chn_)
+        XPLMStopAudio(alert_chn_);
+    alert_chn_ = NULL;
+}
+
+void JwCtrl::AlertSetpos() {
+    if (alert_chn_ == nullptr)
+        return;
+
+    static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
+    FMOD_VECTOR pos;
+
+    // position in the local coordinate system of the scenery
+    float rot1 = fem::RA((jw_->rotate1 + jw_->psi) - 90.0f);
+    pos.x = jw_->x + (jw_->extent + jw_->cabinPos) * std::cos(rot1 * kD2R);
+    pos.y = jw_->y + jw_->height;
+    pos.z = jw_->z + (jw_->extent + jw_->cabinPos) * std::sin(rot1 * kD2R);
+    XPLMSetAudioPosition(alert_chn_, &pos, &vel);
+}
+
 // static
 void JwCtrl::SoundInit() {
     // load alert sound
@@ -876,9 +913,6 @@ void JwCtrl::SoundInit() {
                alert_.size);
     else
         throw std::runtime_error("Could not load sound");
-
-    if (!SoundDevInit())
-        throw std::runtime_error("Could not init sound");
 }
 
 // static
