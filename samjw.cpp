@@ -248,8 +248,6 @@ static float JwAnimAcc(void* ref) {
 
         std::array<SamJw*, kMaxJwPerNode> candidates;
         int n_candidates = jw_quadtree.Find(obj_lon, obj_lat, candidates);
-        LogMsg("quadtree lookup for obj at x: %5.3f, z: %5.3f, lat: %0.6f, lon: %0.6f, found %d candidates", obj_x,
-               obj_z, obj_lat, obj_lon, n_candidates);
 
         if (n_candidates == 1) [[likely]] {
             jw = candidates[0];
@@ -281,11 +279,53 @@ static float JwAnimAcc(void* ref) {
             jw_cache[key] = nullptr;  // negative cache entry
             return 0.0f;              // multiple candidates, can't decide which one is correct, reject all
         } else if (n_candidates == 0 && id == 0) [[unlikely]] {
-            // TODO: try FindAround and search nearest
             LogMsg("quadtree lookup found no candidates for obj at x: %5.3f, z: %5.3f, lat: %0.6f, lon: %0.6f", obj_x,
                    obj_z, obj_lat, obj_lon);
-            jw_cache[key] = nullptr;  // negative cache entry
-            return 0.0f;
+
+            // some support for sloppy configured scenery, e.g. sam.xml values quite off
+            std::vector<SamJw*> around = jw_quadtree.FindAround(obj_lon, obj_lat, 5);
+            if (around.empty()) {
+                LogMsg("FindAround found no candidates either");
+                jw_cache[key] = nullptr;  // negative cache entry
+                return 0.0f;
+            }
+
+            LogMsg("FindAround found %d candidates:", (int)around.size());
+            float min_dist = 100000.0f;
+            SamJw* nearest = nullptr;
+            fem::LLPos obj_pos(obj_lat, obj_lon);
+
+            for (auto ajw : around) {
+                LogMsg("candidate: '%s', lat: %0.6f, lon: %0.6f", ajw->name.c_str(), ajw->latitude, ajw->longitude);
+                if (std::abs(fem::RA(ajw->heading - obj_psi)) > 2.0f * SamJw::kSam2ObjHdgMax) { // be generous as well
+                    LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", ajw->name.c_str(),
+                        ajw->heading, obj_psi);
+                    continue;
+                }
+
+                float dist = fem::len(fem::LLPos(ajw->latitude, ajw->longitude) - obj_pos);
+                if (dist < min_dist) {
+                    min_dist = dist;
+                    nearest = ajw;
+                }
+            }
+
+            if (nearest == nullptr) {
+                LogMsg("FindAround found no nearest candidate");
+                jw_cache[key] = nullptr;  // negative cache entry
+                return 0.0f;
+            }
+
+            LogMsg("nearest candidate: '%s', lat: %0.6f, lon: %0.6f, dist: %0.2fm", nearest->name.c_str(),
+                   nearest->latitude, nearest->longitude, min_dist);
+            jw = nearest;
+            jw->obj_ref_gen = ref_gen;
+            jw->x = obj_x;
+            jw->z = obj_z;
+            jw->y = obj_y;
+            jw->psi = obj_psi;
+
+            jw_cache[key] = jw;
         }
 
         // obj was not found in the scenery's configured jetways, but maybe it's a zero config library jetway
