@@ -26,7 +26,8 @@
 #include <numbers>
 #include <chrono>
 
-#include "dgs/apt_airport.h"
+#include "dgs_impl.h"
+#include "apt_airport.h"
 #include "quadtree.inl"
 #include "log_msg.h"
 
@@ -160,8 +161,7 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_
             // LogMsg("%s", line.c_str());
             save_arpt();
 
-            if (line.back() == '\r')
-                line.pop_back();
+            trim(line); // some generated apt.dat files have trailing white space
 
             int ofs;
             sscanf(line.c_str(), "%*d %*d %*d %*d %n", &ofs);
@@ -224,8 +224,7 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_
         // stand
         // 1300 50.030069 8.557858 159.4 tie_down jets|turboprops|props S403
         if (line.starts_with("1300 ")) {
-            if (line.back() == '\r')
-                line.pop_back();
+            trim(line);
 
             AptStand st;
             int ofs;

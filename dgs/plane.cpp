@@ -295,12 +295,6 @@ void Plane::GetEqStatus(dgs::EqStatus& eq_status) {
 
 std::shared_ptr<Plane> plane;
 
-// Helper to trim whitespace
-static void trim(std::string& s) {
-    s.erase(0, s.find_first_not_of(" \t\r\n"));
-    s.erase(s.find_last_not_of(" \t\r\n") + 1);
-};
-
 // Helper to extract config variables for the current plane from planes.cfg, e.g. chocks dref, door pos, etc.
 Dict GetPlaneConfig(const std::string& filepath, const std::string& target_icao,
                            const std::string& target_studio) {
