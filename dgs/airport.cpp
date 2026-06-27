@@ -1,5 +1,5 @@
 //
-//    AutoDGS: Show Marshaller or VDGS at default airports
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2006-2013 Jonathan Harris
 //    Copyright (C) 2023, 2025 Holger Teutsch
@@ -37,8 +37,6 @@
 #include "XPLMGraphics.h"
 
 namespace fem = flat_earth_math;
-
-static constexpr float kD2R = std::numbers::pi_v<float>/180.0f;
 
 // DGS _A = angles [°] (to centerline), _X, _Z = [m] (to stand)
 static constexpr float kCapA = 15;   // Capture

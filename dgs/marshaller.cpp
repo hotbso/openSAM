@@ -21,6 +21,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <cmath>
 
 #include "XPLMInstance.h"
 
@@ -33,9 +34,14 @@ namespace dgs {
 class Marshaller : public DGS {
     Mode mode_ = kIdle;
     const std::string name_;  // for logging only
-    XPLMInstanceRef inst_ref_ {};
-    float drefs_[DGS_DR_NUM] {};
-    XPLMDrawInfo_t drawinfo_ {};
+    XPLMInstanceRef inst_ref_{}, stairs_inst_ref_{};
+    XPLMDrawInfo_t drawinfo_{}, stairs_drawinfo_{};
+    bool check_high_{};     // check for MarshallerHigh once
+    bool need_stairs_{};    // MarshallerHigh detected, need stairs
+    float marshaller_y_0_;  // ground zero for MarshallerHigh
+
+    float drefs_[DGS_DR_NUM]{};
+
     float sin_wave_prev_ = 0.0;
     int lrprev_ = 0;
     int trackprev_ = 0;
@@ -52,7 +58,7 @@ class Marshaller : public DGS {
     void SetMode(Mode mode) override;
 };
 
-static XPLMObjectRef obj_ref;
+static XPLMObjectRef obj_ref, stairs_obj_ref;  // marshaller object and stairs object
 
 // external interface
 bool InitMarshaller(const std::string& res_dir) {
@@ -64,6 +70,14 @@ bool InitMarshaller(const std::string& res_dir) {
     }
 
     LogMsg("Marshaller object loaded from '%s'", obj_fn.c_str());
+
+    stairs_obj_ref = XPLMLoadObject("Resources/default scenery/airport scenery/Ramp_Equipment/Stair_Maint_1.obj");
+    if (stairs_obj_ref == nullptr) {
+        LogMsg("Can't load stairs object");
+        return false;
+    }
+
+    LogMsg("Stairs object loaded");
     return true;
 }
 
@@ -86,16 +100,32 @@ void Marshaller::SetMode(Mode mode) {
     if (mode_ == kArrival) {
         inst_ref_ = XPLMCreateInstance(obj_ref, dgs_dlist_dr);
         LogMsg("Marshaller mode set to ARRIVAL, instance created");
-    } else {
-        if (inst_ref_)
-            XPLMDestroyInstance(inst_ref_);
-        inst_ref_ = nullptr;
+        // the Marshaller instance is positioned with the next call to SetGuidanceParams()
+
+        if (need_stairs_) {
+            // stairs ares static so position them once here (or move them in SetPos() if the Marshaller moves)
+            static const char* null[] = {nullptr};
+            stairs_inst_ref_ = XPLMCreateInstance(stairs_obj_ref, null);
+            LogMsg("Stairs instance created for MarshallerHigh");
+            XPLMInstanceSetPosition(stairs_inst_ref_, &stairs_drawinfo_, NULL);
+        }
+        return;
     }
+
+    // everything but kArrival: destroy instance if it exists
+    if (inst_ref_)
+        XPLMDestroyInstance(inst_ref_);
+    if (stairs_inst_ref_)
+        XPLMDestroyInstance(stairs_inst_ref_);
+    inst_ref_ = nullptr;
+    stairs_inst_ref_ = nullptr;
 }
 
 Marshaller::~Marshaller() {
     if (inst_ref_)
         XPLMDestroyInstance(inst_ref_);
+    if (stairs_inst_ref_)
+        XPLMDestroyInstance(stairs_inst_ref_);
 }
 
 void Marshaller::SetGuidanceParams(const GuidanceParams& dgs_params) {
@@ -137,10 +167,33 @@ void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo) {
     drawinfo_ = drawinfo;
     LogMsg("Marshaller position updated, x: %0.1f, y: %0.1f, z: %0.1f", drawinfo_.x, drawinfo_.y, drawinfo_.z);
 
-    if (inst_ref_ == nullptr)
-        return;
+    // one time check for marshaller high
+    if (!check_high_) {
+        check_high_ = true;
+        if (xplm_ProbeHitTerrain == XPLMProbeTerrainXYZ(probe_ref, drawinfo_.x, drawinfo_.y, drawinfo_.z, &probeinfo)) {
+            marshaller_y_0_ = probeinfo.locationY;  // ground 0
+            LogMsg("Marshaller ground level detected at y: %0.1f", marshaller_y_0_);
+            if (drawinfo_.y - marshaller_y_0_ > 2.0f) {
+                LogMsg("Marshaller_high detected, place stairs");
+                need_stairs_ = true;
+            }
+        }
+    }
 
-    XPLMInstanceSetPosition(inst_ref_, &drawinfo_, drefs_);
+    if (need_stairs_) {
+        stairs_drawinfo_ = drawinfo_;
+        // move slightly to the plane
+        static constexpr float delta_z = 1.0f;
+        stairs_drawinfo_.x -= delta_z * std::sin(drawinfo_.heading * kD2R);
+        stairs_drawinfo_.y = marshaller_y_0_;
+        stairs_drawinfo_.z += delta_z * std::cos(drawinfo_.heading * kD2R);
+    }
+
+    if (inst_ref_)
+        XPLMInstanceSetPosition(inst_ref_, &drawinfo_, drefs_);
+
+    if (stairs_inst_ref_)
+        XPLMInstanceSetPosition(stairs_inst_ref_, &stairs_drawinfo_, NULL);
 }
 
 } // namespace dgs

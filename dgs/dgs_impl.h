@@ -1,5 +1,5 @@
 //
-//    AutoDGS / openSAM: Manage DGS
+//    openSAM: manage DGS X Plane
 //
 //    Copyright (C) 2026 Holger Teutsch
 //
@@ -19,12 +19,14 @@
 //    USA
 //
 
-#ifndef _DGS_IMPL_H_
-#define _DGS_IMPL_H_
+#pragma once
 
+#include <numbers>
 #include "dgs.h"
 
 namespace dgs {
+
+static constexpr float kD2R = std::numbers::pi_v<float>/180.0f;
 
 extern XPLMDataRef ground_speed_dr;
 
@@ -119,5 +121,3 @@ extern bool InitSafedock_T2_24(const std::string& obj_dir);
 extern bool InitSafedock_X(const std::string& obj_dir);
 
 } // namespace dgs
-
-#endif
