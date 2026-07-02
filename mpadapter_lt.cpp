@@ -62,15 +62,16 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao, fl
     LogMsg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao.c_str());
 
     door_info_.clear();
-    try {
-        // first an optional translation to a generic icao code
-        try {
-            icao_ = acf_generic_type_map.at(icao);
-        } catch (const std::out_of_range& ex) {
-            icao_ = icao;
-        }
+    // first an optional translation to a generic icao code
+    auto it = acf_generic_type_map.find(icao);
+    if (it != acf_generic_type_map.end())
+        icao_ = it->second;
+    else
+        icao_ = icao;
 
-        door_info_.push_back(csl_door_info_map.at(icao_ + '1'));
+    auto door_it = csl_door_info_map.find(icao_ + '1');
+    if (door_it != csl_door_info_map.end()) {
+        door_info_.push_back(door_it->second);
 
         x_ = x;
         z_ = z;
@@ -84,18 +85,20 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao, fl
 
         LogMsg("pid=%d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, icao_.c_str(),
                door_info_[0].x, door_info_[0].y, door_info_[0].z);
-    } catch (const std::out_of_range& ex) {
+    } else {
         LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
         state_ = kDisabled;
         return;
     }
 
-    // door 2 + 3 are optional
-    try {
-        door_info_.push_back(csl_door_info_map.at(icao_ + '2'));
-        door_info_.push_back(csl_door_info_map.at(icao_ + '3'));
-    } catch (const std::out_of_range& ex) {
-    }
+    // door 2 +3 are optional
+    auto it2 = csl_door_info_map.find(icao_ + '2');
+    if (it2 != csl_door_info_map.end())
+        door_info_.push_back(it2->second);
+
+    auto it3 = csl_door_info_map.find(icao_ + '3');
+    if (it3 != csl_door_info_map.end())
+        door_info_.push_back(it3->second);
 
     state_ = kIdle;
 }
@@ -165,12 +168,13 @@ float MpAdapter_lt::update() {
         const std::string& icao = lt_plane.getModelIcao();
         const std::string& key = lt_plane.getKey();
 
-        try {
-            auto& pr = mp_planes_.at(key);
-            MpPlane_lt* mp_plane = static_cast<MpPlane_lt*>(pr.get());
+        auto it = mp_planes_.find(key);
+        if (it != mp_planes_.end()) {
+            MpPlane_lt* mp_plane = static_cast<MpPlane_lt*>(it->second.get());
             mp_plane->update(lt_plane.getLights().beacon);
-        } catch (const std::out_of_range& ex) {
-            if (flight_phase == LTAPIAircraft::FPH_PARKED) {  // new creation only in parked state
+        } else {
+            // new creation only in parked state
+            if (flight_phase == LTAPIAircraft::FPH_PARKED) {
                 if (--spawn_remain < 0)
                     break;
                 mp_planes_.emplace(key, new MpPlane_lt(flight_id, icao, x, y, z, psi));
@@ -185,9 +189,7 @@ float MpAdapter_lt::update() {
         const std::string& key = mp.first;
         Plane& plane = *(mp.second);
 
-        try {
-            lt_planes.at(key);
-        } catch (const std::out_of_range& ex) {
+        if (!lt_planes.contains(key)) {
             LogMsg("pid=%d not longer exists, deleted", plane.id_);
             mp_planes_.erase(key);
         }

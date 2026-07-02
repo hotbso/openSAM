@@ -120,11 +120,10 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     door_info_.clear();
     // first an optional translation to icao code
     auto it = acf_generic_type_map.find(type_code);
-    if (it != acf_generic_type_map.end()) {
+    if (it != acf_generic_type_map.end())
         icao_ = it->second;
-    } else {
+    else
         icao_ = type_code;
-    }
 
     auto door_it = csl_door_info_map.find(icao_ + '1');
     if (door_it != csl_door_info_map.end()) {
