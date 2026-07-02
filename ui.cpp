@@ -50,19 +50,62 @@
 static constexpr int kWinWidth = 400;
 static constexpr int kWinHeight = 450;
 static constexpr int kWinPad = 75;
-static constexpr float kFontSize = 14.0f;
+static constexpr float kFontSize = 13.0f;
 
 std::unique_ptr<ImgWindow> ui;
+int ui_left = -1, ui_top, ui_right, ui_bottom;  // -1 = not loaded from prefs
+
+// Our own class defining our own UI
+class Ui : public ImgWindow {
+    int arpt_seqno_ = 0;                  // for detecting changes in the airport data
+    std::vector<std::string> lb_stands_;  // for the listbox content
+    int lb_item_ = -1;                    // for the listbox selection
+
+    bool jw_auto_mode_ = false;  // to store the state of the "Automatic mode" checkbox
+    bool jw_selected_[kNearJwLimit][kMaxDoor] = {};
+    int nearest_jws_seqno_ = 0;  // for detecting changes in the nearest jetway list by the UI
+
+    XPLMFlightLoopID flt_id_ = nullptr;
+
+    bool selected_stand_changed_ = false;  // to detect changes in the listbox selection
+    int new_selected_stand_;  // to store the new selected stand index until we can apply it in the flight loop callback
+
+    bool set_mode_arrival_requested_ = false;  // to detect if the "Set mode ARRIVAL" button has been pressed
+
+    bool move_closer_requested_ = false;  // to detect if the "Move closer" button has been pressed
+
+    bool dgs_type_changed_ = false;  // to detect if the DGS type radio button selection has been changed
+    int new_dgs_type_;
+    int new_dgs_type_stand_;
+
+    bool jw_auto_mode_changed_ = false;  // to detect if the "Automatic mode" checkbox has been changed
+
+    // Main function: creates the window's UI
+    void BuildInterface() override;
+
+    // flight loop callback for delayed actions prohibited in drawloops
+    static float FlightLoopCb(float inElapsedSinceLastCall, float inElapsedTimeSinceLastFlightLoop, int inCounter,
+                              void* inRefcon);
+
+   public:
+    Ui(int left, int top, int right, int bot);
+    ~Ui() override;
+};
 
 void CreateUi() {
-    int sc_left, sc_top;
-    XPLMGetScreenBoundsGlobal(&sc_left, &sc_top, nullptr, nullptr);
+    if (ui_left == -1) {
+        LogMsg("Creating UI window with default geometry");
+        int sc_left, sc_top;
+        XPLMGetScreenBoundsGlobal(&sc_left, &sc_top, nullptr, nullptr);
 
-    int left = sc_left + kWinPad;
-    int right = left + kWinWidth;
-    int top = sc_top - kWinPad;
-    int bottom = top - kWinHeight;
-    ui = std::make_unique<Ui>(left, top, right, bottom);
+        ui_left = sc_left + kWinPad;
+        ui_right = ui_left + kWinWidth;
+        ui_top = sc_top - kWinPad;
+        ui_bottom = ui_top - kWinHeight;
+    } else
+        LogMsg("Creating UI window with geometry %d,%d,%d,%d", ui_left, ui_top, ui_right, ui_bottom);
+
+    ui = std::make_unique<Ui>(ui_left, ui_top, ui_right, ui_bottom);
 }
 
 void ImgWindowIni() {
@@ -124,6 +167,7 @@ Ui::Ui(int left, int top, int right, int bot)
 }
 
 Ui::~Ui() {
+    GetWindowGeometry(ui_left, ui_top, ui_right, ui_bottom);  // save geometry for next time
     if (flt_id_)
         XPLMDestroyFlightLoop(flt_id_);
 }

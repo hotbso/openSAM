@@ -200,7 +200,7 @@ Airport::Airport(const AptAirport& apt_airport) : seqno_(++seqno_base) {
 }
 
 Airport::~Airport() {
-    LogMsg("Airport '%s' destructed", name().c_str());
+    //LogMsg("Airport '%s' destructed", name().c_str());
 }
 
 bool Airport::active_stand_has_xp12_jw() const {

@@ -168,11 +168,13 @@ void SavePrefs() {
 
     // encode southern hemisphere with negative season
     int s = Seasons::nh ? Seasons::season : -Seasons::season;
-    fprintf(f, "%d,%d,%d,%d", Seasons::auto_season, s, pref_auto_mode, default_vdgs_type);
+    fprintf(f, "%d,%d,%d,%d,%d,%d,%d,%d", Seasons::auto_season, s, pref_auto_mode, default_vdgs_type, ui_left, ui_top,
+            ui_right, ui_bottom);
     fclose(f);
 
-    LogMsg("Saving pref auto_season: %d, season: %d, auto_select_jws: %d, default_vdgs_type: %d", Seasons::auto_season,
-           s, pref_auto_mode, default_vdgs_type);
+    LogMsg(
+        "Saving prefs auto_season: %d, season: %d, auto_select_jws: %d, default_vdgs_type: %d, ui:(%d, %d, %d, %d)",
+        Seasons::auto_season, s, pref_auto_mode, default_vdgs_type, ui_left, ui_top, ui_right, ui_bottom);
 }
 
 static void LoadPrefs() {
@@ -186,10 +188,11 @@ static void LoadPrefs() {
     if (NULL == f)
         return;
 
-    [[maybe_unused]] int n =
-        fscanf(f, "%i,%i,%i,%i", &Seasons::auto_season, &Seasons::season, &pref_auto_mode, &default_vdgs_type);
-    LogMsg("From pref: auto_season: %d, seasons: %d, auto_select_jws: %d, default_vdgs_type: %d", Seasons::auto_season,
-           Seasons::season, pref_auto_mode, default_vdgs_type);
+    [[maybe_unused]] int n = fscanf(f, "%i,%i,%i,%i,%i,%i,%i,%i", &Seasons::auto_season, &Seasons::season,
+                                    &pref_auto_mode, &default_vdgs_type, &ui_left, &ui_top, &ui_right, &ui_bottom);
+    LogMsg(
+        "From prefs: auto_season: %d, seasons: %d, auto_select_jws: %d, default_vdgs_type: %d, ui:(%d, %d, %d, %d)",
+        Seasons::auto_season, Seasons::season, pref_auto_mode, default_vdgs_type, ui_left, ui_top, ui_right, ui_bottom);
 
     fclose(f);
 
