@@ -381,6 +381,7 @@ void Plane::PlaneLoadedCb() {
     gpu_fdr_.Clear();
     pca_fdr_.Clear();
     set_chocks_fcmdr_.Clear();
+    callsign_.clear();          // comes from ofp
 
     char buffer[41]{};
     XPLMGetDatab(acf_icao_dr, buffer, 0, 40);

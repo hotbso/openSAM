@@ -22,6 +22,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
+#include <print>
 
 #include "XPLMInstance.h"
 
@@ -53,7 +54,6 @@ class Safedock_T2_24 : public DGS {
     XPLMDrawInfo_t drawinfo_{};     // height adjusted for box and display
     std::unique_ptr<ScrollTxt> scroll_txt_;
     int pax_no_ = 0;
-    float last_eq_ts_ = 0.0;
 
    public:
     Safedock_T2_24(const std::string& name, const std::string& arpt_icao, float height, bool display_only);
@@ -243,6 +243,12 @@ void Safedock_T2_24::SetMode(Mode mode) {
         for (int i = 0; i < n; i++)
             drefs_[DGS_DR_R1C0 + i] = display_name_[i];
         drefs_[DGS_DR_R1_SCROLL] = (5 * 16 - (n * 12 - 2)) / 2;  // center
+    } else if (mode_ == kParked) {
+        int zm = XPLMGetDatai(zulu_time_minutes_dr);
+        int zh = XPLMGetDatai(zulu_time_hours_dr);
+        scroll_txt_ = std::make_unique<ScrollTxt>(std::format("{} AIBT {:02d}{:02d}   ", plane->callsign_, zh, zm));
+    } else if (mode_ == kDeboarding) {
+        // keep the scroll text from parked mode
     } else if (mode_ == kDeparture) {
         if (display_name_.empty())
             scroll_txt_ = std::make_unique<ScrollTxt>(arpt_icao_ + "   ");
@@ -273,19 +279,6 @@ float Safedock_T2_24::Tick() {
     memset(drefs_, 0, sizeof(drefs_));
     DGSFillUTCBrightness(drefs_);
 
-    if (mode_ == kParked) {
-        // refresh equipment status every second
-        if (now - last_eq_ts_ > 1.0f) {
-            last_eq_ts_ = now;
-            LogMsg("Tick for parked stand '%s', refreshing eq status", name_.c_str());
-
-            EqStatus eq_status;
-            plane->GetEqStatus(eq_status);
-            drefs_[DGS_DR_STATUS_1] = 1;  // show eq status
-            drefs_[DGS_DR_CHK] = eq_status.chocks;
-        }
-    }
-
     if (scroll_txt_) {
         scroll_txt_->Tick(drefs_);
         delay = 0.05f;
@@ -294,6 +287,15 @@ float Safedock_T2_24::Tick() {
         for (int i = 0; i < n; i++)
             drefs_[DGS_DR_R1C0 + i] = display_name_[i];
         drefs_[DGS_DR_R1_SCROLL] = (5 * 16 - (n * 12 - 2)) / 2;  // center
+    }
+
+    if (mode_ == kParked) {
+        // LogMsg("Tick for parked stand '%s', refreshing eq status", name_.c_str());
+
+        EqStatus eq_status;
+        plane->GetEqStatus(eq_status);
+        drefs_[DGS_DR_STATUS_1] = 1;  // show eq status
+        drefs_[DGS_DR_CHK] = eq_status.chocks;
     }
 
     if (mode_ == kDeparture && pax_no_ > 0) {

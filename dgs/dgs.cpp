@@ -118,7 +118,8 @@ static float DummyDgsFloat([[maybe_unused]] void* ref) {
 }
 
 static bool ev100_probed = false;
-static XPLMDataRef ev100_dr, zulu_time_sec_dr, zulu_time_minutes_dr, zulu_time_hours_dr, percent_lights_dr;
+static XPLMDataRef ev100_dr, zulu_time_sec_dr, percent_lights_dr;
+XPLMDataRef zulu_time_minutes_dr, zulu_time_hours_dr;
 
 bool InitDGS(const std::string& res_dir) {
     zulu_time_sec_dr = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_seconds");

@@ -95,8 +95,10 @@ class Plane {
     // plane specific config from planes.cfg, e.g. chocks dref, door pos, etc.
     std::unordered_map<std::string, std::string> cfg_;
 
-    public:
+   public:
     std::string acf_icao_;
+    std::string callsign_;
+
     bool use_engines_on_{};       // instead of beacon, e.g. MD11
     bool dont_connect_jetway_{};  // e.g. for ZIBO with own ground service
     float nw_z_, mw_z_;           // z value of plane's 0 to nose wheel, main wheel

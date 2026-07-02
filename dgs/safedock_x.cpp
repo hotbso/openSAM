@@ -22,6 +22,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
+#include <print>
 
 #include "XPLMInstance.h"
 
@@ -264,7 +265,11 @@ void Safedock_X::SetMode(Mode mode) {
         display_inst_ref_ = XPLMCreateInstance(idle_display_obj, dgs_dlist_dr);
     } else if (mode_ == kParked) {
         parked_ts_ = now;
-        scroll_txt_ = nullptr;
+        int zm = XPLMGetDatai(zulu_time_minutes_dr);
+        int zh = XPLMGetDatai(zulu_time_hours_dr);
+        scroll_txt_ =  std::make_unique<ScrollTxt>(std::format("{} AIBT {:02d}{:02d}   ", plane->callsign_, zh, zm));
+    } else if (mode_ == kDeboarding) {
+        // keep the scroll text from parked mode, but add "DEBOARDING" to it
     } else {  // departure or arrival
         if (display_name_.empty())
             scroll_txt_ = std::make_unique<ScrollTxt>(arpt_icao_ + "   ");

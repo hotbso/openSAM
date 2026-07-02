@@ -112,6 +112,8 @@ static inline void trim(std::string& s) {
     s.erase(s.find_last_not_of(" \t\r\n") + 1);
 }
 
+extern XPLMDataRef zulu_time_minutes_dr, zulu_time_hours_dr;
+
 // fill the UTC datarefs, and for VDGS also the brightness dataref
 extern void DGSFillUTCBrightness(float *drefs);
 extern void DGSFillEqStatus(float *drefs, const EqStatus& eq_status);

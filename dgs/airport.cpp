@@ -425,6 +425,7 @@ float Airport::StateMachine() {
                 if (ofp) {
                     ofp_seqno = ofp->seqno;
                     ds.dgs_->SetOfpData(*ofp);
+                    plane->callsign_ = ofp->icao_airline + ofp->flight_number;
 
                     // extract arrival stand from ofp remarks if any
                     if (!ofp->dx_rmk.empty()) {
@@ -668,7 +669,7 @@ float Airport::StateMachine() {
         case kParked: {
             as.dgs_->SetMode(dgs::kParked);
             int pax_no = plane->PaxNo();
-            LogMsg("parked, PaxNo: %d", pax_no);
+            //LogMsg("parked, PaxNo: %d", pax_no);
             if (pax_no < parked_pax_no_) {
                 new_state = kDeboarding;
                 LogMsg("Pax deboarding started, pax_no: %d", pax_no);
