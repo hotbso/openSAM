@@ -27,15 +27,16 @@
 #include "position_cache_key.h"
 #include "dgs/airport.h"
 
-enum DgsType {
+enum OsDgsType {
     kDgsType_Marshaller,
     kDgsType_Safedock_T2_24,
     kDgsType_Safedock_X,
     kDgsType_SAM1_Legacy
 };
 
-struct DgsCtx {
-    unsigned int dgs_type;
+// context of a discovered DGS, used to pass information
+struct OsDgsCtx {
+    OsDgsType dgs_type;
 
     unsigned int ref_gen;                // validity of obj_* data
     float obj_x, obj_y, obj_z, obj_psi;  // local coordinates of the DGS
@@ -65,7 +66,7 @@ class OsStand : public dgs::Stand {
     ~OsStand();
 
     bool has_jw() const override;  // whether the stand has a jetway, used for auto connect logic
-    void InstallDgs(int dgs_type, const DgsCtx& ctx);
+    void InstallDgs(const OsDgsCtx& ctx);
 };
 
 // dgs::Airport augmented for openSAM
@@ -79,11 +80,11 @@ class OsAirport : public dgs::Airport {
     // pending_dgs is filled in the draw loop with newly identified DGS to be processed in flight loop context for
     // instancing etc. We need to defer this processing because we are not allowed to call XPLMInstanceSetPosition() in
     // the draw loop context.
-    std::vector<DgsCtx> pending_dgs_;
+    std::vector<OsDgsCtx> pending_dgs_;
 
     // process a newly identified DGS, e.g. by instancing it and associating it with a stand
-    void ProcessPendingDgs(DgsCtx& ctx);
-    int FindStandForObj(const DgsCtx& ctx);  // returns index in stands_ or -1 if not found
+    void ProcessPendingDgs(OsDgsCtx& ctx);
+    int FindStandForObj(const OsDgsCtx& ctx);  // returns index in stands_ or -1 if not found
 
    public:
     static std::unique_ptr<OsAirport> LoadAirport(const dgs::AptAirport* arpt);

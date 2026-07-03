@@ -259,7 +259,7 @@ with open(f"../dgs_variants_generated.h", "w", newline='\n') as f:
         f.write(f'"opensam/dgs/ident/{t}",\n')
     f.write("};\n\n")
 
-    f.write("static inline void GetDgsVariantParams(kDgsVariant variant, unsigned int& dgs_type, float& height, bool& turn_180) {\n")
+    f.write("static inline void GetDgsVariantParams(kDgsVariant variant, OsDgsCtx& ctx) {\n")
     f.write("    switch (variant) {\n")
     for t in tags:
         if t == "marshaller":
@@ -274,9 +274,9 @@ with open(f"../dgs_variants_generated.h", "w", newline='\n') as f:
             raise ValueError(f"Unknown DGS type for tag '{t}'")
 
         f.write(f"        case kDgsVar_{t}:\n")
-        f.write(f'            dgs_type = {dgs_type};\n')
-        f.write(f'            height = {heights[tags.index(t)]:0.1f}f;\n')
-        f.write(f'            turn_180 = {turns[tags.index(t)]};\n')
+        f.write(f'            ctx.dgs_type = {dgs_type};\n')
+        f.write(f'            ctx.height = {heights[tags.index(t)]:0.1f}f;\n')
+        f.write(f'            ctx.turn_180 = {turns[tags.index(t)]};\n')
         f.write(f'            break;\n')
 
     f.write("        default:\n")

@@ -58,7 +58,7 @@ OsStand::~OsStand() {
     LogMsg("OsStand '%s' destructed", cname());
 }
 
-void OsStand::InstallDgs(int dgs_type, const DgsCtx& ctx) {
+void OsStand::InstallDgs(const OsDgsCtx& ctx) {
     float psi = (ctx.turn_180) ? fem::RA(ctx.obj_psi + 180.0f) : ctx.obj_psi;  // SAM1 legacy DGS can be turned 180°
     dgs_lat_ = ctx.lat;
     dgs_lon_ = ctx.lon;
@@ -76,7 +76,7 @@ void OsStand::InstallDgs(int dgs_type, const DgsCtx& ctx) {
     drawinfo_.x += dx;
     drawinfo_.z += dz;
 
-    switch (dgs_type) {
+    switch (ctx.dgs_type) {
         case kDgsType_Marshaller:
             dgs_ = dgs::CreateMarshaller(name());
             break;
@@ -90,7 +90,7 @@ void OsStand::InstallDgs(int dgs_type, const DgsCtx& ctx) {
             dgs_ = dgs::CreateSam1Legacy(name());
             break;
         default:
-            LogMsg("Unknown DGS type %d, not creating DGS instance", dgs_type);
+            LogMsg("Unknown DGS type %d, not creating DGS instance", ctx.dgs_type);
     }
 
     if (dgs_ != nullptr) {
@@ -152,7 +152,7 @@ const OsStand* OsAirport::FindStandForJw(float jw_x, float jw_z) {
     return min_stand;
 }
 
-int OsAirport::FindStandForObj(const DgsCtx& ctx) {
+int OsAirport::FindStandForObj(const OsDgsCtx& ctx) {
     // find a stand for an DGS object with the given local coordinates and heading in the current ref frame,
     // return index in stands_ or -1 if not found
 
@@ -195,7 +195,7 @@ int OsAirport::FindStandForObj(const DgsCtx& ctx) {
     return imin;
 }
 
-void OsAirport::ProcessPendingDgs(DgsCtx& ctx) {
+void OsAirport::ProcessPendingDgs(OsDgsCtx& ctx) {
     // process a newly identified DGS, e.g. by instancing it and associating it with a stand
     // LogMsg("Processing pending DGS: type %d, height %.1f, turn_180 %d, obj_x %.2f, obj_y %.2f, obj_z %.2f, obj_psi "
     //    "%.1f, lat %.6f, lon %.6f, altitude %.2f",
@@ -228,7 +228,7 @@ void OsAirport::ProcessPendingDgs(DgsCtx& ctx) {
         LogMsg("Stand '%s' already has a DGS associated, skipping", s->cname());
         return;
     }
-    s->InstallDgs(ctx.dgs_type, ctx);
+    s->InstallDgs(ctx);
 }
 
 bool OsAirport::auto_post_parkbrake() const {
@@ -303,8 +303,8 @@ float OsAirport::DgsIdentAcc(void* ref) {
     if (os_arpt->dgs_cache_.contains({obj_x, obj_z}))
         return 0.0f;  // already seen this one
 
-    DgsCtx ctx;
-    GetDgsVariantParams(dgs_var, ctx.dgs_type, ctx.height, ctx.turn_180);
+    OsDgsCtx ctx;
+    GetDgsVariantParams(dgs_var, ctx);
     ctx.ref_gen = ref_gen;
     ctx.obj_x = obj_x;
     ctx.obj_y = obj_y;
@@ -366,7 +366,7 @@ float OsAirport::DgsSam1Acc(void* ref) {
             if (os_arpt->dgs_cache_.contains({obj_x, obj_z}))
                 goto inactive;  // already seen this one, but not active, so inactive
 
-            DgsCtx ctx;
+            OsDgsCtx ctx;
             ctx.dgs_type = kDgsType_SAM1_Legacy;
             ctx.height = 0.0f;     // SAM1 legacy DGS don't have height variants
             ctx.turn_180 = false;  // SAM1 legacy DGS don't have turn_180 variants

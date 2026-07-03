@@ -109,207 +109,207 @@ const char* dgs_variant_drefs[] = {
 "opensam/dgs/ident/safedock_t2_24_6_0m_pole_180",
 };
 
-static inline void GetDgsVariantParams(kDgsVariant variant, unsigned int& dgs_type, float& height, bool& turn_180) {
+static inline void GetDgsVariantParams(kDgsVariant variant, OsDgsCtx& ctx) {
     switch (variant) {
         case kDgsVar_marshaller:
-            dgs_type = kDgsType_Marshaller;
-            height = 0.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Marshaller;
+            ctx.height = 0.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_sam1_legacy:
-            dgs_type = kDgsType_SAM1_Legacy;
-            height = 0.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_SAM1_Legacy;
+            ctx.height = 0.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_x:
-            dgs_type = kDgsType_Safedock_X;
-            height = 0.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_X;
+            ctx.height = 0.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_x_pole:
-            dgs_type = kDgsType_Safedock_X;
-            height = 0.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_X;
+            ctx.height = 0.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_0_0m:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 0.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 0.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_2_5m:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 2.5f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 2.5f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_3_0m:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 3.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 3.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_3_5m:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 3.5f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 3.5f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_4_0m:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 4.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 4.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_4_5m:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 4.5f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 4.5f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_5_0m:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 5.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 5.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_5_5m:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 5.5f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 5.5f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_6_0m:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 6.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 6.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_6_5m:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 6.5f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 6.5f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_7_0m:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 7.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 7.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_2_5m_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 2.5f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 2.5f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_3_0m_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 3.0f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 3.0f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_3_5m_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 3.5f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 3.5f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_4_0m_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 4.0f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 4.0f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_4_5m_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 4.5f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 4.5f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_5_0m_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 5.0f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 5.0f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_5_5m_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 5.5f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 5.5f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_6_0m_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 6.0f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 6.0f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_6_5m_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 6.5f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 6.5f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_7_0m_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 7.0f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 7.0f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_0_0m_pole:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 0.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 0.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_2_5m_pole:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 2.5f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 2.5f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_3_0m_pole:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 3.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 3.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_3_5m_pole:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 3.5f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 3.5f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_4_0m_pole:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 4.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 4.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_4_5m_pole:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 4.5f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 4.5f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_5_0m_pole:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 5.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 5.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_6_0m_pole:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 6.0f;
-            turn_180 = false;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 6.0f;
+            ctx.turn_180 = false;
             break;
         case kDgsVar_safedock_t2_24_2_5m_pole_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 2.5f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 2.5f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_3_0m_pole_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 3.0f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 3.0f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_3_5m_pole_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 3.5f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 3.5f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_4_0m_pole_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 4.0f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 4.0f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_4_5m_pole_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 4.5f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 4.5f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_5_0m_pole_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 5.0f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 5.0f;
+            ctx.turn_180 = true;
             break;
         case kDgsVar_safedock_t2_24_6_0m_pole_180:
-            dgs_type = kDgsType_Safedock_T2_24;
-            height = 6.0f;
-            turn_180 = true;
+            ctx.dgs_type = kDgsType_Safedock_T2_24;
+            ctx.height = 6.0f;
+            ctx.turn_180 = true;
             break;
         default:
             break;
