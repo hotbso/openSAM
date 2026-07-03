@@ -43,13 +43,12 @@ enum OperationMode { kAuto, kManual };
 extern const char * const opmode_str[];
 extern OperationMode operation_mode;
 
-class AdgsAirport;  // forward declaration for dgs::Stand
+class AdgsAirport;
 
 // dgs::Stand augmented for AutoDGS
 class AdgsStand : public dgs::Stand {
   protected:
     friend class AdgsAirport;
-    friend class ::AdgsAirport;
 
     int dgs_type_;
     float dgs_dist_;            // distance to dgs

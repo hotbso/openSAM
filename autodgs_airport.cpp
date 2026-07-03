@@ -167,7 +167,6 @@ void AdgsStand::CalcDgsPosition() {
         dgs_->SetPos(drawinfo_);
 }
 
-// adjust may be negative to move it closer
 void AdgsStand::DgsMoveCloser() {
     float delta = std::clamp(0.1f * dgs_dist_, kDgsMoveDeltaMin, kDgsMoveDeltaMax);
     dgs_dist_ -= delta;
@@ -184,6 +183,7 @@ struct DgsCfg {
     int dgs_type;
     float dgs_dist;
 };
+
 using DgsCfgMap = std::unordered_map<std::string, DgsCfg>;  // stand_name -> cfg
 
 void LoadCfg(const std::string& pathname, DgsCfgMap& cfg);
@@ -206,8 +206,9 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_
 
         // override with user defined config
         if (const auto it = cfg.find(as.name); it != cfg.end()) {
-            dgs_type = it->second.dgs_type;
-            dgs_dist = it->second.dgs_dist;
+            const DgsCfg& c = it->second;
+            dgs_type = c.dgs_type;
+            dgs_dist = c.dgs_dist;
             LogMsg("found in config '%s', %d, %0.1f", as.name.c_str(), dgs_type, dgs_dist);
         }
 
