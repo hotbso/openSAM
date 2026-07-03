@@ -1,8 +1,8 @@
 //
-//    AutoDGS: Show Marshaller or VDGS at default airports
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2006-2013 Jonathan Harris
-//    Copyright (C) 2023, 2025 Holger Teutsch
+//    Copyright (C) 2023-2026 Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -180,10 +180,16 @@ void AdgsStand::DgsMoveCloser() {
 
 //--------------------- AdgsAirport --------------------------------------------------------------
 
-void LoadCfg(const std::string& pathname, std::unordered_map<std::string, std::tuple<int, float>>& cfg);
+struct DgsCfg {
+    int dgs_type;
+    float dgs_dist;
+};
+using DgsCfgMap = std::unordered_map<std::string, DgsCfg>;  // stand_name -> cfg
+
+void LoadCfg(const std::string& pathname, DgsCfgMap& cfg);
 
 AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_airport) {
-    std::unordered_map<std::string, std::tuple<int, float>> cfg;
+    DgsCfgMap cfg;
     LoadCfg(user_cfg_dir + name() + ".cfg", cfg);
     if (cfg.empty())
         LoadCfg(sys_cfg_dir + name() + ".cfg", cfg);
@@ -200,7 +206,8 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_
 
         // override with user defined config
         if (const auto it = cfg.find(as.name); it != cfg.end()) {
-            std::tie(dgs_type, dgs_dist) = it->second;
+            dgs_type = it->second.dgs_type;
+            dgs_dist = it->second.dgs_dist;
             LogMsg("found in config '%s', %d, %0.1f", as.name.c_str(), dgs_type, dgs_dist);
         }
 
@@ -229,30 +236,48 @@ AdgsAirport::~AdgsAirport() {
     LogMsg("AdgsAirport '%s' destructed", name().c_str());
 }
 
-void LoadCfg(const std::string& pathname, std::unordered_map<std::string, std::tuple<int, float>>& cfg) {
+void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
     std::ifstream f(pathname);
     if (f.is_open()) {
         LogMsg("Loading config from '%s'", pathname.c_str());
 
         std::string line;
+        bool first_line = true;
+        int version = 1;
+
         while (std::getline(f, line)) {
-            if (line.size() == 0 || line[0] == '#')
+            if (line.empty() || line[0] == '#' || line[0] == '\r')
                 continue;
 
             if (line.back() == '\r')
                 line.pop_back();
 
-            int ofs;
-            float dgs_dist;
-            char type;
-            int n = sscanf(line.c_str(), "%c,%f, %n", &type, &dgs_dist, &ofs);
-            if (n != 2 || ofs >= (int)line.size()  // distrust user input
-                || !(type == 'V' || type == 'M') || dgs_dist < kDgsMinDist || dgs_dist > kDgsMaxDist) {
-                LogMsg("invalid line: '%s' %d", line.c_str(), n);
-                continue;
+            if (first_line) {
+                first_line = false;
+                if (line.starts_with("VERSION=")) {
+                    line.erase(0, 8);
+                    version = std::stoi(line);
+                    LogMsg("version detected: '%d'", version);
+                    continue;
+                }
             }
 
-            cfg[line.substr(ofs)] = std::make_tuple((type == 'M' ? kMarshaller : kVDGS), dgs_dist);
+            if (version == 1) {
+                int ofs;
+                float dgs_dist;
+                char type;
+                int n = sscanf(line.c_str(), "%c,%f, %n", &type, &dgs_dist, &ofs);
+                if (n != 2 || ofs >= (int)line.size()  // distrust user input
+                    || !(type == 'V' || type == 'M') || dgs_dist < kDgsMinDist || dgs_dist > kDgsMaxDist) {
+                    LogMsg("invalid line: '%s' %d", line.c_str(), n);
+                    continue;
+                }
+
+                cfg[line.substr(ofs)] = DgsCfg{(type == 'M' ? kMarshaller : kVDGS), dgs_dist};
+            } else {
+                LogMsg("unsupported version: '%d'", version);
+                break;
+            }
         }
     }
 }
@@ -281,6 +306,7 @@ void AdgsAirport::FlushUserCfg() {
         cfg[s->name()] = line;
     }
 
+    f << "VERSION=1\n";
     f << "# type, dgs_dist, stand_name\n";
     f << "# type = M or V, dgs_dist = dist from parking pos in m\n";
 
