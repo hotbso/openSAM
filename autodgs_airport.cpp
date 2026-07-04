@@ -57,13 +57,14 @@ int default_vdgs_type = kVdgsSafedock_T2_24;
 OperationMode operation_mode = kAuto;
 const char* const opmode_str[] = { "Automatic", "Manual" };
 
-AdgsStand::AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation, int dgs_type, float dgs_dist)
+AdgsStand::AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation, int dgs_type, float dgs_dist, float dgs_height)
     : dgs::Stand(as, arpt_icao, elevation) {
 
     marshaller_max_dist_ = kDgsMaxDist;
 
     dgs_dist_ = dgs_dist;
-    last_used_dgs_dist_ = -1.0f;  // force update
+    dgs_height_ = dgs_height;
+    drawinfo_stale_ = true;  // force update
     CalcDgsPosition();
 
     dgs_type_ = -1;  // invalidate to ensure that SetDgsType's code does something
@@ -99,13 +100,16 @@ void AdgsStand::SetDgsType(int dgs_type) {
     if (dgs_type_ == kMarshaller)
         dgs_ = dgs::CreateMarshaller(cname());
     else {
-        if (default_vdgs_type == kVdgsSafedock_T2_24)
-            dgs_ = dgs::CreateSafedock_T2_24(cname(), arpt_icao_, kVdgsT2DefaultHeight);
-        else
-            dgs_ = dgs::CreateSafedock_X(cname(), arpt_icao_, kVdgsXDefaultHeight);
+        if (default_vdgs_type == kVdgsSafedock_T2_24) {
+            dgs_height_ = kVdgsT2DefaultHeight;
+            dgs_ = dgs::CreateSafedock_T2_24(cname(), arpt_icao_, dgs_height_);
+        } else {
+            dgs_height_ = kVdgsXDefaultHeight;
+            dgs_ = dgs::CreateSafedock_X(cname(), arpt_icao_, dgs_height_);
+        }
     }
 
-    dgs_->SetPos(drawinfo_);
+    dgs_->SetPos(drawinfo_, dgs_height_);
     SetIdle();
 }
 
@@ -147,8 +151,8 @@ void AdgsStand::CalcDgsPosition() {
     }
 
     // change of dgs_dist_ requires update dgs position
-    if (last_used_dgs_dist_ != dgs_dist_) {
-        last_used_dgs_dist_ = dgs_dist_;
+    if (drawinfo_stale_) {
+        drawinfo_stale_ = false;
 
         // xform vector (0, -dgs_dist) into global frame
         float x = x_ + -sin_hdgt_ * (-dgs_dist_);
@@ -164,7 +168,7 @@ void AdgsStand::CalcDgsPosition() {
 
     // may be called during initialization before the DGS instance is created, hence the check
     if (dgs_)
-        dgs_->SetPos(drawinfo_);
+        dgs_->SetPos(drawinfo_, dgs_height_);
 }
 
 void AdgsStand::DgsMoveCloser() {
@@ -177,14 +181,16 @@ void AdgsStand::DgsMoveCloser() {
     LogMsg("stand' '%s', new dgs_dist: %0.1f", cname(), dgs_dist_);
 }
 
-void AdgsStand::SetDistance(float dgs_dist) {
-    if (std::abs(dgs_dist - dgs_dist_) < 0.05f)
+void AdgsStand::SetDistanceHeight(float dgs_dist, float dgs_height) {
+    if (std::abs(dgs_dist - dgs_dist_) < 0.05f && std::abs(dgs_height - dgs_height_) < 0.05f)
         return;
 
     dgs_dist_ = dgs_dist;
+    dgs_height_ = dgs_height;
     marshaller_max_dist_ = dgs_dist_;
+    drawinfo_stale_ = true;  // force update
     CalcDgsPosition();
-    LogMsg("stand' '%s', new dgs_dist: %0.1f", cname(), dgs_dist_);
+    LogMsg("stand' '%s', new dgs_dist: %0.1f, new dgs_height: %0.1f", cname(), dgs_dist_, dgs_height_);
 }
 
 //--------------------- AdgsAirport --------------------------------------------------------------
@@ -192,6 +198,7 @@ void AdgsStand::SetDistance(float dgs_dist) {
 struct DgsCfg {
     int dgs_type;
     float dgs_dist;
+    float dgs_height;
 };
 
 using DgsCfgMap = std::unordered_map<std::string, DgsCfg>;  // stand_name -> cfg
@@ -206,6 +213,7 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_
 
     float arpt_elevation = XPLMGetDatad(plane_elevation_dr);  // best guess
     LogMsg("Airport '%s', elevation from plane: %0.1f", name_.c_str(), arpt_elevation);
+
     for (auto const& as : apt_airport.stands_) {
         int dgs_type = kAutomatic;
         float dgs_dist;
@@ -213,16 +221,17 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_
             dgs_dist = kVdgsDefaultDist;
         else
             dgs_dist = kMarshallerDefaultDist;
-
+#if 0
         // override with user defined config
         if (const auto it = cfg.find(as.name); it != cfg.end()) {
             const DgsCfg& c = it->second;
             dgs_type = c.dgs_type;
             dgs_dist = c.dgs_dist;
-            LogMsg("found in config '%s', %d, %0.1f", as.name.c_str(), dgs_type, dgs_dist);
+            float dgs_height = c.dgs_height;
+            LogMsg("found in config '%s', %d, %0.1f, %0.1f", as.name.c_str(), dgs_type, dgs_dist, dgs_height);
         }
-
-        stands_.emplace_back(std::make_unique<AdgsStand>(as, name_, arpt_elevation, dgs_type, dgs_dist));
+#endif
+        stands_.emplace_back(std::make_unique<AdgsStand>(as, name_, arpt_elevation, dgs_type, dgs_dist, 5.0f));
     }
 
     user_cfg_changed_ = false;
@@ -284,7 +293,11 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
                     continue;
                 }
 
-                cfg[line.substr(ofs)] = DgsCfg{(type == 'M' ? kMarshaller : kVDGS), dgs_dist};
+                DgsCfg c;
+                c.dgs_type = (type == 'M' ? kMarshaller : kVDGS);
+                c.dgs_dist = dgs_dist;
+                c.dgs_height = 5.0f;
+                cfg[line.substr(ofs)] = c;
             } else {
                 LogMsg("unsupported version: '%d'", version);
                 break;
@@ -294,6 +307,7 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
 }
 
 void AdgsAirport::FlushUserCfg() {
+    return;  // disabled for now, we don't want to overwrite the user config with defaults
     if (!user_cfg_changed_)
         return;
 
@@ -336,6 +350,7 @@ AdgsStandParams AdgsAirport::GetStandParams(int idx) const {
     p.name = s.name();
     p.dgs_type = s.dgs_type_;
     p.dgs_dist = s.dgs_dist_;
+    p.dgs_height = s.dgs_height_;
     p.has_xp12_jw = s.has_jw();
     return p;
 }
@@ -344,7 +359,7 @@ void AdgsAirport::SetStandParams(int idx, const AdgsStandParams& params) {
     assert(0 <= idx && idx < (int)stands_.size());
     AdgsStand& s = *dynamic_cast<AdgsStand*>(stands_[idx].get());
     // s.SetDgsType(params.dgs_type);
-    s.SetDistance(params.dgs_dist);
+    s.SetDistanceHeight(params.dgs_dist, params.dgs_height);
     user_cfg_changed_ = true;
 }
 

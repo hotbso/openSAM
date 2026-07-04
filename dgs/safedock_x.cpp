@@ -66,7 +66,7 @@ class Safedock_X : public DGS {
     bool isVdgs() const noexcept override { return true; }
 
     void SetGuidanceParams(const GuidanceParams& params) override;
-    void SetPos(const XPLMDrawInfo_t& drawinfo) override;
+    void SetPos(const XPLMDrawInfo_t& drawinfo, float height) override;
     void SetMode(Mode mode) override;
     void SetPaxNo(int pax_no) override;
     void SetOfpData(const Ofp& ofp) override;
@@ -230,7 +230,8 @@ void Safedock_X::SetGuidanceParams(const GuidanceParams& params) {
     UpdateInstance();
 }
 
-void Safedock_X::SetPos(const XPLMDrawInfo_t& drawinfo) {
+void Safedock_X::SetPos(const XPLMDrawInfo_t& drawinfo, float height) {
+    height_ = height;
     pb_drawinfo_ = drawinfo;
     drawinfo_ = drawinfo;
     LogMsg("Safedock_X position updated for stand '%s', x: %0.1f, y: %0.1f, z: %0.1f", name_.c_str(), drawinfo_.x,

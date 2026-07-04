@@ -183,12 +183,23 @@ void Editor::BuildInterface() {
     ImGui::Text("Editing Stand: %s", lb_stands_[lb_item_].name.c_str());
 
     ImGui::TextUnformatted("Distance");
+    bool changed = false;
     float& distance = lb_stands_[lb_item_].dgs_dist;
     if (ImGui::SliderFloat("Distance", &distance, 10.0f, 50.0f, "%.1f m")) {
         LogMsg("Distance slider changed to %.1f m", distance);
+        changed = true;
+    }
+
+    if (ImGui::SliderFloat("Height", &lb_stands_[lb_item_].dgs_height, 1.0f, 10.0f, "%.1f m")) {
+        LogMsg("Height slider changed to %.1f m", lb_stands_[lb_item_].dgs_height);
+        changed = true;
+    }
+
+    if (changed) {
         params_changed_idx_ = lb_item_;  // delayed processing in flightloop ctx
         XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
     }
+
 #if 0
 
     if (ImGui::TreeNode("Settings")) {

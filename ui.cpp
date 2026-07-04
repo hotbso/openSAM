@@ -42,6 +42,7 @@
 #include "version.h"
 
 #include "ui.h"
+#include "adgs_editor.h"
 #include "log_msg.h"
 
 #include "fa-solid-900.inc"
@@ -287,6 +288,11 @@ void Ui::BuildInterface() {
     }
 
     ImGui::Spacing();
+    if (editor_active) {
+        ImGui::TextUnformatted("Edit mode is ON");
+        return;
+    }
+
     ImGui::TextUnformatted("DGS state:");
     ImGui::SameLine();
     ImGui::SetCursorPosX(col_2);

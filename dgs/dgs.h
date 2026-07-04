@@ -48,7 +48,7 @@ class DGS {
 
     // mandatory overrides
     virtual void SetMode(Mode mode) = 0;
-    virtual void SetPos(const XPLMDrawInfo_t& drawinfo) = 0;  // move to new position only
+    virtual void SetPos(const XPLMDrawInfo_t& drawinfo, float height = 0.0f) = 0;  // move to new position only
     virtual void SetGuidanceParams(const GuidanceParams& params) = 0;
     virtual bool HasEqStatus() const noexcept = 0;  // whether this DGS can show eq status (chocks, gpu, pca, pbb)
     virtual bool isVdgs() const noexcept = 0;  // whether this DGS is a VDGS (vs. Marshaller)

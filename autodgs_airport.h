@@ -47,28 +47,30 @@ class AdgsAirport;
 
 // dgs::Stand augmented for AutoDGS
 class AdgsStand : public dgs::Stand {
-  protected:
+   protected:
     friend class AdgsAirport;
 
     int dgs_type_;
-    float dgs_dist_;            // distance to dgs
-    float last_used_dgs_dist_;  // last dgs_dist_ used in drawinfo_
+    float dgs_dist_;         // distance to dgs
+    float dgs_height_;       // height of dgs (AGL) (only relevant for VDGS)
+    bool drawinfo_stale_;     // drawinfo_ is stale and needs to be recalculated
 
-    float marshaller_max_dist_; // max distance, actual can be lower according to PE
+    float marshaller_max_dist_;  // max distance, actual can be lower according to PE
 
     void CalcDgsPosition();
 
-  public:
+   public:
     AdgsStand(AdgsStand&&) = default;
     AdgsStand& operator=(AdgsStand&&) = delete;
 
-    AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation, int dgs_type, float dgs_dist);
+    AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation, int dgs_type, float dgs_dist,
+              float dgs_height);
     ~AdgsStand();
 
     void SetDgsType(int dgs_type);
     void CycleDgsType();
-    void DgsMoveCloser();           // with wrap around
-    void SetDistance(float dgs_dist);
+    void DgsMoveCloser();  // with wrap around
+    void SetDistanceHeight(float dgs_dist, float dgs_height);
     bool has_jw() const override;
 };
 
@@ -82,6 +84,7 @@ struct AdgsStandParams {
     // these are settable by the user and are saved in the airport's .cfg file
     int dgs_type;
     float dgs_dist;
+    float dgs_height;
     // more to come
 };
 
