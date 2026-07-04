@@ -68,11 +68,21 @@ class AdgsStand : public dgs::Stand {
     void SetDgsType(int dgs_type);
     void CycleDgsType();
     void DgsMoveCloser();           // with wrap around
-
+    void SetDistance(float dgs_dist);
     bool has_jw() const override;
+};
 
-    // accessors
-    int dgs_type() const { return dgs_type_; }
+// for intraction with the UI and Editor
+struct AdgsStandParams {
+    // these are read-only
+    int idx;           // index of this slot in the airport's stands_ vector
+    std::string name;
+    bool has_xp12_jw;
+
+    // these are settable by the user and are saved in the airport's .cfg file
+    int dgs_type;
+    float dgs_dist;
+    // more to come
 };
 
 // dgs::Airport augmented for AutoDGS
@@ -88,12 +98,13 @@ class AdgsAirport : public dgs::Airport {
 
     void ResetState(State new_state);
 
-    std::tuple<int, const std::string> GetStand(int idx) const;  // dgs_type, name
+    AdgsStandParams GetStandParams(int idx) const;
+    void SetStandParams(int idx, const AdgsStandParams& params);
 
-    // these act onto the selected or active stand
+    // these act onto the selected or active stand and are for tactical use only,
+    // e.g. by the ui or commands
     void DgsMoveCloser();
     void SetDgsType(int dgs_type);
-    int GetDgsType() const;
     void CycleDgsType();
 
     // auto set chocks and connect jetway when parking ?

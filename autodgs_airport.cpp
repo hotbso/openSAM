@@ -177,6 +177,16 @@ void AdgsStand::DgsMoveCloser() {
     LogMsg("stand' '%s', new dgs_dist: %0.1f", cname(), dgs_dist_);
 }
 
+void AdgsStand::SetDistance(float dgs_dist) {
+    if (std::abs(dgs_dist - dgs_dist_) < 0.05f)
+        return;
+
+    dgs_dist_ = dgs_dist;
+    marshaller_max_dist_ = dgs_dist_;
+    CalcDgsPosition();
+    LogMsg("stand' '%s', new dgs_dist: %0.1f", cname(), dgs_dist_);
+}
+
 //--------------------- AdgsAirport --------------------------------------------------------------
 
 struct DgsCfg {
@@ -317,13 +327,25 @@ void AdgsAirport::FlushUserCfg() {
     LogMsg("cfg written to '%s'", fn.c_str());
 }
 
-
-std::tuple<int, const std::string> AdgsAirport::GetStand(int idx) const {
+AdgsStandParams AdgsAirport::GetStandParams(int idx) const {
     assert(0 <= idx && idx < (int)stands_.size());
     const AdgsStand& s = *dynamic_cast<AdgsStand*>(stands_[idx].get());
-    std::string name{s.name()};
-    int dgs_type = s.dgs_type_;
-    return std::make_tuple(dgs_type, name);
+    AdgsStandParams p;
+
+    p.idx = idx;
+    p.name = s.name();
+    p.dgs_type = s.dgs_type_;
+    p.dgs_dist = s.dgs_dist_;
+    p.has_xp12_jw = s.has_jw();
+    return p;
+}
+
+void AdgsAirport::SetStandParams(int idx, const AdgsStandParams& params) {
+    assert(0 <= idx && idx < (int)stands_.size());
+    AdgsStand& s = *dynamic_cast<AdgsStand*>(stands_[idx].get());
+    // s.SetDgsType(params.dgs_type);
+    s.SetDistance(params.dgs_dist);
+    user_cfg_changed_ = true;
 }
 
 void AdgsAirport::DgsMoveCloser() {
@@ -338,16 +360,6 @@ void AdgsAirport::SetDgsType(int dgs_type) {
         dynamic_cast<AdgsStand*>(stands_[active_stand_].get())->SetDgsType(dgs_type);
         user_cfg_changed_ = true;
     }
-}
-
-int AdgsAirport::GetDgsType() const {
-    // called by the ui and the selected_stand may not already be the active stand
-    if (selected_stand_ >= 0)
-        return dynamic_cast<AdgsStand*>(stands_[selected_stand_].get())->dgs_type_;
-    if (active_stand_ >= 0)
-        return dynamic_cast<AdgsStand*>(stands_[active_stand_].get())->dgs_type_;
-
-    return kMarshaller;
 }
 
 void AdgsAirport::ResetState(State new_state) {

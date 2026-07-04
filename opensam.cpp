@@ -50,6 +50,7 @@
 #include "flat_earth_math.h"
 #include "seasons.h"
 #include "ui.h"
+#include "adgs_editor.h"
 #include "log_msg.h"
 
 #include "version.h"
@@ -375,6 +376,9 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
        if (os_arpt  == nullptr && adgs_arpt == nullptr)
             return 1.0f;  // no airport, nothing to do
 
+        if (editor_active)  // nothing to do if editor is active
+            return 1.0f;
+
         assert(os_arpt == nullptr || adgs_arpt == nullptr);  // can't be both
 
         // TODO: what if one of these values is not updated below due to if?
@@ -483,6 +487,16 @@ static int AdgsCmdMoveDgsCloserCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMComm
     if (adgs_arpt)
         adgs_arpt->DgsMoveCloser();
     return 0;
+}
+
+static void AdgsMenuCb([[maybe_unused]] void* inMenuRef, [[maybe_unused]] void* inItemRef) {
+    if (error_disabled)
+        return;
+
+    if (editor)
+        editor = nullptr;
+    else
+        CreateEditor();
 }
 
 static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, DoorInfo>& di_map) {
@@ -761,10 +775,11 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     XPLMAppendMenuSeparator(os_menu);
 
     int sub_menu = XPLMAppendMenuItem(os_menu, "AutoDGS", NULL, 1);
-    XPLMMenuID adgs_menu = XPLMCreateMenu("AutoDGS", os_menu, sub_menu, NULL, NULL);
+    XPLMMenuID adgs_menu = XPLMCreateMenu("AutoDGS", os_menu, sub_menu, AdgsMenuCb, NULL);
 
     XPLMAppendMenuItemWithCommand(adgs_menu, "Cycle DGS", cycle_dgs_cmdr);
     XPLMAppendMenuItemWithCommand(adgs_menu, "Move DGS closer by 2m", move_dgs_closer_cmdr);
+    XPLMAppendMenuItem(adgs_menu, "Toggle Editor", nullptr, 0);
 
     flight_loop_id = XPLMCreateFlightLoop(&flight_loop_ctx);
     return 1;

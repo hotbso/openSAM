@@ -33,52 +33,31 @@
 
 #include "opensam.h"
 #include "autodgs_airport.h"
-#include "opensam_airport.h"
-#include "jwctrl.h"
-#include "my_plane.h"
-#include "seasons.h"
-#include "os_anim.h"
-#include "scenery.h"
+//#include "scenery.h"
 #include "version.h"
 
-#include "ui.h"
+#include "adgs_editor.h"
 #include "log_msg.h"
 
-#include "fa-solid-900.inc"
-#include "IconsFontAwesome5.h"
-
 static constexpr int kWinWidth = 400;
-static constexpr int kWinHeight = 450;
+static constexpr int kWinHeight = 650;
 static constexpr int kWinPad = 75;
-static constexpr float kFontSize = 13.0f;
+//static constexpr float kFontSize = 13.0f;
 
-std::unique_ptr<ImgWindow> ui;
-int ui_left = -1, ui_top, ui_right, ui_bottom;  // -1 = not loaded from prefs
+std::unique_ptr<ImgWindow> editor;
+int editor_left = -1, editor_top, editor_right, editor_bottom;  // -1 = not loaded from prefs
+bool editor_active;
 
 // Our own class defining our own UI
-class Ui : public ImgWindow {
-    int arpt_seqno_ = 0;                  // for detecting changes in the airport data
-    std::vector<std::string> lb_stands_;  // for the listbox content
-    int lb_item_ = -1;                    // for the listbox selection
-
-    bool jw_auto_mode_ = false;  // to store the state of the "Automatic mode" checkbox
-    bool jw_selected_[kNearJwLimit][kMaxDoor] = {};
-    int nearest_jws_seqno_ = 0;  // for detecting changes in the nearest jetway list by the UI
+class Editor : public ImgWindow {
+    int arpt_seqno_ = 0;                      // for detecting changes in the airport data
+    std::vector<AdgsStandParams> lb_stands_;  // for the listbox content
+    int lb_item_ = -1;                        // for the listbox selection
 
     XPLMFlightLoopID flt_id_ = nullptr;
 
-    bool selected_stand_changed_ = false;  // to detect changes in the listbox selection
-    int new_selected_stand_;  // to store the new selected stand index until we can apply it in the flight loop callback
-
-    bool set_mode_arrival_requested_ = false;  // to detect if the "Set mode ARRIVAL" button has been pressed
-
-    bool move_closer_requested_ = false;  // to detect if the "Move closer" button has been pressed
-
-    bool dgs_type_changed_ = false;  // to detect if the DGS type radio button selection has been changed
-    int new_dgs_type_;
-    int new_dgs_type_stand_;
-
-    bool jw_auto_mode_changed_ = false;  // to detect if the "Automatic mode" checkbox has been changed
+    bool filter_jw_ = false;       // to store the state of the "Filter jetways" checkbox
+    int params_changed_idx_ = -1;  // delayed processing in flightloop ctx
 
     // Main function: creates the window's UI
     void BuildInterface() override;
@@ -88,64 +67,28 @@ class Ui : public ImgWindow {
                               void* inRefcon);
 
    public:
-    Ui(int left, int top, int right, int bot);
-    ~Ui() override;
+    Editor(int left, int top, int right, int bot);
+    ~Editor() override;
 };
 
-void CreateUi() {
-    if (ui_left == -1) {
-        LogMsg("Creating UI window with default geometry");
+void CreateEditor() {
+    if (editor_left == -1) {
+        LogMsg("Creating editor window with default geometry");
         int sc_left, sc_top;
         XPLMGetScreenBoundsGlobal(&sc_left, &sc_top, nullptr, nullptr);
 
-        ui_left = sc_left + kWinPad;
-        ui_right = ui_left + kWinWidth;
-        ui_top = sc_top - kWinPad;
-        ui_bottom = ui_top - kWinHeight;
+        editor_left = sc_left + kWinPad;
+        editor_right = editor_left + kWinWidth;
+        editor_top = sc_top - kWinPad;
+        editor_bottom = editor_top - kWinHeight;
     } else
-        LogMsg("Creating UI window with geometry %d,%d,%d,%d", ui_left, ui_top, ui_right, ui_bottom);
+        LogMsg("Creating editor window with geometry %d,%d,%d,%d", editor_left, editor_top, editor_right, editor_bottom);
 
-    ui = std::make_unique<Ui>(ui_left, ui_top, ui_right, ui_bottom);
-}
-
-void ImgWindowIni() {
-    LogMsg("Initializing Imgui Window...");
-    ImgWindow::sFontAtlas = std::make_shared<ImgFontAtlas>();
-
-    // load from X-Plane's default font directory
-    if (ImgWindow::sFontAtlas->AddFontFromFileTTF("./Resources/fonts/DejaVuSans.ttf", kFontSize) == nullptr) {
-        LogMsg("Failed to load font DejaVuSans from file, falling back to default font");
-    }
-
-    // Now we merge some icons from the OpenFontsIcons font into the above font
-    // (see `imgui/docs/FONTS.txt`)
-    ImFontConfig config;
-    config.MergeMode = true;
-
-    // We only read very selectively the individual glyphs we are actually using
-    // to safe on texture space
-    static ImVector<ImWchar> icon_ranges;
-    ImFontGlyphRangesBuilder builder;
-    // Add all icons that are actually used (they concatenate into one string)
-    builder.AddText((const char*)ICON_FA_CHECK);
-    builder.BuildRanges(&icon_ranges);
-
-    // Merge the icon font with the text font
-    ImgWindow::sFontAtlas->AddFontFromMemoryCompressedTTF(fa_solid_900_compressed_data,
-                                                          fa_solid_900_compressed_size,
-                                                          kFontSize,
-                                                          &config,
-                                                          icon_ranges.Data);
-    LogMsg("Imgui Window initialized");
-}
-
-void ImgWindowFini() {
-    ui = nullptr; // just in case ...
-    ImgWindow::sFontAtlas.reset();
+    editor = std::make_unique<Editor>(editor_left, editor_top, editor_right, editor_bottom);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-Ui::Ui(int left, int top, int right, int bot)
+Editor::Editor(int left, int top, int right, int bot)
     : ImgWindow(left, top, right, bot, xplm_WindowDecorationRoundRectangle, xplm_WindowLayerFloatingWindows) {
 
     // is currently not really supported, hopefully with 12.5
@@ -166,13 +109,88 @@ Ui::Ui(int left, int top, int right, int bot)
     SetVisible(true);
 }
 
-Ui::~Ui() {
-    GetWindowGeometry(ui_left, ui_top, ui_right, ui_bottom);  // save geometry for next time
+Editor::~Editor() {
+    GetWindowGeometry(editor_left, editor_top, editor_right, editor_bottom);  // save geometry for next time
     if (flt_id_)
         XPLMDestroyFlightLoop(flt_id_);
+
+    editor_active = false;
 }
 
-void Ui::BuildInterface() {
+void Editor::BuildInterface() {
+    ImGui::TextUnformatted("DGS Editor:");
+
+    //float col_2 = ImGui::GetCursorPosX() + 0.6f * kFontSize * 16.0f;
+
+    if (adgs_arpt == nullptr) {
+        ImGui::TextUnformatted("No AutoDGS airport loaded");
+        return;
+    }
+
+    if (arpt_seqno_ != adgs_arpt->seqno_) {
+        arpt_seqno_ = adgs_arpt->seqno_;
+        // Airport data has changed since last time, so we update the listbox content.
+        // We do this once because it generates a lot of allocations and may be costly per frame.
+        lb_stands_.clear();
+        lb_stands_.reserve(adgs_arpt->nstands());
+        for (int i = 0; i < adgs_arpt->nstands(); i++)
+            lb_stands_.push_back(adgs_arpt->GetStandParams(i));
+
+        lb_item_ = -1;  // reset selection
+    }
+
+    ImGui::Checkbox("Edit Mode", &editor_active);
+    if (!editor_active)
+        return;
+
+    assert(editor_active);
+
+    int height = ImGui::GetContentRegionAvail().y;
+    height -= 10.0f * ImGui::GetTextLineHeightWithSpacing();
+
+    ImGui::Checkbox("Filter jetways", &filter_jw_);
+
+    ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, height));
+    for (int i = 0; i < (int)lb_stands_.size(); i++) {
+        bool is_selected = (lb_item_ == i);
+
+        // Render the selectable item
+        if (ImGui::Selectable(lb_stands_[i].name.c_str(), is_selected)) {
+            is_selected = !is_selected;  // Toggle selection state
+            if (is_selected)
+                lb_item_ = i;  // Update selection state on click
+            else
+                lb_item_ = -1;  // Deselect if clicked again
+        }
+
+        // Set the initial focus when opening the combo/listbox (optional)
+        if (is_selected) {
+            ImGui::SetItemDefaultFocus();
+        }
+    }
+
+    ImGui::EndListBox();
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    if (lb_item_ < 0) {
+        ImGui::TextUnformatted("No stand selected");
+        return;
+    }
+
+    ImGui::Text("Editing Stand: %s", lb_stands_[lb_item_].name.c_str());
+
+    ImGui::TextUnformatted("Distance");
+    float& distance = lb_stands_[lb_item_].dgs_dist;
+    if (ImGui::SliderFloat("Distance", &distance, 10.0f, 50.0f, "%.1f m")) {
+        LogMsg("Distance slider changed to %.1f m", distance);
+        params_changed_idx_ = lb_item_;  // delayed processing in flightloop ctx
+        XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
+    }
+#if 0
+
     if (ImGui::TreeNode("Settings")) {
         //--------------------------------------------------
         ImGui::Spacing();
@@ -218,72 +236,6 @@ void Ui::BuildInterface() {
         }
 
         ImGui::TreePop();
-    }
-
-    //--------------------------------------------------
-    if (anim_sc && anim_sc->sam_anims_.size()) {
-        if (ImGui::TreeNode("Remote Control")) {
-            ImGui::Spacing();
-            ImGui::Separator();
-
-            for (auto& anim : anim_sc->sam_anims_) {
-                bool on = anim.is_on();
-                if (ImGui::Checkbox(anim.ui_line.c_str(), &on)) {
-                    anim.SetState(on);
-                    LogMsg("Animation '%s' state changed to %s", anim.ui_line.c_str(), on ? "ON" : "OFF");
-                }
-            }
-
-            ImGui::TreePop();
-        }
-    }
-
-    //--------------------------------------------------
-    ImGui::Spacing();
-    ImGui::Separator(); ImGui::Separator();
-    ImGui::Spacing();
-
-    dgs::Airport* dgs_arpt = nullptr;
-    float col_2 = ImGui::GetCursorPosX() + 0.6f * kFontSize * 16.0f;
-
-    if (adgs_arpt) {
-        dgs_arpt = adgs_arpt.get();
-        ImGui::TextUnformatted("AutoDGS Airport:");
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(col_2);
-        ImGui::Text("'%s'", dgs_arpt->name().c_str());
-    } else if (os_arpt) {
-        dgs_arpt = os_arpt.get();
-        const char* xp12_jw_str = os_arpt->has_xp12_jws() ? ", has (some) XP12 default jetways" : "";
-        ImGui::TextUnformatted("SAM Airport:");
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(col_2);
-        ImGui::Text("'%s'%s", dgs_arpt->name().c_str(), xp12_jw_str);
-    } else {
-        ImGui::Text("No airport loaded");
-        return;
-    }
-
-    assert(dgs_arpt);
-
-    if (arpt_seqno_ != dgs_arpt->seqno_) {
-        // Airport data has changed since last time, so we update the listbox content.
-        // We do this once because it generates a lot of allocations and may be costly per frame.
-        lb_stands_.clear();
-        lb_stands_.reserve(dgs_arpt->nstands() + 1);
-        lb_stands_.push_back("<automatic>");  // first entry is always "<automatic>"
-
-        // for AutoDGS we add the DGS type
-        if (adgs_arpt) {
-            for (int i = 0; i < dgs_arpt->nstands(); i++) {
-                auto dgs_params = adgs_arpt->GetStandParams(i);
-                lb_stands_.push_back((dgs_params.dgs_type == kMarshaller ? "M " : "V ") + dgs_params.name);
-            }
-        } else {
-            for (int i = 0; i < dgs_arpt->nstands(); i++)
-                lb_stands_.push_back(dgs_arpt->stand(i).name());
-        }
-        arpt_seqno_ = dgs_arpt->seqno_;
     }
 
     ImGui::Spacing();
@@ -336,11 +288,11 @@ void Ui::BuildInterface() {
     // for AutoDGS we have additional buttons to interact with the DGS
     // show them as long as we have an active stand
     if (adgs_arpt && as >= 0) {
-        auto dgs_params = adgs_arpt->GetStandParams(as);
+        auto [dgs_type, name] = adgs_arpt->GetStand(as);
         int idx = as + 1;                                            // +1 due to "<automatic>"
-        lb_stands_[idx][0] = (dgs_params.dgs_type == kMarshaller ? 'M' : 'V');  // set current indicator
+        lb_stands_[idx][0] = (dgs_type == kMarshaller ? 'M' : 'V');  // set current indicator
 
-        new_dgs_type_ = dgs_params.dgs_type;
+        new_dgs_type_ = dgs_type;
 
         ImGui::Columns(2);  // 2 columns: one for the radio buttons, one for the "Move closer" button
         if (ImGui::RadioButton("Marshaller", new_dgs_type_ == 0)) {
@@ -359,9 +311,9 @@ void Ui::BuildInterface() {
         }
         ImGui::Columns();
 
-        if (new_dgs_type_ != dgs_params.dgs_type) {
+        if (new_dgs_type_ != dgs_type) {
             new_dgs_type_stand_ = as;
-            dgs_type_changed_ = true;
+            params_changed = true;
             XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
             LogMsg("Flight loop scheduled to apply new DGS type %d for active stand index %d", new_dgs_type_, as);
         }
@@ -536,61 +488,26 @@ void Ui::BuildInterface() {
         if (ImGui::Button("Undock"))
             my_plane->undock_requested_ = true;
     }
+#endif
 }
 
 // Delayed actions that require FlightLoop context
-float Ui::FlightLoopCb(float, float, int, void* inRefcon) {
+float Editor::FlightLoopCb(float, float, int, void* inRefcon) {
     LogMsg("FlightLoopCb called with inRefcon=%p", inRefcon);
 
-    Ui& ui = *reinterpret_cast<Ui*>(inRefcon);
+    Editor& editor = *reinterpret_cast<Editor*>(inRefcon);
 
-    dgs::Airport* dgs_arpt = nullptr;
-    if (adgs_arpt)
-        dgs_arpt = adgs_arpt.get();
-    else if (os_arpt)
-        dgs_arpt = os_arpt.get();
-
-    if (dgs_arpt == nullptr || dgs_arpt->seqno_ != ui.arpt_seqno_) {
+    if (adgs_arpt == nullptr || adgs_arpt->seqno_ != editor.arpt_seqno_) {
         // stale request
-        ui.selected_stand_changed_ = ui.set_mode_arrival_requested_ = ui.move_closer_requested_ = ui.dgs_type_changed_ =
-            ui.jw_auto_mode_changed_ = false;
+        editor.params_changed_idx_ = -1;
         return 0.0f;
     }
 
-    if (ui.selected_stand_changed_) {
-        LogMsg("Setting selected stand to %d", ui.new_selected_stand_);
-        dgs_arpt->SetSelectedStand(ui.new_selected_stand_);
-        ui.selected_stand_changed_ = false;
-    }
-
-    if (ui.set_mode_arrival_requested_) {
-        LogMsg("Setting airport mode to ARRIVAL");
-        dgs_arpt->SetArrival();
-        ui.set_mode_arrival_requested_ = false;
-    }
-
-    if (ui.move_closer_requested_) {
-        LogMsg("Moving plane closer to the stand");
-        if (adgs_arpt)
-            adgs_arpt->DgsMoveCloser();
-        ui.move_closer_requested_ = false;
-    }
-
-    if (ui.dgs_type_changed_) {
-        LogMsg("Changing DGS type of stand index %d to %d", ui.new_dgs_type_stand_, ui.new_dgs_type_);
-        if (adgs_arpt) {
-            int as = adgs_arpt->active_stand();
-            if (as == ui.new_dgs_type_stand_)
-                adgs_arpt->SetDgsType(ui.new_dgs_type_);
-        }
-
-        ui.dgs_type_changed_ = false;
-    }
-
-    if (ui.jw_auto_mode_changed_) {
-        LogMsg("Setting automatic jetway selection to %s", ui.jw_auto_mode_ ? "ON" : "OFF");
-        my_plane->AutoModeSet(ui.jw_auto_mode_);
-        ui.jw_auto_mode_changed_ = false;
+    if (editor.params_changed_idx_ != -1) {
+        LogMsg("Changing DGS params of stand index %d", editor.params_changed_idx_);
+        adgs_arpt->SetStandParams(editor.params_changed_idx_, editor.lb_stands_[editor.params_changed_idx_]);
+        editor.lb_stands_[editor.params_changed_idx_] = adgs_arpt->GetStandParams(editor.params_changed_idx_);
+        editor.params_changed_idx_ = -1;
     }
 
     return 0.0f;
