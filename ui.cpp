@@ -349,8 +349,8 @@ void Ui::BuildInterface() {
         new_dgs_type_ = dgs_params.dgs_type;
 
         ImGui::Columns(2);  // 2 columns: one for the radio buttons, one for the "Move closer" button
-        if (ImGui::RadioButton("Marshaller", new_dgs_type_ == 0)) {
-            new_dgs_type_ = 0;
+        if (ImGui::RadioButton("Marshaller", new_dgs_type_ == kMarshaller)) {
+            new_dgs_type_ = kMarshaller;
         }
 
         ImGui::NextColumn();  // column 2 for the button
@@ -360,8 +360,8 @@ void Ui::BuildInterface() {
         }
 
         ImGui::NextColumn();  // column 1 for the radio button
-        if (ImGui::RadioButton("VDGS", new_dgs_type_ == 1)) {
-            new_dgs_type_ = 1;
+        if (ImGui::RadioButton("VDGS", new_dgs_type_ != kMarshaller)) {
+            new_dgs_type_ = kDefaultVDGS;
         }
         ImGui::Columns();
 

@@ -28,13 +28,13 @@
 #include "dgs/airport.h"
 
 // DGS types per stand, AutoDGS mode
-static constexpr int kMarshaller = 0;
-static constexpr int kVDGS = 1;
-static constexpr int kAutomatic = 2;
-
+// preserve order as this is used in cfg files
 enum VDgsType {
-    kVdgsSafedock_T2_24,
-    kVdgsSafedock_X
+    kAutomatic = 0,       // automatic selection based on stand's has_xp12_jw
+    kMarshaller,
+    kDefaultVDGS,         // default VDGS type, can be overridden by user config
+    kVdgsSafedock_T2_24,  // specific VDGS type, can be overridden by user config
+    kVdgsSafedock_X       // specific VDGS type, can be overridden by user config
 };
 
 extern int default_vdgs_type;
@@ -53,7 +53,8 @@ class AdgsStand : public dgs::Stand {
     int dgs_type_;
     float dgs_dist_;         // distance to dgs
     float dgs_height_;       // height of dgs (AGL) (only relevant for VDGS)
-    bool drawinfo_stale_;     // drawinfo_ is stale and needs to be recalculated
+    float dgs_left_right_;   // left/right lateral offset of the DGS from the stand centerline, in m (positive = right)
+    bool dgs_pole_;          // whether the DGS is on a pole or not (for VDGS only)
 
     float marshaller_max_dist_;  // max distance, actual can be lower according to PE
 
@@ -64,7 +65,7 @@ class AdgsStand : public dgs::Stand {
     AdgsStand& operator=(AdgsStand&&) = delete;
 
     AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation, int dgs_type, float dgs_dist,
-              float dgs_height);
+              float dgs_height, float dgs_left_right, bool pole);
     ~AdgsStand();
 
     void SetDgsType(int dgs_type);
@@ -74,7 +75,7 @@ class AdgsStand : public dgs::Stand {
     bool has_jw() const override;
 };
 
-// for intraction with the UI and Editor
+// for the interaction with the UI and Editor
 struct AdgsStandParams {
     // these are read-only
     int idx;           // index of this slot in the airport's stands_ vector
@@ -85,7 +86,8 @@ struct AdgsStandParams {
     int dgs_type;
     float dgs_dist;
     float dgs_height;
-    // more to come
+    float dgs_left_right{};  // left/right lateral offset of the DGS from the stand centerline, in m (positive = right)
+    bool pole = true;  // whether the DGS is on a pole or not (for VDGS only)
 };
 
 // dgs::Airport augmented for AutoDGS

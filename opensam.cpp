@@ -376,8 +376,17 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
        if (os_arpt  == nullptr && adgs_arpt == nullptr)
             return 1.0f;  // no airport, nothing to do
 
-        if (editor_active)  // nothing to do if editor is active
-            return 1.0f;
+        if (editor) {
+            // poor man's window manager for the editor window
+            if (!editor->GetVisible()) { // destroy if user closed it manually
+                LogMsg("editor window was closed by user, destroying");
+                editor = nullptr;
+                return 1.0f;
+            }
+
+            if (editor_active)
+                return 1.0f;
+        }
 
         assert(os_arpt == nullptr || adgs_arpt == nullptr);  // can't be both
 

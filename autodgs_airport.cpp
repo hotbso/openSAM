@@ -57,14 +57,15 @@ int default_vdgs_type = kVdgsSafedock_T2_24;
 OperationMode operation_mode = kAuto;
 const char* const opmode_str[] = { "Automatic", "Manual" };
 
-AdgsStand::AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation, int dgs_type, float dgs_dist, float dgs_height)
+AdgsStand::AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation, int dgs_type,
+                     float dgs_dist, float dgs_height, float dgs_left_right, bool pole)
     : dgs::Stand(as, arpt_icao, elevation) {
-
     marshaller_max_dist_ = kDgsMaxDist;
 
     dgs_dist_ = dgs_dist;
     dgs_height_ = dgs_height;
-    drawinfo_stale_ = true;  // force update
+    dgs_left_right_ = dgs_left_right;
+    dgs_pole_ = pole;
     CalcDgsPosition();
 
     dgs_type_ = -1;  // invalidate to ensure that SetDgsType's code does something
@@ -74,7 +75,6 @@ AdgsStand::AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, floa
     // LogMsg("AdgsStand '%s', is_wet: %d, type: %d, dgs_dist: %0.1f constructed", cname(),
     //      is_wet_ ? 1 : 0, dgs_type_, dgs_dist_);
 }
-
 
 AdgsStand::~AdgsStand() {
     LogMsg("AdgsStand '%s' destructed", cname());
@@ -88,7 +88,7 @@ void AdgsStand::SetDgsType(int dgs_type) {
     LogMsg("AdgsStand::SetDgsType: AdgsStand '%s', type: %d, new_type: %d", cname(), dgs_type_, dgs_type);
 
     if (dgs_type == kAutomatic)
-        dgs_type = as_.has_xp12_jw ? kVDGS : kMarshaller;
+        dgs_type = as_.has_xp12_jw ? kDefaultVDGS : kMarshaller;
 
     if (dgs_type_ == dgs_type)
         return;
@@ -114,10 +114,9 @@ void AdgsStand::SetDgsType(int dgs_type) {
 }
 
 void AdgsStand::CycleDgsType() {
-    int new_dgs_type = (dgs_type_ == kMarshaller ? kVDGS : kMarshaller);
+    int new_dgs_type = (dgs_type_ == kMarshaller ? kDefaultVDGS : kMarshaller);
     SetDgsType(new_dgs_type);
 }
-
 
 // compute the DGS position
 void AdgsStand::CalcDgsPosition() {
@@ -150,21 +149,16 @@ void AdgsStand::CalcDgsPosition() {
         dgs_dist_ = std::min(marshaller_pe_dist, dgs_dist_);
     }
 
-    // change of dgs_dist_ requires update dgs position
-    if (drawinfo_stale_) {
-        drawinfo_stale_ = false;
+    // xform vector (0, -dgs_dist) into global frame
+    float x = x_ + -sin_hdgt_ * (-dgs_dist_);
+    float z = z_ +  cos_hdgt_ * (-dgs_dist_);
 
-        // xform vector (0, -dgs_dist) into global frame
-        float x = x_ + -sin_hdgt_ * (-dgs_dist_);
-        float z = z_ +  cos_hdgt_ * (-dgs_dist_);
+    if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y_, z, &probeinfo))
+        throw std::runtime_error("XPLMProbeTerrainXYZ 2 failed");
 
-        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y_, z, &probeinfo))
-            throw std::runtime_error("XPLMProbeTerrainXYZ 2 failed");
-
-        double lat, lon, elevation;
-        XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, &lat, &lon, &elevation);
-        SetDgsPosition(lat, lon, elevation, probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, as_.hdgt);
-    }
+    double lat, lon, elevation;
+    XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, &lat, &lon, &elevation);
+    SetDgsPosition(lat, lon, elevation, probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, as_.hdgt);
 
     // may be called during initialization before the DGS instance is created, hence the check
     if (dgs_)
@@ -188,7 +182,6 @@ void AdgsStand::SetDistanceHeight(float dgs_dist, float dgs_height) {
     dgs_dist_ = dgs_dist;
     dgs_height_ = dgs_height;
     marshaller_max_dist_ = dgs_dist_;
-    drawinfo_stale_ = true;  // force update
     CalcDgsPosition();
     LogMsg("stand' '%s', new dgs_dist: %0.1f, new dgs_height: %0.1f", cname(), dgs_dist_, dgs_height_);
 }
@@ -198,7 +191,9 @@ void AdgsStand::SetDistanceHeight(float dgs_dist, float dgs_height) {
 struct DgsCfg {
     int dgs_type;
     float dgs_dist;
-    float dgs_height;
+    float dgs_height = 5.0f;  // height of dgs (AGL) (only relevant for VDGS)
+    float dgs_left_right = 0.0f;  // left/right lateral offset of the DGS from the stand centerline, in m (positive = right)
+    bool pole = true;  // whether the DGS is on a pole or not (for VDGS only)
 };
 
 using DgsCfgMap = std::unordered_map<std::string, DgsCfg>;  // stand_name -> cfg
@@ -221,17 +216,23 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_
             dgs_dist = kVdgsDefaultDist;
         else
             dgs_dist = kMarshallerDefaultDist;
-#if 0
+
+        float dgs_height = 5.0f;  // default for VDGS
+        float dgs_left_right = 0.0f;  // default for VDGS
+        bool pole = true;  // default for VDGS
+
         // override with user defined config
         if (const auto it = cfg.find(as.name); it != cfg.end()) {
             const DgsCfg& c = it->second;
             dgs_type = c.dgs_type;
             dgs_dist = c.dgs_dist;
-            float dgs_height = c.dgs_height;
-            LogMsg("found in config '%s', %d, %0.1f, %0.1f", as.name.c_str(), dgs_type, dgs_dist, dgs_height);
+            dgs_height = c.dgs_height;
+            dgs_left_right = c.dgs_left_right;
+            pole = c.pole;
+            LogMsg("found in config '%s', %d, %0.1f, %0.1f, %0.1f, %d", as.name.c_str(), dgs_type, dgs_dist, dgs_height, dgs_left_right, pole);
         }
-#endif
-        stands_.emplace_back(std::make_unique<AdgsStand>(as, name_, arpt_elevation, dgs_type, dgs_dist, 5.0f));
+
+        stands_.emplace_back(std::make_unique<AdgsStand>(as, name_, arpt_elevation, dgs_type, dgs_dist, dgs_height, dgs_left_right, pole));
     }
 
     user_cfg_changed_ = false;
@@ -294,9 +295,8 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
                 }
 
                 DgsCfg c;
-                c.dgs_type = (type == 'M' ? kMarshaller : kVDGS);
+                c.dgs_type = (type == 'M' ? kMarshaller : kDefaultVDGS);
                 c.dgs_dist = dgs_dist;
-                c.dgs_height = 5.0f;
                 cfg[line.substr(ofs)] = c;
             } else {
                 LogMsg("unsupported version: '%d'", version);
@@ -351,6 +351,8 @@ AdgsStandParams AdgsAirport::GetStandParams(int idx) const {
     p.dgs_type = s.dgs_type_;
     p.dgs_dist = s.dgs_dist_;
     p.dgs_height = s.dgs_height_;
+    p.dgs_left_right = s.dgs_left_right_;
+    p.pole = s.dgs_pole_;
     p.has_xp12_jw = s.has_jw();
     return p;
 }
