@@ -101,7 +101,7 @@ class AdgsAirport : public dgs::Airport {
     AdgsAirport(const dgs::AptAirport&);
     ~AdgsAirport();
 
-    void ResetState(State new_state);
+    void Reset();
 
     AdgsStandParams GetStandParams(int idx) const;
     void SetStandParams(int idx, const AdgsStandParams& params);

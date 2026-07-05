@@ -115,6 +115,8 @@ Editor::~Editor() {
         XPLMDestroyFlightLoop(flt_id_);
 
     editor_active = false;
+    if (adgs_arpt)
+        adgs_arpt->Reset();
 }
 
 void Editor::BuildInterface() {

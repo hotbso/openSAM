@@ -87,8 +87,15 @@ bool AdgsStand::has_jw() const {
 void AdgsStand::SetDgsType(int dgs_type) {
     LogMsg("AdgsStand::SetDgsType: AdgsStand '%s', type: %d, new_type: %d", cname(), dgs_type_, dgs_type);
 
-    if (dgs_type == kAutomatic)
-        dgs_type = as_.has_xp12_jw ? kDefaultVDGS : kMarshaller;
+    if (dgs_type == kAutomatic) {
+        if (as_.has_xp12_jw) {
+            dgs_type = kDefaultVDGS;
+            dgs_pole_ = true;
+        } else {
+            dgs_type = kMarshaller;
+            dgs_pole_ = false;
+        }
+    }
 
     if (dgs_type_ == dgs_type)
         return;
@@ -284,6 +291,12 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
             }
 
             if (version == 1) {
+                // VERSION=1
+                // # type, dgs_dist, stand_name
+                // # type = M or V, dgs_dist = dist from parking pos in m
+                // V,  15.0, 1
+                // V,  15.0, 10
+
                 int ofs;
                 float dgs_dist;
                 char type;
@@ -298,7 +311,48 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
                 c.dgs_type = (type == 'M' ? kMarshaller : kDefaultVDGS);
                 c.dgs_dist = dgs_dist;
                 cfg[line.substr(ofs)] = c;
-            } else {
+            } else if (version == 2) {
+                // VERSION=2
+                // # type, dgs_dist, height, lr_ofset, has_pole, stand_name
+                // # type = M: Marshaller, V: default VDGS, 2: Safedock-T2, X: Safedock-X
+                // # dgs_dist = dist from parking pos in m
+                // # height = height of dgs (AGL) (only relevant for VDGS)
+                // # lr_ofset = left/right offset from centerline
+                // # has_pole = whether the DGS has a pole (or stairs for Marshaller)
+                // V,  14.1,   4.5,   0.0, 1, 3
+                // V,  39.3,   4.9,   0.0, 1, 4
+                // M,  20.9,   5.0,   0.0, 0, 41
+
+                int ofs, pole;
+                float dgs_dist, dgs_height, dgs_left_right;
+                char type;
+                int n = sscanf(line.c_str(), "%c,%f,%f,%f,%d, %n", &type, &dgs_dist, &dgs_height, &dgs_left_right, &pole, &ofs);
+                if (n != 5 || ofs >= (int)line.size() || dgs_height < 0.0f || dgs_height > 20.0f || dgs_left_right < -5.0f || dgs_left_right > 5.0f) { // distrust user input
+                    LogMsg("invalid line: '%s' %d", line.c_str(), n);
+                    continue;
+                }
+
+                DgsCfg c;
+
+                if (type == 'M')
+                    c.dgs_type = kMarshaller;
+                else if (type == 'V')
+                    c.dgs_type = kDefaultVDGS;
+                else if (type == '2')
+                    c.dgs_type = kVdgsSafedock_T2_24;
+                else if (type == 'X')
+                    c.dgs_type = kVdgsSafedock_X;
+                else {
+                    LogMsg("invalid line: '%s' %d", line.c_str(), n);
+                    continue;
+                }
+
+                c.dgs_dist = dgs_dist;
+                c.dgs_height = dgs_height;
+                c.dgs_left_right = dgs_left_right;
+                c.pole = (pole != 0);
+                cfg[line.substr(ofs)] = c;
+             } else {
                 LogMsg("unsupported version: '%d'", version);
                 break;
             }
@@ -307,7 +361,6 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
 }
 
 void AdgsAirport::FlushUserCfg() {
-    return;  // disabled for now, we don't want to overwrite the user config with defaults
     if (!user_cfg_changed_)
         return;
 
@@ -322,18 +375,33 @@ void AdgsAirport::FlushUserCfg() {
     // Hence we build an ordered map first and write that out.
     // Last entry wins.
     std::map<std::string, std::string> cfg;
-    for (auto const& ss : stands_) {
-        auto s = dynamic_cast<AdgsStand*>(ss.get());
+    for (int i = 0; i < (int)stands_.size(); i++) {
+        auto p = GetStandParams(i);
         char line[200];
-        float dist = s->dgs_type_ == kMarshaller ? s->marshaller_max_dist_ : s->dgs_dist_;
-        snprintf(line, sizeof(line), "%c, %5.1f, %s\n", (s->dgs_type_ == kMarshaller ? 'M' : 'V'), dist,
-                 s->name().c_str());
-        cfg[s->name()] = line;
+        char type;
+        if (p.dgs_type == kMarshaller)
+            type = 'M';
+        else if (p.dgs_type == kDefaultVDGS)
+            type = 'V';
+        else if (p.dgs_type == kVdgsSafedock_T2_24)
+            type = '2';
+        else if (p.dgs_type == kVdgsSafedock_X)
+            type = 'X';
+        else
+            type = '?';
+
+        snprintf(line, sizeof(line), "%c, %5.1f, %5.1f, %5.1f, %d, %s\n", type, p.dgs_dist, p.dgs_height,
+                 p.dgs_left_right, p.pole, p.name.c_str());
+        cfg[p.name] = line;
     }
 
-    f << "VERSION=1\n";
-    f << "# type, dgs_dist, stand_name\n";
-    f << "# type = M or V, dgs_dist = dist from parking pos in m\n";
+    f << "VERSION=2\n";
+    f << "# type, dgs_dist, height, lr_ofset, has_pole, stand_name\n";
+    f << "# type = M: Marshaller, V: default VDGS, 2: Safedock-T2, X: Safedock-X\n";
+    f << "# dgs_dist = dist from parking pos in m\n";
+    f << "# height = height of dgs (AGL) (only relevant for VDGS)\n";
+    f << "# lr_ofset = left/right offset from centerline\n";
+    f << "# has_pole = whether the DGS has a pole (or stairs for Marshaller)\n";
 
     for (auto const& kv : cfg)
         f << kv.second;
@@ -379,10 +447,9 @@ void AdgsAirport::SetDgsType(int dgs_type) {
     }
 }
 
-void AdgsAirport::ResetState(State new_state) {
-    dgs::Airport::ResetState(new_state);
-    if (new_state == kIdle)
-        FlushUserCfg();
+void AdgsAirport::Reset() {
+    FlushUserCfg();
+    dgs::Airport::ResetState(kIdle);
 
     marshaller_pe_dist_updated = false;
     marshaller_pe_dist = kMarshallerDefaultDist;
