@@ -93,6 +93,7 @@ struct AdgsStandParams {
 // dgs::Airport augmented for AutoDGS
 class AdgsAirport : public dgs::Airport {
     bool user_cfg_changed_;
+    bool editor_mode_{};
 
     void FlushUserCfg();
 
@@ -102,6 +103,7 @@ class AdgsAirport : public dgs::Airport {
     ~AdgsAirport();
 
     void Reset();
+    void SetEditorMode(bool on_off);
 
     AdgsStandParams GetStandParams(int idx) const;
     void SetStandParams(int idx, const AdgsStandParams& params);

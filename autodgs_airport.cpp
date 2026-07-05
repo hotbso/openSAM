@@ -470,3 +470,20 @@ void AdgsAirport::ConnectJetway() {
     LogMsg("toggling jetway command");
     XPLMCommandOnce(toggle_jetway_cmdr);
 }
+
+void AdgsAirport::SetEditorMode(bool on_off) {
+    if (editor_mode_ == on_off)
+        return;
+
+    editor_mode_ = on_off;
+    LogMsg("editor mode %s", on_off ? "enabled" : "disabled");
+
+    if (editor_mode_) {
+        for (int i = 0; i < (int)stands_.size(); i++) {
+            auto s = dynamic_cast<AdgsStand*>(stands_[i].get());
+            if (s->dgs_type_ == kMarshaller && s->dgs_)
+                s->dgs_->SetMode(dgs::kArrival);
+        }
+    } else
+        Reset();
+}

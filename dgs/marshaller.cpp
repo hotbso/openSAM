@@ -100,7 +100,9 @@ void Marshaller::SetMode(Mode mode) {
     if (mode_ == kArrival) {
         inst_ref_ = XPLMCreateInstance(obj_ref, dgs_dlist_dr);
         LogMsg("Marshaller mode set to ARRIVAL, instance created");
-        // the Marshaller instance is positioned with the next call to SetGuidanceParams()
+        GuidanceParams params{};
+        params.status = kDgsGstIdle;
+        SetGuidanceParams(params);
 
         if (need_stairs_) {
             // stairs ares static so position them once here (or move them in SetPos() if the Marshaller moves)

@@ -740,8 +740,8 @@ void Airport::ResetState(State new_state) {
         LogMsg("setting state to %s", state_str_[new_state]);
 
     state_ = new_state;
-    if (active_stand_ >= 0)
-        stands_[active_stand_]->SetIdle();
+    for (auto& s : stands_)
+        s->SetIdle();
     active_stand_ = -1;
 
     if (new_state == kIdle)

@@ -58,6 +58,7 @@ class Editor : public ImgWindow {
 
     bool filter_jw_ = false;       // to store the state of the "Filter jetways" checkbox
     int params_changed_idx_ = -1;  // delayed processing in flightloop ctx
+    bool request_set_edit_mode_ = false;  // delayed processing in flightloop ctx
 
     // Main function: creates the window's UI
     void BuildInterface() override;
@@ -116,7 +117,7 @@ Editor::~Editor() {
 
     editor_active = false;
     if (adgs_arpt)
-        adgs_arpt->Reset();
+        adgs_arpt->SetEditorMode(false);
 }
 
 void Editor::BuildInterface() {
@@ -141,11 +142,14 @@ void Editor::BuildInterface() {
         lb_item_ = -1;  // reset selection
     }
 
-    ImGui::Checkbox("Edit Mode", &editor_active);
+    if (ImGui::Checkbox("Edit Mode", &editor_active)) {
+        LogMsg("Edit Mode checkbox changed to %s", editor_active ? "ON" : "OFF");
+        request_set_edit_mode_ = true;  // request to set the edit mode in the flight loop context
+        XPLMScheduleFlightLoop(flt_id_, -1.0, 1);  // schedule the flight loop callback to process the request
+    }
+
     if (!editor_active)
         return;
-
-    assert(editor_active);
 
     int height = ImGui::GetContentRegionAvail().y;
     height -= 10.0f * ImGui::GetTextLineHeightWithSpacing();
@@ -513,6 +517,7 @@ float Editor::FlightLoopCb(float, float, int, void* inRefcon) {
     if (adgs_arpt == nullptr || adgs_arpt->seqno_ != editor.arpt_seqno_) {
         // stale request
         editor.params_changed_idx_ = -1;
+        editor.request_set_edit_mode_ = false;
         return 0.0f;
     }
 
@@ -521,6 +526,12 @@ float Editor::FlightLoopCb(float, float, int, void* inRefcon) {
         adgs_arpt->SetStandParams(editor.params_changed_idx_, editor.lb_stands_[editor.params_changed_idx_]);
         editor.lb_stands_[editor.params_changed_idx_] = adgs_arpt->GetStandParams(editor.params_changed_idx_);
         editor.params_changed_idx_ = -1;
+    }
+
+    if (editor.request_set_edit_mode_) {
+        LogMsg("Setting edit mode in FlightLoop context");
+        adgs_arpt->SetEditorMode(editor_active);
+        editor.request_set_edit_mode_ = false;
     }
 
     return 0.0f;
