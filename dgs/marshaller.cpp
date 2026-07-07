@@ -56,6 +56,7 @@ class Marshaller : public DGS {
     void SetGuidanceParams(const GuidanceParams& params) override;
     void SetPos(const XPLMDrawInfo_t& drawinfo, float height = 0.0f) override;
     void SetMode(Mode mode) override;
+    void UpdateInstance() override;  // update instance position and drefs
 };
 
 static XPLMObjectRef obj_ref, stairs_obj_ref;  // marshaller object and stairs object
@@ -198,4 +199,12 @@ void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo, [[maybe_unused]]float he
         XPLMInstanceSetPosition(stairs_inst_ref_, &stairs_drawinfo_, NULL);
 }
 
-} // namespace dgs
+void Marshaller::UpdateInstance() {
+    if (inst_ref_)
+        XPLMInstanceSetPosition(inst_ref_, &drawinfo_, drefs_);
+
+    if (stairs_inst_ref_)
+        XPLMInstanceSetPosition(stairs_inst_ref_, &stairs_drawinfo_, NULL);
+}
+
+}  // namespace dgs

@@ -69,8 +69,9 @@ AdgsStand::AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, floa
     CalcDgsPosition();
 
     dgs_type_ = -1;  // invalidate to ensure that SetDgsType's code does something
-    SetDgsType(dgs_type);
+    SetDgsType(dgs_type, pole);
     assert(dgs_);
+    dgs_->SetPos(drawinfo_, dgs_height_);
 
     // LogMsg("AdgsStand '%s', is_wet: %d, type: %d, dgs_dist: %0.1f constructed", cname(),
     //      is_wet_ ? 1 : 0, dgs_type_, dgs_dist_);
@@ -84,29 +85,38 @@ bool AdgsStand::has_jw() const {
     return as_.has_xp12_jw;
 }
 
-void AdgsStand::SetDgsType(int dgs_type) {
+void AdgsStand::SetDgsType(int dgs_type, bool pole) {
     LogMsg("AdgsStand::SetDgsType: AdgsStand '%s', type: %d, new_type: %d", cname(), dgs_type_, dgs_type);
 
     if (dgs_type == kAutomatic) {
         if (as_.has_xp12_jw) {
             dgs_type = kDefaultVDGS;
-            dgs_pole_ = true;
+            pole = true;
         } else {
             dgs_type = kMarshaller;
-            dgs_pole_ = false;
+            pole = false;
         }
     }
 
-    if (dgs_type_ == dgs_type)
+    if (dgs_type == kMarshaller)    // overwrite for Marshaller
+        pole = false;
+
+    if (dgs_type_ == dgs_type && dgs_pole_ == pole)
         return;
 
     dgs_type_ = dgs_type;
+    dgs_pole_ = pole;
 
-    CalcDgsPosition();
+    bool was_vdgs = dgs_ && dgs_->isVdgs();
+    dgs_ = nullptr;  // destroy old DGS instance
 
-    if (dgs_type_ == kMarshaller)
+    if (dgs_type_ == kMarshaller) {
+        if (was_vdgs)   // if we were a VDGS, we need to recalc the position for the Marshaller
+            CalcDgsPosition();
         dgs_ = dgs::CreateMarshaller(cname());
-    else {
+    } else if (dgs_type_ == kDefaultVDGS) {
+        if (!was_vdgs)  // if we were a Marshaller, we need to recalc the position for the VDGS
+            CalcDgsPosition();
         if (default_vdgs_type == kVdgsSafedock_T2_24) {
             dgs_height_ = kVdgsT2DefaultHeight;
             dgs_ = dgs::CreateSafedock_T2_24(cname(), arpt_icao_, dgs_height_);
@@ -114,12 +124,22 @@ void AdgsStand::SetDgsType(int dgs_type) {
             dgs_height_ = kVdgsXDefaultHeight;
             dgs_ = dgs::CreateSafedock_X(cname(), arpt_icao_, dgs_height_);
         }
-    }
+    } else if (dgs_type_ == kVdgsSafedock_T2_24) {
+        dgs_height_ = kVdgsT2DefaultHeight;
+        dgs_ = dgs::CreateSafedock_T2_24(cname(), arpt_icao_, dgs_height_, /* display_only */ false, pole);
+    } else if (dgs_type_ == kVdgsSafedock_X) {
+        dgs_height_ = kVdgsXDefaultHeight;
+        dgs_ = dgs::CreateSafedock_X(cname(), arpt_icao_, dgs_height_, /* display_only */ false, pole);
+    } else
+       assert(!"AdgsStand::SetDgsType: unknown type");
 
-    dgs_->SetPos(drawinfo_, dgs_height_);
     SetIdle();
+    // load position into DGS and force rendering
+    dgs_->SetPos(drawinfo_, dgs_height_);
+    dgs_->UpdateInstance();
 }
 
+// tactical command to cycle between Marshaller and default VDGS during arrival
 void AdgsStand::CycleDgsType() {
     int new_dgs_type = (dgs_type_ == kMarshaller ? kDefaultVDGS : kMarshaller);
     SetDgsType(new_dgs_type);
@@ -425,11 +445,28 @@ AdgsStandParams AdgsAirport::GetStandParams(int idx) const {
     return p;
 }
 
-void AdgsAirport::SetStandParams(int idx, const AdgsStandParams& params) {
+void AdgsAirport::SetDgsDistance(int idx, float distance) {
     assert(0 <= idx && idx < (int)stands_.size());
     AdgsStand& s = *dynamic_cast<AdgsStand*>(stands_[idx].get());
-    // s.SetDgsType(params.dgs_type);
-    s.SetDistanceHeight(params.dgs_dist, params.dgs_height);
+    s.SetDistanceHeight(distance, s.dgs_height_);
+    user_cfg_changed_ = true;
+}
+
+void AdgsAirport::SetDgsHeight(int idx, float height) {
+    assert(0 <= idx && idx < (int)stands_.size());
+    AdgsStand& s = *dynamic_cast<AdgsStand*>(stands_[idx].get());
+    s.SetDistanceHeight(s.dgs_dist_, height);
+    user_cfg_changed_ = true;
+}
+
+void AdgsAirport::SetDgsType(int idx, int dgs_type, bool pole) {
+    assert(0 <= idx && idx < (int)stands_.size());
+    AdgsStand& s = *dynamic_cast<AdgsStand*>(stands_[idx].get());
+    s.SetDgsType(dgs_type, pole);
+
+    if (dgs_type == kMarshaller && editor_mode_)
+        s.dgs_->SetMode(dgs::kArrival);
+
     user_cfg_changed_ = true;
 }
 

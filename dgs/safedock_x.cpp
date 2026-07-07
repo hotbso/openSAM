@@ -35,7 +35,7 @@ namespace dgs {
 
 static const char* null_dlist[] = {nullptr};
 
-static XPLMObjectRef box_obj, base_obj, display_obj, idle_display_obj;
+static XPLMObjectRef box_pole_obj, box_obj, base_obj, display_obj, idle_display_obj;
 
 //------------------------------------------------------------------------------------
 class Safedock_X : public DGS {
@@ -57,9 +57,10 @@ class Safedock_X : public DGS {
     std::unique_ptr<ScrollTxt> scroll_txt_;
     int pax_no_ = 0;
     float parked_ts_ = 0.0;  // parked mode start time,
+    bool pole_;
 
    public:
-    Safedock_X(const std::string& name, const std::string& arpt_icao,  float height, bool display_only);
+    Safedock_X(const std::string& name, const std::string& arpt_icao,  float height, bool display_only, bool pole);
     ~Safedock_X() override;
 
     bool HasEqStatus() const noexcept override { return true; }
@@ -73,7 +74,7 @@ class Safedock_X : public DGS {
 
     float Tick() override;
 
-    void UpdateInstance();  // update instance position and drefs
+    void UpdateInstance() override;  // update instance position and drefs
 };
 
 // external interface
@@ -100,6 +101,13 @@ bool InitSafedock_X(const std::string& res_dir) {
     }
 
     on = res_dir + "Safedock-X-pole.obj";
+    box_pole_obj = XPLMLoadObject(on.c_str());
+    if (box_pole_obj == nullptr) {
+        LogMsg("Can't load box pole object from '%s'", on.c_str());
+        return false;
+    }
+
+    on = res_dir + "Safedock-X.obj";
     box_obj = XPLMLoadObject(on.c_str());
     if (box_obj == nullptr) {
         LogMsg("Can't load box object from '%s'", on.c_str());
@@ -110,14 +118,15 @@ bool InitSafedock_X(const std::string& res_dir) {
     return true;
 }
 
-std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std::string& arpt_icao, float height, bool display_only) {
+std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std::string& arpt_icao, float height, bool display_only, bool pole) {
     assert(display_obj != nullptr);
-    return std::make_unique<Safedock_X>(name, arpt_icao, height, display_only);
+    return std::make_unique<Safedock_X>(name, arpt_icao, height, display_only, pole);
 }
 
 //------------------------------------------------------------------------------------
-Safedock_X::Safedock_X(const std::string& name, const std::string& arpt_icao, float height, bool display_only)
-    : name_(name), arpt_icao_(arpt_icao), height_(height) {
+Safedock_X::Safedock_X(const std::string& name, const std::string& arpt_icao, float height, bool display_only,
+                       bool pole)
+    : name_(name), arpt_icao_(arpt_icao), height_(height), pole_(pole) {
     LogMsg("Creating Safedock_X instance for stand '%s'", name_.c_str());
     // create display name
     // a stand name can be anything between "1" and "Gate A 40 (Class C, Terminal 3)"
@@ -155,15 +164,23 @@ Safedock_X::Safedock_X(const std::string& name, const std::string& arpt_icao, fl
     }
 
     if (!display_only) {
-        box_inst_ref_ = XPLMCreateInstance(box_obj, null_dlist);
+        if (pole_) {
+            box_inst_ref_ = XPLMCreateInstance(box_pole_obj, null_dlist);
+            pole_base_inst_ref_ = XPLMCreateInstance(base_obj, null_dlist);
+        } else
+            box_inst_ref_ = XPLMCreateInstance(box_obj, null_dlist);
+
         assert(box_inst_ref_);
-        pole_base_inst_ref_ = XPLMCreateInstance(base_obj, null_dlist);
     }
 
+    GuidanceParams params{};
+    params.status = kDgsGstIdle;
+    SetGuidanceParams(params);
     LogMsg("Safedock_X instance created for stand '%s', display name: '%s'", name_.c_str(), display_name_.c_str());
 }
 
 Safedock_X::~Safedock_X() {
+    LogMsg("Destroying Safedock_X instance for stand '%s'", name_.c_str());
     if (display_inst_ref_)
         XPLMDestroyInstance(display_inst_ref_);
     if (box_inst_ref_)

@@ -56,16 +56,20 @@ class Editor : public ImgWindow {
 
     XPLMFlightLoopID flt_id_ = nullptr;
 
-    //bool filter_jw_ = false;       // to store the state of the "Filter jetways" checkbox
-    int params_changed_idx_ = -1;  // delayed processing in flightloop ctx
-    bool request_set_edit_mode_ = false;  // delayed processing in flightloop ctx
+    // bool filter_jw_ = false;       // to store the state of the "Filter jetways" checkbox
+    // background processing in flightloop context
+    int changed_idx_ = -1;
+    bool request_set_edit_mode_ = false;
+    bool request_set_dgs_type_ = false;
+    bool request_set_dgs_dist_ = false;
+    bool request_set_dgs_height_ = false;
 
     // Main function: creates the window's UI
     void BuildInterface() override;
 
     void ProcessChangedParams();  // process changed DGS params in flightloop context
 
-    // flight loop callback for delayed actions prohibited in drawloops
+    // flight loop callback for background actions prohibited in drawloops
     static float FlightLoopCb(float inElapsedSinceLastCall, float inElapsedTimeSinceLastFlightLoop, int inCounter,
                               void* inRefcon);
 
@@ -105,7 +109,7 @@ Editor::Editor(int left, int top, int right, int bot)
 
     flt_id_ = XPLMCreateFlightLoop(&loop_params);
 
-    SetWindowTitle("openSAM " VERSION);
+    SetWindowTitle("openSAM Airport Editor");
     SetWindowResizingLimits(100, 100, 1024, 1024);
     SetVisible(true);
 }
@@ -121,8 +125,6 @@ Editor::~Editor() {
 }
 
 void Editor::BuildInterface() {
-    ImGui::TextUnformatted("DGS Editor:");
-
     //float col_2 = ImGui::GetCursorPosX() + 0.6f * kFontSize * 16.0f;
 
     if (adgs_arpt == nullptr) {
@@ -130,7 +132,19 @@ void Editor::BuildInterface() {
         return;
     }
 
-    if (arpt_seqno_ != adgs_arpt->seqno_) {
+    bool was_active = editor_active;
+    if (ImGui::Checkbox("Edit Mode", &editor_active)) {
+        LogMsg("Edit Mode checkbox changed to %s", editor_active ? "ON" : "OFF");
+        request_set_edit_mode_ = true;  // request to set the edit mode in the flight loop context
+        XPLMScheduleFlightLoop(flt_id_, -1.0, 1);  // schedule the flight loop callback to process the request
+    }
+
+    if (!editor_active)
+        return;
+
+    // if the airport changed or we switched to active we have to rebuild the listbox content
+    if (arpt_seqno_ != adgs_arpt->seqno_ || !was_active) {
+        LogMsg("Airport data changed or editor activated, rebuilding listbox content");
         arpt_seqno_ = adgs_arpt->seqno_;
         // Airport data has changed since last time, so we update the listbox content.
         // We do this once because it generates a lot of allocations and may be costly per frame.
@@ -142,15 +156,6 @@ void Editor::BuildInterface() {
         lb_item_ = -1;  // reset selection
     }
 
-    if (ImGui::Checkbox("Edit Mode", &editor_active)) {
-        LogMsg("Edit Mode checkbox changed to %s", editor_active ? "ON" : "OFF");
-        request_set_edit_mode_ = true;  // request to set the edit mode in the flight loop context
-        XPLMScheduleFlightLoop(flt_id_, -1.0, 1);  // schedule the flight loop callback to process the request
-    }
-
-    if (!editor_active)
-        return;
-
     int height = ImGui::GetContentRegionAvail().y;
     height -= 10.0f * ImGui::GetTextLineHeightWithSpacing();
 
@@ -158,6 +163,7 @@ void Editor::BuildInterface() {
 
     ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, height));
     for (int i = 0; i < (int)lb_stands_.size(); i++) {
+        ImGui::PushID(i); // Ensure unique ID for each item, stand names may have duplicates
         bool is_selected = (lb_item_ == i);
 
         // Render the selectable item
@@ -173,6 +179,7 @@ void Editor::BuildInterface() {
         if (is_selected) {
             ImGui::SetItemDefaultFocus();
         }
+        ImGui::PopID();
     }
 
     ImGui::EndListBox();
@@ -186,46 +193,98 @@ void Editor::BuildInterface() {
         return;
     }
 
-    ImGui::Text("Editing Stand: %s", lb_stands_[lb_item_].name.c_str());
+    AdgsStandParams& sp = lb_stands_[lb_item_];
+    ImGui::Text("Editing Stand: %s", sp.name.c_str());
+
+    int dgs_type = sp.dgs_type;
+    bool pole = sp.pole;
+    if (ImGui::RadioButton("default VDGS", dgs_type == kDefaultVDGS))
+        dgs_type = kDefaultVDGS;
+
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Marshaller", dgs_type == kMarshaller))
+        dgs_type = kMarshaller;
+
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Safedock-T2", dgs_type == kVdgsSafedock_T2_24))
+        dgs_type = kVdgsSafedock_T2_24;
+
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Safedock-X", dgs_type == kVdgsSafedock_X))
+        dgs_type = kVdgsSafedock_X;
+
+    if (dgs_type == kVdgsSafedock_T2_24 || dgs_type == kVdgsSafedock_X)
+        ImGui::Checkbox("Pole", &pole);
+
+    if (dgs_type != sp.dgs_type || pole != sp.pole) {
+        sp.dgs_type = dgs_type;
+        sp.pole = pole;
+        changed_idx_ = lb_item_;  // delayed processing in flightloop ctx
+        request_set_dgs_type_ = true;
+        XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
+    }
 
     ImGui::TextUnformatted("Distance");
-    bool changed = false;
-    float& distance = lb_stands_[lb_item_].dgs_dist;
-    if (ImGui::SliderFloat("Distance", &distance, 10.0f, 50.0f, "%.1f m")) {
-        LogMsg("Distance slider changed to %.1f m", distance);
-        changed = true;
-    }
+    float& distance = sp.dgs_dist;
+    if (ImGui::SliderFloat("Distance", &distance, 10.0f, 50.0f, "%.1f m"))
+        request_set_dgs_dist_ = true;
 
-    if (ImGui::SliderFloat("Height", &lb_stands_[lb_item_].dgs_height, 1.0f, 10.0f, "%.1f m")) {
-        LogMsg("Height slider changed to %.1f m", lb_stands_[lb_item_].dgs_height);
-        changed = true;
-    }
+    if (ImGui::SliderFloat("Height", &sp.dgs_height, 1.0f, 10.0f, "%.1f m"))
+        request_set_dgs_height_ = true;
 
-    if (changed) {
-        params_changed_idx_ = lb_item_;  // delayed processing in flightloop ctx
+    if (request_set_dgs_dist_ || request_set_dgs_height_) {
+        changed_idx_ = lb_item_;  // delayed processing in flightloop ctx
         XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+// background processing in flightloop context
 void Editor::ProcessChangedParams() {
     if (adgs_arpt == nullptr || adgs_arpt->seqno_ != arpt_seqno_) {
         // stale request
-        params_changed_idx_ = -1;
-        request_set_edit_mode_ = false;
+        changed_idx_ = -1;
+        request_set_edit_mode_ = request_set_dgs_type_ = request_set_dgs_dist_ = request_set_dgs_height_ = false;
         return;
-    }
-
-    if (params_changed_idx_ != -1) {
-        LogMsg("Changing DGS params of stand index %d", params_changed_idx_);
-        adgs_arpt->SetStandParams(params_changed_idx_, lb_stands_[params_changed_idx_]);
-        lb_stands_[params_changed_idx_] = adgs_arpt->GetStandParams(params_changed_idx_);
-        params_changed_idx_ = -1;
     }
 
     if (request_set_edit_mode_) {
         LogMsg("Setting edit mode in FlightLoop context");
         adgs_arpt->SetEditorMode(editor_active);
         request_set_edit_mode_ = false;
+        return;
+    }
+
+    assert(changed_idx_ >= 0 && changed_idx_ < (int)lb_stands_.size());
+
+    if (request_set_dgs_dist_) {
+        AdgsStandParams& sp = lb_stands_[changed_idx_];
+        LogMsg("Changing DGS params of stand index %d", changed_idx_);
+        adgs_arpt->SetDgsDistance(changed_idx_, sp.dgs_dist);
+        sp = adgs_arpt->GetStandParams(changed_idx_);
+        changed_idx_ = -1;
+        request_set_dgs_dist_= false;
+        return;
+    }
+
+    if (request_set_dgs_height_) {
+        AdgsStandParams& sp = lb_stands_[changed_idx_];
+        LogMsg("Changing DGS params of stand index %d", changed_idx_);
+        adgs_arpt->SetDgsHeight(changed_idx_, sp.dgs_height);
+        sp = adgs_arpt->GetStandParams(changed_idx_);
+        changed_idx_ = -1;
+        request_set_dgs_height_ = false;
+        return;
+    }
+
+    if (request_set_dgs_type_) {
+        AdgsStandParams& sp = lb_stands_[changed_idx_];
+        LogMsg("Changing DGS type of stand index %d to %d (pole=%s)", changed_idx_, sp.dgs_type, sp.pole ? "true" : "false");
+        adgs_arpt->SetDgsType(changed_idx_, sp.dgs_type, sp.pole);
+        lb_stands_[changed_idx_] = adgs_arpt->GetStandParams(changed_idx_);
+        changed_idx_ = -1;
+        request_set_dgs_type_ = false;
+        return;
     }
 }
 

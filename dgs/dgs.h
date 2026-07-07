@@ -52,6 +52,7 @@ class DGS {
     virtual void SetGuidanceParams(const GuidanceParams& params) = 0;
     virtual bool HasEqStatus() const noexcept = 0;  // whether this DGS can show eq status (chocks, gpu, pca, pbb)
     virtual bool isVdgs() const noexcept = 0;  // whether this DGS is a VDGS (vs. Marshaller)
+    virtual void UpdateInstance() = 0;  // show the rendered instance in the sim, e.g. after changing the drawinfo or the model
 
     // optional overrides
     virtual void SetPaxNo([[maybe_unused]] int pax_no) {};
@@ -64,8 +65,8 @@ extern bool InitDGS(const std::string& res_dir);
 
 // Create dgs instances, succeeds or throws
 extern std::unique_ptr<DGS> CreateMarshaller(const std::string& name);
-extern std::unique_ptr<DGS> CreateSafedock_T2_24( const std::string& name,const std::string& arpt_icao, float height, bool display_only = false);
-extern std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std::string& arpt_icao, float height, bool display_only = false);
+extern std::unique_ptr<DGS> CreateSafedock_T2_24( const std::string& name,const std::string& arpt_icao, float height, bool display_only = false, bool pole = true);
+extern std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std::string& arpt_icao, float height, bool display_only = false, bool pole = true);
 }  // namespace dgs
 
 // global stuff to be defined elsewhere, likely by the main plugin code, e.g. in opensam.cpp

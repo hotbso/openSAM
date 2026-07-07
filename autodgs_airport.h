@@ -33,8 +33,8 @@ enum VDgsType {
     kAutomatic = 0,       // automatic selection based on stand's has_xp12_jw
     kMarshaller,
     kDefaultVDGS,         // default VDGS type, can be overridden by user config
-    kVdgsSafedock_T2_24,  // specific VDGS type, can be overridden by user config
-    kVdgsSafedock_X       // specific VDGS type, can be overridden by user config
+    kVdgsSafedock_T2_24,
+    kVdgsSafedock_X
 };
 
 extern int default_vdgs_type;
@@ -68,7 +68,7 @@ class AdgsStand : public dgs::Stand {
               float dgs_height, float dgs_left_right, bool pole);
     ~AdgsStand();
 
-    void SetDgsType(int dgs_type);
+    void SetDgsType(int dgs_type, bool pole = true);
     void CycleDgsType();
     void DgsMoveCloser();  // with wrap around
     void SetDistanceHeight(float dgs_dist, float dgs_height);
@@ -102,17 +102,20 @@ class AdgsAirport : public dgs::Airport {
     AdgsAirport(const dgs::AptAirport&);
     ~AdgsAirport();
 
+    // editor support
     void Reset();
     void SetEditorMode(bool on_off);
 
     AdgsStandParams GetStandParams(int idx) const;
-    void SetStandParams(int idx, const AdgsStandParams& params);
+    void SetDgsDistance(int idx, float distance);
+    void SetDgsHeight(int idx, float height);
+    void SetDgsType(int idx, int dgs_type, bool pole);
 
     // these act onto the selected or active stand and are for tactical use only,
     // e.g. by the ui or commands
     void DgsMoveCloser();
     void SetDgsType(int dgs_type);
-    void CycleDgsType();
+    void CycleDgsType(); // cycle between Marshaller and default VDGS during arrival
 
     // auto set chocks and connect jetway when parking ?
     bool auto_post_parkbrake() const override;

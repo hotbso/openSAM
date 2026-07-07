@@ -157,9 +157,9 @@ class Airport {
     bool active_stand_has_xp12_jw() const;
 };
 
-   // destination stand from OFP remark
-   extern std::string ofp_destination;
-   extern std::string ofp_arrival_stand;
+// destination stand from OFP remark
+extern std::string ofp_destination;
+extern std::string ofp_arrival_stand;
 
 }  // namespace dgs
 

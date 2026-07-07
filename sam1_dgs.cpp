@@ -47,6 +47,7 @@ class Sam1Legacy : public DGS {
     void SetGuidanceParams(const GuidanceParams& params) override;
     void SetPos(const XPLMDrawInfo_t& drawinfo, float height = 0.0f) override;
     void SetMode(Mode mode) override;
+    void UpdateInstance() override {};  // no instance to update
 };
 
 // external interface
