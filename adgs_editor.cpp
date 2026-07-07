@@ -202,8 +202,10 @@ void Editor::BuildInterface() {
         dgs_type = kDefaultVDGS;
 
     ImGui::SameLine();
-    if (ImGui::RadioButton("Marshaller", dgs_type == kMarshaller))
+    if (ImGui::RadioButton("Marshaller", dgs_type == kMarshaller)) {
         dgs_type = kMarshaller;
+        pole = false;   // no stairs by default for marshaller
+    }
 
     ImGui::SameLine();
     if (ImGui::RadioButton("Safedock-T2", dgs_type == kVdgsSafedock_T2_24))
@@ -215,6 +217,8 @@ void Editor::BuildInterface() {
 
     if (dgs_type == kVdgsSafedock_T2_24 || dgs_type == kVdgsSafedock_X)
         ImGui::Checkbox("Pole", &pole);
+    else if (dgs_type == kMarshaller)
+        ImGui::Checkbox("Stairs", &pole);  // for marshaller, pole = stairs
 
     if (dgs_type != sp.dgs_type || pole != sp.pole) {
         sp.dgs_type = dgs_type;
@@ -229,8 +233,9 @@ void Editor::BuildInterface() {
     if (ImGui::SliderFloat("Distance", &distance, 10.0f, 50.0f, "%.1f m"))
         request_set_dgs_dist_ = true;
 
-    if (ImGui::SliderFloat("Height", &sp.dgs_height, 1.0f, 10.0f, "%.1f m"))
-        request_set_dgs_height_ = true;
+    if (sp.dgs_type != kMarshaller)
+        if (ImGui::SliderFloat("Height", &sp.dgs_height, 1.0f, 10.0f, "%.1f m"))
+            request_set_dgs_height_ = true;
 
     if (request_set_dgs_dist_ || request_set_dgs_height_) {
         changed_idx_ = lb_item_;  // delayed processing in flightloop ctx

@@ -166,8 +166,9 @@ void Marshaller::SetGuidanceParams(const GuidanceParams& dgs_params) {
     distance_prev_ = params.distance;
 }
 
-void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo, [[maybe_unused]]float height) {
+void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo, float height) {
     drawinfo_ = drawinfo;
+    drawinfo_.y += height;  // move up by height (AGL)
     LogMsg("Marshaller position updated, x: %0.1f, y: %0.1f, z: %0.1f", drawinfo_.x, drawinfo_.y, drawinfo_.z);
 
     // one time check for marshaller high

@@ -40,7 +40,8 @@
 static constexpr float kVdgsDefaultDist = 15.0;  // m
 static constexpr float kMarshallerDefaultDist = 25.0;
 static constexpr float kVdgsT2DefaultHeight = 5.0;  // m AGL
-static constexpr float kVdgsXDefaultHeight = 4.5;  // m AGL
+static constexpr float kVdgsXDefaultHeight = 4.5;   // m AGL
+static constexpr float kStairsHeight = 2.32f;       // m AGL, must match marshaller_high.agp
 
 static constexpr float kDgsMinDist = 8.0;
 static constexpr float kDgsMaxDist = 30.0;
@@ -86,7 +87,7 @@ bool AdgsStand::has_jw() const {
 }
 
 void AdgsStand::SetDgsType(int dgs_type, bool pole) {
-    LogMsg("AdgsStand::SetDgsType: AdgsStand '%s', type: %d, new_type: %d", cname(), dgs_type_, dgs_type);
+    LogMsg("AdgsStand::SetDgsType: AdgsStand '%s', type: %d, new_type: %d, pole: %d", cname(), dgs_type_, dgs_type, pole);
 
     if (dgs_type == kAutomatic) {
         if (as_.has_xp12_jw) {
@@ -98,14 +99,16 @@ void AdgsStand::SetDgsType(int dgs_type, bool pole) {
         }
     }
 
-    if (dgs_type == kMarshaller)    // overwrite for Marshaller
-        pole = false;
-
     if (dgs_type_ == dgs_type && dgs_pole_ == pole)
         return;
 
     dgs_type_ = dgs_type;
     dgs_pole_ = pole;
+
+    // The Marshaller is tricky as it does not have a static model.
+    // If the placement position is > 2.0m it automatically adds stairs below.
+    if (dgs_type == kMarshaller)    // overwrite for Marshaller
+        dgs_height_ = dgs_pole_ ? kStairsHeight : 0.0f;
 
     bool was_vdgs = dgs_ && dgs_->isVdgs();
     dgs_ = nullptr;  // destroy old DGS instance
@@ -135,6 +138,8 @@ void AdgsStand::SetDgsType(int dgs_type, bool pole) {
 
     SetIdle();
     // load position into DGS and force rendering
+    LogMsg("AdgsStand::SetDgsType: AdgsStand '%s', type: %d, dgs_height: %0.1f, dgs_dist: %0.1f, dgs_left_right: %0.1f, pole: %d",
+           cname(), dgs_type_, dgs_height_, dgs_dist_, dgs_left_right_, dgs_pole_);
     dgs_->SetPos(drawinfo_, dgs_height_);
     dgs_->UpdateInstance();
 }
@@ -244,9 +249,9 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_
         else
             dgs_dist = kMarshallerDefaultDist;
 
-        float dgs_height = 5.0f;  // default for VDGS
         float dgs_left_right = 0.0f;  // default for VDGS
-        bool pole = true;  // default for VDGS
+        float dgs_height = (dgs_type != kMarshaller) ? 5.0f : 0.0f;  // default for VDGS only
+        bool pole = (dgs_type != kMarshaller);
 
         // override with user defined config
         if (const auto it = cfg.find(as.name); it != cfg.end()) {
@@ -372,6 +377,7 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
                 c.dgs_left_right = dgs_left_right;
                 c.pole = (pole != 0);
                 cfg[line.substr(ofs)] = c;
+                LogMsg("found in config '%s', %d, %0.1f, %0.1f, %0.1f, %d, %d", line.substr(ofs).c_str(), c.dgs_type, c.dgs_dist, c.dgs_height, c.dgs_left_right, pole, c.pole);
              } else {
                 LogMsg("unsupported version: '%d'", version);
                 break;
