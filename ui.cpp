@@ -382,6 +382,7 @@ void Ui::BuildInterface() {
 
         ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, height));
         for (int i = 0; i < (int)lb_stands_.size(); i++) {
+            ImGui::PushID(i);  // ensure unique ID for each selectable item, stand names may not be unique
             const bool is_selected = (lb_item_ == i);
 
             // Render the selectable item
@@ -395,9 +396,10 @@ void Ui::BuildInterface() {
             }
 
             // Set the initial focus when opening the combo/listbox (optional)
-            if (is_selected) {
+            if (is_selected)
                 ImGui::SetItemDefaultFocus();
-            }
+
+            ImGui::PopID();
         }
 
         ImGui::EndListBox();
