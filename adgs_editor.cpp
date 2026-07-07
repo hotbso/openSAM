@@ -161,28 +161,29 @@ void Editor::BuildInterface() {
 
     //ImGui::Checkbox("Filter jetways", &filter_jw_);
 
-    ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, height));
-    for (int i = 0; i < (int)lb_stands_.size(); i++) {
-        ImGui::PushID(i); // Ensure unique ID for each item, stand names may have duplicates
-        bool is_selected = (lb_item_ == i);
+    if (ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, height))) {
+        for (int i = 0; i < (int)lb_stands_.size(); i++) {
+            ImGui::PushID(i);  // Ensure unique ID for each item, stand names may have duplicates
+            bool is_selected = (lb_item_ == i);
 
-        // Render the selectable item
-        if (ImGui::Selectable(lb_stands_[i].name.c_str(), is_selected)) {
-            is_selected = !is_selected;  // Toggle selection state
-            if (is_selected)
-                lb_item_ = i;  // Update selection state on click
-            else
-                lb_item_ = -1;  // Deselect if clicked again
+            // Render the selectable item
+            if (ImGui::Selectable(lb_stands_[i].name.c_str(), is_selected)) {
+                is_selected = !is_selected;  // Toggle selection state
+                if (is_selected)
+                    lb_item_ = i;  // Update selection state on click
+                else
+                    lb_item_ = -1;  // Deselect if clicked again
+            }
+
+            // Set the initial focus when opening the combo/listbox (optional)
+            if (is_selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+            ImGui::PopID();
         }
 
-        // Set the initial focus when opening the combo/listbox (optional)
-        if (is_selected) {
-            ImGui::SetItemDefaultFocus();
-        }
-        ImGui::PopID();
+        ImGui::EndListBox();
     }
-
-    ImGui::EndListBox();
 
     ImGui::Spacing();
     ImGui::Separator();

@@ -378,31 +378,32 @@ void Ui::BuildInterface() {
 
         int height = ImGui::GetContentRegionAvail().y;
         if (os_arpt)
-            height -= ImGui::GetTextLineHeightWithSpacing();    // jw selection is below the stand listbox
+            height -= ImGui::GetTextLineHeightWithSpacing();  // jw selection is below the stand listbox
 
-        ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, height));
-        for (int i = 0; i < (int)lb_stands_.size(); i++) {
-            ImGui::PushID(i);  // ensure unique ID for each selectable item, stand names may not be unique
-            const bool is_selected = (lb_item_ == i);
+        if (ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, height))) {
+            for (int i = 0; i < (int)lb_stands_.size(); i++) {
+                ImGui::PushID(i);  // ensure unique ID for each selectable item, stand names may not be unique
+                const bool is_selected = (lb_item_ == i);
 
-            // Render the selectable item
-            if (ImGui::Selectable(lb_stands_[i].c_str(), is_selected)) {
-                lb_item_ = i;  // Update selection state on click
-                new_selected_stand_ = i - 1;
-                selected_stand_changed_ = true;
-                XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
-                LogMsg("Flight loop scheduled to apply new selected stand index %d (listbox index %d)",
-                       new_selected_stand_, lb_item_);
+                // Render the selectable item
+                if (ImGui::Selectable(lb_stands_[i].c_str(), is_selected)) {
+                    lb_item_ = i;  // Update selection state on click
+                    new_selected_stand_ = i - 1;
+                    selected_stand_changed_ = true;
+                    XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
+                    LogMsg("Flight loop scheduled to apply new selected stand index %d (listbox index %d)",
+                           new_selected_stand_, lb_item_);
+                }
+
+                // Set the initial focus when opening the combo/listbox (optional)
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+
+                ImGui::PopID();
             }
 
-            // Set the initial focus when opening the combo/listbox (optional)
-            if (is_selected)
-                ImGui::SetItemDefaultFocus();
-
-            ImGui::PopID();
+            ImGui::EndListBox();
         }
-
-        ImGui::EndListBox();
     }
 
     if (os_arpt == nullptr)
