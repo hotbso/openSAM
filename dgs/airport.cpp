@@ -170,7 +170,8 @@ void Stand::Local2Stand(float x, float z, float& x_stand_local, float& z_stand_l
 }
 
 void Stand::SetIdle() {
-    dgs_->SetMode(kIdle);
+    if (dgs_)   // for sam airports not every stand has a DGS
+        dgs_->SetMode(kIdle);
 }
 
 bool Stand::isVdgs() const {
