@@ -421,13 +421,13 @@ void AdgsAirport::FlushUserCfg() {
         cfg[p.name] = line;
     }
 
-    f << "VERSION=2\n";
-    f << "# type, dgs_dist, height, lr_ofset, has_pole, stand_name\n";
-    f << "# type = M: Marshaller, V: default VDGS, 2: Safedock-T2, X: Safedock-X\n";
-    f << "# dgs_dist = dist from parking pos in m\n";
-    f << "# height = height of dgs (AGL) (only relevant for VDGS)\n";
-    f << "# lr_ofset = left/right offset from centerline\n";
-    f << "# has_pole = whether the DGS has a pole (or stairs for Marshaller)\n";
+    f << "VERSION=2\n"
+         "# type, dgs_dist, height, lr_ofset, has_pole, stand_name\n"
+         "# type = M: Marshaller, V: default VDGS, 2: Safedock-T2, X: Safedock-X\n"
+         "# dgs_dist = dist from parking pos in m\n"
+         "# height = height of dgs (AGL) (only relevant for VDGS)\n"
+         "# lr_ofset = left/right offset from centerline\n"
+         "# has_pole = whether the DGS has a pole (or stairs for Marshaller)\n";
 
     for (auto const& kv : cfg)
         f << kv.second;
