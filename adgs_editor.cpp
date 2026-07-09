@@ -66,6 +66,7 @@ class Editor : public ImgWindow {
     bool request_set_dgs_type_ = false;
     bool request_set_dgs_dist_ = false;
     bool request_set_dgs_height_ = false;
+    bool request_set_dgs_left_right_ = false;
 
     // Main function: creates the window's UI
     void BuildInterface() override;
@@ -253,15 +254,23 @@ void Editor::BuildInterface() {
         XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
     }
 
-    ImGui::TextUnformatted("Distance");
-    if (ImGui::SliderFloat("Distance", &changed_sp_.dgs_dist, 10.0f, 50.0f, "%.1f m"))
+    if (ImGui::SliderFloat("Distance", &changed_sp_.dgs_dist, 8.0f, 50.0f, "%.1f m"))
         request_set_dgs_dist_ = true;
 
     if (changed_sp_.dgs_type != kMarshaller)
         if (ImGui::SliderFloat("Height", &changed_sp_.dgs_height, 1.0f, 10.0f, "%.1f m"))
             request_set_dgs_height_ = true;
 
-    if (request_set_dgs_dist_ || request_set_dgs_height_) {
+    if (ImGui::SliderFloat("Left/Right", &changed_sp_.dgs_left_right, -10.0f, 10.0f, "%.1f m"))
+        request_set_dgs_left_right_ = true;
+
+    ImGui::SameLine();
+    if (ImGui::Button("Center")) {
+        changed_sp_.dgs_left_right = 0.0f;
+        request_set_dgs_left_right_ = true;
+    }
+
+    if (request_set_dgs_dist_ || request_set_dgs_height_ || request_set_dgs_left_right_) {
         changed_idx_ = selected_idx_;  // delayed processing in flightloop ctx
         XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
     }
@@ -298,6 +307,17 @@ void Editor::ProcessChangedParams() {
         return;
     }
 
+    if (request_set_dgs_left_right_) {
+        for (int idx : changed_idx_) {
+            LogMsg("Changing DGS left/right of stand index %d to %.1f m", idx, changed_sp_.dgs_left_right);
+            adgs_arpt->SetDgsLeftRight(idx, changed_sp_.dgs_left_right);
+            lb_stands_[idx] = adgs_arpt->GetStandParams(idx);
+        }
+        changed_idx_.clear();
+        request_set_dgs_left_right_ = false;
+        return;
+    }
+
     if (request_set_dgs_height_) {
         for (int idx : changed_idx_) {
             LogMsg("Changing DGS height of stand index %d to %.1f m", idx, changed_sp_.dgs_height);
@@ -311,7 +331,8 @@ void Editor::ProcessChangedParams() {
 
     if (request_set_dgs_type_) {
         for (int idx : changed_idx_) {
-            LogMsg("Changing DGS type of stand index %d to %d (pole=%s)", idx, changed_sp_.dgs_type, changed_sp_.pole ? "true" : "false");
+            LogMsg("Changing DGS type of stand index %d to %d (pole=%s)", idx, changed_sp_.dgs_type,
+                   changed_sp_.pole ? "true" : "false");
             adgs_arpt->SetDgsType(idx, changed_sp_.dgs_type, changed_sp_.pole);
             lb_stands_[idx] = adgs_arpt->GetStandParams(idx);
         }

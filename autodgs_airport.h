@@ -58,6 +58,7 @@ class AdgsStand : public dgs::Stand {
 
     float marshaller_max_dist_;  // max distance, actual can be lower according to PE
 
+    void SetDistHeightLr(float dgs_dist, float dgs_height, float dgs_left_right);
     void CalcDgsPosition();
 
    public:
@@ -71,7 +72,6 @@ class AdgsStand : public dgs::Stand {
     void SetDgsType(int dgs_type, bool pole = true);
     void CycleDgsType();
     void DgsMoveCloser();  // with wrap around
-    void SetDistanceHeight(float dgs_dist, float dgs_height);
     bool has_jw() const override;
 };
 
@@ -109,6 +109,7 @@ class AdgsAirport : public dgs::Airport {
     AdgsStandParams GetStandParams(int idx) const;
     void SetDgsDistance(int idx, float distance);
     void SetDgsHeight(int idx, float height);
+    void SetDgsLeftRight(int idx, float left_right);
     void SetDgsType(int idx, int dgs_type, bool pole);
 
     // these act onto the selected or active stand and are for tactical use only,

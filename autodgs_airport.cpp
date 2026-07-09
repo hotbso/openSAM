@@ -181,9 +181,9 @@ void AdgsStand::CalcDgsPosition() {
         dgs_dist_ = std::min(marshaller_pe_dist, dgs_dist_);
     }
 
-    // xform vector (0, -dgs_dist) into global frame
-    float x = x_ + -sin_hdgt_ * (-dgs_dist_);
-    float z = z_ +  cos_hdgt_ * (-dgs_dist_);
+    // add stand relative vector (dgs_left_right, -dgs_dist) to pos in local frame
+    float x = x_  + cos_hdgt_ * dgs_left_right_ + -sin_hdgt_ * (-dgs_dist_);
+    float z = z_  + sin_hdgt_ * dgs_left_right_ +  cos_hdgt_ * (-dgs_dist_);
 
     if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y_, z, &probeinfo))
         throw std::runtime_error("XPLMProbeTerrainXYZ 2 failed");
@@ -207,15 +207,16 @@ void AdgsStand::DgsMoveCloser() {
     LogMsg("stand' '%s', new dgs_dist: %0.1f", cname(), dgs_dist_);
 }
 
-void AdgsStand::SetDistanceHeight(float dgs_dist, float dgs_height) {
-    if (std::abs(dgs_dist - dgs_dist_) < 0.05f && std::abs(dgs_height - dgs_height_) < 0.05f)
+void AdgsStand::SetDistHeightLr(float dgs_dist, float dgs_height, float dgs_left_right) {
+    if (std::abs(dgs_dist - dgs_dist_) < 0.05f && std::abs(dgs_height - dgs_height_) < 0.05f && std::abs(dgs_left_right - dgs_left_right_) < 0.05f)
         return;
 
     dgs_dist_ = dgs_dist;
     dgs_height_ = dgs_height;
+    dgs_left_right_ = dgs_left_right;
     marshaller_max_dist_ = dgs_dist_;
     CalcDgsPosition();
-    LogMsg("stand' '%s', new dgs_dist: %0.1f, new dgs_height: %0.1f", cname(), dgs_dist_, dgs_height_);
+    LogMsg("stand' '%s', new dgs_dist: %0.1f, new dgs_height: %0.1f, new dgs_left_right: %0.1f", cname(), dgs_dist_, dgs_height_, dgs_left_right_);
 }
 
 //--------------------- AdgsAirport --------------------------------------------------------------
@@ -454,14 +455,21 @@ AdgsStandParams AdgsAirport::GetStandParams(int idx) const {
 void AdgsAirport::SetDgsDistance(int idx, float distance) {
     assert(0 <= idx && idx < (int)stands_.size());
     AdgsStand& s = *dynamic_cast<AdgsStand*>(stands_[idx].get());
-    s.SetDistanceHeight(distance, s.dgs_height_);
+    s.SetDistHeightLr(distance, s.dgs_height_, s.dgs_left_right_);
     user_cfg_changed_ = true;
 }
 
 void AdgsAirport::SetDgsHeight(int idx, float height) {
     assert(0 <= idx && idx < (int)stands_.size());
     AdgsStand& s = *dynamic_cast<AdgsStand*>(stands_[idx].get());
-    s.SetDistanceHeight(s.dgs_dist_, height);
+    s.SetDistHeightLr(s.dgs_dist_, height, s.dgs_left_right_);
+    user_cfg_changed_ = true;
+}
+
+void AdgsAirport::SetDgsLeftRight(int idx, float left_right) {
+    assert(0 <= idx && idx < (int)stands_.size());
+    AdgsStand& s = *dynamic_cast<AdgsStand*>(stands_[idx].get());
+    s.SetDistHeightLr(s.dgs_dist_, s.dgs_height_, left_right);
     user_cfg_changed_ = true;
 }
 
@@ -522,11 +530,12 @@ void AdgsAirport::SetEditorMode(bool on_off) {
     LogMsg("editor mode %s", on_off ? "enabled" : "disabled");
 
     if (editor_mode_) {
+        // Set Marshallers to Arrival mode to make them visible in the editor.
         for (int i = 0; i < (int)stands_.size(); i++) {
             auto s = dynamic_cast<AdgsStand*>(stands_[i].get());
             if (s->dgs_type_ == kMarshaller && s->dgs_)
                 s->dgs_->SetMode(dgs::kArrival);
         }
     } else
-        Reset();
+        Reset();    // the whole airport
 }
