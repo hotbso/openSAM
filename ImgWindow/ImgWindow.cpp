@@ -32,11 +32,19 @@
  * POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if IBM
+#include <windows.h>
+#elif APL
+#include <Carbon/Carbon.h>
+#endif
+
 #include "ImgWindow.h"
 
 #include <XPLMDataAccess.h>
 #include <XPLMDisplay.h>
 #include <XPLMGraphics.h>
+
+#include "log_msg.h"
 
 // size of "frame" around a resizable window, by which its size can be changed
 constexpr int WND_RESIZE_LEFT_WIDTH     = 15;
@@ -469,6 +477,21 @@ ImgWindow::HandleMouseClickGeneric(int x, int y, XPLMMouseStatus inMouse, int bu
     const int dx = x - lastMouseDragX;          // dragged how far since last down/drag event?
     const int dy = y - lastMouseDragY;
 
+    bool shift{}, ctrl{};
+
+#if IBM  // Windows
+    shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+    ctrl  = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+    //LogMsg("HandleMouseClickGeneric: x=%d, y=%d, inMouse=%d, button=%d, loc_x=%d, loc_y=%d, dx=%d, dy=%d, ShiftPressed=%d, CtrlPressed=%d",
+    //        x, y, (int)inMouse, button, loc_x, loc_y, dx, dy, shift, ctrl);
+#elif APL // macOS
+    UInt32 modifiers = GetCurrentKeyModifiers();
+    shift = (modifiers & shiftKey) != 0;
+    ctrl  = (modifiers & controlKey) != 0;
+#elif LIN
+    #warning "Linux: HandleMouseClickGeneric: Sorry, Shift/Ctrl detection not implemented, no multiselection possible!"
+#endif
+
     switch (inMouse) {
 
         case xplm_MouseDrag:
@@ -529,6 +552,11 @@ ImgWindow::HandleMouseClickGeneric(int x, int y, XPLMMouseStatus inMouse, int bu
             break;
 
         case xplm_MouseDown:
+            if (ctrl)
+                io.AddKeyEvent(ImGuiMod_Ctrl, true);
+            if (shift)
+                io.AddKeyEvent(ImGuiMod_Shift, true);
+
             io.AddMouseButtonEvent(button, true);
 
             // Which part of the window would we drag, if any?
@@ -563,6 +591,8 @@ ImgWindow::HandleMouseClickGeneric(int x, int y, XPLMMouseStatus inMouse, int bu
             io.AddMouseButtonEvent(button, false);
             lastMouseDragX = lastMouseDragY = -1;
             dragWhat.clear();
+            io.AddKeyEvent(ImGuiMod_Ctrl, false);
+            io.AddKeyEvent(ImGuiMod_Shift, false);
             break;
         default:
             // dunno!
