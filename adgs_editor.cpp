@@ -52,13 +52,16 @@ bool editor_active;
 class Editor : public ImgWindow {
     int arpt_seqno_ = 0;                      // for detecting changes in the airport data
     std::vector<AdgsStandParams> lb_stands_;  // for the listbox content
-    int lb_item_ = -1;                        // for the listbox selection
 
+    ImGuiSelectionBasicStorage selection_storage_;  // for the listbox selection
     XPLMFlightLoopID flt_id_ = nullptr;
 
     // bool filter_jw_ = false;       // to store the state of the "Filter jetways" checkbox
+    std::vector<int> selected_idx_;  // for processing multiple selected stands
+
     // background processing in flightloop context
-    int changed_idx_ = -1;
+    AdgsStandParams changed_sp_;
+    std::vector<int> changed_idx_;  // for processing multiple selected stands
     bool request_set_edit_mode_ = false;
     bool request_set_dgs_type_ = false;
     bool request_set_dgs_dist_ = false;
@@ -135,6 +138,7 @@ void Editor::BuildInterface() {
     bool was_active = editor_active;
     if (ImGui::Checkbox("Edit Mode", &editor_active)) {
         LogMsg("Edit Mode checkbox changed to %s", editor_active ? "ON" : "OFF");
+        selection_storage_.Clear();  // clear selection when switching modes
         request_set_edit_mode_ = true;  // request to set the edit mode in the flight loop context
         XPLMScheduleFlightLoop(flt_id_, -1.0, 1);  // schedule the flight loop callback to process the request
     }
@@ -152,53 +156,73 @@ void Editor::BuildInterface() {
         lb_stands_.reserve(adgs_arpt->nstands());
         for (int i = 0; i < adgs_arpt->nstands(); i++)
             lb_stands_.push_back(adgs_arpt->GetStandParams(i));
-
-        lb_item_ = -1;  // reset selection
+        changed_idx_.clear();
+        selected_idx_.clear();
     }
 
     int height = ImGui::GetContentRegionAvail().y;
     height -= 10.0f * ImGui::GetTextLineHeightWithSpacing();
 
     //ImGui::Checkbox("Filter jetways", &filter_jw_);
-
+    bool selection_changed = false;
     if (ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, height))) {
+        ImGuiMultiSelectIO* ms_io =
+            ImGui::BeginMultiSelect(ImGuiMultiSelectFlags_None, selection_storage_.Size, (int)lb_stands_.size());
+        selection_storage_.ApplyRequests(ms_io);
+
         for (int i = 0; i < (int)lb_stands_.size(); i++) {
             ImGui::PushID(i);  // Ensure unique ID for each item, stand names may have duplicates
-            bool is_selected = (lb_item_ == i);
+            bool is_selected = selection_storage_.Contains((ImGuiID)i);
+
+            // Tell ImGui that this widget corresponds to index 'i'
+            ImGui::SetNextItemSelectionUserData((ImGuiSelectionUserData)i);
 
             // Render the selectable item
             if (ImGui::Selectable(lb_stands_[i].name.c_str(), is_selected)) {
-                is_selected = !is_selected;  // Toggle selection state
-                if (is_selected)
-                    lb_item_ = i;  // Update selection state on click
-                else
-                    lb_item_ = -1;  // Deselect if clicked again
+                // imgui magic
+                selection_changed = true;
             }
 
             // Set the initial focus when opening the combo/listbox (optional)
-            if (is_selected) {
-                ImGui::SetItemDefaultFocus();
-            }
+            // if (is_selected) {
+            //    ImGui::SetItemDefaultFocus();
+            //}
             ImGui::PopID();
         }
-
+        // Capture mouse clicks/drags from this frame and apply them
+        ms_io = ImGui::EndMultiSelect();
+        selection_storage_.ApplyRequests(ms_io);
         ImGui::EndListBox();
+    }
+
+    if (selection_changed) {
+        LogMsg("Listbox selection changed, selected items: %d", selection_storage_.Size);
+        selected_idx_.clear();
+        void* it = NULL;
+        ImGuiID id;
+        while (selection_storage_.GetNextSelectedItem(&it, &id)) {
+            selected_idx_.push_back((int)id);
+            //LogMsg("Selected stand index: %d", (int)id);
+        }
     }
 
     ImGui::Spacing();
     ImGui::Separator();
     ImGui::Spacing();
 
-    if (lb_item_ < 0) {
+    if (selection_storage_.Size == 0) {
         ImGui::TextUnformatted("No stand selected");
         return;
     }
 
-    AdgsStandParams& sp = lb_stands_[lb_item_];
-    ImGui::Text("Editing Stand: %s", sp.name.c_str());
+    changed_sp_ = lb_stands_[selected_idx_[0]];  // use the first selected stand as template for editing
+    if (selection_storage_.Size > 1)
+        ImGui::Text("Editing %d stands, using first selected as template", selection_storage_.Size);
+    else
+        ImGui::Text("Editing stand: %s", changed_sp_.name.c_str());
 
-    int dgs_type = sp.dgs_type;
-    bool pole = sp.pole;
+    int dgs_type = changed_sp_.dgs_type;
+    bool pole = changed_sp_.pole;
     if (ImGui::RadioButton("default VDGS", dgs_type == kDefaultVDGS))
         dgs_type = kDefaultVDGS;
 
@@ -221,25 +245,24 @@ void Editor::BuildInterface() {
     else if (dgs_type == kMarshaller)
         ImGui::Checkbox("Stairs", &pole);  // for marshaller, pole = stairs
 
-    if (dgs_type != sp.dgs_type || pole != sp.pole) {
-        sp.dgs_type = dgs_type;
-        sp.pole = pole;
-        changed_idx_ = lb_item_;  // delayed processing in flightloop ctx
+    if (dgs_type != changed_sp_.dgs_type || pole != changed_sp_.pole) {
+        changed_sp_.dgs_type = dgs_type;
+        changed_sp_.pole = pole;
+        changed_idx_ = selected_idx_;  // delayed processing in flightloop ctx
         request_set_dgs_type_ = true;
         XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
     }
 
     ImGui::TextUnformatted("Distance");
-    float& distance = sp.dgs_dist;
-    if (ImGui::SliderFloat("Distance", &distance, 10.0f, 50.0f, "%.1f m"))
+    if (ImGui::SliderFloat("Distance", &changed_sp_.dgs_dist, 10.0f, 50.0f, "%.1f m"))
         request_set_dgs_dist_ = true;
 
-    if (sp.dgs_type != kMarshaller)
-        if (ImGui::SliderFloat("Height", &sp.dgs_height, 1.0f, 10.0f, "%.1f m"))
+    if (changed_sp_.dgs_type != kMarshaller)
+        if (ImGui::SliderFloat("Height", &changed_sp_.dgs_height, 1.0f, 10.0f, "%.1f m"))
             request_set_dgs_height_ = true;
 
     if (request_set_dgs_dist_ || request_set_dgs_height_) {
-        changed_idx_ = lb_item_;  // delayed processing in flightloop ctx
+        changed_idx_ = selected_idx_;  // delayed processing in flightloop ctx
         XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
     }
 }
@@ -249,7 +272,7 @@ void Editor::BuildInterface() {
 void Editor::ProcessChangedParams() {
     if (adgs_arpt == nullptr || adgs_arpt->seqno_ != arpt_seqno_) {
         // stale request
-        changed_idx_ = -1;
+        changed_idx_.clear();
         request_set_edit_mode_ = request_set_dgs_type_ = request_set_dgs_dist_ = request_set_dgs_height_ = false;
         return;
     }
@@ -261,34 +284,38 @@ void Editor::ProcessChangedParams() {
         return;
     }
 
-    assert(changed_idx_ >= 0 && changed_idx_ < (int)lb_stands_.size());
+    for (int idx : changed_idx_)
+        assert(0 <= idx && idx < adgs_arpt->nstands());
 
     if (request_set_dgs_dist_) {
-        AdgsStandParams& sp = lb_stands_[changed_idx_];
-        LogMsg("Changing DGS params of stand index %d", changed_idx_);
-        adgs_arpt->SetDgsDistance(changed_idx_, sp.dgs_dist);
-        sp = adgs_arpt->GetStandParams(changed_idx_);
-        changed_idx_ = -1;
-        request_set_dgs_dist_= false;
+        for (int idx : changed_idx_) {
+            LogMsg("Changing DGS distance of stand index %d to %.1f m", idx, changed_sp_.dgs_dist);
+            adgs_arpt->SetDgsDistance(idx, changed_sp_.dgs_dist);
+            lb_stands_[idx] = adgs_arpt->GetStandParams(idx);
+        }
+        changed_idx_.clear();
+        request_set_dgs_dist_ = false;
         return;
     }
 
     if (request_set_dgs_height_) {
-        AdgsStandParams& sp = lb_stands_[changed_idx_];
-        LogMsg("Changing DGS params of stand index %d", changed_idx_);
-        adgs_arpt->SetDgsHeight(changed_idx_, sp.dgs_height);
-        sp = adgs_arpt->GetStandParams(changed_idx_);
-        changed_idx_ = -1;
+        for (int idx : changed_idx_) {
+            LogMsg("Changing DGS height of stand index %d to %.1f m", idx, changed_sp_.dgs_height);
+            adgs_arpt->SetDgsHeight(idx, changed_sp_.dgs_height);
+            lb_stands_[idx] = adgs_arpt->GetStandParams(idx);
+        }
+        changed_idx_.clear();
         request_set_dgs_height_ = false;
         return;
     }
 
     if (request_set_dgs_type_) {
-        AdgsStandParams& sp = lb_stands_[changed_idx_];
-        LogMsg("Changing DGS type of stand index %d to %d (pole=%s)", changed_idx_, sp.dgs_type, sp.pole ? "true" : "false");
-        adgs_arpt->SetDgsType(changed_idx_, sp.dgs_type, sp.pole);
-        lb_stands_[changed_idx_] = adgs_arpt->GetStandParams(changed_idx_);
-        changed_idx_ = -1;
+        for (int idx : changed_idx_) {
+            LogMsg("Changing DGS type of stand index %d to %d (pole=%s)", idx, changed_sp_.dgs_type, changed_sp_.pole ? "true" : "false");
+            adgs_arpt->SetDgsType(idx, changed_sp_.dgs_type, changed_sp_.pole);
+            lb_stands_[idx] = adgs_arpt->GetStandParams(idx);
+        }
+        changed_idx_.clear();
         request_set_dgs_type_ = false;
         return;
     }
