@@ -239,7 +239,7 @@ static float JwAnimAcc(void* ref) {
         stat_jw_cache_hit++;
         jw = it->second;
         if (jw == nullptr)
-            return 0.0f;  // negative cache entry, object at this position is not a jetway
+            return 0.0f;  // negative cache entry, object at this position is not a recognized jetway
     } else {
         const float obj_psi = XPLMGetDataf(draw_object_psi_dr);
 
@@ -252,9 +252,11 @@ static float JwAnimAcc(void* ref) {
         if (n_candidates == 1) [[likely]] {
             jw = candidates[0];
             LogMsg("quadtree candidate: '%s', lat: %0.6f, lon: %0.6f", jw->name.c_str(), jw->latitude, jw->longitude);
+
             if (std::abs(fem::RA(jw->heading - obj_psi)) > SamJw::kSam2ObjHdgMax) {
                 LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", jw->name.c_str(),
                        jw->heading, obj_psi);
+                LogMsg("negative cached: obj: ll(%0.6f, %0.6f), candidate: ll(%0.6f, %0.6f)", obj_lat, obj_lon, jw->latitude, jw->longitude);
                 jw_cache[key] = nullptr;  // negative cache entry
                 return 0.0f;
             }
