@@ -196,6 +196,21 @@ void Editor::BuildInterface() {
         ImGui::EndListBox();
     }
 
+    if (ImGui::Button("Clear Selection")) {
+        selection_storage_.Clear();
+        selection_changed = true;
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Select VDGS")) {
+        selection_storage_.Clear();
+        for (int i = 0; i < (int)lb_stands_.size(); i++) {
+            if (lb_stands_[i].dgs_type != kMarshaller)
+                selection_storage_.SetItemSelected((ImGuiID)i, true);
+        }
+        selection_changed = true;
+    }
+
     if (selection_changed) {
         LogMsg("Listbox selection changed, selected items: %d", selection_storage_.Size);
         selected_idx_.clear();
