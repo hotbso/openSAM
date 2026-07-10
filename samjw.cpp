@@ -385,7 +385,8 @@ static float JwAnimAcc(void* ref) {
     return 0.0f;
 }
 
-void JwInit(int max_sam_stands) {
+// static
+void SamJw::Init(int max_sam_stands) {
     jw_cache.reserve(max_sam_stands);  // usually there are much more stands than jetways
 
     // create the jetway animation datarefs
@@ -408,4 +409,8 @@ void JwInit(int max_sam_stands) {
         jw->Reset();
 
     srand(time(NULL));  // for random initial values for zero config jetways
+}
+
+void SamJw::Finalize() {
+    // nothing for now
 }

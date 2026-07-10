@@ -102,6 +102,10 @@ struct SamJw {
     double lat() const { return latitude; }
     quadtree::Box<double> bounds() const { return bbox; }
     std::string repr() const { return name; }
+
+    // Initializer and Finaliser
+    static void Init(int max_sam_stands);
+    static void Finalize();
 };
 
 // Geometry information of a library jetway
@@ -119,5 +123,3 @@ extern std::vector<SamJw*> sam_jw_list;  // for iterating over all jetways, e.g.
 
 // library jetways information from all collected libraryjetways.xml files
 extern std::vector<SamLibJw*> lib_jw;
-
-extern void JwInit(int max_sam_stands);

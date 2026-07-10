@@ -700,7 +700,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     try {
         my_plane->AutoModeSet(pref_auto_mode);
-        JwInit(max_sam_stands);
+        SamJw::Init(max_sam_stands);
         JwCtrl::Init();
         OsAirport::Init();
         AnimInit();
@@ -779,6 +779,7 @@ PLUGIN_API void XPluginStop(void) {
     dgs::plane = nullptr;
     my_plane = nullptr;
     ImgWindowFini();
+    SamJw::Finalize();
     LogMsg("plugin stopped");
 }
 
