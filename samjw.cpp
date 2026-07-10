@@ -246,6 +246,12 @@ static float JwAnimAcc(void* ref) {
         double obj_lat, obj_lon, obj_alt;
         XPLMLocalToWorld(obj_x, obj_y, obj_z, &obj_lat, &obj_lon, &obj_alt);
 
+        // make negative cache entry for key
+        auto NegativeCacheEntry = [&]() {
+            LogMsg("negative cache entry for position: ll: (%0.6f, %0.6f), x: %5.3f, z: %5.3f", obj_lat, obj_lon, key.x, key.z);
+            jw_cache[key] = nullptr;
+        };
+
         std::array<SamJw*, kMaxJwPerNode> candidates;
         int n_candidates = jw_quadtree.Find(obj_lon, obj_lat, candidates);
 
@@ -257,7 +263,7 @@ static float JwAnimAcc(void* ref) {
                 LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", jw->name.c_str(),
                        jw->heading, obj_psi);
                 LogMsg("negative cached: obj: ll(%0.6f, %0.6f), candidate: ll(%0.6f, %0.6f)", obj_lat, obj_lon, jw->latitude, jw->longitude);
-                jw_cache[key] = nullptr;  // negative cache entry
+                NegativeCacheEntry();
                 return 0.0f;
             }
 
@@ -288,7 +294,7 @@ static float JwAnimAcc(void* ref) {
             std::vector<SamJw*> around = jw_quadtree.FindAround(obj_lon, obj_lat, 5);
             if (around.empty()) {
                 LogMsg("FindAround found no candidates either");
-                jw_cache[key] = nullptr;  // negative cache entry
+                NegativeCacheEntry();
                 return 0.0f;
             }
 
@@ -314,7 +320,7 @@ static float JwAnimAcc(void* ref) {
 
             if (nearest == nullptr) {
                 LogMsg("FindAround found no nearest candidate");
-                jw_cache[key] = nullptr;  // negative cache entry
+                NegativeCacheEntry();
                 return 0.0f;
             }
 
@@ -337,7 +343,8 @@ static float JwAnimAcc(void* ref) {
         }
 
         if (nullptr == jw) {          // still unconfigured -> bad luck
-            jw_cache[key] = nullptr;  // negative cache entry
+            LogMsg("could not configure jw");
+            NegativeCacheEntry();
             return 0.0f;
         }
     }  // no cache hit
@@ -412,5 +419,10 @@ void SamJw::Init(int max_sam_stands) {
 }
 
 void SamJw::Finalize() {
-    // nothing for now
+    jw_quadtree.Dump();
+    for (int i = 0; i < (int)sam_jw_list.size(); i++) {
+        SamJw* jw = sam_jw_list[i];
+        LogMsg("jw[%d]: '%s', ll: (%0.6f, %0.6f), local: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f", i, jw->name.c_str(),
+               jw->latitude, jw->longitude, jw->x, jw->z, jw->y, jw->psi);
+    }
 }
