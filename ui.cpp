@@ -148,9 +148,7 @@ void ImgWindowFini() {
 ///////////////////////////////////////////////////////////////////////////////////////////
 Ui::Ui(int left, int top, int right, int bot)
     : ImgWindow(left, top, right, bot, xplm_WindowDecorationRoundRectangle, xplm_WindowLayerFloatingWindows) {
-
-    // is currently not really supported, hopefully with 12.5
-    ImGui::GetIO().IniFilename = strdup((user_cfg_dir + "imgui.ini").c_str());
+   ImGui::GetIO().IniFilename = nullptr;  // disable imgui.ini file, it's not compatible with imWindow
 
     // Create a flight loop id, but don't schedule it yet
     XPLMCreateFlightLoop_t loop_params = {
@@ -380,7 +378,7 @@ void Ui::BuildInterface() {
         if (os_arpt)
             height -= ImGui::GetTextLineHeightWithSpacing();  // jw selection is below the stand listbox
 
-        if (ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, height))) {
+        if (ImGui::BeginListBox("##Stands", ImVec2(-FLT_MIN, height))) {
             for (int i = 0; i < (int)lb_stands_.size(); i++) {
                 ImGui::PushID(i);  // ensure unique ID for each selectable item, stand names may not be unique
                 const bool is_selected = (lb_item_ == i);

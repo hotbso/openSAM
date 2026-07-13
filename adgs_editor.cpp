@@ -129,8 +129,6 @@ Editor::~Editor() {
 }
 
 void Editor::BuildInterface() {
-    //float col_2 = ImGui::GetCursorPosX() + 0.6f * kFontSize * 16.0f;
-
     if (adgs_arpt == nullptr) {
         ImGui::TextUnformatted("No AutoDGS airport loaded");
         return;
@@ -166,7 +164,7 @@ void Editor::BuildInterface() {
 
     //ImGui::Checkbox("Filter jetways", &filter_jw_);
     bool selection_changed = false;
-    if (ImGui::BeginListBox("Stands", ImVec2(-FLT_MIN, height))) {
+    if (ImGui::BeginListBox("##Stands", ImVec2(-FLT_MIN, height))) {
         ImGuiMultiSelectIO* ms_io =
             ImGui::BeginMultiSelect(ImGuiMultiSelectFlags_None, selection_storage_.Size, (int)lb_stands_.size());
         selection_storage_.ApplyRequests(ms_io);
