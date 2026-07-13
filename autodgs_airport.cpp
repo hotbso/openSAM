@@ -128,10 +128,12 @@ void AdgsStand::SetDgsType(int dgs_type, bool pole) {
             dgs_ = dgs::CreateSafedock_X(cname(), arpt_icao_, dgs_height_);
         }
     } else if (dgs_type_ == kVdgsSafedock_T2_24) {
-        dgs_height_ = kVdgsT2DefaultHeight;
+        if (!was_vdgs)
+            dgs_height_ = kVdgsT2DefaultHeight;
         dgs_ = dgs::CreateSafedock_T2_24(cname(), arpt_icao_, dgs_height_, /* display_only */ false, pole);
     } else if (dgs_type_ == kVdgsSafedock_X) {
-        dgs_height_ = kVdgsXDefaultHeight;
+        if (!was_vdgs)
+            dgs_height_ = kVdgsXDefaultHeight;
         dgs_ = dgs::CreateSafedock_X(cname(), arpt_icao_, dgs_height_, /* display_only */ false, pole);
     } else
        assert(!"AdgsStand::SetDgsType: unknown type");
