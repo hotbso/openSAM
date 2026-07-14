@@ -290,7 +290,7 @@ void Plane::GetEqStatus(dgs::EqStatus& eq_status) {
     if (!pca_fdr_.empty())
         eq_status.pca = pca_fdr_.GetTriggered() + 1;
 
-    eq_status.pbb = PbbEqStatus();
+    eq_status.pbb = GetPbbEqStatus();
 }
 
 std::shared_ptr<Plane> plane;

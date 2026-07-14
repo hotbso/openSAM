@@ -43,6 +43,19 @@ std::shared_ptr<MyPlane> my_plane;
 // ref == 0: opensam/jetway/number
 // ref == 1: opensam/jetway/status
 int MyPlane::JwStatusAcc(void* ref) {
+    if (my_plane->BeaconOn())
+        return 0;
+
+    auto [count, status] = GetXP12JwStatus();
+
+    // if there are any XP12 jetways, return their status, otherwise return our own status
+    if (count > 0) {
+        if (ref == 0)
+            return count;
+        else
+            return status;
+    }
+
     // opensam/jetway/number
     if (ref == 0)
         return my_plane->active_jws_.size();
@@ -75,6 +88,12 @@ int MyPlane::JwDoorStatusAcc([[maybe_unused]] void* ref, int* values, int ofs, i
 
     for (int i = 0; i < n; i++) {
         values[i] = 0;
+    }
+
+    auto [count, status] = GetXP12JwStatus();
+    if (count > 0 && status == 2) {
+        values[0] = 1;  // door 1 only
+        return n;
     }
 
     for (auto ajw_idx : my_plane->active_jws_) {
@@ -302,4 +321,19 @@ bool MyPlane::CheckParkedTeleportation() {
     }
 
     return false;
+}
+
+dgs::EqStatusVal MyPlane::GetPbbEqStatus() {
+    // 'query' "opensam/jetway/status" by calling the accessor with ref 1
+
+    int s = JwStatusAcc((void*)1);
+
+    if (s == 0)  // no jetway
+        return dgs::EqStatusVal::kEqUnknown;
+
+    if (s == 2)  // docked
+        return dgs::EqStatusVal::kEqOn;
+
+    // not docked or in transit
+    return dgs::EqStatusVal::kEqOff;
 }

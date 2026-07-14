@@ -41,6 +41,9 @@ extern XPLMDataRef draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_ob
 
 extern XPLMCommandRef toggle_jetway_cmdr;
 
+// emulate the status for XP12 jetways, called by the "opensam/jetway/status" dataref accessor
+std::tuple<int, int> GetXP12JwStatus();    // -> (count, status)
+
 extern unsigned long long stat_jw_acc_called, stat_anim_acc_called, stat_auto_drf_called,
     stat_jw_cache_hit, stat_sc_last;
 

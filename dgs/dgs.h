@@ -74,6 +74,5 @@ extern std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std:
 extern float now;
 extern XPLMDataRef acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr, total_running_time_sec_dr, eng_running_dr, beacon_dr, sin_wave_dr;
 extern std::string base_dir;
-extern dgs::EqStatusVal PbbEqStatus();
 extern XPLMProbeInfo_t probeinfo;
 extern XPLMProbeRef probe_ref;

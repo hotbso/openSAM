@@ -95,6 +95,8 @@ class Plane {
     // plane specific config from planes.cfg, e.g. chocks dref, door pos, etc.
     std::unordered_map<std::string, std::string> cfg_;
 
+    virtual EqStatusVal GetPbbEqStatus() = 0;
+
    public:
     std::string acf_icao_;
     std::string callsign_;

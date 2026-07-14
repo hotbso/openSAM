@@ -205,8 +205,8 @@ Airport::~Airport() {
 }
 
 bool Airport::active_stand_has_xp12_jw() const {
-    return (active_stand_ >= 0 && stands_[active_stand_]->has_jw()) ||
-           (departure_stand_ >= 0 && stands_[departure_stand_]->has_jw());
+    return (active_stand_ >= 0 && stands_[active_stand_]->has_xp12_jw()) ||
+           (departure_stand_ >= 0 && stands_[departure_stand_]->has_xp12_jw());
 }
 
 void Airport::SetSelectedStand(int selected_stand) {

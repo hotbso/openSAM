@@ -142,8 +142,8 @@ unsigned long long stat_jw_acc_called, stat_anim_acc_called,
     stat_auto_drf_called, stat_jw_cache_hit, stat_sc_last;
 
 // 'emulate' a connection status dataref for XP12's jetway, toggled by intercepting XP12's standard cmd
-bool xp12_jw_connected;
-float xp12_jw_connected_ts;
+static bool xp12_jw_connected;
+static float xp12_jw_connected_ts;
 
 XPLMProbeInfo_t probeinfo;
 XPLMProbeRef probe_ref;
@@ -574,34 +574,32 @@ static void LoadAcfGenericType(const std::string& fn) {
     LogMsg("%d mappings loaded", (int)acf_generic_type_map.size());
 }
 
-dgs::EqStatusVal PbbEqStatus() {
-    if (adgs_arpt) {
-        if (adgs_arpt->active_stand_has_xp12_jw()) {
-            if (xp12_jw_connected && now > xp12_jw_connected_ts + 15.0f)  // needs some time to drive the jw
-                return dgs::kEqOn;                                        // present and 'on' (connected)
-            return dgs::kEqOff;                                           // present, assume off
+// emulate the status for XP12 jetways, called by the "opensam/jetway/status" dataref accessor
+//
+// opensam/jetway/status dataref
+//  0 = no jetway
+//  1 = can dock
+//  2 = docked
+// -1 = can't dock or in transit
+std::tuple<int, int> GetXP12JwStatus() {    // -> (count, status)
+    int count = 0;
+    int status = -1;
+
+    if (adgs_arpt)
+        count = adgs_arpt->active_stand_has_xp12_jw() ? 1 : 0;
+    else if (os_arpt)
+        count = os_arpt->active_stand_has_xp12_jw() ? 1 : 0;
+
+    if (count > 0) {
+        status = 1;
+        if (xp12_jw_connected) {
+            status = -1;  // assume not docked yet
+            if (now > xp12_jw_connected_ts + 15.0f)  // needs some time to drive the jw
+                status = 2;  // docked
         }
-
-        return dgs::kEqUnknown;
     }
 
-    if (os_arpt) {
-        // 'query' "opensam/jetway/status" by calling the accessor with ref 1
-
-        int s = MyPlane::JwStatusAcc((void*)1);
-
-        if (s == 0)  // no jetway
-            return dgs::EqStatusVal::kEqUnknown;
-
-        if (s == 2)  // docked
-            return dgs::EqStatusVal::kEqOn;
-
-        // not docked or in transit
-        return dgs::EqStatusVal::kEqOff;
-    }
-
-    // NOTREACHED, hopefully
-    return dgs::kEqUnknown;
+    return std::make_tuple(count, status);
 }
 
 // =========================== plugin entry points ===============================================

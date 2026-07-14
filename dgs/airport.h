@@ -67,6 +67,7 @@ class Stand {
 
     bool isVdgs() const;
     virtual bool has_jw() const = 0;
+    bool has_xp12_jw() const { return as_.has_xp12_jw; }
 
     void SetIdle();
 

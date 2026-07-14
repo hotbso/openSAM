@@ -45,7 +45,9 @@ class MyPlane : public Plane, public dgs::Plane {
 
     float elevation_{};
 
-   public:
+    dgs::EqStatusVal GetPbbEqStatus() override;
+
+  public:
     MyPlane();
     ~MyPlane() override {}
 
