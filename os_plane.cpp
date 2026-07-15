@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2024, 2025, 2026  Holger Teutsch
 //
@@ -21,17 +21,17 @@
 
 #include <cassert>
 #include "opensam.h"
-#include "plane.h"
+#include "os_plane.h"
 #include "log_msg.h"
 
-int Plane::id_base_;
+int OsPlane::id_base_;
 
 static const float kAnimInterval = -1;  // s for debugging or -1 for frame loop
 
-const char* const Plane::state_str_[] = {"DISABLED", "IDLE",   "PARKED",    "SELECT_JWS", "CAN_DOCK",
+const char* const OsPlane::state_str_[] = {"DISABLED", "IDLE",   "PARKED",    "SELECT_JWS", "CAN_DOCK",
                                          "DOCKING",  "DOCKED", "UNDOCKING", "CANT_DOCK"};
 
-Plane::~Plane() {
+OsPlane::~OsPlane() {
     LogMsg("pid=%02d, Plane destructor, state: %s, active_jws: %d", id_, state_str_[state_], (int)active_jws_.size());
     if (kIdle <= state_) {
         for (int ajw_idx : active_jws_)
@@ -42,7 +42,7 @@ Plane::~Plane() {
 }
 
 // auto select active jetways
-void Plane::AutoSelectJws() {
+void OsPlane::AutoSelectJws() {
     if (door_info_.empty())
         return;
 
@@ -85,7 +85,7 @@ void Plane::AutoSelectJws() {
 }
 
 // the state machine called from the flight loop
-float Plane::JwStateMachine() {
+float OsPlane::JwStateMachine() {
     if (state_ == kDisabled) {
         state_machine_next_ts_ = ::now + 2.0f;
         return 2.0f;

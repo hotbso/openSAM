@@ -31,7 +31,7 @@ static XPLMDataRef modeS_id_dr, icao_type_dr, flight_id_dr,  // identity
     x_dr, y_dr, z_dr, psi_dr,                                // position
     on_ground_dr, lights_dr, throttle_dr;                    // state
 
-class MpPlane_xPilot : public Plane {
+class MpPlane_xPilot : public OsPlane {
     const int slot_;
     std::string flight_id_;
 
@@ -204,7 +204,7 @@ float MpAdapter_xPilot::update() {
     // loop over mp_planes_ and delete the ones that are no longer in drefs
     for (auto& mp : mp_planes_) {
         const std::string& key = mp.first;
-        Plane& plane = *(mp.second);
+        OsPlane& plane = *(mp.second);
 
         if (dref_planes.find(key) == dref_planes.end()) {
             LogMsg("pid=%02d key: %s not longer exists, deleted", plane.id_, key.c_str());

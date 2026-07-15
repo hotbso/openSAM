@@ -31,9 +31,9 @@ static constexpr int kNearJwLimit = 3;     // max # of jetways we consider for d
 static constexpr float kMpMaxDist = 2000;  // (m) max dist we consider MP planes
 
 //
-// Generic class that provides all plane related values for jetway animation.
+// Generic class that provides all plane related values for openSAM jetway animation.
 //
-class Plane {
+class OsPlane {
    public:
     enum State {
         kDisabled = 0,
@@ -70,13 +70,13 @@ class Plane {
     // loaded for my_plane on start, updated on the fly for MP planes
     std::vector<DoorInfo> door_info_;
 
-    Plane() : id_(id_base_++) {
+    OsPlane() : id_(id_base_++) {
         nearest_jws_.reserve(20);
         active_jws_.reserve(kMaxDoor);
         door_info_.reserve(kMaxDoor);
     }
 
-    virtual ~Plane() = 0;
+    virtual ~OsPlane() = 0;
 
     // general state
     State state() { return state_; }

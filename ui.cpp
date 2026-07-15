@@ -424,7 +424,7 @@ void Ui::BuildInterface() {
         XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
     }
 
-    if (my_plane->state() == Plane::kSelectJws) {
+    if (my_plane->state() == OsPlane::kSelectJws) {
         if (nearest_jws_seqno_ != my_plane->nearest_jws_seqno_) {
             // nearest jetway list has changed since last time, so we reset the selection
             memset(jw_selected_, 0, sizeof(jw_selected_));
@@ -500,7 +500,7 @@ void Ui::BuildInterface() {
                 my_plane->dock_requested_ = true;
             }
         }
-    } else if (my_plane->state() == Plane::kCanDock) {
+    } else if (my_plane->state() == OsPlane::kCanDock) {
         int n_jws = my_plane->nearest_jws_.size();
         int n_doors = my_plane->door_info_.size();
 
@@ -533,13 +533,13 @@ void Ui::BuildInterface() {
 
         if (ImGui::Button("Dock"))
             my_plane->dock_requested_ = true;
-    } else if (my_plane->state() == Plane::kCantDock) {
+    } else if (my_plane->state() == OsPlane::kCantDock) {
         ImGui::TextUnformatted("Cannot dock: no suitable jetways found!");
-    } else if (my_plane->state() == Plane::kDocking) {
+    } else if (my_plane->state() == OsPlane::kDocking) {
         ImGui::TextUnformatted("Docking in progress...");
-    } else if (my_plane->state() == Plane::kUndocking) {
+    } else if (my_plane->state() == OsPlane::kUndocking) {
         ImGui::TextUnformatted("Undocking in progress...");
-    } else if (my_plane->state() == Plane::kDocked) {
+    } else if (my_plane->state() == OsPlane::kDocked) {
         if (ImGui::Button("Undock"))
             my_plane->undock_requested_ = true;
     }

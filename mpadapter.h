@@ -28,7 +28,7 @@
 // xPilot, TGXP, liveTraffic, ...
 class MpAdapter {
   protected:
-    std::unordered_map<std::string, std::unique_ptr<Plane>> mp_planes_;
+    std::unordered_map<std::string, std::unique_ptr<OsPlane>> mp_planes_;
     MpAdapter() {};
 
   public:

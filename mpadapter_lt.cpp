@@ -33,7 +33,7 @@ static constexpr float kD2R = std::numbers::pi/180.0;
 constexpr int kSpawnPerRun = 10;     // new Planes per update run
 constexpr float kDefaultWait = 3.0;  // s
 
-class MpPlane_lt : public Plane {
+class MpPlane_lt : public OsPlane {
     std::string flight_id_;
 
     float scan_mp_planes();
@@ -187,7 +187,7 @@ float MpAdapter_lt::update() {
     // loop over mp_planes and delete the ones that are no longer in drefs
     for (auto& mp : mp_planes_) {
         const std::string& key = mp.first;
-        Plane& plane = *(mp.second);
+        OsPlane& plane = *(mp.second);
 
         if (!lt_planes.contains(key)) {
             LogMsg("pid=%d not longer exists, deleted", plane.id_);

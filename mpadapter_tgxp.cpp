@@ -60,7 +60,7 @@ enum TrafficType {
     PT_Military,
 };
 
-class MpPlane_tgxp : public Plane {
+class MpPlane_tgxp : public OsPlane {
     const int slot_;
     std::string flight_id_;
 
@@ -312,7 +312,7 @@ float MpAdapter_tgxp::update() {
     // loop over mp_planes and delete the ones that are no longer in drefs
     for (auto& mp : mp_planes_) {
         const std::string& key = mp.first;
-        Plane& plane = *(mp.second);
+        OsPlane& plane = *(mp.second);
 
         if (dref_planes.find(key) == dref_planes.end()) {
             LogMsg("pid=%d not longer exists, deleted", plane.id_);

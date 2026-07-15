@@ -24,14 +24,14 @@
 #include "XPLMDataAccess.h"
 
 #include "dgs/plane.h"
-#include "plane.h"
+#include "os_plane.h"
 
 //
 // Derived class that represents the XP-pilot's plane.
 // Clearly there is exactly one instance of this class.
 // It is accessible through "std::unique_ptr<MyPlane> my_plane" .
 //
-class MyPlane : public Plane, public dgs::Plane {
+class MyPlane : public OsPlane, public dgs::Plane {
     friend class Ui;  // for direct access to the jw_selected_ array
 
     XPLMDataRef plane_lat_dr_, plane_lon_dr_, plane_y_agl_dr_;

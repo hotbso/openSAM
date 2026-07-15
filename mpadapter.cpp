@@ -24,7 +24,7 @@
 #include <memory>
 #include <algorithm>
 
-#include "plane.h"
+#include "os_plane.h"
 #include "mpadapter.h"
 #include "mpadapter_xpilot.h"
 #include "mpadapter_tgxp.h"
