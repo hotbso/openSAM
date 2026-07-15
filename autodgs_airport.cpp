@@ -25,6 +25,7 @@
 #include <fstream>
 #include <map>
 #include <algorithm>
+#include <numbers>
 
 #include "XPLMGraphics.h"
 
@@ -36,6 +37,8 @@
 #include "dgs/plane.h"
 
 #include "log_msg.h"
+
+static constexpr float kD2R = std::numbers::pi/180.0;
 
 static constexpr float kVdgsDefaultDist = 15.0;  // m
 static constexpr float kMarshallerDefaultDist = 25.0;
@@ -192,7 +195,9 @@ void AdgsStand::CalcDgsPosition() {
 
     double lat, lon, elevation;
     XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, &lat, &lon, &elevation);
-    SetDgsPosition(lat, lon, elevation, probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, as_.hdgt);
+
+    float turn = 0.75f * std::atan2(dgs_left_right_, dgs_dist_) / kD2R;  // turn of DGS relative to stand centerline
+    SetDgsPosition(lat, lon, elevation, probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, as_.hdgt + turn);
 
     // may be called during initialization before the DGS instance is created, hence the check
     if (dgs_)
