@@ -41,7 +41,7 @@
 #include "plane.h"
 #include "my_plane.h"
 #include "mpadapter.h"
-#include "opensam_airport.h"
+#include "os_airport.h"
 #include "autodgs_airport.h"
 #include "dgs/plane.h"
 #include "sam1_dgs.h"

@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2026  Holger Teutsch
 //
@@ -26,7 +26,7 @@
 #include "XPLMGraphics.h"
 
 #include "opensam.h"
-#include "opensam_airport.h"
+#include "os_airport.h"
 #include "my_plane.h"
 
 #include "dgs/dgs.h"
@@ -70,7 +70,7 @@ void OsStand::InstallDgs(const OsDgsCtx& ctx) {
     drawinfo_.z = ctx.obj_z;
     drawinfo_.heading = psi;
 
-    // account for precision loss as obj_x/y/z is only float
+    // extra pull forward to account for precision loss as obj_x/y/z is only float
     float dx = -kExtraDz * std::sin(psi * kD2R);
     float dz =  kExtraDz * std::cos(psi * kD2R);
     drawinfo_.x += dx;
@@ -108,9 +108,8 @@ bool OsStand::has_jw() const {
 OsAirport::OsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_airport) {
    float arpt_elevation = XPLMGetDataf(plane_elevation_dr);  // best guess
 
-    for (auto const& as : apt_airport.stands_) {
-        stands_.emplace_back(std::make_unique<OsStand>(as, name_, arpt_elevation));
-    }
+    for (auto const& as : apt_airport.stands_)
+        stands_.push_back(std::make_unique<OsStand>(as, name_, arpt_elevation));
 
     dgs_cache_.reserve(stands_.size() * 2);  // reserve some space for the DGS cache to avoid rehashing etc.
     pending_dgs_.reserve(stands_.size());

@@ -28,7 +28,7 @@
 
 #include "opensam.h"
 #include "samjw.h"
-#include "opensam_airport.h"
+#include "os_airport.h"
 #include "quadtree.h"
 #include "quadtree.inl"
 #include "position_cache_key.h"

@@ -33,7 +33,7 @@
 
 #include "opensam.h"
 #include "autodgs_airport.h"
-#include "opensam_airport.h"
+#include "os_airport.h"
 #include "jwctrl.h"
 #include "my_plane.h"
 #include "seasons.h"

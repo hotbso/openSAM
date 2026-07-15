@@ -71,9 +71,9 @@ class OsStand : public dgs::Stand {
 
 // dgs::Airport augmented for openSAM
 class OsAirport : public dgs::Airport {
-    // the cache is used to quickly check whether a DGS at a given position has already been seen
-    // it is filled on the fly when we encounter a DGS for the first time in a draw loop and cleared when the ref
-    // frame changes
+    // The cache is used to quickly check whether a DGS at a given position has already been seen.
+    // It is filled on the fly when we encounter a DGS for the first time in a draw loop and cleared when the ref
+    // frame changes.
     std::unordered_map<PositionCacheKey, bool, PositionCacheKeyHasher> dgs_cache_;
     unsigned int dgs_cache_ref_gen_ = 0;                                // to invalidate cache when ref frame changes
 
@@ -82,7 +82,7 @@ class OsAirport : public dgs::Airport {
     // the draw loop context.
     std::vector<OsDgsCtx> pending_dgs_;
 
-    // process a newly identified DGS, e.g. by instancing it and associating it with a stand
+    // Process a newly identified DGS, e.g. by instancing it and associating it with a stand.
     void ProcessPendingDgs(OsDgsCtx& ctx);
     int FindStandForObj(const OsDgsCtx& ctx);  // returns index in stands_ or -1 if not found
 

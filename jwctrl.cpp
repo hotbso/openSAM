@@ -29,7 +29,7 @@
 #include "opensam.h"
 #include "door_info.h"
 #include "plane.h"
-#include "opensam_airport.h"
+#include "os_airport.h"
 #include "samjw.h"
 #include "jwctrl.h"
 #include "quadtree.h"
