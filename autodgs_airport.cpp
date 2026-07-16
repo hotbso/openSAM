@@ -152,7 +152,7 @@ void AdgsStand::SetDgsType(int dgs_type, bool pole) {
 // tactical command to cycle between Marshaller and default VDGS during arrival
 void AdgsStand::CycleDgsType() {
     int new_dgs_type = (dgs_type_ == kMarshaller ? kDefaultVDGS : kMarshaller);
-    SetDgsType(new_dgs_type);
+    SetDgsType(new_dgs_type, new_dgs_type == kDefaultVDGS);
 }
 
 // compute the DGS position
@@ -500,7 +500,7 @@ void AdgsAirport::DgsMoveCloser() {
 
 void AdgsAirport::SetDgsType(int dgs_type) {
     if (active_stand_ >= 0) {
-        dynamic_cast<AdgsStand*>(stands_[active_stand_].get())->SetDgsType(dgs_type);
+        dynamic_cast<AdgsStand*>(stands_[active_stand_].get())->SetDgsType(dgs_type, dgs_type != kMarshaller);
         user_cfg_changed_ = true;
     }
 }
