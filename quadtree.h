@@ -23,6 +23,7 @@
 
 #include <vector>
 #include <array>
+#include <unordered_map>
 #include <string>
 #include <memory>
 #include <algorithm>
@@ -77,20 +78,29 @@ static inline float RA(float angle) {
 }
 
 template <typename Float>
-struct Box {
+class Box {
+    public:
     // it is assumed that the lon values are normalized
-    Float min_lon, min_lat, max_lon, max_lat;
+    Float min_lon_, min_lat_, max_lon_, max_lat_;
 
     bool Contains(Float lon, Float lat) const noexcept;
     bool Intersects(const Box& other) const noexcept;
 
     // this is inside other
     bool InsideOf(const Box& other) const noexcept {
-        return other.Contains(min_lon, min_lat) && other.Contains(max_lon, max_lat);
+        return other.Contains(min_lon_, min_lat_) && other.Contains(max_lon_, max_lat_);
     }
 
+    Box() {};
+
+    Box(Float min_lon, Float min_lat, Float max_lon, Float max_lat) noexcept
+        : min_lon_(min_lon), min_lat_(min_lat), max_lon_(max_lon), max_lat_(max_lat) {}
+
+    // Find items in a +-dist_meters box around ll point (= distance in infinity-norm)
+    Box(Float center_lon, Float center_lat, Float dist_meters) noexcept;
+
     // return the 4 quadrants of this box, in order sw, se, nw, ne
-    std::array<Box, 4> Subdivide() const noexcept;
+    std::array<Box<Float>, 4> Subdivide() const noexcept;
 };
 
 template <typename Float, typename Item, int kMaxItem>
@@ -115,10 +125,8 @@ class LLQuadTree {
     void Insert(Item* item);
     int Find(Float lon, Float lat, std::array<Item*, kMaxItem>& items, int* depth = nullptr) const;
 
-    // find min_items around the given point, e.g. jetways around a stand
-    // min_items is a hint, so the result can contain more or less items, but it will try to find at least min_items if
-    // possible by expanding the search area
-    std::vector<Item*> FindAround(Float lon, Float lat, int min_items) const;
+    // find all items in a box, e.g. jetways near to a stand
+    std::unordered_map<Item*, bool> FindInBox(const Box<Float>& box) const;
 
     void Dump();    // for debugging
 };

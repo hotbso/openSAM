@@ -218,14 +218,14 @@ bool operator<(const JwCtrl& a, const JwCtrl& b) {
 }
 
 // filter list of jetways jws[]for candidates and add them to nearest_jws[]
-static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCtrl>& nearest_jws, std::vector<SamJw*>& jws,
-                             const DoorInfo& door_info) {
+static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCtrl>& nearest_jws,
+                             std::unordered_map<SamJw*, bool> near_jws_map, const DoorInfo& door_info) {
     // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
     // So we find the nearest jetways on the left and do some heuristics
 
     int invisible_jws = 0;
-    for (auto jw : jws) {
-        if (jw->obj_ref_gen < ref_gen) { // not visible -> not dockable
+    for (auto& [jw, _] : near_jws_map) {
+        if (jw->obj_ref_gen < ref_gen) {  // not visible -> not dockable
             invisible_jws++;
             continue;
         }
@@ -243,17 +243,18 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCt
         // ... and send it through the filters ...
         if (njw.x_ > 1.0f ||
             is_between(fem::RA(njw.psi_ + jw->initialRot1), -130.0f, 20.0f) ||  // on the right side or pointing away
-            njw.x_ < -80.0f || std::abs(njw.z_) > 80.0f) {                 // or far away
-            if (std::abs(njw.x_) < 120.0f && std::abs(njw.z_) < 120.0f)       // don't pollute the log with jws VERY far away
+            njw.x_ < -80.0f || std::abs(njw.z_) > 80.0f) {                      // or far away
+            if (std::abs(njw.x_) < 120.0f && std::abs(njw.z_) < 120.0f)  // don't pollute the log with jws VERY far away
                 LogMsg("pid=%02d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initialRot1): %0.1f",
                        plane_info.id, jw->name.c_str(), njw.x_, njw.z_, njw.psi_ + jw->initialRot1);
             continue;
         }
 
-        if (!(is_between(njw.docked_rot1_, jw->minRot1, jw->maxRot1) && is_between(njw.docked_rot2_, jw->minRot2, jw->maxRot2) &&
+        if (!(is_between(njw.docked_rot1_, jw->minRot1, jw->maxRot1) &&
+              is_between(njw.docked_rot2_, jw->minRot2, jw->maxRot2) &&
               is_between(njw.docked_extent_, jw->minExtent, jw->maxExtent))) {
-            LogMsg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f", jw->name.c_str(), jw->door,
-                   njw.docked_rot1_, njw.docked_rot2_, njw.docked_rot3_, njw.docked_extent_);
+            LogMsg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f", jw->name.c_str(),
+                   jw->door, njw.docked_rot1_, njw.docked_rot2_, njw.docked_rot3_, njw.docked_extent_);
             LogMsg("  does not fulfil min max criteria in sam.xml");
             float extra_extent = njw.docked_extent_ - jw->maxExtent;
             if (extra_extent < 10.0f) {
@@ -267,14 +268,14 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCt
         LogMsg(
             "--> pid=%02d, candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
             "rot1: %0.1f, extent: %.1f",
-            plane_info.id, jw->name.c_str(), jw->library_id, jw->door, njw.x_, njw.z_, njw.y_, njw.psi_, njw.docked_rot1_,
-            njw.docked_extent_);
+            plane_info.id, jw->name.c_str(), jw->library_id, jw->door, njw.x_, njw.z_, njw.y_, njw.psi_,
+            njw.docked_rot1_, njw.docked_extent_);
 
         nearest_jws.push_back(std::move(njw));
     }
 
     if (invisible_jws > 0)
-        LogMsg("skipped %d invisible of %d total jetways", invisible_jws, static_cast<int>(jws.size()));
+        LogMsg("skipped %d invisible of %d total jetways", invisible_jws, static_cast<int>(near_jws_map.size()));
 }
 
 // find nearest jetways, order by z (= door number, hopefully)
@@ -309,15 +310,17 @@ int JwCtrl::FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<Jw
     double plane_lat, plane_lon, plane_alt;
     XPLMLocalToWorld(plane_info.x, plane_info.y, plane_info.z, &plane_lat, &plane_lon, &plane_alt);
 
-    std::vector<SamJw *> near_jws = jw_quadtree.FindAround(plane_lon, plane_lat, 20);
-    if (near_jws.empty()) {
-        LogMsg("no jetways found around plane position, strange...");
+    static constexpr float kMaxDist = 60.0f;  // m, max distance to consider a jetway as a candidate
+    quadtree::Box<double> search_box(plane_lon, plane_lat, kMaxDist);  // +-60 m search box
+    std::unordered_map<SamJw*, bool> near_jws_map = jw_quadtree.FindInBox(search_box);
+    if (near_jws_map.empty()) {
+        LogMsg("no jetways found around plane position, in a box of %0.1f m around ll: (%0.6f, %0.6f)", kMaxDist, plane_lat, plane_lon);
         return 0;
     }
 
-    LogMsg("found %d jetways around plane position", static_cast<int>(near_jws.size()));
+    LogMsg("found %d jetways around plane position", static_cast<int>(near_jws_map.size()));
 
-    FilterCandidates(plane_info, nearest_jws, near_jws, avg_di);
+    FilterCandidates(plane_info, nearest_jws, near_jws_map, avg_di);
 
     // delayed processing of zc jetways now once os_arpt is available, as we need the stands for that
     if (os_arpt) {

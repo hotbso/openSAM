@@ -74,7 +74,7 @@ bool SamJw::Lock(int pid) {  // -> whether lock could be aquired
     }
 
     if (locked == 0)
-        LogMsg("pid=%02d, jw '%s' locked", pid, name.c_str());
+        LogMsg("pid=%02d, locking jw '%s'", pid, name.c_str());
 
     locked++;
     lock_pid = pid;
@@ -84,7 +84,7 @@ bool SamJw::Lock(int pid) {  // -> whether lock could be aquired
 void SamJw::Unlock() {
     locked--;
     if (locked == 0) {
-        LogMsg("pid=%02d, jw '%s' unlocked", lock_pid, name.c_str());
+        LogMsg("pid=%02d, unlocking jw '%s'", lock_pid, name.c_str());
         lock_pid = 0;
     } else if (locked < 0) {
         LogMsg("jw '%s' unlocked too many times, locked: %d", name.c_str(), locked);
@@ -291,7 +291,8 @@ static float JwAnimAcc(void* ref) {
                    obj_z, obj_lat, obj_lon);
 
             // some support for sloppy configured scenery, e.g. sam.xml values quite off
-            std::vector<SamJw*> around = jw_quadtree.FindAround(obj_lon, obj_lat, 5);
+            quadtree::Box<double> search_box(obj_lon, obj_lat, 2 * SamJw::kSam2ObjMax);  // 2 * max delta between sam.xml and object coords
+            std::unordered_map<SamJw*, bool>  around = jw_quadtree.FindInBox(search_box);
             if (around.empty()) {
                 LogMsg("FindAround found no candidates either");
                 NegativeCacheEntry();
@@ -303,7 +304,7 @@ static float JwAnimAcc(void* ref) {
             SamJw* nearest = nullptr;
             fem::LLPos obj_pos(obj_lat, obj_lon);
 
-            for (auto ajw : around) {
+            for (auto& [ajw, _] : around) {
                 LogMsg("candidate: '%s', lat: %0.6f, lon: %0.6f", ajw->name.c_str(), ajw->latitude, ajw->longitude);
                 if (std::abs(fem::RA(ajw->heading - obj_psi)) > 2.0f * SamJw::kSam2ObjHdgMax) { // be generous as well
                     LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", ajw->name.c_str(),

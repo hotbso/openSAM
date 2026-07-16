@@ -144,13 +144,15 @@ void scenery_test() {
 
     jw_quadtree.Dump();
 
-    printf("\n\nLooking for ~20 jetways around EDDM stand 251A (11.797650, 48.354206)\n");
-    std::vector<SamJw*> found_items = jw_quadtree.FindAround(11.797650, 48.354206, 20);  // EDDM stand 251A
-    if (found_items.empty())
-        printf("\nNo jetways found by FindAround\n");
+    printf("\n\nSearching in +-50m box around EDDM stand 251A (11.797650, 48.354206)\n");
+    std::vector<SamJw*>found_items;
+    quadtree::Box<double> search_box(11.797650, 48.354206, 50);  // 50 m box around the stand
+    std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box);
+    if (found_map.empty())
+        printf("\nNo jetways found by FindInBox\n");
     else {
-        for (auto jw : found_items)
-            printf("Found jetway by FindAround: '%s' at %0.6f, %0.6f\n", jw->name.c_str(), jw->latitude,
+        for (auto& [jw, _] : found_map)
+            printf("Found jetway by FindInBox: '%s' at %0.6f, %0.6f\n", jw->name.c_str(), jw->latitude,
                    jw->longitude);
     }
 }
