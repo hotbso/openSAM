@@ -122,7 +122,7 @@ LLQuadTreeNode<Float, Item, kMaxItem>::LLQuadTreeNode(LLQuadTree<Float, Item, kM
                                                       Box<Float> bounds, Item* item)
     : tree_(tree), id_(id), bounds_(bounds) {
     assert(item != nullptr);
-    auto item_bounds = item->bounds();
+    [[maybe_unused]] auto item_bounds = item->bounds();
     assert(bounds_.Intersects(item_bounds));  // The item must intersect with the node's bounds
     items_.reserve(kMaxItem);
     items_.push_back(item);

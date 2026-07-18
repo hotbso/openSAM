@@ -306,7 +306,7 @@ void Editor::ProcessChangedParams() {
         return;
     }
 
-    for (int idx : changed_idx_)
+    for ([[maybe_unused]]int idx : changed_idx_)
         assert(0 <= idx && idx < adgs_arpt->nstands());
 
     if (request_set_dgs_dist_) {
