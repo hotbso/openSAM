@@ -134,7 +134,7 @@ elseif(APPLE)
     else()
         set(_expat expat)   # ships with macOS / Homebrew / MacPorts natively
     endif()
-    target_link_libraries(openSAM PRIVATE ${XPLM_FW} ${_expat} "-framework OpenGL")
+    target_link_libraries(openSAM PRIVATE ${XPLM_FW} ${_expat} "-framework OpenGL" "-framework Carbon")
     install(TARGETS openSAM LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/mac_x64")
 
 elseif(UNIX)
