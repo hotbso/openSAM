@@ -78,9 +78,10 @@ Currently suuports only the ToLiss fleet.
 
 ![Image](images/boarding.jpg)
 
-#### Simbrief integration
+#### Simbrief integration with CDM support
 With Simbrief integration the VDGS displays flight number, destination and out/off times as well.\
-This requires the `simbrief_hub` plugin to be installed.
+This requires the [simbrief_hub](https://github.com/hotbso/simbrief_hub) plugin to be installed.\
+Full CDM support with display of TSAT, SID, CTOT etc. in the VDGS is included.
 
 ![Image](images/simbrief.jpg)
 
@@ -135,7 +136,7 @@ TGXP gives the visually most pleasing rendition.
 
 ![Image](images/MP-xPilot.jpg)
 
-### Usage
+## Usage
 The openSAM plugin defines commands:
 - "Dock jetway"   -> openSAM/dock_jwy
 - "Undock jetway" -> openSAM/undock_jwy
@@ -207,9 +208,14 @@ Locate the "openSAM: plane loaded" line in Log.txt.
 openSAM: plane loaded: B742, plane_cg_y: -2.44, plane_cg_z: 31.81, door 1: x: -2.93, y: 1.77, z: -22.45
 
 Use these values as a starting point: door 2 is somewhat behind meaning z towards the tail and the
-correct line to enter in "acf_door_position.txt" is:
+correct line to enter in *planes.cfg* is:
 
-B742 2 -2.93 1.77 -14.40
+```
+icao B742
+.
+.
+door_2 -2.93 1.77 -14.40
+```
 
 Please share results so they can be included in future updates.
 
