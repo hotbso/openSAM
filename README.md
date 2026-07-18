@@ -165,6 +165,8 @@ In addition openSAM exports datarefs:
     0 = no jetway docked at this door
     1 = jetway docked at this door
 ```
+openSAM tries its best to report the status of a standard XP12 jetway as well but this is heuristics and may not be 100% exact.
+
 ## Customize actions after docking / before undocking
 openSAM calls optional commands "openSAM/post_dock" and "openSAM/pre_undock". \
 See a sample in the lua directory for the ToLiss fleet and more examples in the contributed directory.
@@ -232,7 +234,10 @@ In case you want to keep your jetway objects unmodified script ```dev-tools/gen_
 nondestructively into a separate library object by appending _ljw to the base name.
 
 ```py gen_libjw_from_jw -jwpath "<somepath>/myjetway.obj -set hotbso_1``` creates a file ```myjetway_ljw.obj```
-in the current directory and uses the specified set name for datarefs.
+in the current directory and uses the specified set name for datarefs.\
+
+**This is a command line tool** \
+![Image](images/gen_libjw.jpg)
 
 **Note**: all collected library jetways share a single global namespace. Hence be specific with your set names e.g. include your studio name.
 
