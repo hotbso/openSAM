@@ -420,10 +420,12 @@ void SamJw::Init(int max_sam_stands) {
 }
 
 void SamJw::Finalize() {
+#if 0
     jw_quadtree.Dump();
     for (int i = 0; i < (int)sam_jw_list.size(); i++) {
         SamJw* jw = sam_jw_list[i];
         LogMsg("jw[%d]: '%s', ll: (%0.6f, %0.6f), local: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f", i, jw->name.c_str(),
                jw->latitude, jw->longitude, jw->x, jw->z, jw->y, jw->psi);
     }
+#endif
 }

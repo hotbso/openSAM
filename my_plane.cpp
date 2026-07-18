@@ -137,8 +137,8 @@ MyPlane::MyPlane() {
                              JwDoorStatusAcc, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 }
 
-// Command processing is asynchronous to ui and state machine, so we set the request flag here multiple times and reset
-// it when the state machine picks it up.
+// Command processing is asynchronous to ui and state machine, so we can set the request flag here multiple times and
+// reset it when the state machine picks it up.
 void MyPlane::RequestDock() {
     if (state_ == kCanDock)
         dock_requested_ = true;

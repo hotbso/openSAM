@@ -89,7 +89,7 @@ Stand::Stand(const AptStand& as, const std::string& arpt_icao, float elevation)
 }
 
 Stand::~Stand() {
-    LogMsg("Stand '%s' destructed", cname());
+    // LogMsg("Stand '%s' destructed", cname());
     dgs_ = nullptr;
 }
 
