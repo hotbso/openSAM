@@ -94,7 +94,7 @@ void OsStand::InstallDgs(const OsDgsCtx& ctx) {
     }
 
     if (dgs_ != nullptr) {
-        dgs_->SetPos(drawinfo_);
+        dgs_->SetPos(drawinfo_, height_);
         SetIdle();
         dgs_position_set_ = true;
     }
