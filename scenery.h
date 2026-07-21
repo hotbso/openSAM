@@ -61,7 +61,7 @@ class Scenery {
     // Not copyable or assignable
     Scenery(const Scenery&) = delete;
     Scenery& operator=(const Scenery&) = delete;
-    Scenery(Scenery&&) = default;
+    Scenery(Scenery&&) noexcept = default;
 
     static Scenery *FindScenery(float lat, float lon);
     // a poor man's factory for creating sceneries, return max # of stands in sam sceneries

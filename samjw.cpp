@@ -67,7 +67,7 @@ quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;
 std::vector<SamJw*> sam_jw_list;
 std::vector<SamLibJw*> lib_jw;
 
-bool SamJw::Lock(int pid) {  // -> whether lock could be aquired
+bool SamJw::Lock(int pid) noexcept {  // -> whether lock could be aquired
     if (locked > 0 && lock_pid != pid) {
         LogMsg("pid=%02d, failed to lock jw '%s', already locked by pid=%02d", pid, name.c_str(), lock_pid);
         return false;
@@ -81,7 +81,7 @@ bool SamJw::Lock(int pid) {  // -> whether lock could be aquired
     return true;
 }
 
-void SamJw::Unlock() {
+void SamJw::Unlock() noexcept {
     locked--;
     if (locked == 0) {
         LogMsg("pid=%02d, unlocking jw '%s'", lock_pid, name.c_str());

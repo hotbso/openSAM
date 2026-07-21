@@ -66,9 +66,9 @@ struct SamJw {
     // bounding box around the anchor point for quick lookup in quadtree, computed from lat/lon and kSam2ObjMax
     quadtree::Box<double> bbox;
 
-    bool is_locked() const { return locked > 0; }
-    bool Lock(int pid); // -> whether lock could be aquired
-    void Unlock();
+    bool is_locked() const noexcept { return locked > 0; }
+    bool Lock(int pid) noexcept; // -> whether lock could be aquired
+    void Unlock() noexcept;
 
     // set wheels height
     void SetWheels() {

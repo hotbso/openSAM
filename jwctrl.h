@@ -119,6 +119,7 @@ class JwCtrl {
 
    public:
     JwCtrl(const JwCtrl&) = default;
+    JwCtrl(JwCtrl&&) noexcept = default;
     JwCtrl& operator=(const JwCtrl&) = default;
 
     JwCtrl(SamJw* jw, const JwCtrlPlaneInfo& plane_info);
@@ -137,11 +138,11 @@ class JwCtrl {
     bool DockDrive();
     bool UndockDrive();
 
-    void UnlockJw();           // unlock the jetway controled by this controller
-    void ResetJw();              // reset the jetway controlled by this controller to the initial position
-    const char* name() const;  // name of jetway controlled by this controller
+    void UnlockJw() noexcept;           // unlock the jetway controled by this controller
+    void ResetJw();                     // reset the jetway controlled by this controller to the initial position
+    const char* name() const noexcept;  // name of jetway controlled by this controller
 
-    friend bool operator<(const JwCtrl&, const JwCtrl&);
+    friend bool operator<(const JwCtrl&, const JwCtrl&) noexcept;
 
     // static initialization hooks, call once
     static void SoundInit();  // inits device and loads wav

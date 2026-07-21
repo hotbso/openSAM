@@ -192,7 +192,7 @@ void JwCtrl::SetupForDoor(const DoorInfo& door_info) {
 
 // a fuzzy comparator for jetway by door number
 // that will only give an approximate ordering that we will refine with a collision checks
-bool operator<(const JwCtrl& a, const JwCtrl& b) {
+bool operator<(const JwCtrl& a, const JwCtrl& b) noexcept{
     // height goes first
     if (a.jw_->height < b.jw_->height - 1.0f)
         return true;
@@ -857,11 +857,11 @@ void JwCtrl::SetupDockUndock(float start_time, bool with_sound) {
     jw_->warnlight = 1;
 }
 
-void JwCtrl::UnlockJw() {
+void JwCtrl::UnlockJw() noexcept{
     jw_->Unlock();
 }
 
-const char* JwCtrl::name() const {
+const char* JwCtrl::name() const noexcept{
     return jw_->name.c_str();
 }
 
