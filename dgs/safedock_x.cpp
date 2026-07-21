@@ -60,7 +60,7 @@ class Safedock_X : public DGS {
     bool pole_;
 
    public:
-    Safedock_X(const std::string& name, const std::string& arpt_icao,  float height, bool display_only, bool pole);
+    Safedock_X(const std::string& name, const std::string& arpt_icao, bool display_only, bool pole);
     ~Safedock_X() override;
 
     bool HasEqStatus() const noexcept override { return true; }
@@ -68,8 +68,9 @@ class Safedock_X : public DGS {
 
     void SetGuidanceParams(const GuidanceParams& params) override;
     void SetPos(const XPLMDrawInfo_t& drawinfo, float height) override;
+    void SetPos(const XPLMDrawInfo_t& drawinfo) override;
     void SetMode(Mode mode) override;
-    void SetPaxNo(int pax_no) override;
+    void SetPaxNo(int pax_no) noexcept override;
     void SetOfpData(const Ofp& ofp) override;
 
     float Tick() override;
@@ -118,15 +119,15 @@ bool InitSafedock_X(const std::string& res_dir) {
     return true;
 }
 
-std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std::string& arpt_icao, float height, bool display_only, bool pole) {
+std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std::string& arpt_icao, bool display_only, bool pole) {
     assert(display_obj != nullptr);
-    return std::make_unique<Safedock_X>(name, arpt_icao, height, display_only, pole);
+    return std::make_unique<Safedock_X>(name, arpt_icao, display_only, pole);
 }
 
 //------------------------------------------------------------------------------------
-Safedock_X::Safedock_X(const std::string& name, const std::string& arpt_icao, float height, bool display_only,
+Safedock_X::Safedock_X(const std::string& name, const std::string& arpt_icao, bool display_only,
                        bool pole)
-    : name_(name), arpt_icao_(arpt_icao), height_(height), pole_(pole) {
+    : name_(name), arpt_icao_(arpt_icao), pole_(pole) {
     LogMsg("Creating Safedock_X instance for stand '%s'", name_.c_str());
     // create display name
     // a stand name can be anything between "1" and "Gate A 40 (Class C, Terminal 3)"
@@ -257,6 +258,10 @@ void Safedock_X::SetPos(const XPLMDrawInfo_t& drawinfo, float height) {
     UpdateInstance();
 }
 
+void Safedock_X::SetPos(const XPLMDrawInfo_t& drawinfo) {
+    SetPos(drawinfo, height_);
+}
+
 void Safedock_X::SetMode(Mode mode) {
     if (mode_ == mode)
         return;
@@ -302,7 +307,7 @@ void Safedock_X::SetMode(Mode mode) {
     UpdateInstance();
 }
 
-void Safedock_X::SetPaxNo(int pax_no) {
+void Safedock_X::SetPaxNo(int pax_no) noexcept{
     pax_no_ = pax_no;
 }
 

@@ -50,23 +50,24 @@ class Safedock_T2_24 : public DGS {
     float drefs_[DGS_DR_NUM]{};
 
     XPLMDrawInfo_t pb_drawinfo_{};  // for pole base, on ground
-    float height_;
+    float height_{};                // height of the Safedock_T2_24 above ground
     XPLMDrawInfo_t drawinfo_{};     // height adjusted for box and display
     std::unique_ptr<ScrollTxt> scroll_txt_;
     int pax_no_ = 0;
     bool pole_;
 
    public:
-    Safedock_T2_24(const std::string& name, const std::string& arpt_icao, float height, bool display_only, bool pole);
+    Safedock_T2_24(const std::string& name, const std::string& arpt_icao, bool display_only, bool pole);
     ~Safedock_T2_24() override;
 
     bool HasEqStatus() const noexcept override { return true; }
     bool isVdgs() const noexcept override { return true; }
 
     void SetGuidanceParams(const GuidanceParams& params) override;
-    void SetPos(const XPLMDrawInfo_t& drawinfo, float height = 0.0f) override;
+    void SetPos(const XPLMDrawInfo_t& drawinfo, float height) override;
+    void SetPos(const XPLMDrawInfo_t& drawinfo) override;
     void SetMode(Mode mode) override;
-    void SetPaxNo(int pax_no) override;
+    void SetPaxNo(int pax_no) noexcept override;
     void SetOfpData(const Ofp& ofp) override;
 
     float Tick() override;
@@ -109,15 +110,15 @@ bool InitSafedock_T2_24(const std::string& res_dir) {
     return true;
 }
 
-std::unique_ptr<DGS> CreateSafedock_T2_24(const std::string& name, const std::string& arpt_icao, float height, bool display_only, bool pole) {
+std::unique_ptr<DGS> CreateSafedock_T2_24(const std::string& name, const std::string& arpt_icao, bool display_only, bool pole) {
     assert(display_obj != nullptr);
-    return std::make_unique<Safedock_T2_24>(name, arpt_icao, height, display_only, pole);
+    return std::make_unique<Safedock_T2_24>(name, arpt_icao, display_only, pole);
 }
 
 //------------------------------------------------------------------------------------
-Safedock_T2_24::Safedock_T2_24(const std::string& name, const std::string& arpt_icao, float height, bool display_only,
+Safedock_T2_24::Safedock_T2_24(const std::string& name, const std::string& arpt_icao, bool display_only,
                                bool pole)
-    : name_(name), arpt_icao_(arpt_icao), height_(height), pole_(pole) {
+    : name_(name), arpt_icao_(arpt_icao), pole_(pole) {
     LogMsg("Creating Safedock_T2_24 instance for stand '%s'", name_.c_str());
     // create display name
     // a stand name can be anything between "1" and "Gate A 40 (Class C, Terminal 3)"
@@ -242,6 +243,10 @@ void Safedock_T2_24::SetPos(const XPLMDrawInfo_t& drawinfo, float height) {
     UpdateInstance();
 }
 
+void Safedock_T2_24::SetPos(const XPLMDrawInfo_t& drawinfo) {
+    SetPos(drawinfo, height_);
+}
+
 void Safedock_T2_24::SetMode(Mode mode) {
     if (mode_ == mode)
         return;
@@ -277,7 +282,7 @@ void Safedock_T2_24::SetMode(Mode mode) {
     UpdateInstance();
 }
 
-void Safedock_T2_24::SetPaxNo(int pax_no) {
+void Safedock_T2_24::SetPaxNo(int pax_no) noexcept {
     pax_no_ = pax_no;
 }
 

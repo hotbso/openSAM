@@ -39,7 +39,7 @@ class Marshaller : public DGS {
     bool check_high_{};     // check for MarshallerHigh once
     bool need_stairs_{};    // MarshallerHigh detected, need stairs
     float marshaller_y_0_;  // ground zero for MarshallerHigh
-
+    float height_{};        // height of the Marshaller above ground
     float drefs_[DGS_DR_NUM]{};
 
     float sin_wave_prev_ = 0.0;
@@ -54,7 +54,8 @@ class Marshaller : public DGS {
     bool isVdgs() const noexcept override { return false; }
 
     void SetGuidanceParams(const GuidanceParams& params) override;
-    void SetPos(const XPLMDrawInfo_t& drawinfo, float height = 0.0f) override;
+    void SetPos(const XPLMDrawInfo_t& drawinfo, float height) override;
+    void SetPos(const XPLMDrawInfo_t& drawinfo) override;
     void SetMode(Mode mode) override;
     void UpdateInstance() override;  // update instance position and drefs
 };
@@ -166,9 +167,10 @@ void Marshaller::SetGuidanceParams(const GuidanceParams& dgs_params) {
     distance_prev_ = params.distance;
 }
 
-void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo, float height) {
+void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo, [[maybe_unused]] float height) {
+    height_ = height;  // store for later use in SetPos(drawinfo)
     drawinfo_ = drawinfo;
-    drawinfo_.y += height;  // move up by height (AGL)
+    drawinfo_.y += height_;  // move up by height (AGL)
     LogMsg("Marshaller position updated, x: %0.1f, y: %0.1f, z: %0.1f", drawinfo_.x, drawinfo_.y, drawinfo_.z);
 
     // one time check for marshaller high
@@ -198,6 +200,10 @@ void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo, float height) {
 
     if (stairs_inst_ref_)
         XPLMInstanceSetPosition(stairs_inst_ref_, &stairs_drawinfo_, NULL);
+}
+
+void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo) {
+    SetPos(drawinfo, 0.0f);
 }
 
 void Marshaller::UpdateInstance() {

@@ -45,7 +45,8 @@ class Sam1Legacy : public DGS {
     bool isVdgs() const noexcept override { return false; }
 
     void SetGuidanceParams(const GuidanceParams& params) override;
-    void SetPos(const XPLMDrawInfo_t& drawinfo, float height = 0.0f) override;
+    void SetPos(const XPLMDrawInfo_t& drawinfo, float height) override;
+    void SetPos(const XPLMDrawInfo_t& drawinfo) override;
     void SetMode(Mode mode) override;
     void UpdateInstance() override {};  // no instance to update
 };
@@ -127,6 +128,10 @@ void Sam1Legacy::SetPos(const XPLMDrawInfo_t& drawinfo, [[maybe_unused]]float he
         sam1_drefs.dgs_x = drawinfo_.x;
         sam1_drefs.dgs_z = drawinfo_.z;
     }
+}
+
+void Sam1Legacy::SetPos(const XPLMDrawInfo_t& drawinfo) {
+    SetPos(drawinfo, 0.0f);
 }
 
 }  // namespace dgs

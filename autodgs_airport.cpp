@@ -40,7 +40,7 @@
 
 static constexpr float kD2R = std::numbers::pi/180.0;
 
-static constexpr float kVdgsDefaultDist = 15.0;  // m
+static constexpr float kVdgsDefaultDist = 20.0;  // m
 static constexpr float kMarshallerDefaultDist = 25.0;
 static constexpr float kVdgsT2DefaultHeight = 5.0;  // m AGL
 static constexpr float kVdgsXDefaultHeight = 4.5;   // m AGL
@@ -75,7 +75,9 @@ AdgsStand::AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, floa
     dgs_type_ = -1;  // invalidate to ensure that SetDgsType's code does something
     SetDgsType(dgs_type, pole);
     assert(dgs_);
-    dgs_->SetPos(drawinfo_, dgs_height_);
+
+    // don't use dgs_height_ here, as it may have been overwritten by SetDgsType by applying various defauilt values
+    dgs_->SetPos(drawinfo_, dgs_height);
 
     // LogMsg("AdgsStand '%s', is_wet: %d, type: %d, dgs_dist: %0.1f constructed", cname(),
     //      is_wet_ ? 1 : 0, dgs_type_, dgs_dist_);
@@ -105,41 +107,38 @@ void AdgsStand::SetDgsType(int dgs_type, bool pole) {
     if (dgs_type_ == dgs_type && dgs_pole_ == pole)
         return;
 
+    bool was_marshaller = (dgs_type_ == kMarshaller);
+
     dgs_type_ = dgs_type;
     dgs_pole_ = pole;
 
-    // The Marshaller is tricky as it does not have a static model.
-    // If the placement position is > 2.0m it automatically adds stairs below.
-    if (dgs_type == kMarshaller)    // overwrite for Marshaller
-        dgs_height_ = dgs_pole_ ? kStairsHeight : 0.0f;
-
-    bool was_vdgs = dgs_ && dgs_->isVdgs();
     dgs_ = nullptr;  // destroy old DGS instance
 
     if (dgs_type_ == kMarshaller) {
-        if (was_vdgs)   // if we were a VDGS, we need to recalc the position for the Marshaller
-            CalcDgsPosition();
+        // The Marshaller is tricky as it does not have a static model.
+        // If the placement position is > 2.0m it automatically adds stairs below.
+        dgs_height_ = dgs_pole_ ? kStairsHeight : 0.0f;
         dgs_ = dgs::CreateMarshaller(cname());
     } else if (dgs_type_ == kDefaultVDGS) {
-        if (!was_vdgs)  // if we were a Marshaller, we need to recalc the position for the VDGS
-            CalcDgsPosition();
         if (default_vdgs_type == kVdgsSafedock_T2_24) {
             dgs_height_ = kVdgsT2DefaultHeight;
-            dgs_ = dgs::CreateSafedock_T2_24(cname(), arpt_icao_, dgs_height_);
+            dgs_ = dgs::CreateSafedock_T2_24(cname(), arpt_icao_, /* display_only */ false, /* pole */ true);
         } else {
             dgs_height_ = kVdgsXDefaultHeight;
-            dgs_ = dgs::CreateSafedock_X(cname(), arpt_icao_, dgs_height_);
+            dgs_ = dgs::CreateSafedock_X(cname(), arpt_icao_, /* display_only */ false, /* pole */ true);
         }
     } else if (dgs_type_ == kVdgsSafedock_T2_24) {
-        if (!was_vdgs)
+        if (was_marshaller)
             dgs_height_ = kVdgsT2DefaultHeight;
-        dgs_ = dgs::CreateSafedock_T2_24(cname(), arpt_icao_, dgs_height_, /* display_only */ false, pole);
+        dgs_ = dgs::CreateSafedock_T2_24(cname(), arpt_icao_, /* display_only */ false, pole);
     } else if (dgs_type_ == kVdgsSafedock_X) {
-        if (!was_vdgs)
+        if (was_marshaller)
             dgs_height_ = kVdgsXDefaultHeight;
-        dgs_ = dgs::CreateSafedock_X(cname(), arpt_icao_, dgs_height_, /* display_only */ false, pole);
+        dgs_ = dgs::CreateSafedock_X(cname(), arpt_icao_,  /* display_only */ false, pole);
     } else
        assert(!"AdgsStand::SetDgsType: unknown type");
+
+    CalcDgsPosition();
 
     SetIdle();
     // load position into DGS and force rendering
@@ -349,7 +348,7 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
                 // # type, dgs_dist, height, lr_ofset, has_pole, stand_name
                 // # type = M: Marshaller, V: default VDGS, 2: Safedock-T2, X: Safedock-X
                 // # dgs_dist = dist from parking pos in m
-                // # height = height of dgs (AGL) (only relevant for VDGS)
+                // # height = height of dgs (AGL)
                 // # lr_ofset = left/right offset from centerline
                 // # has_pole = whether the DGS has a pole (or stairs for Marshaller)
                 // V,  14.1,   4.5,   0.0, 1, 3

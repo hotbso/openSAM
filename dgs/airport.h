@@ -52,10 +52,10 @@ class Stand {
     bool dgs_position_set_;
     double dgs_lat_, dgs_lon_, dgs_altitude_;
 
-    XPLMDrawInfo_t drawinfo_;  // for the DGS
+    XPLMDrawInfo_t drawinfo_;  // for the DGS, ground level
     bool is_wet_;
 
-    void CheckRefFrame();  // make sure all local coordintes are current in reference frame
+    void CheckRefFrame();  // make sure all local coordinates are current in reference frame
 
    public:
     Stand(Stand&&) = default;

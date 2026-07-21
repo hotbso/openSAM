@@ -81,10 +81,10 @@ void OsStand::InstallDgs(const OsDgsCtx& ctx) {
             dgs_ = dgs::CreateMarshaller(name());
             break;
         case kDgsType_Safedock_T2_24:
-            dgs_ = dgs::CreateSafedock_T2_24(name(), arpt_icao_, height_, true /*display_only*/);
+            dgs_ = dgs::CreateSafedock_T2_24(name(), arpt_icao_, /* display_only */ true, /* pole */ false);
             break;
         case kDgsType_Safedock_X:
-            dgs_ = dgs::CreateSafedock_X(name(), arpt_icao_, height_, true /*display_only*/);
+            dgs_ = dgs::CreateSafedock_X(name(), arpt_icao_, /* display_only */ true, /* pole*/ false);
             break;
         case kDgsType_SAM1_Legacy:
             dgs_ = dgs::CreateSam1Legacy(name());

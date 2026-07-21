@@ -42,31 +42,48 @@ enum Mode { kIdle, kDeparture, kArrival, kParked, kDeboarding };
 struct GuidanceParams;
 
 // Abstract base class for Marshaller and VDGS
+
+// The proper sequence is:
+// E.g.
+// dgs = CreateSafedock_T2_24(...);
+// dgs->SetPos(drawinfo, height);
+// dgs->SetMode(kArrival);
+// dgs->SetGuidanceParams(params);
+// dgs->SetGuidanceParams(params);
+// ....
+// The dgs instance is then updated by calling dgs->SetGuidanceParams(params) and/or dgs->Tick() in the main loop
+// depending on the phase, which will update the display.
+// EqStatus is pulled by Tick() in the appropriate phase.
+//
+// After a shift of the reference frame, call dgs->SetPos(drawinfo) to update the position of the DGS instances in the
+// sim. Example is after landing in LOWI/26 when turning off the runway there is a reference frame shift in 12.4.3.
+
 class DGS {
    public:
     virtual ~DGS() = 0;
 
     // mandatory overrides
     virtual void SetMode(Mode mode) = 0;
-    virtual void SetPos(const XPLMDrawInfo_t& drawinfo, float height = 0.0f) = 0;  // move to new position only
+    virtual void SetPos(const XPLMDrawInfo_t& drawinfo, float height) = 0;  // set position and height of the DGS
+    virtual void SetPos(const XPLMDrawInfo_t& drawinfo) = 0;  // move to new position only, e.g. after a reference frame shift
     virtual void SetGuidanceParams(const GuidanceParams& params) = 0;
     virtual bool HasEqStatus() const noexcept = 0;  // whether this DGS can show eq status (chocks, gpu, pca, pbb)
     virtual bool isVdgs() const noexcept = 0;  // whether this DGS is a VDGS (vs. Marshaller)
-    virtual void UpdateInstance() = 0;  // show the rendered instance in the sim, e.g. after changing the drawinfo or the model
+    virtual void UpdateInstance() = 0;  // show the rendered instance in the sim, e.g. after changing the drawinfo or display
 
     // optional overrides
-    virtual void SetPaxNo([[maybe_unused]] int pax_no) {};
+    virtual void SetPaxNo([[maybe_unused]] int pax_no) noexcept {};
     virtual void SetOfpData([[maybe_unused]] const Ofp& ofp) {};
     virtual float Tick() { return 5.0f; };  // for VDGS, update display (e.g. scroll text), update eq status, etc., return delay to next update
 };
 
-// maps datarefs
+// maps datarefs, load objects, etc. for all DGS types, must be called before creating any DGS instance
 extern bool InitDGS(const std::string& res_dir);
 
 // Create dgs instances, succeeds or throws
 extern std::unique_ptr<DGS> CreateMarshaller(const std::string& name);
-extern std::unique_ptr<DGS> CreateSafedock_T2_24( const std::string& name,const std::string& arpt_icao, float height, bool display_only = false, bool pole = true);
-extern std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std::string& arpt_icao, float height, bool display_only = false, bool pole = true);
+extern std::unique_ptr<DGS> CreateSafedock_T2_24( const std::string& name,const std::string& arpt_icao,  bool display_only, bool pole);
+extern std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std::string& arpt_icao, bool display_only, bool pole);
 }  // namespace dgs
 
 // global stuff to be defined elsewhere, likely by the main plugin code, e.g. in opensam.cpp
