@@ -120,34 +120,8 @@ Safedock_T2_24::Safedock_T2_24(const std::string& name, const std::string& arpt_
                                bool pole)
     : name_(name), arpt_icao_(arpt_icao), pole_(pole) {
     LogMsg("Creating Safedock_T2_24 instance for stand '%s'", name_.c_str());
-    // create display name
-    // a stand name can be anything between "1" and "Gate A 40 (Class C, Terminal 3)"
-    // we try to extract the net name "A 40" in the latter case
 
-    if (name_.starts_with("Stand"))
-        display_name_ = name_.substr(5);
-    else if (name_.starts_with("Gate"))
-        display_name_ = name_.substr(4);
-    else if (name_.starts_with("Ramp"))
-        display_name_ = name_.substr(4);
-    else
-        display_name_ = name_;
-
-    // trim leading whitespace
-    display_name_.erase(0, display_name_.find_first_not_of(" "));
-
-    // delete stuff following and including a "({,;"
-    if (display_name_.length() > kR1Nchar) {
-        const auto i = display_name_.find_first_of("({,;");
-        if (i != std::string::npos)
-            display_name_.resize(i);
-    }
-
-    // trim trailing whitespace
-    display_name_.erase(display_name_.find_last_not_of(" ") + 1);
-
-    if (display_name_.length() > kR1Nchar)
-        display_name_.clear();  // give up
+    display_name_ = ExtractDisplayName(name_, kR1Nchar);
 
     display_inst_ref_ = XPLMCreateInstance(display_obj, dgs_dlist_dr);
     if (display_inst_ref_ == nullptr) {

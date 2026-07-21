@@ -110,6 +110,37 @@ void ScrollTxt::Tick(float* drefs) {
         drefs[DGS_DR_R1C0 + i] = chars_[i];
 };
 
+// A stand name can be anything between "1" and "Gate A 40 (Class C, Terminal 3)".
+// We try to extract the net name "A 40" in the latter case.
+std::string ExtractDisplayName(const std::string& name, int max_len) {
+    std::string dn = name;
+
+    if (name.starts_with("Stand"))
+        dn = name.substr(5);
+    else if (name.starts_with("Gate"))
+        dn = name.substr(4);
+    else if (name.starts_with("Ramp"))
+        dn = name.substr(4);
+    else
+        dn = name;
+
+    trim(dn);  // trim leading and trailing whitespace
+
+    // delete stuff following and including a "({,;"
+    if ((int)dn.length() > max_len) {
+        const auto i = dn.find_first_of("({,;");
+        if (i != std::string::npos)
+            dn.resize(i);
+    }
+
+    trim(dn);  // trim leading and trailing whitespace
+
+    if ((int)dn.length() > max_len)
+        dn.clear();  // give up
+
+    return dn;
+}
+
 //------------------------------------------------------------------------------------
 
 // Dummy dataref accessor
