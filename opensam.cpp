@@ -446,35 +446,49 @@ static int CmdDockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase ph
     if (error_disabled || xplm_CommandBegin != phase)
         return 0;
 
-    LogMsg("cmd_dock_jw_cb called");
+    LogMsg("CmdDockJwCb called");
 
-    if (ref == NULL)
-        my_plane->RequestDock();
-    else if (ref == (void*)1)
-        my_plane->RequestUndock();
-    else if (ref == (void*)2)
-        my_plane->RequestToggle();
+    if (os_arpt) {
+        if (ref == NULL)
+            my_plane->RequestDock();
+        else if (ref == (void*)1)
+            my_plane->RequestUndock();
+        else if (ref == (void*)2)
+            my_plane->RequestToggle();
+        return 0;
+    }
 
+    // try to emulate the above with XP12's toggle command
+    if (adgs_arpt && adgs_arpt->active_stand_has_xp12_jw()) {
+        LogMsg("trying to emulate dock/undock with XP12's toggle command");
+        if (ref == NULL && !xp12_jw_connected)
+            XPLMCommandOnce(toggle_jetway_cmdr);
+        else if (ref == (void*)1 && xp12_jw_connected)
+            XPLMCommandOnce(toggle_jetway_cmdr);
+        else if (ref == (void*)2)
+            XPLMCommandOnce(toggle_jetway_cmdr);
+    }
     return 0;
 }
 
-// intercept XP12's standard cmd
-static int CmdXp12DockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase,
-                               [[maybe_unused]] void* ref) {
+// intercept XP12's standard cmd, it's a toggle, sigh...
+static int CmdXp12ToggleJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, [[maybe_unused]] void* ref) {
     if (error_disabled)
         return 0;
 
     if (xplm_CommandBegin != phase)
         return 1;
 
-    LogMsg("cmd_xp12_dock_jw_cb called");
-    if (os_arpt)
+    LogMsg("CmdXp12ToggleJwCb called");
+    if (os_arpt) {
         my_plane->RequestToggle();
+        return 0;   // done
+    }
 
     if (adgs_arpt && adgs_arpt->active_stand_has_xp12_jw()) {
-         xp12_jw_connected = !xp12_jw_connected;
-         xp12_jw_connected_ts = now;
-         LogMsg("XP12 jetway connected: %d", xp12_jw_connected);
+        xp12_jw_connected = !xp12_jw_connected;
+        xp12_jw_connected_ts = now;
+        LogMsg("xp12_jw_connected now: %d", xp12_jw_connected);
     }
 
     return 1;  // pass on to XP12
@@ -762,7 +776,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     // augment XP12's standard cmd
     toggle_jetway_cmdr = XPLMFindCommand("sim/ground_ops/jetway");
     if (toggle_jetway_cmdr)
-        XPLMRegisterCommandHandler(toggle_jetway_cmdr, CmdXp12DockJwCb, 1, NULL);
+        XPLMRegisterCommandHandler(toggle_jetway_cmdr, CmdXp12ToggleJwCb, 1, NULL);
 
     // build menues
     XPLMMenuID menu = XPLMFindPluginsMenu();
