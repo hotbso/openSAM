@@ -833,7 +833,13 @@ bool JwCtrl::UndockDrive() {
             state_ = kParked;
             jw_->warnlight = 0;
             jw_->AlertOff();
-            LogMsg("park position reached");
+            // after a valid undock save the current position as the parked position,
+            // so we avoid the micro jumps from a Reset() call
+            LogMsg("park position reached, saving current position as parked position");
+            jw_->initialExtent = jw_->extent;
+            jw_->initialRot1 = jw_->rotate1;
+            jw_->initialRot2 = jw_->rotate2;
+            jw_->initialRot3 = jw_->rotate3;
             jw_->Unlock();
             return true;  // done
         }
