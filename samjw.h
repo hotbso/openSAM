@@ -26,11 +26,24 @@
 #include <vector>
 #include <cmath>
 
+#include "XPLMSound.h"
+
 #include "quadtree.h"
+
+struct Sound {
+    void *data;
+    int size;
+    int num_channels;
+    int sample_rate;
+};
 
 // Context of an instantiated jetway, either in sam.xml or zero config per WED within the scenery
 struct SamJw {
    private:
+    FMOD_CHANNEL* alert_chn_ = nullptr;
+    static Sound alert_;
+    static void AlertComplete(void* ref, FMOD_RESULT status);
+
     int locked{};          // locked by a plane
     int lock_pid{-1};        // id of the plane that has locked this jetway, for logging purposes
 
@@ -76,6 +89,7 @@ struct SamJw {
     }
 
     void Reset() {
+        AlertOff();
         locked = 0;
         lock_pid = -1;
         rotate1 = initialRot1;
@@ -103,7 +117,13 @@ struct SamJw {
     quadtree::Box<double> bounds() const { return bbox; }
     std::string repr() const { return name; }
 
-    // Initializer and Finaliser
+    // sound stuff
+    void AlertOn();
+    void AlertOff();
+    void AlertSetpos();
+
+    // Initializers and Finaliser
+    static void SoundInit();  // inits device and loads wav
     static void Init(int max_sam_stands);
     static void Finalize();
 };
@@ -123,3 +143,6 @@ extern std::vector<SamJw*> sam_jw_list;  // for iterating over all jetways, e.g.
 
 // library jetways information from all collected libraryjetways.xml files
 extern std::vector<SamLibJw*> lib_jw;
+
+// from ReadWav.cpp
+extern void ReadWav(const std::string& fname, Sound& sound);

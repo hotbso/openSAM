@@ -66,6 +66,7 @@ static unsigned int jwc_ref_gen = 0;  // generation # of the reference frame for
 quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;
 std::vector<SamJw*> sam_jw_list;
 std::vector<SamLibJw*> lib_jw;
+Sound SamJw::alert_;
 
 bool SamJw::Lock(int pid) noexcept {  // -> whether lock could be aquired
     if (locked > 0 && lock_pid != pid) {
@@ -391,6 +392,56 @@ static float JwAnimAcc(void* ref) {
     }
 
     return 0.0f;
+}
+
+void SamJw::AlertComplete(void* ref, [[maybe_unused]] FMOD_RESULT status) {
+    SamJw* jw = reinterpret_cast<SamJw*>(ref);
+    jw->alert_chn_ = nullptr;
+}
+
+void SamJw::AlertOn() {
+    if (alert_chn_)
+        return;
+    alert_chn_ = XPLMPlayPCMOnBus(alert_.data, alert_.size, FMOD_SOUND_FORMAT_PCM16, alert_.sample_rate,
+                                  alert_.num_channels, 1, xplm_AudioExteriorEnvironment, AlertComplete, this);
+
+    AlertSetpos();
+    XPLMSetAudioVolume(alert_chn_, 2.0f);
+    XPLMSetAudioFadeDistance(alert_chn_, 10.0f, 10000.0f);
+}
+
+void SamJw::AlertOff() {
+    if (alert_chn_) {
+        // beware: this is asynchronous, so the AlertComplete callback that clears alert_chn_ will be called later
+        XPLMStopAudio(alert_chn_);
+    }
+}
+
+void SamJw::AlertSetpos() {
+    if (alert_chn_ == nullptr)
+        return;
+
+    static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
+    FMOD_VECTOR pos;
+
+    // position in the local coordinate system of the scenery
+    float rot1 = fem::RA((rotate1 + psi) - 90.0f);
+    pos.x = x + (extent + cabinPos) * std::cos(rot1 * kD2R);
+    pos.y = y + height;
+    pos.z = z + (extent + cabinPos) * std::sin(rot1 * kD2R);
+    XPLMSetAudioPosition(alert_chn_, &pos, &vel);
+}
+
+
+// static
+void SamJw::SoundInit() {
+    // load alert sound
+    ReadWav(base_dir + "sound/alert.wav", alert_);
+    if (alert_.data)
+        LogMsg("alert sound loaded, channels: %d, bit_rate: %d, size: %d", alert_.num_channels, alert_.sample_rate,
+               alert_.size);
+    else
+        throw std::runtime_error("Could not load sound");
 }
 
 // static

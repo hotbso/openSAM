@@ -24,8 +24,6 @@
 #include <string>
 #include <vector>
 
-#include "XPLMSound.h"
-
 struct SamJw;
 struct DoorInfo;
 
@@ -35,22 +33,12 @@ struct JwCtrlPlaneInfo {
     std::vector<DoorInfo>& door_info;
 };
 
-struct Sound {
-    void *data;
-    int size;
-    int num_channels;
-    int sample_rate;
-};
-
 // JwCtrl
 // The jetway controller is the glue between a plane and its doors and sam jetways.
 // It has support functions to find appropriate jetways for a plane and does the animation
 // by updating values for the animation datarefs in the corresponding SamJw class.
 
 class JwCtrl {
-   private:
-    static Sound alert_;
-
    public:
     enum JwCtrlState {
         kParked,
@@ -91,8 +79,6 @@ class JwCtrl {
     float last_step_ts_;
     float timeout_;  // so we don't get stuck
 
-    FMOD_CHANNEL* alert_chn_ = nullptr;
-
     void SetupForDoor(const DoorInfo& door_info);
 
     // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 are optional
@@ -111,11 +97,6 @@ class JwCtrl {
     bool RotateWheelBase(float dt);
 
     void AnimateWheels(float ds);
-
-    // sound stuff
-    void AlertOn();
-    void AlertOff();
-    void AlertSetpos();
 
    public:
     JwCtrl(const JwCtrl&) = default;
@@ -145,9 +126,5 @@ class JwCtrl {
     friend bool operator<(const JwCtrl&, const JwCtrl&) noexcept;
 
     // static initialization hooks, call once
-    static void SoundInit();  // inits device and loads wav
     static void Init();       // registers dref accessors
 };
-
-// from ReadWav.cpp
-extern void ReadWav(const std::string& fname, Sound& sound);

@@ -678,7 +678,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
         dgs::AptAirport::LoadingFinished();
 
-        JwCtrl::SoundInit();
+        SamJw::SoundInit();
     } catch (const std::exception& ex) {
         LogMsg("fatal error: '%s', bye!", ex.what());
         return 0;  // bye

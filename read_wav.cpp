@@ -23,7 +23,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "jwctrl.h"
+#include "samjw.h"
 #include "log_msg.h"
 
 struct WAV_FORMAT {

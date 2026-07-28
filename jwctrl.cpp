@@ -51,8 +51,6 @@ static constexpr float kAnimTimeout = 50;        // s
 static constexpr float kAlignDist = 1.0;         // m abeam door
 static constexpr float kCanopyCloseTime = 5.0f;  // s, time to close canopy after docking
 
-Sound JwCtrl::alert_;
-
 struct Vec2 {
     float x, z;
 };
@@ -135,8 +133,7 @@ JwCtrl::JwCtrl(SamJw* jw, const JwCtrlPlaneInfo& plane_info) : jw_(jw) {
 }
 
 JwCtrl::~JwCtrl() {
-    // Play it safe. Sound is asynchronous and uses context that we are just going to destroy.
-    AlertOff();
+    jw_->AlertOff();
 
     if (jw_->is_locked())
         jw_->Unlock();
@@ -559,7 +556,7 @@ bool JwCtrl::DockDrive() {
         jw_->rotate3 = docked_rot3_;
         jw_->extent = docked_extent_;
         jw_->warnlight = 0;
-        AlertOff();
+        jw_->AlertOff();
         return true;  // -> done
     }
 
@@ -680,7 +677,7 @@ bool JwCtrl::DockDrive() {
             state_ = kAtDoor;
             LogMsg("door reached");
             jw_->warnlight = 0;
-            AlertOff();
+            jw_->AlertOff();
             // FALLTHROUGH to close canopy
         }
     }
@@ -701,7 +698,7 @@ bool JwCtrl::DockDrive() {
         return true;
     }
 
-    AlertSetpos();
+    jw_->AlertSetpos();
     return false;
 }
 
@@ -718,7 +715,6 @@ bool JwCtrl::UndockDrive() {
         LogMsg("UndockDrive() timeout!");
         state_ = kParked;
         jw_->Reset();
-        AlertOff();
         return true;  // -> done
     }
 
@@ -836,14 +832,14 @@ bool JwCtrl::UndockDrive() {
         if (fabs(tgt_x - cabin_x_) < eps && fabs(tgt_z - cabin_z_) < eps) {
             state_ = kParked;
             jw_->warnlight = 0;
-            AlertOff();
+            jw_->AlertOff();
             LogMsg("park position reached");
             jw_->Unlock();
             return true;  // done
         }
     }
 
-    AlertSetpos();
+    jw_->AlertSetpos();
     return false;
 }
 
@@ -853,7 +849,7 @@ void JwCtrl::SetupDockUndock(float start_time, bool with_sound) {
     last_step_ts_ = start_ts_;
     timeout_ = start_ts_ + kAnimTimeout;
     if (with_sound)
-        AlertOn();
+        jw_->AlertOn();
     jw_->warnlight = 1;
 }
 
@@ -866,56 +862,7 @@ const char* JwCtrl::name() const noexcept{
 }
 
 void JwCtrl::ResetJw() {
-    AlertOff();
     jw_->Reset();
-}
-
-static void AlertComplete(void* ref, [[maybe_unused]] FMOD_RESULT status) {
-    JwCtrl* ajw = (JwCtrl*)ref;
-    ajw->alert_chn_ = NULL;
-}
-
-void JwCtrl::AlertOn() {
-    if (alert_chn_)
-        return;
-    alert_chn_ = XPLMPlayPCMOnBus(alert_.data, alert_.size, FMOD_SOUND_FORMAT_PCM16, alert_.sample_rate,
-                                  alert_.num_channels, 1, xplm_AudioExteriorEnvironment, AlertComplete, this);
-
-    AlertSetpos();
-    XPLMSetAudioVolume(alert_chn_, 2.0f);
-    XPLMSetAudioFadeDistance(alert_chn_, 10.0f, 10000.0f);
-}
-
-void JwCtrl::AlertOff() {
-    if (alert_chn_)
-        XPLMStopAudio(alert_chn_);
-    alert_chn_ = NULL;
-}
-
-void JwCtrl::AlertSetpos() {
-    if (alert_chn_ == nullptr)
-        return;
-
-    static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
-    FMOD_VECTOR pos;
-
-    // position in the local coordinate system of the scenery
-    float rot1 = fem::RA((jw_->rotate1 + jw_->psi) - 90.0f);
-    pos.x = jw_->x + (jw_->extent + jw_->cabinPos) * std::cos(rot1 * kD2R);
-    pos.y = jw_->y + jw_->height;
-    pos.z = jw_->z + (jw_->extent + jw_->cabinPos) * std::sin(rot1 * kD2R);
-    XPLMSetAudioPosition(alert_chn_, &pos, &vel);
-}
-
-// static
-void JwCtrl::SoundInit() {
-    // load alert sound
-    ReadWav(base_dir + "sound/alert.wav", alert_);
-    if (alert_.data)
-        LogMsg("alert sound loaded, channels: %d, bit_rate: %d, size: %d", alert_.num_channels, alert_.sample_rate,
-               alert_.size);
-    else
-        throw std::runtime_error("Could not load sound");
 }
 
 // static
