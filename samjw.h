@@ -65,11 +65,12 @@ struct SamJw {
     float rotate1, rotate2, rotate3, extent, wheels, wheelrotatec{}, wheelrotater{}, wheelrotatel{},
         warnlight, canopy;
 
-    // geometry values from sam.xml or filled in from library jetway
+    // values from sam.xml or filled in from library jetway
     std::string base_name;  // from sam.xml, e.g. "jetway1", "jetway2" or "jetway3"
     std::string name;       // == base_name for sam.xml jetways or fabricated for zero config jetways
     std::string sound;
 
+    // we keep the variable names like the sam.xml attributes in order to allow some macro magic in the parser
     double latitude{}, longitude{}, altitude{}; // altitude is determined by terrain probe or XPLMLocalToWorld for zero config jetways
     float heading{}, height{}, wheelPos{}, cabinPos{}, cabinLength{}, wheelDiameter{},
         wheelDistance{}, minRot1{}, maxRot1{}, minRot2{}, maxRot2{}, minRot3{}, maxRot3{}, minExtent{}, maxExtent{},

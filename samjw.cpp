@@ -139,7 +139,7 @@ void SamJw::FillLibraryValues(unsigned int id) {
 }
 
 //
-// configure a zc library jetway and add it to the scenery
+// configure a zc library jetway and add it to the quadtree and the global list of jetways.
 // As all jetways zc jetways should live forever as there can be complex interactions between
 // frame shifts and multiplayer planes with active jetways.
 //
@@ -204,7 +204,7 @@ static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y,
 // This function is called from draw loops, efficient coding required.
 // It's called with a frequency of at least fps * <# of visible jetways> * 9 .
 //
-// ref is uint64_t and has the library id in the high long and the dataref id in low long.
+// ref is uint64_t and has the library id in the high 32bit and the dataref id in low 32bit.
 // e.g.
 // sam/jetways/rotate1     -> ( 0, kRotate1)
 // sam/jetways/15/rotate2  -> (15, kRotate2)
@@ -295,12 +295,12 @@ static float JwAnimAcc(void* ref) {
             quadtree::Box<double> search_box(obj_lon, obj_lat, 2 * SamJw::kSam2ObjMax);  // 2 * max delta between sam.xml and object coords
             std::unordered_map<SamJw*, bool>  around = jw_quadtree.FindInBox(search_box);
             if (around.empty()) {
-                LogMsg("FindAround found no candidates either");
+                LogMsg("FindInBox found no candidates either");
                 NegativeCacheEntry();
                 return 0.0f;
             }
 
-            LogMsg("FindAround found %d candidates:", (int)around.size());
+            LogMsg("FindInBox found %d candidates:", (int)around.size());
             float min_dist = 100000.0f;
             SamJw* nearest = nullptr;
             fem::LLPos obj_pos(obj_lat, obj_lon);
@@ -321,7 +321,7 @@ static float JwAnimAcc(void* ref) {
             }
 
             if (nearest == nullptr) {
-                LogMsg("FindAround found no nearest candidate");
+                LogMsg("FindInBox found no nearest candidate");
                 NegativeCacheEntry();
                 return 0.0f;
             }
@@ -424,7 +424,9 @@ void SamJw::AlertSetpos() {
     static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
     FMOD_VECTOR pos;
 
-    // position in the local coordinate system of the scenery
+    // the beeper position is roughly at the cabin door
+
+    // compute position in the local coordinate system of the scenery
     float rot1 = fem::RA((rotate1 + psi) - 90.0f);
     pos.x = x + (extent + cabinPos) * std::cos(rot1 * kD2R);
     pos.y = y + height;
@@ -472,6 +474,7 @@ void SamJw::Init(int max_sam_stands) {
 
 void SamJw::Finalize() {
 #if 0
+    // dump the quadtree and the list of jetways for debugging
     jw_quadtree.Dump();
     for (int i = 0; i < (int)sam_jw_list.size(); i++) {
         SamJw* jw = sam_jw_list[i];

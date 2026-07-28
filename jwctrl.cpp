@@ -505,10 +505,10 @@ bool JwCtrl::Rotate3(float rot3, float dt) {
     jw_->SetWheels();
 
     if (std::abs(jw_->rotate3 - rot3) > 0.1f)
-        return 0;
+        return false;
 
     jw_->rotate3 = rot3;
-    return 1;
+    return true;
 }
 
 // rotation 2
@@ -539,7 +539,7 @@ void JwCtrl::AnimateWheels(float ds) {
 }
 
 // drive jetway to the door
-// return 1 when done
+// return true when done
 bool JwCtrl::DockDrive() {
     if (state_ == kDocked)
         return true;
