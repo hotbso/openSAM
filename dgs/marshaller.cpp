@@ -30,11 +30,13 @@
 
 namespace dgs {
 
+static const char* null_dlist[] = {nullptr};
+
 // A Marshaller implementation for a DGS
 class Marshaller : public DGS {
     Mode mode_ = kIdle;
     const std::string name_;  // for logging only
-    XPLMInstanceRef inst_ref_{}, stairs_inst_ref_{};
+    ObjInstRef inst_ref_, stairs_inst_ref_;  // marshaller instance and stairs instance
     XPLMDrawInfo_t drawinfo_{}, stairs_drawinfo_{};
     bool check_high_{};     // check for MarshallerHigh once
     bool need_stairs_{};    // MarshallerHigh detected, need stairs
@@ -100,7 +102,7 @@ void Marshaller::SetMode(Mode mode) {
     mode_ = mode;
 
     if (mode_ == kArrival) {
-        inst_ref_ = XPLMCreateInstance(obj_ref, dgs_dlist_dr);
+        inst_ref_ = CreateInstance(obj_ref, dgs_dlist_dr);
         LogMsg("Marshaller mode set to ARRIVAL, instance created");
         GuidanceParams params{};
         params.status = kDgsGstIdle;
@@ -108,28 +110,19 @@ void Marshaller::SetMode(Mode mode) {
 
         if (need_stairs_) {
             // stairs ares static so position them once here (or move them in SetPos() if the Marshaller moves)
-            static const char* null[] = {nullptr};
-            stairs_inst_ref_ = XPLMCreateInstance(stairs_obj_ref, null);
+            stairs_inst_ref_ = CreateInstance(stairs_obj_ref, null_dlist);
             LogMsg("Stairs instance created for MarshallerHigh");
-            XPLMInstanceSetPosition(stairs_inst_ref_, &stairs_drawinfo_, NULL);
+            stairs_inst_ref_->SetPosition(&stairs_drawinfo_, NULL);
         }
         return;
     }
 
     // everything but kArrival: destroy instance if it exists
-    if (inst_ref_)
-        XPLMDestroyInstance(inst_ref_);
-    if (stairs_inst_ref_)
-        XPLMDestroyInstance(stairs_inst_ref_);
     inst_ref_ = nullptr;
     stairs_inst_ref_ = nullptr;
 }
 
 Marshaller::~Marshaller() {
-    if (inst_ref_)
-        XPLMDestroyInstance(inst_ref_);
-    if (stairs_inst_ref_)
-        XPLMDestroyInstance(stairs_inst_ref_);
 }
 
 void Marshaller::SetGuidanceParams(const GuidanceParams& dgs_params) {
@@ -158,7 +151,7 @@ void Marshaller::SetGuidanceParams(const GuidanceParams& dgs_params) {
     drefs_[DGS_DR_DISTANCE] = params.distance;
     drefs_[DGS_DR_TRACK] = params.track;
     drefs_[DGS_DR_LR] = params.lr;
-    XPLMInstanceSetPosition(inst_ref_, &drawinfo_, drefs_);
+    inst_ref_->SetPosition(&drawinfo_, drefs_);
     // LogMsg("Marshaller params updated, status: %d, track: %d, lr: %d, distance: %0.1f", params.status, params.track,
     //        params.lr, params.distance);
 
@@ -196,10 +189,10 @@ void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo, [[maybe_unused]] float h
     }
 
     if (inst_ref_)
-        XPLMInstanceSetPosition(inst_ref_, &drawinfo_, drefs_);
+        inst_ref_->SetPosition(&drawinfo_, drefs_);
 
     if (stairs_inst_ref_)
-        XPLMInstanceSetPosition(stairs_inst_ref_, &stairs_drawinfo_, NULL);
+        stairs_inst_ref_->SetPosition(&stairs_drawinfo_, NULL);
 }
 
 void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo) {
@@ -208,10 +201,10 @@ void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo) {
 
 void Marshaller::UpdateInstance() {
     if (inst_ref_)
-        XPLMInstanceSetPosition(inst_ref_, &drawinfo_, drefs_);
+        inst_ref_->SetPosition(&drawinfo_, drefs_);
 
     if (stairs_inst_ref_)
-        XPLMInstanceSetPosition(stairs_inst_ref_, &stairs_drawinfo_, NULL);
+        stairs_inst_ref_->SetPosition(&stairs_drawinfo_, NULL);
 }
 
 }  // namespace dgs

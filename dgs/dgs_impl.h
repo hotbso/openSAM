@@ -22,6 +22,11 @@
 #pragma once
 
 #include <numbers>
+#include <stdexcept>
+
+#include "XPLMScenery.h"
+#include "XPLMInstance.h"
+
 #include "dgs.h"
 
 namespace dgs {
@@ -105,6 +110,46 @@ public:
     ScrollTxt(const std::string& txt);
     void Tick(float *drefs);
 };
+
+// Helper class to manage an XPLMInstanceRef
+class ObjInstance {
+    static int active_instances_;  // count of active instances, for logging only
+    XPLMInstanceRef inst_ref_;
+
+   public:
+    ObjInstance(const ObjInstance&) = delete;
+    ObjInstance& operator=(const ObjInstance&) = delete;
+
+    ObjInstance(XPLMObjectRef obj_ref, const char** datarefs) {
+        inst_ref_ = XPLMCreateInstance(obj_ref, datarefs);
+        // unexpected, hopefully the flight loop will gracefully set to error_disabled
+        if (inst_ref_ == nullptr)
+            throw std::runtime_error("XPLMCreateInstance failed");
+        ++active_instances_;
+    }
+
+    ObjInstance(ObjInstance&& other) noexcept : inst_ref_(other.inst_ref_) { other.inst_ref_ = nullptr; }
+
+    ~ObjInstance() {
+        XPLMDestroyInstance(inst_ref_);
+        --active_instances_;
+    }
+
+    XPLMInstanceRef GetRef() const { return inst_ref_; }
+
+    static int ActiveInstances() { return active_instances_; }
+
+    void SetPosition(XPLMDrawInfo_t* drawinfo, float* drefs) {
+        if (inst_ref_)
+            XPLMInstanceSetPosition(inst_ref_, drawinfo, drefs);
+    }
+};
+
+using ObjInstRef = std::unique_ptr<ObjInstance>;
+
+static inline ObjInstRef CreateInstance(XPLMObjectRef obj_ref, const char** datarefs) {
+    return std::make_unique<ObjInstance>(obj_ref, datarefs);
+}
 
 // Helper to trim whitespace
 static inline void trim(std::string& s) {

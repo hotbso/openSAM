@@ -44,8 +44,8 @@ class Safedock_T2_24 : public DGS {
     const std::string arpt_icao_;
     std::string display_name_;  // for use in the VDGS
 
-    XPLMInstanceRef box_inst_ref_{}, pole_base_inst_ref_{},  // static model
-        display_inst_ref_{};                                 // display
+    ObjInstRef box_inst_ref_, pole_base_inst_ref_,  // static model
+        display_inst_ref_;                          // display
 
     float drefs_[DGS_DR_NUM]{};
 
@@ -122,21 +122,14 @@ Safedock_T2_24::Safedock_T2_24(const std::string& name, const std::string& arpt_
     LogMsg("Creating Safedock_T2_24 instance for stand '%s'", name_.c_str());
 
     display_name_ = ExtractDisplayName(name_, kR1Nchar);
-
-    display_inst_ref_ = XPLMCreateInstance(display_obj, dgs_dlist_dr);
-    if (display_inst_ref_ == nullptr) {
-        LogMsg("Can't create instance for Safedock_T2_24 display");
-        throw std::runtime_error("Failed to create instance for Safedock_T2_24 display");
-    }
+    display_inst_ref_ = CreateInstance(display_obj, dgs_dlist_dr);
 
     if (!display_only) {
         if (pole_) {
-            box_inst_ref_ = XPLMCreateInstance(box_pole_obj, null_dlist);
-            pole_base_inst_ref_ = XPLMCreateInstance(base_obj, null_dlist);
+            box_inst_ref_ = CreateInstance(box_pole_obj, null_dlist);
+            pole_base_inst_ref_ = CreateInstance(base_obj, null_dlist);
         } else
-            box_inst_ref_ = XPLMCreateInstance(box_obj, null_dlist);
-
-        assert(box_inst_ref_);
+            box_inst_ref_ = CreateInstance(box_obj, null_dlist);
     }
 
     GuidanceParams params{};
@@ -147,12 +140,6 @@ Safedock_T2_24::Safedock_T2_24(const std::string& name, const std::string& arpt_
 
 Safedock_T2_24::~Safedock_T2_24() {
     LogMsg("Destroying Safedock_T2_24 instance for stand '%s'", name_.c_str());
-    if (display_inst_ref_)
-        XPLMDestroyInstance(display_inst_ref_);
-    if (box_inst_ref_)
-        XPLMDestroyInstance(box_inst_ref_);
-    if (pole_base_inst_ref_)
-        XPLMDestroyInstance(pole_base_inst_ref_);
 }
 
 void Safedock_T2_24::SetGuidanceParams(const GuidanceParams& params) {
@@ -315,13 +302,13 @@ float Safedock_T2_24::Tick() {
 void Safedock_T2_24::UpdateInstance() {
     //LogMsg("Updating Safedock_T2_24 instance for stand '%s', x: %0.2f, y: %0.2f, z: %0.2f, psi: %0.2f", name_.c_str(), drawinfo_.x,
     //       drawinfo_.y, drawinfo_.z, drawinfo_.heading);
-    XPLMInstanceSetPosition(display_inst_ref_, &drawinfo_, drefs_);
+    display_inst_ref_->SetPosition(&drawinfo_, drefs_);
 
     if (box_inst_ref_)
-        XPLMInstanceSetPosition(box_inst_ref_, &drawinfo_, nullptr);
+        box_inst_ref_->SetPosition(&drawinfo_, nullptr);
 
     if (pole_base_inst_ref_)
-        XPLMInstanceSetPosition(pole_base_inst_ref_, &pb_drawinfo_, nullptr);
+        pole_base_inst_ref_->SetPosition(&pb_drawinfo_, nullptr);
 }
 
 } // namespace dgs

@@ -201,7 +201,8 @@ Airport::Airport(const AptAirport& apt_airport) : seqno_(++seqno_base) {
 }
 
 Airport::~Airport() {
-    //LogMsg("Airport '%s' destructed", name().c_str());
+    stands_.clear();  // destroy all stands and DGS
+    LogMsg("Airport '%s' destructed, seqno: %d, active instances: %d", name().c_str(), seqno_, ObjInstance::ActiveInstances());
 }
 
 bool Airport::active_stand_has_xp12_jw() const {

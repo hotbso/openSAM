@@ -45,8 +45,8 @@ class Safedock_X : public DGS {
     const std::string arpt_icao_;
     std::string display_name_;  // for use in the VDGS
 
-    XPLMInstanceRef box_inst_ref_{}, pole_base_inst_ref_{},  // static model
-        display_inst_ref_{};                                 // display
+    ObjInstRef box_inst_ref_, pole_base_inst_ref_,  // static model
+               display_inst_ref_;                     // display
 
     float drefs_[DGS_DR_NUM]{};
 
@@ -132,20 +132,14 @@ Safedock_X::Safedock_X(const std::string& name, const std::string& arpt_icao, bo
 
     display_name_ = ExtractDisplayName(name_, kR1Nchar);
 
-    display_inst_ref_ = XPLMCreateInstance(display_obj, dgs_dlist_dr);
-    if (display_inst_ref_ == nullptr) {
-        LogMsg("Can't create instance for Safedock_X display");
-        throw std::runtime_error("Failed to create instance for Safedock_X display");
-    }
+    display_inst_ref_ = std::make_unique<ObjInstance>(display_obj, dgs_dlist_dr);
 
     if (!display_only) {
         if (pole_) {
-            box_inst_ref_ = XPLMCreateInstance(box_pole_obj, null_dlist);
-            pole_base_inst_ref_ = XPLMCreateInstance(base_obj, null_dlist);
+            box_inst_ref_ = CreateInstance(box_pole_obj, null_dlist);
+            pole_base_inst_ref_ = CreateInstance(base_obj, null_dlist);
         } else
-            box_inst_ref_ = XPLMCreateInstance(box_obj, null_dlist);
-
-        assert(box_inst_ref_);
+            box_inst_ref_ = CreateInstance(box_obj, null_dlist);
     }
 
     GuidanceParams params{};
@@ -156,12 +150,6 @@ Safedock_X::Safedock_X(const std::string& name, const std::string& arpt_icao, bo
 
 Safedock_X::~Safedock_X() {
     LogMsg("Destroying Safedock_X instance for stand '%s'", name_.c_str());
-    if (display_inst_ref_)
-        XPLMDestroyInstance(display_inst_ref_);
-    if (box_inst_ref_)
-        XPLMDestroyInstance(box_inst_ref_);
-    if (pole_base_inst_ref_)
-        XPLMDestroyInstance(pole_base_inst_ref_);
 }
 
 void Safedock_X::SetGuidanceParams(const GuidanceParams& params) {
@@ -257,9 +245,7 @@ void Safedock_X::SetMode(Mode mode) {
         for (int i = 0; i < n; i++)
             drefs_[DGS_DR_R1C0 + i] = display_name_[i];
         drefs_[DGS_DR_R1_SCROLL] = (5 * 16 - (n * 12 - 2)) / 2;  // center
-        if (display_inst_ref_)
-            XPLMDestroyInstance(display_inst_ref_);
-        display_inst_ref_ = XPLMCreateInstance(idle_display_obj, dgs_dlist_dr);
+        display_inst_ref_ = std::make_unique<ObjInstance>(idle_display_obj, dgs_dlist_dr);
     } else if (mode_ == kParked) {
         parked_ts_ = now;
         int zm = XPLMGetDatai(zulu_time_minutes_dr);
@@ -273,9 +259,7 @@ void Safedock_X::SetMode(Mode mode) {
         else
             scroll_txt_ = std::make_unique<ScrollTxt>(arpt_icao_ + " STAND " + display_name_ + "   ");
 
-        if (display_inst_ref_)
-            XPLMDestroyInstance(display_inst_ref_);
-        display_inst_ref_ = XPLMCreateInstance(display_obj, dgs_dlist_dr);
+        display_inst_ref_ = std::make_unique<ObjInstance>(display_obj, dgs_dlist_dr);
     }
 
     UpdateInstance();
@@ -356,13 +340,14 @@ float Safedock_X::Tick() {
 }
 
 void Safedock_X::UpdateInstance() {
-    XPLMInstanceSetPosition(display_inst_ref_, &drawinfo_, drefs_);
+    if (display_inst_ref_)
+        display_inst_ref_->SetPosition(&drawinfo_, drefs_);
 
     if (box_inst_ref_)
-        XPLMInstanceSetPosition(box_inst_ref_, &drawinfo_, nullptr);
+        box_inst_ref_->SetPosition(&drawinfo_, nullptr);
 
     if (pole_base_inst_ref_)
-        XPLMInstanceSetPosition(pole_base_inst_ref_, &pb_drawinfo_, nullptr);
+        pole_base_inst_ref_->SetPosition(&pb_drawinfo_, nullptr);
 }
 
 } // namespace dgs

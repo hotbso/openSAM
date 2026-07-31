@@ -80,6 +80,7 @@ const char *dgs_dlist_dr[] = {
 };
 
 DGS::~DGS() {}; // required sytax for pure virtual destructor
+int ObjInstance::active_instances_ = 0;  // initialize static member
 
 //------------------------------------------------------------------------------------
 ScrollTxt::ScrollTxt(const std::string& txt) {
