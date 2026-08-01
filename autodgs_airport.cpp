@@ -342,6 +342,10 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
                 DgsCfg c;
                 c.dgs_type = (type == 'M' ? kMarshaller : kDefaultVDGS);
                 c.dgs_dist = dgs_dist;
+                if (type == 'M') {
+                    c.dgs_height = 0.0f;  // default for Marshaller
+                    c.pole = false;
+                }
                 cfg[line.substr(ofs)] = c;
             } else if (version == 2) {
                 // VERSION=2
