@@ -251,14 +251,20 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_
     for (auto const& as : apt_airport.stands_) {
         int dgs_type = kAutomatic;
         float dgs_dist;
-        if (as.has_xp12_jw)
+        bool pole;
+        float dgs_height;
+
+        if (as.has_xp12_jw) {
             dgs_dist = kVdgsDefaultDist;
-        else
+            dgs_height = (dgs_type == kVdgsSafedock_T2_24) ? kVdgsT2DefaultHeight : kVdgsXDefaultHeight;
+            pole = true;
+        } else {
             dgs_dist = kMarshallerDefaultDist;
+            dgs_height = 0.0f;
+            pole = false;
+        }
 
         float dgs_left_right = 0.0f;  // default for VDGS
-        float dgs_height = (dgs_type != kMarshaller) ? 5.0f : 0.0f;  // default for VDGS only
-        bool pole = (dgs_type != kMarshaller);
 
         // override with user defined config
         if (const auto it = cfg.find(as.name); it != cfg.end()) {
@@ -525,7 +531,7 @@ void AdgsAirport::CycleDgsType() {
 
 bool AdgsAirport::auto_post_parkbrake() const {
     return operation_mode == kAuto && !dgs::plane->dont_connect_jetway_;
- }
+}
 
 void AdgsAirport::ConnectJetway() {
     LogMsg("toggling jetway command");
