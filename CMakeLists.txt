@@ -9,21 +9,16 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Configurable paths
 # ==============================================================================
 set(SDK "${CMAKE_CURRENT_SOURCE_DIR}/../SDK" CACHE PATH "X-Plane SDK root")
-set(XPLIB "${CMAKE_CURRENT_SOURCE_DIR}/../xplib" CACHE PATH "xplib root")
 
 # ==============================================================================
 # Version header generation (mirrors Makefile.common logic)
 # ==============================================================================
 find_package(Git)
 set(OPENSAM_COMMIT "unknown")
-set(XPLIB_COMMIT "unknown")
 if(GIT_FOUND)
     execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:%h
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         OUTPUT_VARIABLE OPENSAM_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
-    execute_process(COMMAND ${GIT_EXECUTABLE} log -1 --pretty=format:%h
-        WORKING_DIRECTORY ${XPLIB}
-        OUTPUT_VARIABLE XPLIB_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
 endif()
 set(VERSION_SHORT "unknown")
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/version.mak")
@@ -32,7 +27,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/version.mak")
         set(VERSION_SHORT "${CMAKE_MATCH_1}")
     endif()
 endif()
-set(VERSION_L "${VERSION_SHORT} ${OPENSAM_COMMIT},xplib:${XPLIB_COMMIT}")
+set(VERSION_L "${VERSION_SHORT} ${OPENSAM_COMMIT}")
 set(_vh "${CMAKE_CURRENT_SOURCE_DIR}/version.h")
 set(_vh_content "// generated file!\n#define VERSION \"${VERSION_L}\"\n#define VERSION_SHORT \"${VERSION_SHORT}\"\n")
 if(EXISTS "${_vh}")
@@ -56,7 +51,7 @@ SET(IMGUI_SRCS
 )
 
 # ==============================================================================
-# Sources (Makefile.common: SOURCES + xplib files resolved from VPATH)
+# Sources
 # ==============================================================================
 set(SOURCES
     opensam.cpp autodgs_airport.cpp adgs_api.cpp seasons.cpp simbrief.cpp
@@ -67,7 +62,7 @@ set(SOURCES
     dgs/safedock_t2_24.cpp dgs/safedock_x.cpp sam1_dgs.cpp
     ui.cpp adgs_editor.cpp
     ${IMGUI_SRCS}
-    ${XPLIB}/log_msg.cpp
+    log_msg.cpp
 )
 
 add_library(openSAM SHARED ${SOURCES})
@@ -79,7 +74,6 @@ set_target_properties(openSAM PROPERTIES PREFIX "" SUFFIX ".xpl")
 target_include_directories(openSAM PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/dgs
-    ${XPLIB}
     ${CMAKE_SOURCE_DIR}/imgui
     ${CMAKE_SOURCE_DIR}/imgui/misc/cpp
     ${CMAKE_SOURCE_DIR}/ImgWindow
@@ -162,11 +156,10 @@ if(BUILD_TESTS)
         scenery_test.cpp
         scenery.cpp
         dgs/apt_airport.cpp
-        ${XPLIB}/log_msg.cpp
+        log_msg.cpp
     )
     target_include_directories(scenery_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${XPLIB}
         ${SDK}/CHeaders/XPLM
     )
     target_compile_definitions(scenery_test PRIVATE
