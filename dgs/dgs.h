@@ -73,7 +73,7 @@ class DGS {
 
     // optional overrides
     virtual void SetPaxNo([[maybe_unused]] int pax_no) noexcept {};
-    virtual void SetOfpData([[maybe_unused]] const Ofp& ofp) {};
+    virtual void NotifyOfpUpdate() {};
     virtual float Tick() { return 5.0f; };  // for VDGS, update display (e.g. scroll text), update eq status, etc., return delay to next update
 };
 

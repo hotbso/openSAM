@@ -71,7 +71,7 @@ class Safedock_X : public DGS {
     void SetPos(const XPLMDrawInfo_t& drawinfo) override;
     void SetMode(Mode mode) override;
     void SetPaxNo(int pax_no) noexcept override;
-    void SetOfpData(const Ofp& ofp) override;
+    void NotifyOfpUpdate() override;
 
     float Tick() override;
 
@@ -269,9 +269,9 @@ void Safedock_X::SetPaxNo(int pax_no) noexcept{
     pax_no_ = pax_no;
 }
 
-void Safedock_X::SetOfpData(const Ofp& ofp) {
+void Safedock_X::NotifyOfpUpdate() {
     std::string ofp_str = ofp.GenDepartureStr();
-    LogMsg("SetOfpData for stand '%s', OFP departure str: '%s'", name_.c_str(), ofp_str.c_str());
+    LogMsg("NotifyOfpUpdate for stand '%s', OFP departure str: '%s'", name_.c_str(), ofp_str.c_str());
     if (display_name_.empty())
         scroll_txt_ = std::make_unique<ScrollTxt>(arpt_icao_ + "   " + ofp_str + "   ");
     else

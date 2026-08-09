@@ -422,7 +422,7 @@ float Airport::StateMachine() {
             if (now > ofp_ts + 5.0f) {
                 ofp_ts = now;
                 if (Ofp::LoadIfNewer()) {  // (re-)fetch ofp
-                    ds.dgs_->SetOfpData(ofp);
+                    ds.dgs_->NotifyOfpUpdate();
                     plane->callsign_ = ofp.icao_airline + ofp.flight_number;
 
                     // extract arrival stand from ofp remarks if any
