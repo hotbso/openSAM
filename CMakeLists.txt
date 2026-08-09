@@ -59,14 +59,15 @@ SET(IMGUI_SRCS
 # Sources (Makefile.common: SOURCES + xplib files resolved from VPATH)
 # ==============================================================================
 set(SOURCES
-    opensam.cpp autodgs_airport.cpp adgs_api.cpp seasons.cpp
+    opensam.cpp autodgs_airport.cpp adgs_api.cpp seasons.cpp simbrief.cpp
     os_airport.cpp samjw.cpp jwctrl.cpp os_anim.cpp scenery.cpp read_wav.cpp
-    os_plane.cpp my_plane.cpp LTAPI.cpp mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp
+    os_plane.cpp my_plane.cpp
+    LTAPI.cpp mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp
     dgs/apt_airport.cpp dgs/dgs.cpp dgs/plane.cpp dgs/airport.cpp dgs/marshaller.cpp
     dgs/safedock_t2_24.cpp dgs/safedock_x.cpp sam1_dgs.cpp
     ui.cpp adgs_editor.cpp
     ${IMGUI_SRCS}
-    ${XPLIB}/log_msg.cpp ${XPLIB}/simbrief.cpp
+    ${XPLIB}/log_msg.cpp
 )
 
 add_library(openSAM SHARED ${SOURCES})
