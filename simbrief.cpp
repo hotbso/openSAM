@@ -1,7 +1,7 @@
 //
-//    AutoDGS: Show Marshaller or VDGS at default airports
+//    openSAM: Manage DGS
 //
-//    Copyright (C) 2023, 2025 Holger Teutsch
+//    Copyright (C) 2023, 2025, 2026 Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -25,13 +25,12 @@
 #include <ctime>
 #include <cstring>
 
-#ifndef XPLM210
-#error "need at least XPLM210"
-#endif
-
 #include "XPLMDataAccess.h"
 
 #include "log_msg.h"
+
+// global instance, there is only 'the' ofp for the current flight
+Ofp ofp;
 
 static bool drefs_loaded, sbh_unavail;
 
@@ -82,20 +81,20 @@ static void FetchDref(std::string& str, XPLMDataRef dr) {
 #define FIND_OFP_DREF(f) f##_dr = XPLMFindDataRef("sbh/" #f)
 #define FIND_CDM_DREF(f)  cdm_ ## f ## _dr = XPLMFindDataRef("sbh/cdm/" #f)
 
-#define GET_OFP_DREF(f) FetchDref(ofp->f, f ## _dr)
-#define GET_CDM_DREF(f) FetchDref(ofp->cdm_ ## f, cdm_ ## f ## _dr)
-#define LOG_FIELD(f) LogMsg(" " #f ": '%s'", ofp->f.c_str())
+#define GET_OFP_DREF(f) FetchDref(ofp.f, f ## _dr)
+#define GET_CDM_DREF(f) FetchDref(ofp.cdm_ ## f, cdm_ ## f ## _dr)
+#define LOG_FIELD(f) LogMsg(" " #f ": '%s'", ofp.f.c_str())
 
-std::unique_ptr<Ofp> Ofp::LoadIfNewer([[maybe_unused]] int cur_seqno) {
+bool Ofp::LoadIfNewer() {
     if (sbh_unavail)
-        return nullptr;
+        return false;
 
     if (!drefs_loaded) {
         stale_dr = XPLMFindDataRef("sbh/stale");
         if (stale_dr == nullptr) {
             sbh_unavail = true;
             LogMsg("simbrief_hub plugin is not loaded, bye!");
-            return nullptr;
+            return false;
         }
 
         seqno_dr = XPLMFindDataRef("sbh/seqno");
@@ -125,7 +124,7 @@ std::unique_ptr<Ofp> Ofp::LoadIfNewer([[maybe_unused]] int cur_seqno) {
     int ofp_seqno = XPLMGetDatai(seqno_dr);
     int cdm_seqno = XPLMGetDatai(cdm_seqno_dr);
     if (ofp_seqno == sbh_ofp_seqno && cdm_seqno == sbh_cdm_seqno)
-        return nullptr;
+        return false;
 
     sbh_ofp_seqno = ofp_seqno;
     sbh_cdm_seqno = cdm_seqno;
@@ -135,9 +134,8 @@ std::unique_ptr<Ofp> Ofp::LoadIfNewer([[maybe_unused]] int cur_seqno) {
     if (stale)
         LogMsg("simbrief_hub data may be stale");
 
-    auto ofp = std::make_unique<Ofp>();
-
-    ofp->seqno = my_seqno;
+    ofp.stale = stale != 0;
+    ofp.seqno = my_seqno;
     GET_OFP_DREF(icao_airline);
     GET_OFP_DREF(flight_number);
     GET_OFP_DREF(aircraft_icao);
@@ -156,7 +154,7 @@ std::unique_ptr<Ofp> Ofp::LoadIfNewer([[maybe_unused]] int cur_seqno) {
     GET_CDM_DREF(runway);
     GET_CDM_DREF(sid);
 
-    ofp->callsign = ofp->icao_airline + ofp->flight_number;
+    ofp.callsign = ofp.icao_airline + ofp.flight_number;
 
     LogMsg("From simbrief_hub: Seqno: %d, Cdm: %d", ofp_seqno, cdm_seqno);
     LOG_FIELD(icao_airline);
@@ -177,7 +175,7 @@ std::unique_ptr<Ofp> Ofp::LoadIfNewer([[maybe_unused]] int cur_seqno) {
     LOG_FIELD(cdm_runway);
     LOG_FIELD(cdm_sid);
 
-    return ofp;
+    return true;
 }
 
 const std::string Ofp::GenDepartureStr() const {

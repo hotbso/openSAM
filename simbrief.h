@@ -1,7 +1,7 @@
 //
-//    AutoDGS: Show Marshaller or VDGS at default airports
+//    openSAM: Manage DGS
 //
-//    Copyright (C) 2023, 2025 Holger Teutsch
+//    Copyright (C) 2023, 2025, 2026 Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -19,17 +19,16 @@
 //    USA
 //
 
-#ifndef _SIMBRIEF_H_
-#define _SIMBRIEF_H_
+#pragma once
 
-#include <memory>
 #include <string>
 
 #define F(f) std::string f
 
 struct Ofp
 {
-    int seqno;          // incremented after each successfull fetch
+    int seqno{0};          // incremented after each successfull fetch, 0 == empty / no data
+    bool stale{false};       // true if the data may be stale (e.g. was valid but now simbrief not responding)
     F(icao_airline);
     F(flight_number);
     F(aircraft_icao);
@@ -52,10 +51,8 @@ struct Ofp
 
     std::string callsign;   // for convenience, not part of the simbrief_hub data
 
-    Ofp() : seqno(0) {}    // mark invalid
-
     // return ptr to an OFP if a newer version is available or nullptr
-    static std::unique_ptr<Ofp> LoadIfNewer(int cur_seqno);
+    static bool LoadIfNewer(); // -> updated
 
     // generate a string to be displayed in a VDGS
     const std::string GenDepartureStr() const;
@@ -63,4 +60,5 @@ struct Ofp
 
 #undef F
 
-#endif
+// global instance, there is only 'the' ofp for the current flight
+extern Ofp ofp;
