@@ -204,7 +204,7 @@ void Image::Text(int x, int y, Font& font, float height, Color color, const std:
 
         x_position += static_cast<int>(advance * scale);
 
-        if (txt[i + 1] != '\0') {
+        if (i + 1 < (int)txt.size()) {
             int kern = font.GetCodepointKernAdvance(c, txt[i + 1]);
             x_position += static_cast<int>(kern * scale);
         }
@@ -220,7 +220,7 @@ int Image::MeasureText(Font& font, float height, const std::string& txt) {
         int advance, lsb;
         font.GetCodepointHMetrics(c, advance, lsb);
         width += static_cast<int>(advance * scale);
-        if (txt[i + 1] != '\0') {
+        if (i + 1 < (int)txt.size()) {
             int kern = font.GetCodepointKernAdvance(c, txt[i + 1]);
             width += static_cast<int>(kern * scale);
         }
