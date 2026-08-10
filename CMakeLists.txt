@@ -59,13 +59,16 @@ set(SOURCES
     os_plane.cpp my_plane.cpp
     LTAPI.cpp mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp
     dgs/apt_airport.cpp dgs/dgs.cpp dgs/plane.cpp dgs/airport.cpp dgs/marshaller.cpp
-    dgs/safedock_t2_24.cpp dgs/safedock_x.cpp sam1_dgs.cpp
+    dgs/safedock_t2_24.cpp dgs/safedock_x.cpp dgs/dyn_display.cpp
+    sam1_dgs.cpp
     ui.cpp adgs_editor.cpp
     ${IMGUI_SRCS}
-    log_msg.cpp
+    spng.c
+    http_get.cpp simbrief.cpp log_msg.cpp
 )
 
-add_library(openSAM SHARED ${SOURCES})
+add_library(openSAM SHARED ${SOURCES}
+    dgs/airline_logo.cpp)
 set_target_properties(openSAM PROPERTIES PREFIX "" SUFFIX ".xpl")
 
 # ==============================================================================
@@ -77,11 +80,12 @@ target_include_directories(openSAM PRIVATE
     ${CMAKE_SOURCE_DIR}/imgui
     ${CMAKE_SOURCE_DIR}/imgui/misc/cpp
     ${CMAKE_SOURCE_DIR}/ImgWindow
+    ${CMAKE_SOURCE_DIR}/stb
     ${SDK}/CHeaders/XPLM
 )
 
 target_compile_definitions(openSAM PRIVATE
-    XPLM200 XPLM210 XPLM300 XPLM301 XPLM400
+    SPNG_STATIC XPLM200 XPLM210 XPLM300 XPLM301 XPLM400
     DREF_PREFIX="opensam"
 )
 
@@ -104,8 +108,10 @@ if(WIN32)
     target_link_libraries(openSAM PRIVATE
         ${SDK}/Libraries/Win/XPLM_64.lib
         -l:libexpat.a
+        winhttp
         pthread
         opengl32
+        z
     )
     install(TARGETS openSAM RUNTIME DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/win_x64")
 
@@ -129,7 +135,7 @@ elseif(APPLE)
     else()
         set(_expat expat)   # ships with macOS / Homebrew / MacPorts natively
     endif()
-    target_link_libraries(openSAM PRIVATE ${XPLM_FW} ${_expat} "-framework OpenGL" "-framework Carbon")
+    target_link_libraries(openSAM PRIVATE ${XPLM_FW} ${_expat} "-framework OpenGL" "-framework Carbon" curl z)
     install(TARGETS openSAM LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/mac_x64")
 
 elseif(UNIX)
@@ -140,7 +146,7 @@ elseif(UNIX)
         -fPIC -fno-stack-protector
     )
     target_link_options(openSAM PRIVATE -rdynamic -nodefaultlibs)
-    target_link_libraries(openSAM PRIVATE expat GL)
+    target_link_libraries(openSAM PRIVATE expat GL curl z)
     install(TARGETS openSAM LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/lin_x64")
 endif()
 

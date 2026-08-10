@@ -712,7 +712,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     is_helicopter_dr = XPLMFindDataRef("sim/aircraft2/metadata/is_helicopter");
 
     LoadPrefs();
-    if (!dgs::InitDGS(res_dir)) {
+    if (!dgs::Initialize(res_dir)) {
         LogMsg("Failed to initialize dgs library");
         return 0;
     }
@@ -812,6 +812,7 @@ PLUGIN_API void XPluginStop(void) {
     mp_adapter = nullptr;
     os_arpt = nullptr;
     adgs_arpt = nullptr;
+    dgs::Finalize();
     dgs::plane = nullptr;
     my_plane = nullptr;
     ImgWindowFini();

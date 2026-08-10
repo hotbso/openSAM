@@ -21,11 +21,18 @@
 
 #include <cmath>
 #include <algorithm>
+#include <fstream>
+#include <filesystem>
+#include <thread>
+#include <chrono>
+
+#include "XPLMDataAccess.h"
+
 #include "log_msg.h"
 #include "dgs.h"
 #include "dgs_impl.h"
-
-#include "XPLMDataAccess.h"
+#include "dyn_display.h"
+#include "airline_logo.h"
 
 namespace dgs {
 
@@ -152,8 +159,27 @@ static float DummyDgsFloat([[maybe_unused]] void* ref) {
 static bool ev100_probed = false;
 static XPLMDataRef ev100_dr, zulu_time_sec_dr, percent_lights_dr;
 XPLMDataRef zulu_time_minutes_dr, zulu_time_hours_dr;
+std::string dyn_display_obj_dir;
 
-bool InitDGS(const std::string& res_dir) {
+bool Initialize(const std::string& res_dir) {
+    // create directory for dynamic display objects in the beginning
+    // all later errors for io here will throw
+    dyn_display_obj_dir = "Output/openSAM/dyn_display/";    // path relative to root
+    std::filesystem::create_directories(xp_dir + dyn_display_obj_dir);
+
+    std::ofstream tst(xp_dir + dyn_display_obj_dir + "test.txt");
+    if (!tst) {
+        LogMsg("Failed to create test file in '%s'", (xp_dir + dyn_display_obj_dir).c_str());
+        return false;
+    }
+
+    tst.close();
+
+    if (!std::filesystem::remove(xp_dir + dyn_display_obj_dir + "test.txt")) {
+        LogMsg("Failed to delete test file in '%s'", (xp_dir + dyn_display_obj_dir).c_str());
+        return false;
+    }
+
     zulu_time_sec_dr = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_seconds");
     zulu_time_minutes_dr = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_minutes");
     zulu_time_hours_dr = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_hours");
@@ -173,11 +199,17 @@ bool InitDGS(const std::string& res_dir) {
     return true;
 }
 
-void DGSFillUTCBrightness(float* drefs) {
-    // a poor man's cache
-    static int zm, zh, zs_prev = -1;
-    static float vdgs_brightness;
+void Finalize() {
+    // wait for any async logo download to finish before we finalize the dyn_display
+    while (logo::CheckAsyncDownload()) {
+        LogMsg("... waiting for logo async download to finish");
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+    }
 
+    DynDisplay::Finalize();
+}
+
+float VDGSBrightness() noexcept {
     // private datarefs are usually intialized late, so we probe here when we actually need it for the first time
     if (!ev100_probed) {
         ev100_dr = XPLMFindDataRef("sim/private/controls/photometric/ev100");
@@ -189,28 +221,31 @@ void DGSFillUTCBrightness(float* drefs) {
         ev100_probed = true;
     }
 
+    if (ev100_dr) {
+        float ev100 = XPLMGetDataf(ev100_dr);
+        ev100 = std::clamp(ev100, kMinEv100, kMaxEv100);
+        const float f = (ev100 - kMinEv100) / (kMaxEv100 - kMinEv100);
+        // ev100 is logarithmic and vdgs_brightness linear, so we use exp here
+        const float exp_f = (std::exp(f) - 1.0f) / (std::exp(1.0f) - 1.0f);
+        return kMinBrightness + (1.0f - kMinBrightness) * exp_f;
+    } else {
+        // fallback: use percent_lights_on
+        return kMinBrightness + (1.0f - kMinBrightness) * std::pow(1.0f - XPLMGetDataf(percent_lights_dr), 6.0f);
+    }
+}
+
+void DGSFillUTCBrightness(float* drefs) noexcept{
+    // a poor man's cache
+    static int zm, zh, zs_prev = -1;
+    static float vdgs_brightness;
+
     int zs = XPLMGetDatai(zulu_time_sec_dr);
     if (zs != zs_prev) {
         zs_prev = zs;
         zm = XPLMGetDatai(zulu_time_minutes_dr);
         zh = XPLMGetDatai(zulu_time_hours_dr);
 
-        // brightness for VDGS
-
-        if (ev100_dr) {
-            // if ev100 is available, we use it to set brightness
-            float ev100 = XPLMGetDataf(ev100_dr);
-            ev100 = std::clamp(ev100, kMinEv100, kMaxEv100);
-            const float f = (ev100 - kMinEv100) / (kMaxEv100 - kMinEv100);
-            // ev100 is logarithmic and vdgs_brightness linear, so we use exp here
-            const float exp_f = (std::exp(f) - 1.0f) / (std::exp(1.0f) - 1.0f);
-            vdgs_brightness = kMinBrightness + (1.0f - kMinBrightness) * exp_f;
-            // LogMsg("ev100: %0.2f, vdgs_brightness: %0.3f", ev100, vdgs_brightness);
-        } else {
-            // fallback: use percent_lights_on
-            vdgs_brightness =
-                kMinBrightness + (1.0f - kMinBrightness) * std::pow(1.0f - XPLMGetDataf(percent_lights_dr), 6.0f);
-        }
+         vdgs_brightness = VDGSBrightness();
     }
 
     drefs[DGS_DR_UTC_M0] = zm % 10;
@@ -220,7 +255,7 @@ void DGSFillUTCBrightness(float* drefs) {
     drefs[DGS_DR_VDGS_BRIGHTNESS] = vdgs_brightness;
 }
 
-void DGSFillEqStatus(float* drefs, const EqStatus& eq_status) {
+void DGSFillEqStatus(float* drefs, const EqStatus& eq_status) noexcept{
     drefs[DGS_DR_CHK] = eq_status.chocks;
     drefs[DGS_DR_GPU] = eq_status.gpu;
     drefs[DGS_DR_PCA] = eq_status.pca;

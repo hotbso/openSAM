@@ -139,7 +139,7 @@ class ObjInstance {
 
     static int ActiveInstances() { return active_instances_; }
 
-    void SetPosition(XPLMDrawInfo_t* drawinfo, float* drefs) {
+    void SetPosition(const XPLMDrawInfo_t* drawinfo, float* drefs) const noexcept {
         if (inst_ref_)
             XPLMInstanceSetPosition(inst_ref_, drawinfo, drefs);
     }
@@ -157,15 +157,20 @@ static inline void trim(std::string& s) {
     s.erase(s.find_last_not_of(" \t\r\n") + 1);
 }
 
+extern std::string dyn_display_obj_dir; // path relative to root, for dynamic display objects
+
 // A stand name can be anything between "1" and "Gate A 40 (Class C, Terminal 3)".
 // We try to extract the net name "A 40" in the latter case.
 extern std::string ExtractDisplayName(const std::string& stand_name, int max_len);
 
 extern XPLMDataRef zulu_time_minutes_dr, zulu_time_hours_dr;
 
+// get relative brightness for VDGS, [0,1], based on the EV100 dataref
+extern float VDGSBrightness() noexcept;
+
 // fill the UTC datarefs, and for VDGS also the brightness dataref
-extern void DGSFillUTCBrightness(float *drefs);
-extern void DGSFillEqStatus(float *drefs, const EqStatus& eq_status);
+extern void DGSFillUTCBrightness(float *drefs) noexcept;
+extern void DGSFillEqStatus(float *drefs, const EqStatus& eq_status) noexcept;
 
 extern bool InitMarshaller(const std::string& obj_dir);
 extern bool InitSafedock_T2_24(const std::string& obj_dir);

@@ -67,7 +67,7 @@ class Safedock_T2_24 : public DGS {
     void SetPos(const XPLMDrawInfo_t& drawinfo, float height) override;
     void SetPos(const XPLMDrawInfo_t& drawinfo) override;
     void SetMode(Mode mode) override;
-    void SetPaxNo(int pax_no) noexcept override;
+    void SetPaxNo(int pax_no) override;
     void NotifyOfpUpdate() override;
 
     float Tick() override;
@@ -243,7 +243,7 @@ void Safedock_T2_24::SetMode(Mode mode) {
     UpdateInstance();
 }
 
-void Safedock_T2_24::SetPaxNo(int pax_no) noexcept {
+void Safedock_T2_24::SetPaxNo(int pax_no)  {
     pax_no_ = pax_no;
 }
 

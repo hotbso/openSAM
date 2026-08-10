@@ -34,10 +34,13 @@ namespace dgs {
 enum EqStatusVal { kEqUnknown, kEqOff, kEqOn };
 
 struct EqStatus {
-    int chocks, gpu, pca, pbb; // EqStatus for chocks, gpu, pca, pbb
+    int chocks{}, gpu{}, pca{}, pbb{}; // EqStatus for chocks, gpu, pca, pbb
+    bool operator!=(const EqStatus& other) const {
+        return (chocks != other.chocks || gpu != other.gpu || pca != other.pca || pbb != other.pbb);
+    }
 };
 
-enum Mode { kIdle, kDeparture, kArrival, kParked, kDeboarding };
+enum Mode { kUndefined, kIdle, kDeparture, kArrival, kParked, kDeboarding };
 
 struct GuidanceParams;
 
@@ -72,13 +75,14 @@ class DGS {
     virtual void UpdateInstance() = 0;  // show the rendered instance in the sim, e.g. after changing the drawinfo or display
 
     // optional overrides
-    virtual void SetPaxNo([[maybe_unused]] int pax_no) noexcept {};
+    virtual void SetPaxNo([[maybe_unused]] int pax_no) {};
     virtual void NotifyOfpUpdate() {};
     virtual float Tick() { return 5.0f; };  // for VDGS, update display (e.g. scroll text), update eq status, etc., return delay to next update
 };
 
 // maps datarefs, load objects, etc. for all DGS types, must be called before creating any DGS instance
-extern bool InitDGS(const std::string& res_dir);
+extern bool Initialize(const std::string& res_dir);
+extern void Finalize();
 
 // Create dgs instances, succeeds or throws
 extern std::unique_ptr<DGS> CreateMarshaller(const std::string& name);
@@ -90,6 +94,10 @@ extern std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std:
 // we include it here in order to trigger a compile error if the main plugin code defines it differently
 extern float now;
 extern XPLMDataRef acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr, total_running_time_sec_dr, eng_running_dr, beacon_dr, sin_wave_dr;
-extern std::string base_dir;
+
+extern std::string xp_dir;
+extern std::string base_dir;        // base directory of openSAM
+extern std::string user_cfg_dir;    // Output/openSAM
+
 extern XPLMProbeInfo_t probeinfo;
 extern XPLMProbeRef probe_ref;

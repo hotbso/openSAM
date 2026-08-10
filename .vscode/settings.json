@@ -2,7 +2,7 @@
     "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.intelliSenseEngineFallback": "disabled",
     "editor.acceptSuggestionOnEnter": "off",
-    "editor.inlineSuggest.minShowDelay": 750,
+    "editor.inlineSuggest.minShowDelay": 1500,
     "editor.wordBasedSuggestions": "off",
     "editor.suggest.showWords": false,
     "editor.snippetSuggestions": "bottom",
