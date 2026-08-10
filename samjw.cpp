@@ -276,17 +276,37 @@ static float JwAnimAcc(void* ref) {
 
             jw_cache[key] = jw;
         } else if (n_candidates > 1) [[unlikely]] {
+            float min_dist = 100000.0f;
+            SamJw* nearest = nullptr;
+            fem::LLPos obj_pos(obj_lat, obj_lon);
+
             for (int i = 0; i < n_candidates; i++) {
                 SamJw* candidate = candidates[i];
                 LogMsg("candidate %d: '%s', lat: %0.6f, lon: %0.6f", i, candidate->name.c_str(), candidate->latitude,
                        candidate->longitude);
+                if (std::abs(fem::RA(candidate->heading - obj_psi)) > SamJw::kSam2ObjHdgMax) {
+                    LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", candidate->name.c_str(),
+                        candidate->heading, obj_psi);
+                    continue;
+                }
+
+                float dist = fem::len(fem::LLPos(candidate->latitude, candidate->longitude) - obj_pos);
+                if (dist < min_dist) {
+                    min_dist = dist;
+                    nearest = candidate;
+                }
             }
-            // TODO: find nearest candidate by distance, but for now just reject all if there are multiple candidates to
-            // avoid wrong matches
-            LogMsg("multiple candidates found for obj at x: %5.3f, z: %5.3f, lat: %0.6f, lon: %0.6f, rejecting all",
-                   obj_x, obj_z, obj_lat, obj_lon);
-            jw_cache[key] = nullptr;  // negative cache entry
-            return 0.0f;              // multiple candidates, can't decide which one is correct, reject all
+
+            LogMsg("nearest candidate: '%s', lat: %0.6f, lon: %0.6f, dist: %0.2fm", nearest->name.c_str(),
+                   nearest->latitude, nearest->longitude, min_dist);
+            jw = nearest;
+            jw->obj_ref_gen = ref_gen;
+            jw->x = obj_x;
+            jw->z = obj_z;
+            jw->y = obj_y;
+            jw->psi = obj_psi;
+
+            jw_cache[key] = jw;
         } else if (n_candidates == 0 && id == 0) [[unlikely]] {
             LogMsg("quadtree lookup found no candidates for obj at x: %5.3f, z: %5.3f, lat: %0.6f, lon: %0.6f", obj_x,
                    obj_z, obj_lat, obj_lon);
