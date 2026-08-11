@@ -154,7 +154,8 @@ Image::Image(const std::string& filename) {
         throw std::runtime_error("Failed to load image: " + filename);
     }
 
-    pixels_.assign(data, data + (width_ * height_ * 4));
+    pixels_ = std::make_unique_for_overwrite<unsigned char[]>(width_ * height_ * 4);
+    memcpy(pixels_.get(), data, width_ * height_ * 4);
     stbi_image_free(data);
 }
 
@@ -246,7 +247,7 @@ void Image::Paste(const Image& src, int x, int y) {
 }
 
 bool Image::Save(const std::string& filename) const {
-    return SaveImagePng((const uint32_t*)pixels_.data(), width_, height_, filename);
+    return SaveImagePng((const uint32_t*)pixels_.get(), width_, height_, filename);
 }
 
 //------------------------------------------------------------------------------------

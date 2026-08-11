@@ -75,19 +75,20 @@ class Font {
 };
 
 class Image {
-    std::vector<unsigned char> pixels_;
+    std::unique_ptr<unsigned char[]> pixels_;
     int width_, height_;
 
    public:
     // create empty
     Image(int width, int height) : width_(width), height_(height) {
-        pixels_.resize(width_ * height_ * 4, 0);  // Initialize to transparent black
-    }
+        pixels_ = std::make_unique<unsigned char[]>(width_ * height_ * 4);
+   }
 
     // create from data
     Image(const unsigned char* data, int width, int height, int channels) : width_(width), height_(height) {
         assert(channels == 4);  // Ensure the input data has 4 channels (RGBA)
-        pixels_.assign(data, data + (width_ * height_ * 4));
+        pixels_ = std::make_unique_for_overwrite<unsigned char[]>(width_ * height_ * 4);
+        memcpy(pixels_.get(), data, width_ * height_ * 4);
     }
 
     // create from file
