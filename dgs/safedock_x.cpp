@@ -612,21 +612,8 @@ bool CdmPage::Update() {
 
         Line(ofp.destination, true);
 
-        time_t out_time = std::atol(ofp.est_out.c_str());
-        time_t off_time = std::atol(ofp.est_off.c_str());
-        std::string out;
-
-        int eobt_h = 0;
-        int eobt_m = 0;
-
-        bool have_cdm{false};
-        if (ofp.cdm_tobt.empty()) {
-            auto out_tm = *std::gmtime(&out_time);
-            eobt_h = out_tm.tm_hour;
-            eobt_m = out_tm.tm_min;
-            out = std::format("{:02d}{:02d}", eobt_h, eobt_m);
-        } else {
-            have_cdm = true;
+        bool have_cdm = !ofp.cdm_tobt.empty();
+        if (have_cdm) {
             Line2Col("TOBT", ofp.cdm_tobt);
             DisplayDiffToTOBT(dd_, zulu_h, zulu_m, ofp.cdm_tobt);
         }
@@ -634,13 +621,14 @@ bool CdmPage::Update() {
         if (!ofp.cdm_tsat.empty())
             Line2Col("TSAT", ofp.cdm_tsat);
 
-        if (!ofp.cdm_ctot.empty())
+        if (!ofp.cdm_ttot.empty())  // prefer TTOT over CTOT
+            Line2Col("TTOT", ofp.cdm_ttot);
+        else if (!ofp.cdm_ctot.empty())
             Line2Col("CTOT", ofp.cdm_ctot);
 
         if (!have_cdm) {
-            Line2Col("OUT", out);
-            auto off_tm = *std::gmtime(&off_time);
-            Line2Col("OFF", std::format("{:02d}{:02d}", off_tm.tm_hour, off_tm.tm_min));
+            Line2Col("OUT", ofp.est_out_str);
+            Line2Col("OFF", ofp.est_off_str);
         }
 
         if (!ofp.cdm_runway.empty())
@@ -769,10 +757,17 @@ bool EqPage::Update() {
             dd_->SetPos(kCol1, -1);
             dd_->SetScale(0.8f);  // scale down the text to fit the eq status on the display
 
-            dd_->TextAt(kCol1, -1, kTextColor, *dd_font, "TOBT");
-            dd_->SameLine();
-            dd_->TextAt(kCol2, -1, kTextColor, *dd_font, ofp.cdm_tobt);
-            DisplayDiffToTOBT(dd_, zulu_h, zulu_m, ofp.cdm_tobt);
+            if (!ofp.cdm_tobt.empty()) {
+                dd_->TextAt(kCol1, -1, kTextColor, *dd_font, "TOBT");
+                dd_->SameLine();
+                dd_->TextAt(kCol2, -1, kTextColor, *dd_font, ofp.cdm_tobt);
+                DisplayDiffToTOBT(dd_, zulu_h, zulu_m, ofp.cdm_tobt);
+            } else {
+                dd_->TextAt(kCol1, -1, kTextColor, *dd_font, "OUT");
+                dd_->SameLine();
+                dd_->TextAt(kCol2, -1, kTextColor, *dd_font, ofp.est_out_str);
+                DisplayDiffToTOBT(dd_, zulu_h, zulu_m, ofp.est_out_str);
+            }
             dd_->SetScale(1.0f);  // reset the scale
         }
 

@@ -24,6 +24,7 @@
 #include <cassert>
 #include <ctime>
 #include <cstring>
+#include <print>
 
 #include "XPLMDataAccess.h"
 
@@ -52,11 +53,12 @@ DEF_OFP_DR(dx_rmk);
 DEF_CDM_DR(tobt);
 DEF_CDM_DR(tsat);
 DEF_CDM_DR(ctot);
+DEF_CDM_DR(ttot);
 DEF_CDM_DR(runway);
 DEF_CDM_DR(sid);
 
-#undef DEF_OFP_DREF_DR
-#undef DEF_CDM_DREF_DR
+#undef DEF_OFP_DR
+#undef DEF_CDM_DR
 
 static XPLMDataRef seqno_dr, cdm_seqno_dr, stale_dr;
 static int sbh_ofp_seqno, sbh_cdm_seqno, my_seqno;
@@ -151,10 +153,22 @@ bool Ofp::LoadIfNewer() {
     GET_CDM_DREF(tobt);
     GET_CDM_DREF(tsat);
     GET_CDM_DREF(ctot);
+    GET_CDM_DREF(ttot);
     GET_CDM_DREF(runway);
     GET_CDM_DREF(sid);
 
     ofp.callsign = ofp.icao_airline + ofp.flight_number;
+
+    auto cnv_hhmm = [](const std::string& t) -> std::string {
+        if (t.empty())
+            return "";
+        time_t tt = std::atol(t.c_str());
+        auto tm = *std::gmtime(&tt);
+        return std::format("{:02d}{:02d}", tm.tm_hour, tm.tm_min);
+    };
+
+    ofp.est_out_str = cnv_hhmm(ofp.est_out);
+    ofp.est_off_str = cnv_hhmm(ofp.est_off);
 
     LogMsg("From simbrief_hub: Seqno: %d, Cdm: %d", ofp_seqno, cdm_seqno);
     LOG_FIELD(icao_airline);
@@ -169,9 +183,13 @@ bool Ofp::LoadIfNewer() {
     LOG_FIELD(est_on);
     LOG_FIELD(est_in);
     LOG_FIELD(dx_rmk);
+    LOG_FIELD(callsign);
+    LOG_FIELD(est_out_str);
+    LOG_FIELD(est_off_str);
     LOG_FIELD(cdm_tobt);
     LOG_FIELD(cdm_tsat);
     LOG_FIELD(cdm_ctot);
+    LOG_FIELD(cdm_ttot);
     LOG_FIELD(cdm_runway);
     LOG_FIELD(cdm_sid);
 
@@ -179,39 +197,27 @@ bool Ofp::LoadIfNewer() {
 }
 
 const std::string Ofp::GenDepartureStr() const {
-    std::string str;
-    str = callsign + " " + aircraft_icao + " TO " + destination;
+    std::string str = callsign + " " + aircraft_icao + " TO " + destination;
 
-    time_t out_time = atol(est_out.c_str());
-    time_t off_time = atol(est_off.c_str());
-
-    bool have_cdm{false};
-    if (cdm_tobt.empty()) {
-        auto out_tm = *std::gmtime(&out_time);
-        char out[20];
-        strftime(out, sizeof(out), " OUT %H%M", &out_tm);
-        str.append(out);
-    } else {
-        have_cdm = true;
-        if (cdm_tsat != cdm_tobt) {
-            str.append(" TOBT " + cdm_tobt);
-        }
-
-        if (!cdm_tsat.empty()) {
-            str.append(" TSAT " + cdm_tsat);
-        }
-
-        if (!cdm_ctot.empty()) {
-            str.append(" CTOT " + cdm_ctot);
-        }
-    }
-
+    bool have_cdm = !cdm_tobt.empty();
     if (!have_cdm) {
-        auto off_tm = *std::gmtime(&off_time);
-        char off[20];
-        strftime(off, sizeof(off), " OFF %H%M", &off_tm);
-        str.append(off);
+       str.append(" OUT " + est_out_str);
+    } else {
+        if (cdm_tsat != cdm_tobt)
+            str.append(" TOBT " + cdm_tobt);
+
+        if (!cdm_tsat.empty())
+            str.append(" TSAT " + cdm_tsat);
+
+        if (!cdm_ttot.empty())
+            str.append(" TTOT " + cdm_ttot);
+
+        else if (!cdm_ctot.empty())
+            str.append(" CTOT " + cdm_ctot);
     }
+
+    if (!have_cdm)
+       str.append(" OFF " + est_off_str);
 
     if (!cdm_runway.empty())
         str.append(" RWY " + cdm_runway);

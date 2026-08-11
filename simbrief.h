@@ -46,10 +46,14 @@ struct Ofp
     F(cdm_tobt);
     F(cdm_tsat);
     F(cdm_ctot);
+    F(cdm_ttot);
     F(cdm_runway);
     F(cdm_sid);
 
-    std::string callsign;   // for convenience, not part of the simbrief_hub data
+    // for convenience, not part of the simbrief_hub data
+    std::string callsign;
+    std::string est_out_str;    // hhmm representation of est_out
+    std::string est_off_str;    // hhmm representation of est_off
 
     // return ptr to an OFP if a newer version is available or nullptr
     static bool LoadIfNewer(); // -> updated
