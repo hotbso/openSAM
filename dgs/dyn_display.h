@@ -98,6 +98,10 @@ class Image {
     Image(Image&&) = delete;
     Image& operator=(Image&&) = delete;
 
+    void Clear() {
+        memset(pixels_.get(), 0, width_ * height_ * 4);
+    }
+
     void Text(int x, int y, Font& font, float height, Color color, const std::string& txt);
     int MeasureText(Font& font, float height, const std::string& txt);
 
@@ -138,6 +142,12 @@ class Display {
     int r_margin_pix_;
     std::unique_ptr<Image> image_;
     XPLMObjectRef xplm_obj_ = nullptr;
+
+    // the usual cycle is back-to-back destroy/create of a display, se we keep a cache
+    // of the last image and recycle that if possible.
+    // Saves around 300 us per display creation.
+    static std::unique_ptr<Image> image_cache_;
+
     std::pair<int, int> ToPix(float x_m, float y_m) const {
         int xp = static_cast<int>(x_m * m_2_pix);
         int yp = static_cast<int>((1.0f - (y_m / height_m_)) * kImgHeight);
@@ -196,7 +206,7 @@ class Display {
 
     void Paste(const Image& src, float x, float y);  // paste src image into this image at (x,y) in meters from lower left corner
 
-    void Bake(const std::string& dirname, const std::string& filename);  // without extension
+    void Bake(const std::string& dirname);
 
     XPLMObjectRef GetXplmObj() const { return xplm_obj_; }
 

@@ -164,7 +164,7 @@ std::string dyn_display_obj_dir;
 bool Initialize(const std::string& res_dir) {
     // create directory for dynamic display objects in the beginning
     // all later errors for io here will throw
-    dyn_display_obj_dir = "Output/openSAM/dyn_display/";    // path relative to root
+    dyn_display_obj_dir = "Output/openSAM/tmp/";    // path relative to root
     std::filesystem::create_directories(xp_dir + dyn_display_obj_dir);
 
     std::ofstream tst(xp_dir + dyn_display_obj_dir + "test.txt");

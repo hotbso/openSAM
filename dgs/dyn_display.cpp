@@ -56,6 +56,8 @@
 namespace dgs {
 namespace DynDisplay {
 
+std::unique_ptr<Image> Display::image_cache_;
+
 static bool SaveImagePng(const uint32_t* data, int width, int height, const std::string& png_path);
 
 //------------------------------------------------------------------------------------
@@ -269,7 +271,13 @@ Display::Display(float width_m, float height_m, float x0, float y0, float z0)
     x0_ = x0;  // Blender to OGL
     y0_ = z0;
     z0_ = -y0 + 0.003f;  // Slightly in front of the display plane
-    image_ = std::make_unique<Image>(kImgWidth, kImgHeight);
+
+    image_ = std::move(image_cache_);
+    if (image_)
+        image_->Clear();
+    else
+        image_ = std::make_unique<Image>(kImgWidth, kImgHeight);
+
     active_displays_++;
 
     if (id_ == 1) {
@@ -285,13 +293,16 @@ Display::~Display() {
     if (xplm_obj_ != nullptr)
         XPLMUnloadObject(xplm_obj_);
 
-#if 1
+#if 0
+    // Deleting files is quite expensive, for these 2 files ~ 250 us.
+    // As there is only a limited amount of files we keep them and just overwrite.
     if (baked_) {
         std::filesystem::remove(png_pathname_);
         std::filesystem::remove(obj_pathname_);
     }
 #endif
 
+    image_cache_ = std::move(image_);  // recycle the image for the next display
     active_displays_--;
 }
 
@@ -331,13 +342,13 @@ void Display::Paste(const Image& src, float x, float y) {
     image_->Paste(src, x_pix, y_pix);
 }
 
-void Display::Bake(const std::string& dirname, const std::string& filename) {
+void Display::Bake(const std::string& dirname) {
     assert(!baked_);
     assert(xplm_obj_ == nullptr);
 
-    png_filename_ = filename + std::format("-{:04d}.png", id_);
+    png_filename_ = std::format("Display-{:04d}.png", id_);
     png_pathname_ = dirname + png_filename_;
-    obj_pathname_ = dirname + filename + std::format("-{:04d}.obj", id_);
+    obj_pathname_ = dirname + std::format("Display-{:04d}.obj", id_);
     baked_ = true;  // no double baking
 
     // LogMsg("Bake: Creating display object '%s' and texture '%s'", obj_pathname_.c_str(),

@@ -637,7 +637,7 @@ bool CdmPage::Update() {
         if (!ofp.cdm_sid.empty())
             Line(ofp.cdm_sid, true);
 
-        dd_->Bake(dyn_display_obj_dir, "X-ofp");
+        dd_->Bake(dyn_display_obj_dir);
     }
 
     return true;
@@ -714,7 +714,7 @@ bool StandPage::Update() {
             }
         }
 
-        dd_->Bake(dyn_display_obj_dir, "X-stand");
+        dd_->Bake(dyn_display_obj_dir);
     }
 
     return true;
@@ -803,7 +803,7 @@ bool EqPage::Update() {
         dd_->TextAt(x, y, kTextColor, *dd_font, "CHK");
         OnOff(eq_status_.chocks);
 
-        dd_->Bake(dyn_display_obj_dir, "X-eq");
+        dd_->Bake(dyn_display_obj_dir);
     }
 
     return true;
