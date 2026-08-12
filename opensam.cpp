@@ -111,6 +111,8 @@ constexpr float kMultiPlayerHeightLimit = 1000.0f;
 std::string xp_dir;
 std::string sys_cfg_dir;    // <base_dir>/cfg
 std::string user_cfg_dir;   // <xp_dir>/Output/openSAM
+std::string tmp_dir;
+
 static std::string pref_path;
 
 static XPLMMenuID os_menu;
@@ -643,10 +645,29 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     base_dir = xp_dir + "Resources/plugins/openSAM/";
     sys_cfg_dir = base_dir + "cfg/";
     user_cfg_dir = xp_dir + "Output/openSAM/";
+    tmp_dir = "Output/openSAM/tmp/";
     pref_path = user_cfg_dir + "prefs.prf";
     std::string res_dir = base_dir + "resources/";
 
-    std::filesystem::create_directories(user_cfg_dir);
+    try {
+        // create tmp dir and verify it's writeable
+        // all later errors for io here will throw
+        std::filesystem::create_directories(tmp_dir);
+        std::ofstream tst(tmp_dir + "test.txt");
+        if (!tst) {
+            LogMsg("Failed to create test file in '%s'", tmp_dir.c_str());
+            return 0;
+        }
+
+        tst.close();
+        if (!std::filesystem::remove(tmp_dir + "test.txt")) {
+            LogMsg("Failed to delete test file in '%s'", tmp_dir.c_str());
+            return 0;
+        }
+    } catch (const std::exception& ex) {
+        LogMsg("Failed to create or write to tmp dir '%s': %s", tmp_dir.c_str(), ex.what());
+        return 0;
+    }
 
     int max_sam_stands;
 
@@ -817,6 +838,17 @@ PLUGIN_API void XPluginStop(void) {
     my_plane = nullptr;
     ImgWindowFini();
     SamJw::Finalize();
+
+    if (!error_disabled) {
+        // and finally clean the tmp directory
+        // be paranoid and use the full path
+        std::string clean_dir = xp_dir + tmp_dir;
+        try {
+            auto n = std::filesystem::remove_all(clean_dir);
+            LogMsg("cleaned tmp dir '%s', %d files removed", clean_dir.c_str(), (int)n);
+        } catch (const std::exception& ex) { LogMsg("Failed to clean tmp dir '%s': %s", clean_dir.c_str(), ex.what()); }
+    }
+
     LogMsg("plugin stopped");
 }
 

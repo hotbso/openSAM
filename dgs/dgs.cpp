@@ -162,24 +162,6 @@ XPLMDataRef zulu_time_minutes_dr, zulu_time_hours_dr;
 std::string dyn_display_obj_dir;
 
 bool Initialize(const std::string& res_dir) {
-    // create directory for dynamic display objects in the beginning
-    // all later errors for io here will throw
-    dyn_display_obj_dir = "Output/openSAM/tmp/";    // path relative to root
-    std::filesystem::create_directories(xp_dir + dyn_display_obj_dir);
-
-    std::ofstream tst(xp_dir + dyn_display_obj_dir + "test.txt");
-    if (!tst) {
-        LogMsg("Failed to create test file in '%s'", (xp_dir + dyn_display_obj_dir).c_str());
-        return false;
-    }
-
-    tst.close();
-
-    if (!std::filesystem::remove(xp_dir + dyn_display_obj_dir + "test.txt")) {
-        LogMsg("Failed to delete test file in '%s'", (xp_dir + dyn_display_obj_dir).c_str());
-        return false;
-    }
-
     zulu_time_sec_dr = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_seconds");
     zulu_time_minutes_dr = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_minutes");
     zulu_time_hours_dr = XPLMFindDataRef("sim/cockpit2/clock_timer/zulu_time_hours");

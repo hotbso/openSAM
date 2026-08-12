@@ -157,8 +157,6 @@ static inline void trim(std::string& s) {
     s.erase(s.find_last_not_of(" \t\r\n") + 1);
 }
 
-extern std::string dyn_display_obj_dir; // path relative to root, for dynamic display objects
-
 // A stand name can be anything between "1" and "Gate A 40 (Class C, Terminal 3)".
 // We try to extract the net name "A 40" in the latter case.
 extern std::string ExtractDisplayName(const std::string& stand_name, int max_len);

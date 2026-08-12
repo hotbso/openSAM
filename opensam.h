@@ -35,6 +35,10 @@ extern std::string base_dir;        // base directory of openSAM
 extern std::string sys_cfg_dir;
 extern std::string user_cfg_dir;
 
+// relative to <xp_dir>!
+// will be cleaned on exit, used for temporary files like *.obj for the VDGS
+extern std::string tmp_dir;
+
 extern XPLMDataRef draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_object_psi_dr, total_running_time_sec_dr,
     sin_wave_dr, acf_cg_y_dr, acf_cg_z_dr, vr_enabled_dr, plane_x_dr, plane_y_dr, plane_z_dr, plane_elevation_dr,
     plane_true_psi_dr, parkbrake_dr;

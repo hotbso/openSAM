@@ -127,8 +127,8 @@ class Display {
     bool retired_ = false;  // true if the display has been retired, will be deleted once the async loading is complete
     bool png_ok_ = false;   // true if the PNG file was successfully created in background thread
     std::string png_filename_;  // relative to the obj file, e.g. "X-eq-0001.png"
-    std::string png_pathname_;  // relative to <xp-root>
-    std::string obj_pathname_;
+    std::string obj_pathname_;  // relative to <xp-root>
+    std::string png_pathname_;
 
     float width_m_, height_m_;
     float x0_, y0_, z0_;        // lower left corner of the display in meters, local coord system of the display object
@@ -206,7 +206,7 @@ class Display {
 
     void Paste(const Image& src, float x, float y);  // paste src image into this image at (x,y) in meters from lower left corner
 
-    void Bake(const std::string& dirname);
+    void Bake();
 
     XPLMObjectRef GetXplmObj() const { return xplm_obj_; }
 

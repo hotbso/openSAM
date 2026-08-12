@@ -98,6 +98,7 @@ extern XPLMDataRef acf_icao_dr, acf_cg_y_dr, acf_cg_z_dr, acf_gear_z_dr, total_r
 extern std::string xp_dir;
 extern std::string base_dir;        // base directory of openSAM
 extern std::string user_cfg_dir;    // Output/openSAM
+extern std::string tmp_dir;         // Output/openSAM/tmp
 
 extern XPLMProbeInfo_t probeinfo;
 extern XPLMProbeRef probe_ref;

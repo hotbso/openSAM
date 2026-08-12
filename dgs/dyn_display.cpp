@@ -342,13 +342,13 @@ void Display::Paste(const Image& src, float x, float y) {
     image_->Paste(src, x_pix, y_pix);
 }
 
-void Display::Bake(const std::string& dirname) {
+void Display::Bake() {
     assert(!baked_);
     assert(xplm_obj_ == nullptr);
 
     png_filename_ = std::format("Display-{:04d}.png", id_);
-    png_pathname_ = dirname + png_filename_;
-    obj_pathname_ = dirname + std::format("Display-{:04d}.obj", id_);
+    png_pathname_ = tmp_dir + png_filename_;
+    obj_pathname_ = tmp_dir + std::format("Display-{:04d}.obj", id_);
     baked_ = true;  // no double baking
 
     // LogMsg("Bake: Creating display object '%s' and texture '%s'", obj_pathname_.c_str(),
@@ -515,7 +515,8 @@ void Display::BgWorker() {
 }
 
 void Display::BakeBg() {
-    std::ofstream obj_file(obj_pathname_);
+    // Be paranoid and prepend <xp_dir> to the pathnames, just in case
+    std::ofstream obj_file(xp_dir + obj_pathname_);
     if (!obj_file.is_open())
         throw std::runtime_error("Bake: Failed to open file for writing: " + obj_pathname_);
 
@@ -546,7 +547,7 @@ void Display::BakeBg() {
                 "TRIS 0 6\n";
     obj_file.close();
 
-    png_ok_ = image_->Save(png_pathname_);
+    png_ok_ = image_->Save(xp_dir + png_pathname_);
     // LogMsg("Display::BakeBg: PNG file '%s' written, success=%d", png_pathname_.c_str(), png_ok_);
 }
 
