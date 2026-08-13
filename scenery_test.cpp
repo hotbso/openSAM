@@ -88,6 +88,8 @@ void scenery_test() {
     }
 
     for (const auto& sc : Scenery::sceneries) {
+        printf("\nScenery '%s', %d objects, %d animations, %d jetways\n", sc.name_.c_str(), (int)sc.sam_objs_.size(),
+               (int)sc.sam_anims_.size(), sc.jw_idx_end_ - sc.jw_idx_start_);
         puts("\nObjects");
         for (auto& obj : sc.sam_objs_)
             printf("'%s' %5.6f %5.6f %5.6f %5.6f\n", obj.id.c_str(), obj.latitude, obj.longitude,

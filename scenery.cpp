@@ -23,18 +23,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
-#include <unistd.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <fstream>
 #include <filesystem>
 #include <unordered_map>
 
-#include <expat.h>
-
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
+#include "pugiconfig.hpp"
+#include "pugixml.hpp"
 
 #include "scenery.h"
 #include "dgs/apt_airport.h"
@@ -44,127 +38,7 @@
 #include "samjw.h"
 #include "os_anim.h"
 
-// context for element handlers
-struct ExpatCtx {
-    XML_Parser parser;
-    Scenery* sc;
-
-    bool in_jetways{};
-    bool in_sets{};
-    bool in_datarefs{}, in_dataref{};
-    bool in_objects{};
-    bool in_gui{};
-    int cur_drf_idx = -1;    // index into sam_drfs of the dataref currently being parsed, -1 if none
-
-    std::unordered_map<std::string, SamLibJw*>& lib_jw_map;
-
-    ExpatCtx(XML_Parser parser, Scenery* sc, std::unordered_map<std::string, SamLibJw*>& lib_jw_map)
-        : parser(parser), sc(sc), lib_jw_map(lib_jw_map) {
-    }
-};
-
 std::vector<Scenery> Scenery::sceneries;
-
-static const int BUFSIZE = 4096;
-
-static const char* LookupAttr(const XML_Char** attr, const char* name) {
-    for (int i = 0; attr[i]; i += 2)
-        if (0 == strcmp(attr[i], name))
-            return attr[i + 1];
-
-    return NULL;
-}
-
-#define GET_INT_ATTR(ptr, n)                    \
-    {                                           \
-        const char* val = LookupAttr(attr, #n); \
-        if (val)                                \
-            (ptr)->n = atoi(val);               \
-    }
-
-#define GET_FLOAT_ATTR(ptr, n)                  \
-    {                                           \
-        const char* val = LookupAttr(attr, #n); \
-        if (val)                                \
-            (ptr)->n = atof(val);               \
-    }
-
-#define GET_STR_ATTR(ptr, n)                    \
-    {                                           \
-        const char* val = LookupAttr(attr, #n); \
-        if (val)                                \
-            (ptr)->n = val;                     \
-    }
-
-#define GET_BOOL_ATTR(ptr, n)                           \
-    {                                                   \
-        const char* val = LookupAttr(attr, #n);         \
-        (ptr)->n = (val && (0 == strcmp(val, "true"))); \
-    }
-
-static void GetJwAttrs(const XML_Char** attr, SamJw* sam_jw) {
-    GET_STR_ATTR(sam_jw, name)
-    GET_FLOAT_ATTR(sam_jw, latitude)
-    GET_FLOAT_ATTR(sam_jw, longitude)
-    GET_FLOAT_ATTR(sam_jw, heading)
-    GET_FLOAT_ATTR(sam_jw, height)
-    GET_FLOAT_ATTR(sam_jw, wheelPos)
-    GET_FLOAT_ATTR(sam_jw, cabinPos)
-    GET_FLOAT_ATTR(sam_jw, cabinLength)
-    GET_FLOAT_ATTR(sam_jw, wheelDiameter)
-    GET_FLOAT_ATTR(sam_jw, wheelDistance)
-    GET_STR_ATTR(sam_jw, sound)
-    GET_FLOAT_ATTR(sam_jw, minRot1)
-    GET_FLOAT_ATTR(sam_jw, maxRot1)
-    GET_FLOAT_ATTR(sam_jw, minRot2)
-    GET_FLOAT_ATTR(sam_jw, maxRot2)
-    GET_FLOAT_ATTR(sam_jw, minRot3)
-    GET_FLOAT_ATTR(sam_jw, maxRot3)
-    GET_FLOAT_ATTR(sam_jw, minExtent)
-    GET_FLOAT_ATTR(sam_jw, maxExtent)
-    GET_FLOAT_ATTR(sam_jw, minWheels)
-    GET_FLOAT_ATTR(sam_jw, maxWheels)
-    GET_FLOAT_ATTR(sam_jw, initialRot1)
-    GET_FLOAT_ATTR(sam_jw, initialRot2)
-    GET_FLOAT_ATTR(sam_jw, initialRot3)
-    GET_FLOAT_ATTR(sam_jw, initialExtent)
-
-    const char* val = LookupAttr(attr, "forDoorLocation");
-    if (val) {
-        if (0 == strcmp(val, "LF2"))
-            sam_jw->door = 1;
-
-        else if (0 == strcmp(val, "LU1"))
-            sam_jw->door = 2;
-    }
-
-    sam_jw->base_name = sam_jw->name;  // for later use when we fabricate names for zero config jetways
-    // sanitize all heading values entering the plugin in order to avoid stalls in fem::RA
-    sam_jw->heading = fmodf(sam_jw->heading, 360.0f);
-
-    sam_jw->ComputeBbox();
-}
-
-static void GetLibJwAttrs(const XML_Char** attr, SamLibJw* sam_lib_jw) {
-    GET_STR_ATTR(sam_lib_jw, id)
-    GET_STR_ATTR(sam_lib_jw, name)
-    GET_FLOAT_ATTR(sam_lib_jw, height)
-    GET_FLOAT_ATTR(sam_lib_jw, wheelPos)
-    GET_FLOAT_ATTR(sam_lib_jw, cabinPos)
-    GET_FLOAT_ATTR(sam_lib_jw, cabinLength)
-    GET_FLOAT_ATTR(sam_lib_jw, wheelDiameter)
-    GET_FLOAT_ATTR(sam_lib_jw, wheelDistance)
-    GET_FLOAT_ATTR(sam_lib_jw, minRot1)
-    GET_FLOAT_ATTR(sam_lib_jw, maxRot1)
-    GET_FLOAT_ATTR(sam_lib_jw, minRot2)
-    GET_FLOAT_ATTR(sam_lib_jw, maxRot2)
-    GET_FLOAT_ATTR(sam_lib_jw, minRot3)
-    GET_FLOAT_ATTR(sam_lib_jw, maxRot3)
-    GET_FLOAT_ATTR(sam_lib_jw, minExtent)
-    GET_FLOAT_ATTR(sam_lib_jw, maxExtent)
-    GET_FLOAT_ATTR(sam_lib_jw, minWheels)
-    GET_FLOAT_ATTR(sam_lib_jw, maxWheels)
-}
 
 static int LookupDrf(const std::string& name) {
     for (unsigned int i = 0; i < SamDrf::sam_drfs.size(); i++)
@@ -182,160 +56,92 @@ static int LookupObj(const Scenery* sc, const std::string& id) {
     return -1;
 }
 
-// expat's callbacks
-static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XML_Char** attr) {
-    ExpatCtx* ctx = (ExpatCtx*)user_data;
-    Scenery* sc = ctx->sc;
-
-    if (sc && (0 == strcmp(name, "scenery"))) {
-        const char* val = LookupAttr(attr, "name");
-        if (val)
-            ctx->sc->name_ = val;
-       return;
-    }
-
-    if (0 == strcmp(name, "jetways")) {
-        ctx->in_jetways = true;
+static void ParseDatarefs(const pugi::xml_node& sc_node) {
+    pugi::xml_node datarefs = sc_node.child("datarefs");
+    if (datarefs.empty())
         return;
-    }
 
-    if (0 == strcmp(name, "sets")) {
-        ctx->in_sets = true;
-        return;
-    }
-
-    if (sc && ctx->in_jetways && (0 == strcmp(name, "jetway"))) {
-        SamJw* jw = new SamJw();
-        GetJwAttrs(attr, jw);
-        // simple sanity check, e.g Aerosoft LEBL has bogus values
-        if (is_between(jw->latitude, -85.0, 85.0) && is_between(jw->longitude, -180.0, 180.0))
-            sam_jw_list.push_back(jw);
-        else {
-            LogMsg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude, jw->longitude);
-            delete (jw);
-        }
-        return;
-    }
-
-    if (ctx->in_sets && (0 == strcmp(name, "set"))) {
-        SamLibJw* sam_lib_jw = new SamLibJw;
-        GetLibJwAttrs(attr, sam_lib_jw);
-
-        if (sam_lib_jw->id.empty()) {
-            LogMsg("library jetway with missing id ignored");
-            delete (sam_lib_jw);
-            return;
+    for (pugi::xml_node dataref : datarefs.children("dataref")) {
+        const char *name = dataref.attribute("name").as_string(nullptr);
+        if (name == nullptr) {
+            LogMsg("dataref with missing name attribute ignored");
+            continue;
         }
 
-        if (ctx->lib_jw_map.find(sam_lib_jw->id) != ctx->lib_jw_map.end()) {
-            LogMsg("duplicate library jetway id detected: '%s', ignored", sam_lib_jw->id.c_str());
-            delete (sam_lib_jw);
-            return;
+        if (LookupDrf(name) >= 0) {
+            LogMsg("duplicate definition for dataref '%s', ignored", name);
+            continue;
         }
-
-        ctx->lib_jw_map[sam_lib_jw->id] = sam_lib_jw;
-        return;
-    }
-
-    ////////// datarefs ////////////
-    if (0 == strcmp(name, "datarefs")) {
-        ctx->in_datarefs = true;
-        return;
-    }
-
-    if (ctx->in_datarefs && (0 == strcmp(name, "dataref"))) {
-        ctx->in_dataref = true;
-        // for (int i = 0; attr[i]; i += 2)
-        //     LogMsg("dataref %s, %s", attr[i], attr[i+1]);
 
         SamDrf drf;
+        drf.name = name;
+        drf.autoplay = dataref.attribute("autoplay").as_bool(false);
+        drf.randomize_phase = dataref.attribute("randomize_phase").as_bool(false);
+        drf.augment_wind_speed = dataref.attribute("augment_wind_speed").as_bool(false);
 
-        GET_STR_ATTR(&drf, name);
-        if (drf.name[0] == '\0') {
-            LogMsg("name attribute not found for dataref");
-            ctx->cur_drf_idx = -1;
-            return;
-        }
-
-        if (LookupDrf(drf.name) >= 0) {
-            LogMsg("duplicate definition for dataref '%s', ignored", drf.name.c_str());
-            ctx->cur_drf_idx = -1;
-            return;
-        }
-
-        GET_BOOL_ATTR(&drf, autoplay);
-        GET_BOOL_ATTR(&drf, randomize_phase);
-        GET_BOOL_ATTR(&drf, augment_wind_speed);
         drf.t.reserve(10);
         drf.v.reserve(10);
         drf.s.reserve(10);
 
-        ctx->cur_drf_idx = SamDrf::sam_drfs.size();
-        //LogMsg("cur_drf_idx %d, name '%s', autoplay %d, randomize_phase %d, augment_wind_speed %d", ctx->cur_drf_idx, drf.name.c_str(), drf.autoplay, drf.randomize_phase, drf.augment_wind_speed);
-        SamDrf::sam_drfs.push_back(std::move(drf));
-        return;
-    }
-
-    if (ctx->in_dataref && ctx->cur_drf_idx >= 0 && (0 == strcmp(name, "animation"))) {
-        SamDrf& d = SamDrf::sam_drfs[ctx->cur_drf_idx];
-        const char* attr_t = LookupAttr(attr, "t");
-        const char* attr_v = LookupAttr(attr, "v");
-
-        if (attr_t && attr_v) {
-            float t = atof(attr_t);
-            float v = atof(attr_v);
-
-            if (d.n_tv > 0 && t == d.t[d.n_tv - 1])  // no double entries
-                d.v[d.n_tv - 1] = v;
+        for (pugi::xml_node anim : dataref.children("animation")) {
+            float t = anim.attribute("t").as_float(0.0f);
+            float v = anim.attribute("v").as_float(0.0f);
+            if (drf.t.size() > 0 && t == drf.t.back())  // no double entries
+                drf.v.back() = v;       // just overwrite with recent value
             else {
-                int n = d.n_tv;
-                d.t.push_back(t);
-                d.v.push_back(v);
+                int n = drf.t.size();
+                drf.t.push_back(t);
+                drf.v.push_back(v);
                 // save a few cycles in the accessor
-                float s = n > 0 ? (v - d.v[n - 1]) / (t - d.t[n - 1]) : 0.0f;
-                d.s.push_back(s);
-                d.n_tv++;
+                float s = n > 0 ? (v - drf.v[n - 1]) / (t - drf.t[n - 1]) : 0.0f;
+                drf.s.push_back(s);
             }
         }
 
-        return;
+        drf.n_tv = drf.t.size();
+        SamDrf::sam_drfs.push_back(std::move(drf));
     }
+}
 
-    ////////// objects ////////////
-    if (0 == strcmp(name, "objects")) {
-        ctx->in_objects = true;
+static void ParseObjects(const pugi::xml_node& sc_node, Scenery* sc) {
+    pugi::xml_node objects = sc_node.child("objects");
+    if (objects.empty())
         return;
-    }
 
-    if (sc && ctx->in_objects && (0 == strcmp(name, "instance"))) {
+    for (pugi::xml_node instance : objects.children("instance")) {
         SamObj obj;
-        GET_STR_ATTR(&obj, id);
-        GET_FLOAT_ATTR(&obj, latitude);
-        GET_FLOAT_ATTR(&obj, longitude);
-        GET_FLOAT_ATTR(&obj, elevation);
-        GET_FLOAT_ATTR(&obj, heading);
+        const char* id = instance.attribute("id").as_string(nullptr);
+        if (id == nullptr) {
+            LogMsg("instance with missing id attribute ignored");
+            continue;
+        }
+        obj.id = instance.attribute("id").as_string("");
+        obj.latitude = instance.attribute("latitude").as_float(0.0f);
+        obj.longitude = instance.attribute("longitude").as_float(0.0f);
+        obj.elevation = instance.attribute("elevation").as_float(0.0f);
+        obj.heading = instance.attribute("heading").as_float(0.0f);
+        LogMsg("Parsed object: id='%s', lat=%0.6f, lon=%0.6f, elev=%0.2f, heading=%0.2f", obj.id.c_str(), obj.latitude, obj.longitude, obj.elevation, obj.heading);
         sc->sam_objs_.push_back(std::move(obj));
-        return;
     }
+}
 
-    ////////// animations ////////////
-    if (0 == strcmp(name, "gui")) {
-        ctx->in_gui = true;
+static void ParseGui(const pugi::xml_node& sc_node, Scenery* sc) {
+    pugi::xml_node gui = sc_node.child("gui");
+    if (gui.empty())
         return;
-    }
 
-    if (sc && ctx->in_gui && (0 == strcmp(name, "checkbox"))) {
+    for (pugi::xml_node checkbox : gui.children("checkbox")) {
         SamAnim anim;
-        GET_STR_ATTR(&anim, label);
-        GET_STR_ATTR(&anim, title);
+        anim.label = checkbox.attribute("label").as_string("");
+        anim.title = checkbox.attribute("title").as_string("");
 
         anim.obj_idx = anim.drf_idx = -1;
 
-        const char* inst = LookupAttr(attr, "instance");
+        const char* inst = checkbox.attribute("instance").as_string(nullptr);
         if (inst)
             anim.obj_idx = LookupObj(sc, inst);
 
-        const char* name = LookupAttr(attr, "dataref");
+        const char* name = checkbox.attribute("dataref").as_string(nullptr);
         if (name)
             anim.drf_idx = LookupDrf(name);
 
@@ -344,86 +150,126 @@ static void XMLCALL StartElement(void* user_data, const XML_Char* name, const XM
         else {
             LogMsg("dataref of object not found for checkbox entry");
         }
-        return;
     }
-
-    return;
 }
 
-static void XMLCALL EndElement(void* user_data, const XML_Char* name) {
-    ExpatCtx* ctx = (ExpatCtx*)user_data;
+static void ParseJetways(const pugi::xml_node& sc_node) {
+    pugi::xml_node jetways = sc_node.child("jetways");
+    if (jetways.empty())
+        return;
 
-    if (0 == strcmp(name, "jetways"))
-        ctx->in_jetways = false;
+    for (pugi::xml_node jetway : jetways.children("jetway")) {
+        SamJw* jw = new SamJw();
+        jw->name = jetway.attribute("name").as_string("");
+        jw->latitude = jetway.attribute("latitude").as_float(0.0f);
+        jw->longitude = jetway.attribute("longitude").as_float(0.0f);
+        jw->heading = jetway.attribute("heading").as_float(0.0f);
+        jw->height = jetway.attribute("height").as_float(0.0f);
+        jw->wheelPos = jetway.attribute("wheelPos").as_float(0.0f);
+        jw->cabinPos = jetway.attribute("cabinPos").as_float(0.0f);
+        jw->cabinLength = jetway.attribute("cabinLength").as_float(0.0f);
+        jw->wheelDiameter = jetway.attribute("wheelDiameter").as_float(0.0f);
+        jw->wheelDistance = jetway.attribute("wheelDistance").as_float(0.0f);
+        jw->sound = jetway.attribute("sound").as_string("");
+        jw->minRot1 = jetway.attribute("minRot1").as_float(0.0f);
+        jw->maxRot1 = jetway.attribute("maxRot1").as_float(0.0f);
+        jw->minRot2 = jetway.attribute("minRot2").as_float(0.0f);
+        jw->maxRot2 = jetway.attribute("maxRot2").as_float(0.0f);
+        jw->minRot3 = jetway.attribute("minRot3").as_float(0.0f);
+        jw->maxRot3 = jetway.attribute("maxRot3").as_float(0.0f);
+        jw->minExtent = jetway.attribute("minExtent").as_float(0.0f);
+        jw->maxExtent = jetway.attribute("maxExtent").as_float(0.0f);
+        jw->minWheels = jetway.attribute("minWheels").as_float(0.0f);
+        jw->maxWheels = jetway.attribute("maxWheels").as_float(0.0f);
+        jw->initialRot1 = jetway.attribute("initialRot1").as_float(0.0f);
+        jw->initialRot2 = jetway.attribute("initialRot2").as_float(0.0f);
+        jw->initialRot3 = jetway.attribute("initialRot3").as_float(0.0f);
+        jw->initialExtent = jetway.attribute("initialExtent").as_float(0.0f);
+        const char* door_loc = jetway.attribute("forDoorLocation").as_string(nullptr);
+        if (door_loc) {
+            if (0 == strcmp(door_loc, "LF2"))
+                jw->door = 1;
+            else if (0 == strcmp(door_loc, "LU1"))
+                jw->door = 2;
+        }
+        jw->base_name = jw->name;  // for later use when we fabricate names for zero config jetways
 
-    else if (0 == strcmp(name, "sets"))
-        ctx->in_sets = false;
+        // sanitize all heading values entering the plugin in order to avoid stalls in fem::RA
+        jw->heading = fmodf(jw->heading, 360.0f);
 
-    else if (0 == strcmp(name, "datarefs"))
-        ctx->in_datarefs = false;
+        jw->ComputeBbox();
 
-    else if (0 == strcmp(name, "dataref")) {
-        ctx->in_dataref = false;
-        if (ctx->cur_drf_idx >= 0) {
-            SamDrf& drf = SamDrf::sam_drfs[ctx->cur_drf_idx];
-            drf.t.shrink_to_fit();
-            drf.v.shrink_to_fit();
-            drf.s.shrink_to_fit();
-            if (drf.n_tv < 2)  // sanity check
-                LogMsg("too few animation entries for %s", drf.name.c_str());
+        // simple sanity check, e.g Aerosoft LEBL has bogus values
+        if (is_between(jw->latitude, -85.0, 85.0) && is_between(jw->longitude, -180.0, 180.0))
+            sam_jw_list.push_back(jw);
+        else {
+            LogMsg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude, jw->longitude);
+            delete (jw);
         }
     }
+}
 
-    else if (0 == strcmp(name, "objects"))
-        ctx->in_objects = false;
+static void ParseLibraryJetways(const pugi::xml_node& sc_node, std::unordered_map<std::string, SamLibJw*>& lib_jw_map) {
+    pugi::xml_node sets = sc_node.child("sets");
+    if (sets.empty())
+        return;
 
-    else if (0 == strcmp(name, "gui"))
-        ctx->in_gui = false;
+    for (pugi::xml_node set : sets.children("set")) {
+        SamLibJw* ljw = new SamLibJw;
+        ljw->id = set.attribute("id").as_string("");
+        ljw->name = set.attribute("name").as_string("");
+        ljw->height = set.attribute("height").as_float(0.0f);
+        ljw->wheelPos = set.attribute("wheelPos").as_float(0.0f);
+        ljw->cabinPos = set.attribute("cabinPos").as_float(0.0f);
+        ljw->cabinLength = set.attribute("cabinLength").as_float(0.0f);
+        ljw->wheelDiameter = set.attribute("wheelDiameter").as_float(0.0f);
+        ljw->wheelDistance = set.attribute("wheelDistance").as_float(0.0f);
+        ljw->minRot1 = set.attribute("minRot1").as_float(0.0f);
+        ljw->maxRot1 = set.attribute("maxRot1").as_float(0.0f);
+        ljw->minRot2 = set.attribute("minRot2").as_float(0.0f);
+        ljw->maxRot2 = set.attribute("maxRot2").as_float(0.0f);
+        ljw->minRot3 = set.attribute("minRot3").as_float(0.0f);
+        ljw->maxRot3 = set.attribute("maxRot3").as_float(0.0f);
+        ljw->minExtent = set.attribute("minExtent").as_float(0.0f);
+        ljw->maxExtent = set.attribute("maxExtent").as_float(0.0f);
+        ljw->minWheels = set.attribute("minWheels").as_float(0.0f);
+        ljw->maxWheels = set.attribute("maxWheels").as_float(0.0f);
+        lib_jw_map[ljw->id] = ljw;
+    }
 }
 
 static bool ParseSamXml(const std::string& fn, std::unordered_map<std::string, SamLibJw*>& lib_jw_map, Scenery* sc) {
-    bool rc = false;
-    int fd = open(fn.c_str(), O_RDONLY | O_BINARY);
-    if (fd < 0)
-        return 0;
+    pugi::xml_document doc;
 
-    LogMsg("Processing '%s'", fn.c_str());
-    XML_Parser parser = XML_ParserCreate(NULL);
-    if (NULL == parser)
-        goto out;
+    // Load from disk:
+    pugi::xml_parse_result result = doc.load_file(fn.c_str());
+    if (!result)
+        return false;
 
-    {
-        ExpatCtx ctx(parser, sc, lib_jw_map);
-
-        XML_SetUserData(parser, &ctx);
-        XML_SetElementHandler(parser, StartElement, EndElement);
-
-        for (;;) {
-            void* buf = XML_GetBuffer(parser, BUFSIZE);
-            int len = read(fd, buf, BUFSIZE);
-            if (len < 0) {
-                LogMsg("error reading sam.xml: %s", strerror(errno));
-                goto out;
-            }
-
-            if (XML_ParseBuffer(parser, len, len == 0) == XML_STATUS_ERROR) {
-                LogMsg("Parse error at line %lu: %s", XML_GetCurrentLineNumber(parser),
-                       XML_ErrorString(XML_GetErrorCode(parser)));
-                goto out;
-            }
-
-            if (len == 0)
-                break;
-        }
-
-        rc = true;
+    pugi::xml_node lib = doc.child("libraryjetwayconfiguration");
+    if (!lib.empty()) {
+        ParseLibraryJetways(lib, lib_jw_map);
+        LogMsg("Parsing library jetways from '%s'", fn.c_str());
+        return true; // for now
     }
 
-out:
-    close(fd);
-    if (parser)
-        XML_ParserFree(parser);
-    return rc;
+    pugi::xml_node sc_node = doc.child("scenery");
+    if (sc_node.empty()) {
+        LogMsg("No <scenery> element found in '%s'", fn.c_str());
+        return false;
+    }
+
+    ParseDatarefs(sc_node);
+    ParseLibraryJetways(sc_node, lib_jw_map);
+
+    if (sc == nullptr)
+        return true;
+
+    sc->name_ = sc_node.attribute("name").as_string("bad");
+    ParseObjects(sc_node, sc);
+    ParseGui(sc_node, sc);
+    ParseJetways(sc_node);
+    return true;
 }
 
 // SceneryPacks constructor

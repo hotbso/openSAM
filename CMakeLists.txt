@@ -64,6 +64,7 @@ set(SOURCES
     ui.cpp adgs_editor.cpp
     ${IMGUI_SRCS}
     spng.c
+    ${CMAKE_SOURCE_DIR}/pugixml-1.16/src/pugixml.cpp
     http_get.cpp simbrief.cpp log_msg.cpp
 )
 
@@ -81,6 +82,7 @@ target_include_directories(openSAM PRIVATE
     ${CMAKE_SOURCE_DIR}/imgui/misc/cpp
     ${CMAKE_SOURCE_DIR}/ImgWindow
     ${CMAKE_SOURCE_DIR}/stb
+    ${CMAKE_SOURCE_DIR}/pugixml-1.16/src
     ${SDK}/CHeaders/XPLM
 )
 
@@ -107,7 +109,6 @@ if(WIN32)
     )
     target_link_libraries(openSAM PRIVATE
         ${SDK}/Libraries/Win/XPLM_64.lib
-        -l:libexpat.a
         winhttp
         pthread
         opengl32
@@ -118,7 +119,7 @@ if(WIN32)
 elseif(APPLE)
     # Makefile.mac64 (native macOS or osxcross)
     set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Universal binary")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "macOS deployment target")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "macOS deployment target")
 
     target_compile_definitions(openSAM PRIVATE APL=1)
     target_compile_options(openSAM PRIVATE
@@ -129,13 +130,7 @@ elseif(APPLE)
         -Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/linkscript.mac
     )
     find_library(XPLM_FW     XPLM     PATHS "${SDK}/Libraries/Mac" REQUIRED)
-    # When cross-compiling via osxcross the toolchain file sets OSXCROSS_EXPAT_LIB
-    if(DEFINED OSXCROSS_EXPAT_LIB AND EXISTS "${OSXCROSS_EXPAT_LIB}")
-        set(_expat "${OSXCROSS_EXPAT_LIB}")
-    else()
-        set(_expat expat)   # ships with macOS / Homebrew / MacPorts natively
-    endif()
-    target_link_libraries(openSAM PRIVATE ${XPLM_FW} ${_expat} "-framework OpenGL" "-framework Carbon" curl z)
+    target_link_libraries(openSAM PRIVATE ${XPLM_FW} "-framework OpenGL" "-framework Carbon" curl z)
     install(TARGETS openSAM LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/mac_x64")
 
 elseif(UNIX)
@@ -146,7 +141,7 @@ elseif(UNIX)
         -fPIC -fno-stack-protector
     )
     target_link_options(openSAM PRIVATE -rdynamic -nodefaultlibs)
-    target_link_libraries(openSAM PRIVATE expat GL curl z)
+    target_link_libraries(openSAM PRIVATE GL curl z)
     install(TARGETS openSAM LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/lin_x64")
 endif()
 
@@ -162,10 +157,12 @@ if(BUILD_TESTS)
         scenery_test.cpp
         scenery.cpp
         dgs/apt_airport.cpp
+        pugixml-1.16/src/pugixml.cpp
         log_msg.cpp
     )
     target_include_directories(scenery_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/pugixml-1.16/src
         ${SDK}/CHeaders/XPLM
     )
     target_compile_definitions(scenery_test PRIVATE
@@ -176,9 +173,4 @@ if(BUILD_TESTS)
         $<IF:$<AND:$<BOOL:${UNIX}>,$<NOT:$<BOOL:${APPLE}>>>,LIN=1,>
     )
     target_compile_options(scenery_test PRIVATE -Wall -Wno-format-overflow)
-    if(WIN32)
-        target_link_libraries(scenery_test PRIVATE -l:libexpat.a)
-    else()
-        target_link_libraries(scenery_test PRIVATE expat)
-    endif()
 endif()
