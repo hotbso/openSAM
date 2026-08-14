@@ -202,16 +202,18 @@ float MpAdapter_xPilot::update() {
     }
 
     // loop over mp_planes_ and delete the ones that are no longer in drefs
-    for (auto& mp : mp_planes_) {
-        const std::string& key = mp.first;
-        OsPlane& plane = *(mp.second);
+    for (auto it = mp_planes_.begin(); it != mp_planes_.end();) {
+        const std::string& key = it->first;
+        OsPlane& plane = *(it->second);
 
-        if (dref_planes.find(key) == dref_planes.end()) {
+        if (!dref_planes.contains(key)) {
             LogMsg("pid=%02d key: %s not longer exists, deleted", plane.id_, key.c_str());
-            mp_planes_.erase(key);
-        }
+            it = mp_planes_.erase(it);
+        } else
+            ++it;
     }
 
-    LogMsg("------------------ MP active planes found: %d -----------------", (int)mp_planes_.size());
+    if (!mp_planes_.empty())
+        LogMsg("------------------ MP active planes found: %d -----------------", (int)mp_planes_.size());
     return 2.0f;
 }
