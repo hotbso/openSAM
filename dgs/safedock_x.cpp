@@ -160,6 +160,7 @@ class Safedock_X : public DGS {
     bool boarding_completed_ = false;      // whether boarding has completed
     float boarding_completed_ts_ = 1.0E9;  // time when boarding was completed
 
+    bool ofp_mode_ = false;  // whether the Safedock_X is in OFP mode (showing OFP info)
 
     CdmPage cdm_page_;       // page showing CDM info
     StandPage stand_page_;   // page showing stand name + OFP
@@ -250,6 +251,8 @@ Safedock_X::Safedock_X(const std::string& name, const std::string& arpt_icao, bo
         } else
             box_inst_ref_ = CreateInstance(box_obj, null_dlist);
     }
+
+    ofp_mode_ = Ofp::SbhAvailable();
 
     SetMode(kIdle);
     startup_ts_ = now;
@@ -343,7 +346,7 @@ void Safedock_X::SetMode(Mode mode) {
         return;
 
     // if switching from departure to another mode, create the generic display
-    if (mode_ == kDeparture && mode != kDeparture) {
+    if (ofp_mode_ && mode_ == kDeparture && mode != kDeparture) {
         for (auto p : dep_pages_)
             p->Clear();
         display_inst_ref_ = CreateInstance(display_obj, dgs_dlist_dr);
@@ -382,8 +385,11 @@ void Safedock_X::SetMode(Mode mode) {
 
         display_inst_ref_ = CreateInstance(display_obj, dgs_dlist_dr);
     } else if (mode_ == kDeparture) {
-        display_inst_ref_ = nullptr;
-        dep_page_seq_ = 0;
+        if (ofp_mode_) {
+            display_inst_ref_ = nullptr;
+            dep_page_seq_ = 0;
+        } else
+            display_inst_ref_ = std::make_unique<ObjInstance>(display_obj, dgs_dlist_dr);
     }
 
     UpdateInstance();
@@ -394,15 +400,6 @@ void Safedock_X::SetPaxNo(int pax_no) {
 }
 
 void Safedock_X::NotifyOfpUpdate() {
-#if 0
-    std::string ofp_str = Ofp::ofp.GenDepartureStr();
-    LogMsg("NotifyOfpUpdate for stand '%s', OFP departure str: '%s'", name_.c_str(), ofp_str.c_str());
-    if (display_name_.empty())
-        scroll_txt_ = std::make_unique<ScrollTxt>(arpt_icao_ + "   " + ofp_str + "   ");
-    else
-        scroll_txt_ = std::make_unique<ScrollTxt>(arpt_icao_ + " STAND " + display_name_ + "   " +
-                                                    ofp_str + "   ");
-#endif
     if (Ofp::ofp.seqno > 0)
         logo::LoadAirlineLogo(Ofp::ofp.icao_airline, kLogoSize);  // is async
 }
@@ -453,46 +450,61 @@ float Safedock_X::Tick() {
     }
 
     if (mode_ == kDeparture) {
-        // boarding detection
-        if (pax_no_ > 0) {
-            if (pax_no_ != pax_no_prev_) {
-                pax_no_prev_ = pax_no_;
-                pax_change_ts_ = now;
-                boarding_ = true;
-                boarding_completed_ = false;
-            } else if (boarding_ && !boarding_completed_ && now > pax_change_ts_ + 20.0f) {
-                LogMsg("Boarding completed, pax no: %d", pax_no_);
-                boarding_completed_ = true;
-                boarding_ = false;
-                boarding_completed_ts_ = now;
+        if (ofp_mode_) { // multi page display for departure
+            // boarding detection
+            if (pax_no_ > 0) {
+                if (pax_no_ != pax_no_prev_) {
+                    pax_no_prev_ = pax_no_;
+                    pax_change_ts_ = now;
+                    boarding_ = true;
+                    boarding_completed_ = false;
+                } else if (boarding_ && !boarding_completed_ && now > pax_change_ts_ + 20.0f) {
+                    LogMsg("Boarding completed, pax no: %d", pax_no_);
+                    boarding_completed_ = true;
+                    boarding_ = false;
+                    boarding_completed_ts_ = now;
+                }
+
+                if (boarding_completed_ && now > boarding_completed_ts_ + 120.0f) {
+                    LogMsg("Removing stand page");
+                    stand_page_.Clear();  // remove page
+                    dep_pages_.clear();
+                    dep_pages_.push_back(&cdm_page_);
+                    dep_pages_.push_back(&eq_page_);  // remove stand page from the departure sequence
+                    dep_page_seq_--;
+                    if (dep_page_seq_ < 0)
+                        dep_page_seq_ = 0;
+                    boarding_completed_ts_ = 1E9;  // one shot only
+                }
             }
 
-            if (boarding_completed_ && now > boarding_completed_ts_ + 120.0f) {
-                LogMsg("Removing stand page");
-                stand_page_.Clear();  // remove page
-                dep_pages_.clear();
-                dep_pages_.push_back(&cdm_page_);
-                dep_pages_.push_back(&eq_page_);  // remove stand page from the departure sequence
-                dep_page_seq_--;
-                if (dep_page_seq_ < 0)
+            if (now > cycle_ts_ + kCycleTime) {
+                LogMsg("Tick, cycling page %d", dep_page_seq_);
+                dep_pages_[dep_page_seq_]->Hide();
+                dep_page_seq_++;
+                if (dep_page_seq_ >= (int)dep_pages_.size())
                     dep_page_seq_ = 0;
-                boarding_completed_ts_ = 1E9;  // one shot only
+
+                dep_pages_[dep_page_seq_]->Show();
+                int next_seq = dep_page_seq_ + 1;
+                if (next_seq >= (int)dep_pages_.size())
+                    next_seq = 0;
+                dep_pages_[next_seq]->Update();  // update the page for the next cycle in bg
+                cycle_ts_ = now;
             }
-        }
-
-        if (now > cycle_ts_ + kCycleTime) {
-            LogMsg("Tick, cycling page %d", dep_page_seq_);
-            dep_pages_[dep_page_seq_]->Hide();
-            dep_page_seq_++;
-            if (dep_page_seq_ >= (int)dep_pages_.size())
-                dep_page_seq_ = 0;
-
-            dep_pages_[dep_page_seq_]->Show();
-            int next_seq = dep_page_seq_ + 1;
-            if (next_seq >= (int)dep_pages_.size())
-                next_seq = 0;
-            dep_pages_[next_seq]->Update();  // update the page for the next cycle in bg
-            cycle_ts_ = now;
+        } else {      // no OFP, just show the pax number
+            if (pax_no_ > 0) {
+                int pn[3]{-1, -1, -1};
+                for (int i = 0; i < 3; i++) {
+                    pn[i] = pax_no_ % 10;
+                    pax_no_ /= 10;
+                    if (pax_no_ == 0)
+                        break;
+                }
+                drefs_[DGS_DR_BOARDING] = 1;
+                for (int i = 0; i < 3; i++)
+                    drefs_[DGS_DR_PAXNO_0 + i] = pn[i];
+            }
         }
     }
 

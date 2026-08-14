@@ -94,7 +94,6 @@ void Ofp::Initialize() {
 
         stale_dr = XPLMFindDataRef("sbh/stale");
         if (stale_dr == nullptr) {
-            sbh_avail = false;
             LogMsg("simbrief_hub plugin is not loaded, bye!");
             return;
         }
@@ -120,6 +119,7 @@ void Ofp::Initialize() {
         FIND_CDM_DREF(ctot);
         FIND_CDM_DREF(runway);
         FIND_CDM_DREF(sid);
+        sbh_avail = true;
     }
 }
 
