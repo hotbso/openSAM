@@ -423,18 +423,17 @@ float Airport::StateMachine() {
                 ofp_ts = now;
                 if (Ofp::LoadIfNewer()) {  // (re-)fetch ofp
                     ds.dgs_->NotifyOfpUpdate();
-                    plane->callsign_ = ofp.icao_airline + ofp.flight_number;
 
                     // extract arrival stand from ofp remarks if any
-                    if (!ofp.dx_rmk.empty()) {
-                        LogMsg("OFP Departure Remarks: '%s'", ofp.dx_rmk.c_str());
-                        auto pos = ofp.dx_rmk.find("ARRIVAL_STAND=");
+                    if (!Ofp::ofp.dx_rmk.empty()) {
+                        LogMsg("OFP Departure Remarks: '%s'", Ofp::ofp.dx_rmk.c_str());
+                        auto pos = Ofp::ofp.dx_rmk.find("ARRIVAL_STAND=");
                         if (pos != std::string::npos) {
-                            ofp_arrival_stand = ofp.dx_rmk.substr(pos + 14);
+                            ofp_arrival_stand = Ofp::ofp.dx_rmk.substr(pos + 14);
                             auto endpos = ofp_arrival_stand.find_first_of(";,\n\r");
                             if (endpos != std::string::npos)
                                 ofp_arrival_stand = ofp_arrival_stand.substr(0, endpos);
-                            ofp_destination = ofp.destination;
+                            ofp_destination = Ofp::ofp.destination;
                             LogMsg("OFP Arrival Stand set to '%s@%s'", ofp_arrival_stand.c_str(),
                                    ofp_destination.c_str());
                         }

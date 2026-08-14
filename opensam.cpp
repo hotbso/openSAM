@@ -46,6 +46,7 @@
 #include "dgs/plane.h"
 #include "sam1_dgs.h"
 #include "scenery.h"
+#include "simbrief.h"
 
 #include "flat_earth_math.h"
 #include "seasons.h"
@@ -152,6 +153,7 @@ XPLMProbeRef probe_ref;
 static fem::LLPos plane_pos, plane_pos_prev;
 
 bool error_disabled;
+static bool delayed_init_done;
 
 static float FlightLoopCb(float inElapsedSinceLastCall, [[maybe_unused]] float inElapsedTimeSinceLastFlightLoop, [[maybe_unused]] int inCounter,
                           [[maybe_unused]] void* inRefcon);
@@ -332,6 +334,11 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
         return 0;
 
     try {
+        if (!delayed_init_done) {
+            delayed_init_done = true;
+            Ofp::Initialize();     // wait until the sbh plugin is loaded, then check for its availability
+        }
+
         if (pending_plane_loaded_cb) {
             pending_plane_loaded_cb = false;
             my_plane->PlaneLoadedCb();

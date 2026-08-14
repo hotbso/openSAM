@@ -23,46 +23,50 @@
 
 #include <string>
 
-#define F(f) std::string f
+struct Ofp {
+   private:
+    static bool sbh_avail;
 
-struct Ofp
-{
-    int seqno{0};          // incremented after each successfull fetch, 0 == empty / no data
-    bool stale{false};       // true if the data may be stale (e.g. was valid but now simbrief not responding)
-    F(icao_airline);
-    F(flight_number);
-    F(aircraft_icao);
-    F(destination);
-    F(pax_count);
-    F(freight);
-    F(fuel_plan_ramp);
-    F(est_out);
-    F(est_off);
-    F(est_on);
-    F(est_in);
-    F(dx_rmk);
+   public:
+    int seqno{0};       // incremented after each successfull fetch, 0 == empty / no data
+    bool stale{false};  // true if the data may be stale (e.g. was valid but now simbrief not responding)
+
+    std::string icao_airline;
+    std::string flight_number;
+    std::string aircraft_icao;
+    std::string destination;
+    std::string pax_count;
+    std::string freight;
+    std::string fuel_plan_ramp;
+    std::string est_out;
+    std::string est_off;
+    std::string est_on;
+    std::string est_in;
+    std::string dx_rmk;
 
     // cdm fields
-    F(cdm_tobt);
-    F(cdm_tsat);
-    F(cdm_ctot);
-    F(cdm_ttot);
-    F(cdm_runway);
-    F(cdm_sid);
+    std::string cdm_tobt;
+    std::string cdm_tsat;
+    std::string cdm_ctot;
+    std::string cdm_ttot;
+    std::string cdm_runway;
+    std::string cdm_sid;
 
     // for convenience, not part of the simbrief_hub data
     std::string callsign;
-    std::string est_out_str;    // hhmm representation of est_out
-    std::string est_off_str;    // hhmm representation of est_off
+    std::string est_out_str;  // hhmm representation of est_out
+    std::string est_off_str;  // hhmm representation of est_off
 
-    // return ptr to an OFP if a newer version is available or nullptr
-    static bool LoadIfNewer(); // -> updated
+    // update the ofp data from the simbrief_hub datarefs, if they have changed since the last call
+    // returns true if the ofp data has changed
+    static bool LoadIfNewer();
 
     // generate a string to be displayed in a VDGS
     const std::string GenDepartureStr() const;
+
+    // singleton for the current flight
+    static Ofp ofp;
+
+    static void Initialize();   // delayed initialization, called from the openSAM flight loop
+    static bool SbhAvailable() { return sbh_avail; }
 };
-
-#undef F
-
-// global instance, there is only 'the' ofp for the current flight
-extern Ofp ofp;

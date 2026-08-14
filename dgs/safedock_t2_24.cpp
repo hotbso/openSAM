@@ -227,10 +227,10 @@ void Safedock_T2_24::SetMode(Mode mode) {
         for (int i = 0; i < n; i++)
             drefs_[DGS_DR_R1C0 + i] = display_name_[i];
         drefs_[DGS_DR_R1_SCROLL] = (5 * 16 - (n * 12 - 2)) / 2;  // center
-    } else if (mode_ == kParked) {
+    } else if (mode_ == kParked && Ofp::ofp.seqno > 0) {
         int zm = XPLMGetDatai(zulu_time_minutes_dr);
         int zh = XPLMGetDatai(zulu_time_hours_dr);
-        scroll_txt_ = std::make_unique<ScrollTxt>(std::format("{} AIBT {:02d}{:02d}   ", plane->callsign_, zh, zm));
+        scroll_txt_ = std::make_unique<ScrollTxt>(std::format("{} AIBT {:02d}{:02d}   ", Ofp::ofp.callsign, zh, zm));
     } else if (mode_ == kDeboarding) {
         // keep the scroll text from parked mode
     } else if (mode_ == kDeparture) {
@@ -248,7 +248,7 @@ void Safedock_T2_24::SetPaxNo(int pax_no)  {
 }
 
 void Safedock_T2_24::NotifyOfpUpdate() {
-    std::string ofp_str = ofp.GenDepartureStr();
+    std::string ofp_str = Ofp::ofp.GenDepartureStr();
     LogMsg("NotifyOfpUpdate for stand '%s', OFP departure str: '%s'", name_.c_str(), ofp_str.c_str());
     if (display_name_.empty())
         scroll_txt_ = std::make_unique<ScrollTxt>(arpt_icao_ + "   " + ofp_str + "   ");

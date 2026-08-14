@@ -367,9 +367,11 @@ void Safedock_X::SetMode(Mode mode) {
         display_inst_ref_ = CreateInstance(idle_display_obj, dgs_dlist_dr);
     } else if (mode_ == kParked) {
         parked_ts_ = now;
-        int zm = XPLMGetDatai(zulu_time_minutes_dr);
-        int zh = XPLMGetDatai(zulu_time_hours_dr);
-        scroll_txt_ =  std::make_unique<ScrollTxt>(std::format("{} AIBT {:02d}{:02d}   ", plane->callsign_, zh, zm));
+        if (Ofp::ofp.seqno > 0) {
+            int zm = XPLMGetDatai(zulu_time_minutes_dr);
+            int zh = XPLMGetDatai(zulu_time_hours_dr);
+            scroll_txt_ = std::make_unique<ScrollTxt>(std::format("{} AIBT {:02d}{:02d}   ", Ofp::ofp.callsign, zh, zm));
+        }
     } else if (mode_ == kDeboarding) {
         // keep the scroll text from parked mode, but add "DEBOARDING" to it
     } else if (mode_ == kArrival) {
@@ -393,7 +395,7 @@ void Safedock_X::SetPaxNo(int pax_no) {
 
 void Safedock_X::NotifyOfpUpdate() {
 #if 0
-    std::string ofp_str = ofp.GenDepartureStr();
+    std::string ofp_str = Ofp::ofp.GenDepartureStr();
     LogMsg("NotifyOfpUpdate for stand '%s', OFP departure str: '%s'", name_.c_str(), ofp_str.c_str());
     if (display_name_.empty())
         scroll_txt_ = std::make_unique<ScrollTxt>(arpt_icao_ + "   " + ofp_str + "   ");
@@ -401,8 +403,8 @@ void Safedock_X::NotifyOfpUpdate() {
         scroll_txt_ = std::make_unique<ScrollTxt>(arpt_icao_ + " STAND " + display_name_ + "   " +
                                                     ofp_str + "   ");
 #endif
-    if (ofp.seqno > 0)
-        logo::LoadAirlineLogo(ofp.icao_airline, kLogoSize);  // is async
+    if (Ofp::ofp.seqno > 0)
+        logo::LoadAirlineLogo(Ofp::ofp.icao_airline, kLogoSize);  // is async
 }
 
 float Safedock_X::Tick() {
@@ -567,18 +569,18 @@ void DisplayDiffToTOBT(DynDisplay::DisplayPtr& dd, int zulu_h, int zulu_m, const
 }
 
 bool CdmPage::Update() {
-    if (ofp.seqno <= 0)
+    if (Ofp::ofp.seqno <= 0)
         return false;
 
     int zulu_m = XPLMGetDatai(zulu_time_minutes_dr);
     int zulu_h = XPLMGetDatai(zulu_time_hours_dr);
 
-    if (dd_ == nullptr || ofp.seqno > ofp_seqno_ || zulu_m != zulu_m_) {
-        LogMsg("Updating CdmPage for stand '%s', ofp seqno: %d", sdx_->name_.c_str(), ofp.seqno);
+    if (dd_ == nullptr || Ofp::ofp.seqno > ofp_seqno_ || zulu_m != zulu_m_) {
+        LogMsg("Updating CdmPage for stand '%s', ofp seqno: %d", sdx_->name_.c_str(), Ofp::ofp.seqno);
         LogMsg("airline logo is available: %d", logo::airline_logo != nullptr);
         TimeCodeBlock tc("CdmPage::Update");
 
-        ofp_seqno_ = ofp.seqno;
+        ofp_seqno_ = Ofp::ofp.seqno;
         zulu_m_ = zulu_m;
 
         dd_ = CreateDisplayX();
@@ -605,37 +607,37 @@ bool CdmPage::Update() {
         };
 
         if (logo::airline_logo) {
-            dd_->TextAt(0.25f, y, kTextColor, *dd_font, ofp.callsign);
+            dd_->TextAt(0.25f, y, kTextColor, *dd_font, Ofp::ofp.callsign);
             dd_->Paste(*logo::airline_logo.get(), 0.05f, y - 0.02f);
         } else
-            Line(ofp.callsign, true);
+            Line(Ofp::ofp.callsign, true);
 
-        Line(ofp.destination, true);
+        Line(Ofp::ofp.destination, true);
 
-        bool have_cdm = !ofp.cdm_tobt.empty();
+        bool have_cdm = !Ofp::ofp.cdm_tobt.empty();
         if (have_cdm) {
-            Line2Col("TOBT", ofp.cdm_tobt);
-            DisplayDiffToTOBT(dd_, zulu_h, zulu_m, ofp.cdm_tobt);
+            Line2Col("TOBT", Ofp::ofp.cdm_tobt);
+            DisplayDiffToTOBT(dd_, zulu_h, zulu_m, Ofp::ofp.cdm_tobt);
         }
 
-        if (!ofp.cdm_tsat.empty())
-            Line2Col("TSAT", ofp.cdm_tsat);
+        if (!Ofp::ofp.cdm_tsat.empty())
+            Line2Col("TSAT", Ofp::ofp.cdm_tsat);
 
-        if (!ofp.cdm_ttot.empty())  // prefer TTOT over CTOT
-            Line2Col("TTOT", ofp.cdm_ttot);
-        else if (!ofp.cdm_ctot.empty())
-            Line2Col("CTOT", ofp.cdm_ctot);
+        if (!Ofp::ofp.cdm_ttot.empty())  // prefer TTOT over CTOT
+            Line2Col("TTOT", Ofp::ofp.cdm_ttot);
+        else if (!Ofp::ofp.cdm_ctot.empty())
+            Line2Col("CTOT", Ofp::ofp.cdm_ctot);
 
         if (!have_cdm) {
-            Line2Col("OUT", ofp.est_out_str);
-            Line2Col("OFF", ofp.est_off_str);
+            Line2Col("OUT", Ofp::ofp.est_out_str);
+            Line2Col("OFF", Ofp::ofp.est_off_str);
         }
 
-        if (!ofp.cdm_runway.empty())
-            Line2Col("RWY", ofp.cdm_runway);
+        if (!Ofp::ofp.cdm_runway.empty())
+            Line2Col("RWY", Ofp::ofp.cdm_runway);
 
-        if (!ofp.cdm_sid.empty())
-            Line(ofp.cdm_sid, true);
+        if (!Ofp::ofp.cdm_sid.empty())
+            Line(Ofp::ofp.cdm_sid, true);
 
         dd_->Bake();
     }
@@ -649,8 +651,8 @@ StandPage::StandPage(Safedock_X* sdx) : Page(sdx->drawinfo_), sdx_(sdx) {}
 bool StandPage::Update() {
     int zulu_m = XPLMGetDatai(zulu_time_minutes_dr);
 
-    if (dd_ == nullptr || ofp.seqno > ofp_seqno_ || zulu_m != zulu_m_ || sdx_->pax_no_ != pax_no_disp_) {
-        LogMsg("Updating StandPage for stand '%s', ofp seqno: %d, pax_no: %d", sdx_->name_.c_str(), ofp.seqno, sdx_->pax_no_);
+    if (dd_ == nullptr || Ofp::ofp.seqno > ofp_seqno_ || zulu_m != zulu_m_ || sdx_->pax_no_ != pax_no_disp_) {
+        LogMsg("Updating StandPage for stand '%s', ofp seqno: %d, pax_no: %d", sdx_->name_.c_str(), Ofp::ofp.seqno, sdx_->pax_no_);
         TimeCodeBlock tc("StandPage::Update");
         dd_ = CreateDisplayX();
         static constexpr float kCol1 = 0.05;  // label
@@ -662,15 +664,15 @@ bool StandPage::Update() {
 
 
         // if we have an ofp we start with callsign / destination
-        if (ofp.seqno > 0) {
+        if (Ofp::ofp.seqno > 0) {
             if (logo::airline_logo) {
                 auto [x, y] = dd_->GetPos();
                 dd_->Paste(*logo::airline_logo.get(), 0.05f, y - 0.02f);
-                dd_->TextAt(0.25f, y, kTextColor, *dd_font, ofp.callsign);
+               dd_->TextAt(0.25f, y, kTextColor, *dd_font, Ofp::ofp.callsign);
            } else
-                dd_->TextLine(kTextColor, *dd_font, ofp.callsign, true);
+               dd_->TextLine(kTextColor, *dd_font, Ofp::ofp.callsign, true);
 
-            dd_->TextLine(kTextColor, *dd_font, ofp.destination, true);
+           dd_->TextLine(kTextColor, *dd_font, Ofp::ofp.destination, true);
         }
 
         // stand + clock
@@ -691,22 +693,22 @@ bool StandPage::Update() {
             dd_->TextLine(kTextGreen, *dd_font, "BOARDING", true);
             dd_->TextLine(kTextGreen, *dd_font, "COMPLETE", true);
             dd_->TextLine(kTextColor, *dd_font, std::format("Pax   {:3d}", pax_no_disp_), true);
-         } else if (ofp.seqno > 0) {
-            ofp_seqno_ = ofp.seqno;
+         } else if (Ofp::ofp.seqno > 0) {
+           ofp_seqno_ = Ofp::ofp.seqno;
 
             dd_->SetPosDelta(0.0f, -0.02f);  // move down a bit
             dd_->TextAt(kCol1, -1, kTextColor, *dd_font, "Pax");
             dd_->SameLine();
-            dd_->TextAt(kCol2, -1, kTextColor, *dd_font, ofp.pax_count);
+           dd_->TextAt(kCol2, -1, kTextColor, *dd_font, Ofp::ofp.pax_count);
 
-            float cargo = std::atof(ofp.freight.c_str()) / 1000.0f;
+           float cargo = std::atof(Ofp::ofp.freight.c_str()) / 1000.0f;
             if (cargo > 0.0f) {
                 dd_->TextAt(kCol1, -1, kTextColor, *dd_font, "Cargo");
                 dd_->SameLine();
                 dd_->TextAt(kCol2, -1, kTextColor, *dd_font, std::format("{:.1f}", cargo));
             }
 
-            float fuel = std::atof(ofp.fuel_plan_ramp.c_str()) / 1000.0f;
+           float fuel = std::atof(Ofp::ofp.fuel_plan_ramp.c_str()) / 1000.0f;
             if (fuel > 0.0f) {
                 dd_->TextAt(kCol1, -1, kTextColor, *dd_font, "Fuel");
                 dd_->SameLine();
@@ -730,10 +732,10 @@ bool EqPage::Update() {
     int zulu_m = XPLMGetDatai(zulu_time_minutes_dr);
     int zulu_h = XPLMGetDatai(zulu_time_hours_dr);
 
-    if (dd_ == nullptr || cur_eq_status != eq_status_ || ofp.seqno > ofp_seqno_ || zulu_m != zulu_m_) {
-        LogMsg("Updating EqPage for stand '%s', ofp seqno: %d", sdx_->name_.c_str(), ofp.seqno);
+    if (dd_ == nullptr || cur_eq_status != eq_status_ || Ofp::ofp.seqno > ofp_seqno_ || zulu_m != zulu_m_) {
+        LogMsg("Updating EqPage for stand '%s', ofp seqno: %d", sdx_->name_.c_str(), Ofp::ofp.seqno);
         TimeCodeBlock tc("EqPage::Update");
-        ofp_seqno_ = ofp.seqno;
+        ofp_seqno_ = Ofp::ofp.seqno;
         zulu_m_ = zulu_m;
 
         dd_ = CreateDisplayX();
@@ -746,27 +748,27 @@ bool EqPage::Update() {
         dd_->SetTxtHeight(kTxtHeight);
         dd_->SetLineSpacing(kLineSpacing);
 
-        if (ofp.seqno > 0) {
+        if (Ofp::ofp.seqno > 0) {
             if (logo::airline_logo) {
                 auto [_, y] = dd_->GetPos();
-                dd_->TextAt(0.25f, y, kTextColor, *dd_font, ofp.callsign);
+                dd_->TextAt(0.25f, y, kTextColor, *dd_font, Ofp::ofp.callsign);
                 dd_->Paste(*logo::airline_logo.get(), 0.05f, y - 0.02f);
             } else
-                dd_->TextLine(kTextColor, *dd_font, ofp.callsign, true);
+                dd_->TextLine(kTextColor, *dd_font, Ofp::ofp.callsign, true);
 
             dd_->SetPos(kCol1, -1);
             dd_->SetScale(0.8f);  // scale down the text to fit the eq status on the display
 
-            if (!ofp.cdm_tobt.empty()) {
+            if (!Ofp::ofp.cdm_tobt.empty()) {
                 dd_->TextAt(kCol1, -1, kTextColor, *dd_font, "TOBT");
                 dd_->SameLine();
-                dd_->TextAt(kCol2, -1, kTextColor, *dd_font, ofp.cdm_tobt);
-                DisplayDiffToTOBT(dd_, zulu_h, zulu_m, ofp.cdm_tobt);
+                dd_->TextAt(kCol2, -1, kTextColor, *dd_font, Ofp::ofp.cdm_tobt);
+                DisplayDiffToTOBT(dd_, zulu_h, zulu_m, Ofp::ofp.cdm_tobt);
             } else {
                 dd_->TextAt(kCol1, -1, kTextColor, *dd_font, "OUT");
                 dd_->SameLine();
-                dd_->TextAt(kCol2, -1, kTextColor, *dd_font, ofp.est_out_str);
-                DisplayDiffToTOBT(dd_, zulu_h, zulu_m, ofp.est_out_str);
+                dd_->TextAt(kCol2, -1, kTextColor, *dd_font, Ofp::ofp.est_out_str);
+                DisplayDiffToTOBT(dd_, zulu_h, zulu_m, Ofp::ofp.est_out_str);
             }
             dd_->SetScale(1.0f);  // reset the scale
         }

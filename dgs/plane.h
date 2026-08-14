@@ -99,7 +99,6 @@ class Plane {
 
    public:
     std::string acf_icao_;
-    std::string callsign_;
 
     bool use_engines_on_{};       // instead of beacon, e.g. MD11
     bool dont_connect_jetway_{};  // e.g. for ZIBO with own ground service

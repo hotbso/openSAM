@@ -30,10 +30,10 @@
 
 #include "log_msg.h"
 
-// global instance, there is only 'the' ofp for the current flight
-Ofp ofp;
+Ofp Ofp::ofp;
+bool Ofp::sbh_avail = false;
 
-static bool drefs_loaded, sbh_unavail;
+static bool init_done;
 
 #define DEF_OFP_DR(f) static XPLMDataRef f ## _dr;
 #define DEF_CDM_DR(f) static XPLMDataRef cdm_ ## f ## _dr;
@@ -83,20 +83,20 @@ static void FetchDref(std::string& str, XPLMDataRef dr) {
 #define FIND_OFP_DREF(f) f##_dr = XPLMFindDataRef("sbh/" #f)
 #define FIND_CDM_DREF(f)  cdm_ ## f ## _dr = XPLMFindDataRef("sbh/cdm/" #f)
 
-#define GET_OFP_DREF(f) FetchDref(ofp.f, f ## _dr)
-#define GET_CDM_DREF(f) FetchDref(ofp.cdm_ ## f, cdm_ ## f ## _dr)
-#define LOG_FIELD(f) LogMsg(" " #f ": '%s'", ofp.f.c_str())
+#define GET_OFP_DREF(f) FetchDref(Ofp::ofp.f, f ## _dr)
+#define GET_CDM_DREF(f) FetchDref(Ofp::ofp.cdm_ ## f, cdm_ ## f ## _dr)
+#define LOG_FIELD(f) LogMsg(" " #f ": '%s'", Ofp::ofp.f.c_str())
 
-bool Ofp::LoadIfNewer() {
-    if (sbh_unavail)
-        return false;
+void Ofp::Initialize() {
+    sbh_avail = false;
+    if (!init_done) {
+        init_done = true;
 
-    if (!drefs_loaded) {
         stale_dr = XPLMFindDataRef("sbh/stale");
         if (stale_dr == nullptr) {
-            sbh_unavail = true;
+            sbh_avail = false;
             LogMsg("simbrief_hub plugin is not loaded, bye!");
-            return false;
+            return;
         }
 
         seqno_dr = XPLMFindDataRef("sbh/seqno");
@@ -120,8 +120,13 @@ bool Ofp::LoadIfNewer() {
         FIND_CDM_DREF(ctot);
         FIND_CDM_DREF(runway);
         FIND_CDM_DREF(sid);
-        drefs_loaded = true;
     }
+}
+
+bool Ofp::LoadIfNewer() {
+    if (!sbh_avail)
+        return false;
+
 
     int ofp_seqno = XPLMGetDatai(seqno_dr);
     int cdm_seqno = XPLMGetDatai(cdm_seqno_dr);
