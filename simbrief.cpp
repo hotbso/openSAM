@@ -117,6 +117,7 @@ void Ofp::Initialize() {
         FIND_CDM_DREF(tobt);
         FIND_CDM_DREF(tsat);
         FIND_CDM_DREF(ctot);
+        FIND_CDM_DREF(ttot);
         FIND_CDM_DREF(runway);
         FIND_CDM_DREF(sid);
         sbh_avail = true;
