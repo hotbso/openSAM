@@ -96,7 +96,7 @@ class Box {
     Box(Float min_lon, Float min_lat, Float max_lon, Float max_lat) noexcept
         : min_lon_(min_lon), min_lat_(min_lat), max_lon_(max_lon), max_lat_(max_lat) {}
 
-    // Find items in a +-dist_meters box around ll point (= distance in infinity-norm)
+    // Create a box +-dist_meters around ll point (= distance in infinity-norm)
     Box(Float center_lon, Float center_lat, Float dist_meters) noexcept;
 
     // return the 4 quadrants of this box, in order sw, se, nw, ne
@@ -117,7 +117,9 @@ class LLQuadTree {
    public:
     LLQuadTree() = default;
     LLQuadTree(const LLQuadTree&) = delete;
+    LLQuadTree(LLQuadTree&&) = delete;
     LLQuadTree& operator=(const LLQuadTree&) = delete;
+    LLQuadTree& operator=(LLQuadTree&&) = delete;
     ~LLQuadTree() = default;
 
     bool empty() const { return root_ == nullptr; }
