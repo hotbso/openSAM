@@ -68,7 +68,7 @@ jobs:
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y ninja-build gcc-14 g++-14 libgl-dev libopengl-dev libopengl0
+        run: sudo apt-get update && sudo apt-get install -y ninja-build gcc-14 g++-14 libgl-dev libopengl-dev libopengl0 libcurl4-openssl-dev
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
