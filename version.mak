@@ -1,1 +1,1 @@
-VERSION=master-main
+VERSION=pg-main

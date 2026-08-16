@@ -21,12 +21,15 @@
 
 #pragma once
 
+#include "imgui.h"
 #include "ImgWindow.h"
 
-// Configure and Cleanup
-extern void ImgWindowIni();
-extern void ImgWindowFini();
+static constexpr float kFontSize = 13.0f;
+extern ImFont* std_font, *mono_font, *symbol_font;
 
+// Load all fonts used by the UI and the Airport Editor into the shared font atlas of ImgWindow.
+// This must be called after ImgWindow::Initialize() and before any UI window is created.
+extern void UiLoadFonts();
 extern void CreateUi();
 
 // current window geometry in screen coordinates

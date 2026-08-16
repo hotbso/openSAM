@@ -150,6 +150,9 @@ JwEditor::JwEditor(int left, int top, int right, int bot)
     : ImgWindow(left, top, right, bot, xplm_WindowDecorationRoundRectangle, xplm_WindowLayerFloatingWindows) {
     ImGui::GetIO().IniFilename = nullptr;  // disable imgui.ini file, it's not compatible with imWindow
 
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.FontSizeBase = kFontSize;
+
     SetWindowTitle("openSAM Jetway Editor");
     SetWindowResizingLimits(100, 100, 1024, 1024);
     SetVisible(true);
@@ -357,6 +360,7 @@ void JwEditor::EditJetways() {
     ImGui::Text("Jetways configured and/or in view: %d", (int)jw_set_.size());
     // use monospaced font with 12.4.4
     if (ImGui::BeginListBox("##Jetways", ImVec2(-FLT_MIN, height))) {
+        ImGui::PushFont(mono_font, 0.0f);
         for (int i = 0; i < (int)jw_set_.size(); i++) {
             ImGui::PushID(imgui_id_++);  // Ensure unique ID for each item, stand names may have duplicates
 
@@ -399,6 +403,7 @@ void JwEditor::EditJetways() {
                 ImGui::SetItemDefaultFocus();
             ImGui::PopID();
         }
+        ImGui::PopFont();
         ImGui::EndListBox();
     }
 
@@ -537,8 +542,6 @@ void JwEditor::BuildInterface() {
         ImGui::TextUnformatted("No SAM airport loaded");
         return;
     }
-
-    ImGui::TextUnformatted("EXPERIMENTAL backport of the jetway editor for XP 12.4.4");
 
     bool was_active = jw_editor_active;
     ImGui::Checkbox("Edit Mode", &jw_editor_active);

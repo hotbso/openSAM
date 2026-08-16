@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # ==============================================================================
 # Configurable paths
 # ==============================================================================
-set(SDK "${CMAKE_CURRENT_SOURCE_DIR}/../SDK" CACHE PATH "X-Plane SDK root")
+set(SDK "${CMAKE_CURRENT_SOURCE_DIR}/SDK" CACHE PATH "X-Plane SDK root")
 
 # ==============================================================================
 # Version header generation (mirrors Makefile.common logic)
@@ -47,7 +47,6 @@ SET(IMGUI_SRCS
     third-party/imgui/imgui_tables.cpp
     third-party/imgui/misc/cpp/imgui_stdlib.cpp
     ImgWindow/ImgWindow.cpp
-    ImgWindow/ImgFontAtlas.cpp
 )
 
 # ==============================================================================
@@ -85,7 +84,8 @@ target_include_directories(openSAM PRIVATE
 )
 
 target_compile_definitions(openSAM PRIVATE
-    SPNG_STATIC XPLM200 XPLM210 XPLM300 XPLM301 XPLM400
+    SPNG_STATIC
+    XPLM200 XPLM210 XPLM300 XPLM301 XPLM400 XPLM410 XPLM420 XPLM430 XPLM440
     DREF_PREFIX="opensam" PUGIXML_NO_XPATH
 )
 
@@ -109,7 +109,6 @@ if(WIN32)
         ${SDK}/Libraries/Win/XPLM_64.lib
         winhttp
         pthread
-        opengl32
         z
     )
     install(TARGETS openSAM RUNTIME DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/win_x64")

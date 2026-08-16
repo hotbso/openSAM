@@ -51,7 +51,8 @@
 static constexpr int kWinWidth = 400;
 static constexpr int kWinHeight = 450;
 static constexpr int kWinPad = 75;
-static constexpr float kFontSize = 13.0f;
+
+ImFont* std_font, *mono_font, *symbol_font;
 
 std::unique_ptr<ImgWindow> ui;
 int ui_left = -1, ui_top, ui_right, ui_bottom;  // -1 = not loaded from prefs
@@ -65,8 +66,6 @@ class Ui : public ImgWindow {
     bool jw_auto_mode_ = false;  // to store the state of the "Automatic mode" checkbox
     bool jw_selected_[kNearJwLimit][kMaxDoor] = {};
     int nearest_jws_seqno_ = 0;  // for detecting changes in the nearest jetway list by the UI
-
-    XPLMFlightLoopID flt_id_ = nullptr;
 
     bool selected_stand_changed_ = false;  // to detect changes in the listbox selection
     int new_selected_stand_;  // to store the new selected stand index until we can apply it in the flight loop callback
@@ -85,10 +84,7 @@ class Ui : public ImgWindow {
 
     // Main function: creates the window's UI
     void BuildInterface() override;
-
-    // flight loop callback for delayed actions prohibited in drawloops
-    static float FlightLoopCb(float inElapsedSinceLastCall, float inElapsedTimeSinceLastFlightLoop, int inCounter,
-                              void* inRefcon);
+    void FlightLoopUserCb() noexcept override;
 
    public:
     Ui(int left, int top, int right, int bot);
@@ -111,56 +107,34 @@ void CreateUi() {
     ui = std::make_unique<Ui>(ui_left, ui_top, ui_right, ui_bottom);
 }
 
-void ImgWindowIni() {
-    LogMsg("Initializing Imgui Window...");
-    ImgWindow::sFontAtlas = std::make_shared<ImgFontAtlas>();
+void UiLoadFonts() {
+    ImFontAtlas* atlas = ImgWindow::GetSharedFontAtlas();
+    if (!atlas) {
+        LogMsg("UiLoadFonts: shared font atlas is not initialized");
+        return;
+    }
 
     // load from X-Plane's default font directory
-    if (ImgWindow::sFontAtlas->AddFontFromFileTTF("./Resources/fonts/DejaVuSans.ttf", kFontSize) == nullptr) {
+    std_font = atlas->AddFontFromFileTTF("./Resources/fonts/DejaVuSans.ttf");
+    if (std_font == nullptr) {
         LogMsg("Failed to load font DejaVuSans from file, falling back to default font");
     }
 
-    // Now we merge some icons from the OpenFontsIcons font into the above font
-    // (see `imgui/docs/FONTS.txt`)
-    ImFontConfig config;
-    config.MergeMode = true;
+    mono_font = atlas->AddFontFromFileTTF("./Resources/fonts/DejaVuSansMono.ttf");
+    if (mono_font == nullptr) {
+        LogMsg("Failed to load font DejaVuSansMono from file, falling back to default font");
+    }
 
-    // We only read very selectively the individual glyphs we are actually using
-    // to safe on texture space
-    static ImVector<ImWchar> icon_ranges;
-    ImFontGlyphRangesBuilder builder;
-    // Add all icons that are actually used (they concatenate into one string)
-    builder.AddText((const char*)ICON_FA_CHECK);
-    builder.BuildRanges(&icon_ranges);
-
-    // Merge the icon font with the text font
-    ImgWindow::sFontAtlas->AddFontFromMemoryCompressedTTF(fa_solid_900_compressed_data,
-                                                          fa_solid_900_compressed_size,
-                                                          kFontSize,
-                                                          &config,
-                                                          icon_ranges.Data);
-    LogMsg("Imgui Window initialized");
-}
-
-void ImgWindowFini() {
-    ui = nullptr; // just in case ...
-    ImgWindow::sFontAtlas.reset();
+    symbol_font =
+        atlas->AddFontFromMemoryCompressedTTF(fa_solid_900_compressed_data, fa_solid_900_compressed_size);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 Ui::Ui(int left, int top, int right, int bot)
     : ImgWindow(left, top, right, bot, xplm_WindowDecorationRoundRectangle, xplm_WindowLayerFloatingWindows) {
-   ImGui::GetIO().IniFilename = nullptr;  // disable imgui.ini file, it's not compatible with imWindow
 
-    // Create a flight loop id, but don't schedule it yet
-    XPLMCreateFlightLoop_t loop_params = {
-        sizeof(loop_params),                      // structSize
-        xplm_FlightLoop_Phase_BeforeFlightModel,  // phase
-        FlightLoopCb,                             // callbackFunc
-        (void*)this,                              // refcon
-    };
-
-    flt_id_ = XPLMCreateFlightLoop(&loop_params);
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.FontSizeBase = kFontSize;
 
     SetWindowTitle("openSAM " VERSION);
     SetWindowResizingLimits(100, 100, 1024, 1024);
@@ -169,8 +143,6 @@ Ui::Ui(int left, int top, int right, int bot)
 
 Ui::~Ui() {
     GetWindowGeometry(ui_left, ui_top, ui_right, ui_bottom);  // save geometry for next time
-    if (flt_id_)
-        XPLMDestroyFlightLoop(flt_id_);
 }
 
 void Ui::BuildInterface() {
@@ -347,10 +319,8 @@ void Ui::BuildInterface() {
     ImGui::Spacing();
 
     if (dgs_arpt->state() == dgs::Airport::kIdle && my_plane->beacon_on()) {
-        if (ImGui::Button("Set mode ARRIVAL")) {
+        if (ImGui::Button("Set mode ARRIVAL"))
             set_mode_arrival_requested_ = true;
-            XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
-        }
         return;
     }
 
@@ -369,10 +339,8 @@ void Ui::BuildInterface() {
         }
 
         ImGui::NextColumn();  // column 2 for the button
-        if (ImGui::Button("Move closer")) {
+        if (ImGui::Button("Move closer"))
             move_closer_requested_ = true;
-            XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
-        }
 
         ImGui::NextColumn();  // column 1 for the radio button
         if (ImGui::RadioButton("VDGS", new_dgs_type_ != kMarshaller)) {
@@ -383,7 +351,6 @@ void Ui::BuildInterface() {
         if (new_dgs_type_ != dgs_params.dgs_type) {
             new_dgs_type_stand_ = as;
             dgs_type_changed_ = true;
-            XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
             LogMsg("Flight loop scheduled to apply new DGS type %d for active stand index %d", new_dgs_type_, as);
         }
     }
@@ -405,7 +372,6 @@ void Ui::BuildInterface() {
                     lb_item_ = i;  // Update selection state on click
                     new_selected_stand_ = i - 1;
                     selected_stand_changed_ = true;
-                    XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
                     LogMsg("Flight loop scheduled to apply new selected stand index %d (listbox index %d)",
                            new_selected_stand_, lb_item_);
                 }
@@ -436,10 +402,8 @@ void Ui::BuildInterface() {
     if (ImGui::RadioButton("Manual", !jw_auto_mode_))
         jw_auto_mode_ = false;
 
-    if (jw_auto_mode_ != my_plane->auto_mode()) {
+    if (jw_auto_mode_ != my_plane->auto_mode())
         jw_auto_mode_changed_ = true;
-        XPLMScheduleFlightLoop(flt_id_, -1.0, 1);
-    }
 
     if (my_plane->state() == OsPlane::kSelectJws) {
         if (nearest_jws_seqno_ != my_plane->nearest_jws_seqno_) {
@@ -542,7 +506,9 @@ void Ui::BuildInterface() {
             for (int d = 0; d < n_doors; d++) {
                 for (int ajw_idx : my_plane->active_jws_) {
                     if (ajw_idx == j && my_plane->nearest_jws_[j].door_ == d) {
+                        ImGui::PushFont(symbol_font, 0.0f);
                         ImGui::TextUnformatted((const char*)ICON_FA_CHECK);
+                        ImGui::PopFont();
                         ImGui::SameLine();
                         break;
                     }
@@ -569,60 +535,64 @@ void Ui::BuildInterface() {
     }
 }
 
-// Delayed actions that require FlightLoop context
-float Ui::FlightLoopCb(float, float, int, void* inRefcon) {
-    LogMsg("FlightLoopCb called with inRefcon=%p", inRefcon);
+// Actions that require FlightLoop context
+void Ui::FlightLoopUserCb() noexcept {
+    // check for fast exit
+    if (!(selected_stand_changed_ || set_mode_arrival_requested_ || move_closer_requested_ || dgs_type_changed_ ||
+          jw_auto_mode_changed_))
+        return;
 
-    Ui& ui = *reinterpret_cast<Ui*>(inRefcon);
-
-    dgs::Airport* dgs_arpt = nullptr;
-    if (adgs_arpt)
-        dgs_arpt = adgs_arpt.get();
-    else if (os_arpt)
-        dgs_arpt = os_arpt.get();
-
-    if (dgs_arpt == nullptr || dgs_arpt->seqno_ != ui.arpt_seqno_) {
-        // stale request
-        ui.selected_stand_changed_ = ui.set_mode_arrival_requested_ = ui.move_closer_requested_ = ui.dgs_type_changed_ =
-            ui.jw_auto_mode_changed_ = false;
-        return 0.0f;
-    }
-
-    if (ui.selected_stand_changed_) {
-        LogMsg("Setting selected stand to %d", ui.new_selected_stand_);
-        dgs_arpt->SetSelectedStand(ui.new_selected_stand_);
-        ui.selected_stand_changed_ = false;
-    }
-
-    if (ui.set_mode_arrival_requested_) {
-        LogMsg("Setting airport mode to ARRIVAL");
-        dgs_arpt->SetArrival();
-        ui.set_mode_arrival_requested_ = false;
-    }
-
-    if (ui.move_closer_requested_) {
-        LogMsg("Moving plane closer to the stand");
+    try {
+        dgs::Airport* dgs_arpt = nullptr;
         if (adgs_arpt)
-            adgs_arpt->DgsMoveCloser();
-        ui.move_closer_requested_ = false;
-    }
+            dgs_arpt = adgs_arpt.get();
+        else if (os_arpt)
+            dgs_arpt = os_arpt.get();
 
-    if (ui.dgs_type_changed_) {
-        LogMsg("Changing DGS type of stand index %d to %d", ui.new_dgs_type_stand_, ui.new_dgs_type_);
-        if (adgs_arpt) {
-            int as = adgs_arpt->active_stand();
-            if (as == ui.new_dgs_type_stand_)
-                adgs_arpt->SetDgsType(ui.new_dgs_type_);
+        if (dgs_arpt == nullptr || dgs_arpt->seqno_ != arpt_seqno_) {
+            // stale request
+            selected_stand_changed_ = set_mode_arrival_requested_ = move_closer_requested_ = dgs_type_changed_ =
+                jw_auto_mode_changed_ = false;
+            return;
         }
 
-        ui.dgs_type_changed_ = false;
-    }
+        if (selected_stand_changed_) {
+            LogMsg("Setting selected stand to %d", new_selected_stand_);
+            dgs_arpt->SetSelectedStand(new_selected_stand_);
+            selected_stand_changed_ = false;
+        }
 
-    if (ui.jw_auto_mode_changed_) {
-        LogMsg("Setting automatic jetway selection to %s", ui.jw_auto_mode_ ? "ON" : "OFF");
-        my_plane->AutoModeSet(ui.jw_auto_mode_);
-        ui.jw_auto_mode_changed_ = false;
-    }
+        if (set_mode_arrival_requested_) {
+            LogMsg("Setting airport mode to ARRIVAL");
+            dgs_arpt->SetArrival();
+            set_mode_arrival_requested_ = false;
+        }
 
-    return 0.0f;
+        if (move_closer_requested_) {
+            LogMsg("Moving plane closer to the stand");
+            if (adgs_arpt)
+                adgs_arpt->DgsMoveCloser();
+            move_closer_requested_ = false;
+        }
+
+        if (dgs_type_changed_) {
+            LogMsg("Changing DGS type of stand index %d to %d", new_dgs_type_stand_, new_dgs_type_);
+            if (adgs_arpt) {
+                int as = adgs_arpt->active_stand();
+                if (as == new_dgs_type_stand_)
+                    adgs_arpt->SetDgsType(new_dgs_type_);
+            }
+
+            dgs_type_changed_ = false;
+        }
+
+        if (jw_auto_mode_changed_) {
+            LogMsg("Setting automatic jetway selection to %s", jw_auto_mode_ ? "ON" : "OFF");
+            my_plane->AutoModeSet(jw_auto_mode_);
+            jw_auto_mode_changed_ = false;
+        }
+    } catch (const std::exception& e) {
+        LogMsg("Exception in Ui::FlightLoopUserCb: %s", e.what());
+        error_disabled = true;  // soft disable the plugin
+    }
 }

@@ -822,7 +822,9 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         return 1;  // bye
     }
 
-    ImgWindowIni();
+
+    ImgWindow::Initialize();
+    UiLoadFonts();      // shared for UI and Airport Editor
 
     // own commands
     XPLMCommandRef activate_cmdr = XPLMCreateCommand("openSAM/activate", "Set mode to ARRIVAL");
@@ -895,12 +897,17 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 PLUGIN_API void XPluginStop(void) {
     // be a good SDK citizen
     // destroy everything that might call SDK functions. Even LogMsg() is a wrapper around a SDK call.
+
+    ui = nullptr;
+    editor = nullptr;
+    ImgWindow::Finalize();
+
     mp_adapter = nullptr;
     os_arpt = nullptr;
     adgs_arpt = nullptr;
     dgs::Finalize();
     dgs::plane = nullptr;
-    ImgWindowFini();
+    ImgWindow::Finalize();
     SamJw::Finalize();
     XP12JwInstance::Finalize();
     my_plane = nullptr;
