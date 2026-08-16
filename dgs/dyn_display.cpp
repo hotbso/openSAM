@@ -293,15 +293,6 @@ Display::~Display() {
     if (xplm_obj_ != nullptr)
         XPLMUnloadObject(xplm_obj_);
 
-#if 0
-    // Deleting files is quite expensive, for these 2 files ~ 250 us.
-    // As there is only a limited amount of files we keep them and just overwrite.
-    if (baked_) {
-        std::filesystem::remove(png_pathname_);
-        std::filesystem::remove(obj_pathname_);
-    }
-#endif
-
     image_cache_ = std::move(image_);  // recycle the image for the next display
     active_displays_--;
 }
@@ -407,23 +398,40 @@ void Display::Deleter(Display* display) {
 const char* Page::dlist_dr_[] = {"opensam/dgs/vdgs_brightness", nullptr};
 
 bool Page::Show() {
-    if (dd_) {
+    if (dd_ == nullptr)
+        return false;
+
+    if (inst_ref_ == nullptr) {
         auto obj_ref = dd_->GetXplmObj();
         if (obj_ref == nullptr) {
             LogMsg("Page::Show: Object not yet available");
             return false;
         }
         inst_ref_ = CreateInstance(obj_ref, dlist_dr_);
-        SetPosition();
-        ts_ = now;
-        return true;
     }
 
-    return false;
+    hidden_ = false;
+    SetPosition();
+    ts_ = now;
+    return true;
+}
+
+void Page::Hide() {
+    if (inst_ref_ == nullptr)
+        return;
+
+    hidden_ = true;
+    XPLMDrawInfo_t drawinfo = drawinfo_;
+    drawinfo.y -= 20.0f;  // move the page down by 20 meters to hide it
+    float brightness = 0.0f;
+    inst_ref_->SetPosition(&drawinfo, &brightness);
 }
 
 void Page::SetPosition() {
     if (inst_ref_) {
+        if (hidden_)
+            return;
+
         float brightness = dgs::VDGSBrightness();
         inst_ref_->SetPosition(&drawinfo_, &brightness);
     }

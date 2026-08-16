@@ -557,7 +557,6 @@ void DisplayDiffToTOBT(DynDisplay::DisplayPtr& dd, int zulu_h, int zulu_m, const
     int tobt_h = std::atoi(tobt.substr(0, 2).c_str());
     int tobt_m = std::atoi(tobt.substr(2, 2).c_str());
     int td = TimeDiff(tobt_h, tobt_m, zulu_h, zulu_m);
-    LogMsg("DisplayDiffToTOBT: td: %d", td);
     bool expired = false;
     if (td < 0) {
         expired = true;
@@ -595,6 +594,7 @@ bool CdmPage::Update() {
         ofp_seqno_ = Ofp::ofp.seqno;
         zulu_m_ = zulu_m;
 
+        inst_ref_ = nullptr;
         dd_ = CreateDisplayX();
 
         static constexpr float kCol1 = 0.05;  // column for TOBT, TSAT, CTOT, RWY, SID
@@ -666,6 +666,8 @@ bool StandPage::Update() {
     if (dd_ == nullptr || Ofp::ofp.seqno > ofp_seqno_ || zulu_m != zulu_m_ || sdx_->pax_no_ != pax_no_disp_) {
         LogMsg("Updating StandPage for stand '%s', ofp seqno: %d, pax_no: %d", sdx_->name_.c_str(), Ofp::ofp.seqno, sdx_->pax_no_);
         TimeCodeBlock tc("StandPage::Update");
+
+        inst_ref_ = nullptr;
         dd_ = CreateDisplayX();
         static constexpr float kCol1 = 0.05;  // label
         static constexpr float kCol2 = 0.55;  // value
@@ -750,6 +752,7 @@ bool EqPage::Update() {
         ofp_seqno_ = Ofp::ofp.seqno;
         zulu_m_ = zulu_m;
 
+        inst_ref_ = nullptr;
         dd_ = CreateDisplayX();
         dd_->Paste(*eq_syms_img, 0.05f, 0.05f);  // paste the equipment symbols image
 

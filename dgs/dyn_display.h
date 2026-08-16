@@ -231,6 +231,7 @@ using DisplayPtr = std::unique_ptr<Display, void(*)(Display*)>;
 // the page is a generic class agnostic of the DGS implementation
 class Page {
     XPLMDrawInfo_t& drawinfo_;
+    bool hidden_ = false;  // true if the page is hidden, i.e. moved down by 20 meters
 
    protected:
     static const char* dlist_dr_[];  // dataref "opensam/dgs/vdgs_brightness"
@@ -250,7 +251,7 @@ class Page {
 
     bool Show();
 
-    void Hide() { inst_ref_ = nullptr; }
+    void Hide();
 
     // called from from Clear() to allow a derived class to clear any user data it may have
     virtual void UserClearCb() {}
