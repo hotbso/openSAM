@@ -87,6 +87,7 @@ class OsAirport : public dgs::Airport {
     int FindStandForObj(const OsDgsCtx& ctx);  // returns index in stands_ or -1 if not found
 
    public:
+    const std::string& sam_xml_pathname_;
     static std::unique_ptr<OsAirport> LoadAirport(const dgs::AptAirport* arpt);
 
     static void Init();

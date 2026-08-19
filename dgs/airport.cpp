@@ -183,7 +183,7 @@ const char* const Airport::state_str_[] = {"IDLE",   "DEPARTURE",  "BOARDING", "
 
 static int seqno_base = 0;
 
-Airport::Airport(const AptAirport& apt_airport) : seqno_(++seqno_base) {
+Airport::Airport(const AptAirport& apt_airport) : seqno_(++seqno_base), apt_airport_(apt_airport) {
     CheckRefFrameShift();   // ensure ref_gen is up to date
     ref_gen_ = ref_gen;
 

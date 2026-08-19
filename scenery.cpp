@@ -160,6 +160,7 @@ static void ParseJetways(const pugi::xml_node& sc_node) {
 
     for (pugi::xml_node jetway : jetways.children("jetway")) {
         SamJw* jw = new SamJw();
+        jw->is_lib_jw_inst = jetway.attribute("libraryInstance").as_bool(false);
         jw->name = jetway.attribute("name").as_string("");
         jw->latitude = jetway.attribute("latitude").as_float(0.0f);
         jw->longitude = jetway.attribute("longitude").as_float(0.0f);
@@ -357,7 +358,8 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
 
         Scenery sc;
         sc.jw_idx_end_ = sc.jw_idx_start_ = sam_jw_list.size();
-        bool is_opensam = ParseSamXml(sc_path + "sam.xml", lib_jw_map, &sc);
+        std::string sam_xml_pathname = sc_path + "sam.xml";
+        bool is_opensam = ParseSamXml(sam_xml_pathname, lib_jw_map, &sc);
         sc.jw_idx_end_ = sam_jw_list.size();
 
         // read stands from apt.dat
@@ -366,14 +368,18 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
         dgs::AptAirport* apt = nullptr;
         if (is_opensam) {
             // will be used with openSAM personality
-            // ignore: false, is_opensam: true, AutoDGS filter: false
-            apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", false, true, false, n_stands);
+            apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", /* ignore */ false,
+                                               /* filter_autodgs */ false, n_stands);
+            if (apt) {
+                apt->is_opensam_ = true;
+                apt->sam_xml_pathname_ = sam_xml_pathname;
+            }
         } else {
             // will be used with AutoDGS personality
-            bool ignore =
-                (std::filesystem::exists(sc_path + "no_autodgs") || std::filesystem::exists(sc_path + "no_autodgs.txt"));
-            // ignore: as specified, is_opensam: false, AutoDGS filter: true
-            apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, false, true, n_stands);
+            bool ignore = (std::filesystem::exists(sc_path + "no_autodgs") ||
+                           std::filesystem::exists(sc_path + "no_autodgs.txt"));
+            apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, /* filter_autodgs */ true,
+                                               n_stands);
         }
 
         if (!(apt && is_opensam))
@@ -412,4 +418,68 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
     }
 
     LogMsg("Finished collecting sceneries, total jetways in quadtree: %u", (unsigned)jw_quadtree.size());
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+// Update the <jetways> section of a scenery's sam.xml with the current jetway configuration, return whether successful
+bool UpdateSamXml(const std::vector<SamJw*> lib_jw_instances, const std::string& xml_pathname) {
+    pugi::xml_document doc;
+
+    // Load from disk:
+    pugi::xml_parse_result result = doc.load_file(xml_pathname.c_str(), pugi::parse_default | pugi::parse_comments);
+    if (!result)
+        return false;
+
+    pugi::xml_node sc_node = doc.child("scenery");
+    if (sc_node.empty()) {
+        LogMsg("No <scenery> element found in '%s'", xml_pathname.c_str());
+        return false;
+    }
+
+    // openSAM never used docks
+    pugi::xml_node docks = sc_node.child("docks");
+    if (!docks.empty())
+        sc_node.remove_child(docks);
+
+    pugi::xml_node jetways = sc_node.child("jetways");
+    if (jetways.empty())
+        jetways = sc_node.append_child("jetways");
+    else {
+        // remove all jetways with libraryInstance="true" from sam.xml
+        for (pugi::xml_node child = jetways.first_child(); child;) {
+            // Advance to next_sibling() BEFORE removing current child
+            pugi::xml_node next = child.next_sibling();
+            if (child.type() == pugi::node_element && std::string_view(child.name()) == "jetway" &&
+                child.attribute("libraryInstance").as_bool())
+                jetways.remove_child(child);
+
+            child = next;
+        }
+    }
+
+    // add configured library jetway instances
+    for (auto jw : lib_jw_instances) {
+        if (jw->is_lib_jw_inst && !jw->is_zc_jw) {
+            pugi::xml_node jw_node = jetways.append_child("jetway");
+            jw_node.append_attribute("libraryInstance") = true;
+            jw_node.append_attribute("name") = jw->name.c_str();
+            jw_node.append_attribute("latitude") = jw->latitude;
+            jw_node.append_attribute("longitude") = jw->longitude;
+            jw_node.append_attribute("heading") = jw->heading;
+            jw_node.append_attribute("initialRot1") = jw->initialRot1;
+            jw_node.append_attribute("initialRot2") = jw->initialRot2;
+            jw_node.append_attribute("initialRot3") = jw->initialRot3;
+            jw_node.append_attribute("initialExtent") = jw->initialExtent;
+        }
+    }
+
+    std::ofstream xml(xml_pathname, std::ios::out | std::ios::trunc);
+    if (!xml.is_open()) {
+        LogMsg("Failed to open '%s' for writing", xml_pathname.c_str());
+        return false;
+    }
+
+    doc.save(xml, "  ", pugi::format_default | pugi::format_indent_attributes);
+    xml.close();
+    return true;
 }

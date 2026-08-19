@@ -27,7 +27,6 @@
 #include <unordered_map>
 #include <fstream>
 #include <filesystem>
-#include <chrono>
 
 #include "XPLMPlugin.h"
 #include "XPLMProcessing.h"
@@ -47,11 +46,12 @@
 #include "sam1_dgs.h"
 #include "scenery.h"
 #include "simbrief.h"
-
+#include "time_code_block.h"
 #include "flat_earth_math.h"
 #include "seasons.h"
 #include "ui.h"
 #include "adgs_editor.h"
+#include "jw_editor.h"
 #include "log_msg.h"
 
 #include "version.h"
@@ -349,6 +349,16 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
             ui = nullptr;
         }
 
+        if (editor && !editor->GetVisible()) { // close if user closed it manually
+            LogMsg("ADGS Editor window was closed by user, destroying");
+            editor = nullptr;
+        }
+
+        if (jw_editor && !jw_editor->GetVisible()) { // close if user closed it manually
+            LogMsg("Jetway Configurator window was closed by user, destroying");
+            jw_editor = nullptr;
+        }
+
         now = XPLMGetDataf(total_running_time_sec_dr);
 
         plane_pos_prev = plane_pos;
@@ -521,14 +531,26 @@ static int AdgsCmdMoveDgsCloserCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMComm
     return 0;
 }
 
-static void AdgsMenuCb([[maybe_unused]] void* inMenuRef, [[maybe_unused]] void* inItemRef) {
-    if (error_disabled)
-        return;
+static int DgsEditorCmdCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, [[maybe_unused]] void* ref) {
+    if (error_disabled || xplm_CommandBegin != phase)
+        return 0;
 
     if (editor)
         editor = nullptr;
     else
         CreateEditor();
+    return 0;
+}
+
+static int JwEditorCmdCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, [[maybe_unused]] void* ref) {
+    if (error_disabled || xplm_CommandBegin != phase)
+        return 0;
+
+    if (jw_editor)
+        jw_editor = nullptr;
+    else
+        CreateJwEditor();
+    return 0;
 }
 
 static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, DoorInfo>& di_map) {
@@ -683,26 +705,23 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         LoadDoorInfo(base_dir + "csl_door_position.txt", csl_door_info_map);
         LoadAcfGenericType(base_dir + "acf_generic_type.txt");
 
-        auto t_start = std::chrono::high_resolution_clock::now();
+        TimeCodeBlock tc("Scenery Collection");
         SceneryPacks scp(xp_dir);
         if (scp.openSAM_Library_path.empty())
-             LogMsg("WARNING: openSAM_Library not found!");
+            LogMsg("WARNING: openSAM_Library not found!");
 
         sam_library_installed = !scp.SAM_Library_path.empty();
 
         Scenery::CollectSceneries(scp, max_sam_stands);
         LogMsg("%d sceneries with sam jetways found", (int)Scenery::sceneries.size());
         int n_stands = 0;
-        if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, false, true, n_stands)) {
-             LogMsg("WARNING: global apt.dat could not be parsed, no DGS support!");
+        if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat",
+                                          /* ignore */ false, /* filter_autodgs */ true, n_stands)) {
+            LogMsg("WARNING: global apt.dat could not be parsed, no DGS support!");
             return 0;
         } else {
             LogMsg("%d stands with DGS found in global apt.dat", n_stands);
         }
-
-        auto t_end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration<double>(t_end - t_start).count();
-        LogMsg("Sceneries collected in %0.2fs", duration);
 
         dgs::AptAirport::LoadingFinished();
 
@@ -794,6 +813,13 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     XPLMCommandRef toggle_mp_cmdr = XPLMCreateCommand("openSAM/toggle_multiplayer", "Toggle Multiplayer Support");
     XPLMRegisterCommandHandler(toggle_mp_cmdr, CmdToggleMpCb, 0, NULL);
 
+    XPLMCommandRef toggle_dgs_editor_cmdr = XPLMCreateCommand("openSAM/toggle_dgs_editor", "Toggle DGS Editor");
+    XPLMRegisterCommandHandler(toggle_dgs_editor_cmdr, DgsEditorCmdCb, 0, NULL);
+
+    XPLMCommandRef toggle_jw_editor_cmdr =
+        XPLMCreateCommand("openSAM/toggle_jw_editor", "Toggle Jetway Editor");
+    XPLMRegisterCommandHandler(toggle_jw_editor_cmdr, JwEditorCmdCb, 0, NULL);
+
     // AutoDGS mode
     XPLMCommandRef cycle_dgs_cmdr = XPLMCreateCommand("openSAM/cycle_dgs", "Cycle DGS between Marshaller, VDGS");
     XPLMRegisterCommandHandler(cycle_dgs_cmdr, AdgsCmdCycleDgsCb, 0, NULL);
@@ -822,13 +848,15 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     toggle_mp_item = XPLMAppendMenuItemWithCommand(os_menu, toggle_mp_support_txt, toggle_mp_cmdr);
 
     XPLMAppendMenuSeparator(os_menu);
+    XPLMAppendMenuItemWithCommand(os_menu, "Cycle DGS", cycle_dgs_cmdr);
+    XPLMAppendMenuItemWithCommand(os_menu, "Move DGS closer by 2m", move_dgs_closer_cmdr);
 
-    int sub_menu = XPLMAppendMenuItem(os_menu, "AutoDGS", NULL, 1);
-    XPLMMenuID adgs_menu = XPLMCreateMenu("AutoDGS", os_menu, sub_menu, AdgsMenuCb, NULL);
+    XPLMAppendMenuSeparator(os_menu);
 
-    XPLMAppendMenuItemWithCommand(adgs_menu, "Cycle DGS", cycle_dgs_cmdr);
-    XPLMAppendMenuItemWithCommand(adgs_menu, "Move DGS closer by 2m", move_dgs_closer_cmdr);
-    XPLMAppendMenuItem(adgs_menu, "Toggle Editor", nullptr, 0);
+     XPLMMenuID tools_menu = XPLMCreateMenu("Tools", os_menu, XPLMAppendMenuItem(os_menu, "Tools", NULL, 0), NULL, NULL);
+
+    XPLMAppendMenuItemWithCommand(tools_menu, "Toggle DGS Editor", toggle_dgs_editor_cmdr);
+    XPLMAppendMenuItemWithCommand(tools_menu, "Toggle Jetway Editor", toggle_jw_editor_cmdr);
 
     flight_loop_id = XPLMCreateFlightLoop(&flight_loop_ctx);
     return 1;

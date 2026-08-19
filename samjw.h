@@ -53,13 +53,16 @@ struct SamJw {
     static constexpr float kSam2ObjHdgMax = 5;    // °, likewise for heading
 
     bool bad{};            // marked bad, e.g. terrain probe failed
+    bool is_lib_jw_inst{};  // is an instance of a library jetway
+    // library id is configure when the jetway comes into view, so that may be delayed
+    int library_id{};  // id of the library jetway this one is configured from, 0 = none
+
     bool is_zc_jw{};       // is a zero config jw
     bool zc_stand_done{};  // for zero config jetways, whether looking for a stand has been attempted
+
     // values from the actually drawn object
     unsigned int obj_ref_gen{};  // only valid if this matches the generation of the ref frame
     float x, y, z, psi;
-
-    int library_id{};  // id of the library jetway this one is configured from, 0 = none
 
     // values fed to the datarefs
     float rotate1, rotate2, rotate3, extent, wheels, wheelrotatec{}, wheelrotater{}, wheelrotatel{},

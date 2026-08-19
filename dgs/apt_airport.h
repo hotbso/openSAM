@@ -66,6 +66,8 @@ class AptAirport {
    public:
     bool is_opensam_{false};    // whether this is an openSAM airport
     bool has_xp12_jws_{false};  // whether this airport has XP12 jetways, from apt.dat
+    std::string sam_xml_pathname_;  // full path to the sam.xml file, if any
+
     std::vector<AptStand> stands_;
     std::vector<AptRunway> rwys_;
 
@@ -79,7 +81,7 @@ class AptAirport {
     // if ignore is true, a dummy airport with that id will be added and marked as ignored
     // this will also shadow a global airport with the same id, so it won't be found by LocateAirport
 
-    static AptAirport* ParseAptDat(const std::string& fn, bool ignore, bool is_opensam, bool filter_autodgs,
+    static AptAirport* ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs,
                                    int& total_stands);
 
     static int NumAirports() { return apt_airports_.size(); }

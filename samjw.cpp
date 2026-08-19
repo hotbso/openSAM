@@ -151,6 +151,7 @@ static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y,
     jw->y = obj_y;
     jw->psi = obj_psi;
     jw->is_zc_jw = true;
+    jw->is_lib_jw_inst = true;  // zc jetways are always library instances
 
     // fill the 'sam.xml' related position values
     XPLMLocalToWorld(obj_x, obj_y, obj_z, &jw->latitude,  &jw->longitude, &jw->altitude);

@@ -132,8 +132,15 @@ class Airport {
 
   public:
     Airport() = delete;
+    Airport(const Airport&) = delete;
+    Airport(Airport&&) = delete;
+    Airport& operator=(const Airport&) = delete;
+    Airport& operator=(Airport&&) = delete;
+
     Airport(const dgs::AptAirport&);
     virtual ~Airport();
+
+    const AptAirport& apt_airport_;
 
     int nstands() const { return stands_.size(); }
 

@@ -105,8 +105,9 @@ bool OsStand::has_jw() const {
 }
 
 //--------------------- OsAirport --------------------------------------------------------------
-OsAirport::OsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_airport) {
-   float arpt_elevation = XPLMGetDataf(plane_elevation_dr);  // best guess
+OsAirport::OsAirport(const dgs::AptAirport& apt_airport)
+    : dgs::Airport(apt_airport), sam_xml_pathname_(apt_airport.sam_xml_pathname_) {
+    float arpt_elevation = XPLMGetDataf(plane_elevation_dr);  // best guess
 
     for (auto const& as : apt_airport.stands_)
         stands_.push_back(std::make_unique<OsStand>(as, name_, arpt_elevation));

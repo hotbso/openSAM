@@ -29,6 +29,8 @@
 
 static constexpr float kD2R = std::numbers::pi/180.0;
 
+struct SamJw;
+
 struct SceneryPacks {
     std::string openSAM_Library_path;
     std::string SAM_Library_path;
@@ -60,10 +62,13 @@ class Scenery {
 
     // Not copyable or assignable
     Scenery(const Scenery&) = delete;
-    Scenery& operator=(const Scenery&) = delete;
     Scenery(Scenery&&) noexcept = default;
+    Scenery& operator=(const Scenery&) = delete;
+    Scenery& operator=(Scenery&&) noexcept = delete;
 
-    static Scenery *FindScenery(float lat, float lon);
     // a poor man's factory for creating sceneries, return max # of stands in sam sceneries
     static void CollectSceneries(const SceneryPacks& scp, int& max_sam_stands);
 };
+
+// Update the <jetways> section of a scenery's sam.xml with the current jetway configuration, return whether successful
+extern bool UpdateSamXml(const std::vector<SamJw*> lib_jw_instances, const std::string& xml_pathname);

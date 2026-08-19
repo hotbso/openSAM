@@ -101,7 +101,7 @@ void AptAirport::ComputeBBox() {
 }
 
 // go through apt.dat and collect stands
-AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_opensam, bool filter_autodgs, int& total_stands) {
+AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs, int& total_stands) {
     if (apt_airports_.empty()) {
         apt_airports_.reserve(8000);  // avoid too many reallocations
     }
@@ -200,7 +200,6 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool is_
             if (apt_airports_.find(arpt_name) == apt_airports_.end()) {
                 // does not yet exist
                 arpt = new AptAirport(arpt_name);
-                arpt->is_opensam_ = is_opensam;
                 if (ignore) {
                     // LogMsg("Saving '%s' with ignore", arpt->icao_.c_str());
                     arpt->ignore_ = true;

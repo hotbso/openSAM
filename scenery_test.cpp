@@ -59,7 +59,7 @@ void scenery_test() {
         Scenery::CollectSceneries(scp, max_sam_stands);
         LogMsg("%d sceneries with sam jetways found, max stands: %d", (int)Scenery::sceneries.size(), max_sam_stands);
         int n_stands;
-        if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, false, true, n_stands)) {
+        if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, true, n_stands)) {
              LogMsg("WARNING: global apt.dat could not be parsed, no DGS support!");
             return;
         } else {

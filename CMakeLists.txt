@@ -53,23 +53,18 @@ SET(IMGUI_SRCS
 # ==============================================================================
 # Sources
 # ==============================================================================
-set(SOURCES
-    opensam.cpp autodgs_airport.cpp adgs_api.cpp seasons.cpp simbrief.cpp
+add_library(openSAM SHARED opensam.cpp autodgs_airport.cpp adgs_api.cpp seasons.cpp simbrief.cpp
     os_airport.cpp samjw.cpp jwctrl.cpp os_anim.cpp scenery.cpp read_wav.cpp
     os_plane.cpp my_plane.cpp
     LTAPI.cpp mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp
     dgs/apt_airport.cpp dgs/dgs.cpp dgs/plane.cpp dgs/airport.cpp dgs/marshaller.cpp
-    dgs/safedock_t2_24.cpp dgs/safedock_x.cpp dgs/dyn_display.cpp
+    dgs/safedock_t2_24.cpp dgs/safedock_x.cpp dgs/dyn_display.cpp dgs/airline_logo.cpp
     sam1_dgs.cpp
-    ui.cpp adgs_editor.cpp
+    ui.cpp adgs_editor.cpp jw_editor.cpp
+    http_get.cpp simbrief.cpp log_msg.cpp
     ${IMGUI_SRCS}
     spng.c
-    ${CMAKE_SOURCE_DIR}/pugixml-1.16/src/pugixml.cpp
-    http_get.cpp simbrief.cpp log_msg.cpp
-)
-
-add_library(openSAM SHARED ${SOURCES}
-    dgs/airline_logo.cpp)
+    ${CMAKE_SOURCE_DIR}/pugixml-1.16/src/pugixml.cpp)
 set_target_properties(openSAM PROPERTIES PREFIX "" SUFFIX ".xpl")
 
 # ==============================================================================
@@ -88,7 +83,7 @@ target_include_directories(openSAM PRIVATE
 
 target_compile_definitions(openSAM PRIVATE
     SPNG_STATIC XPLM200 XPLM210 XPLM300 XPLM301 XPLM400
-    DREF_PREFIX="opensam"
+    DREF_PREFIX="opensam" PUGIXML_NO_XPATH
 )
 
 target_compile_options(openSAM PRIVATE -O3)
