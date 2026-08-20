@@ -297,6 +297,12 @@ static float JwAnimAcc(void* ref) {
                 }
             }
 
+            if (nearest == nullptr) {
+                LogMsg("all candidates rejected by heading");
+                NegativeCacheEntry();
+                return 0.0f;
+            }
+
             LogMsg("nearest candidate: '%s', lat: %0.6f, lon: %0.6f, dist: %0.2fm", nearest->name.c_str(),
                    nearest->latitude, nearest->longitude, min_dist);
             jw = nearest;
