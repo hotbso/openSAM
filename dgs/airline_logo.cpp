@@ -139,8 +139,13 @@ void LoadAirlineLogo(const std::string& airline_icao, int wh) {
         return;
     }
 
-    airline_logo = nullptr;  // clear the current logo, will be replaced by the new one when download is complete
-    icao_new = airline_icao;    // put to static storage protected by 'download_active'
+    if (airline_logo && airline_icao == icao_new) {
+        LogMsg("Logo for airline '%s' is already loaded, request ignored", airline_icao.c_str());
+        return;
+    }
+
+    airline_logo = nullptr;   // clear the current logo, will be replaced by the new one when download is complete
+    icao_new = airline_icao;  // put to static storage protected by 'download_active'
     download_future = std::async(std::launch::async, DownloadLogo, wh);
     download_active = true;
 }
