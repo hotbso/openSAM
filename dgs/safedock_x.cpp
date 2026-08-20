@@ -582,9 +582,6 @@ void DisplayDiffToTOBT(DynDisplay::DisplayPtr& dd, int zulu_h, int zulu_m, const
 }
 
 bool CdmPage::Update() {
-    if (!sdx_->ofp_valid_)
-        return false;
-
     int zulu_m = XPLMGetDatai(zulu_time_minutes_dr);
     int zulu_h = XPLMGetDatai(zulu_time_hours_dr);
 
@@ -598,6 +595,17 @@ bool CdmPage::Update() {
 
         inst_ref_ = nullptr;
         dd_ = CreateDisplayX();
+
+        if (!sdx_->ofp_valid_) {
+            dd_->SetTxtHeight(kTxtHeight);
+            dd_->SetPos(0.0f, kDisplayHeight - 2 * kLineSpacing);  // start from the very top
+            dd_->SetLineSpacing(kLineSpacing);
+            dd_->TextLine(kTextRed, *dd_font, "OFP", true);
+            dd_->TextLine(kTextRed, *dd_font, "NOT", true);
+            dd_->TextLine(kTextRed, *dd_font, "AVAILABLE", true);
+            dd_->Bake();
+            return true;
+        }
 
         static constexpr float kCol1 = 0.05;  // column for TOBT, TSAT, CTOT, RWY, SID
         static constexpr float kCol2 = 0.55;  // column value
