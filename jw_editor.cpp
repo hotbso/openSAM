@@ -50,7 +50,7 @@
 namespace fem = flat_earth_math;
 namespace fs = std::filesystem;         // that is so long...
 
-static constexpr int kWinWidth = 400;
+static constexpr int kWinWidth = 450;
 static constexpr int kWinHeight = 650;
 static constexpr int kWinPad = 150;
 
@@ -123,22 +123,20 @@ void JwEditor::BuildInterface() {
         return;
     }
 
-    bool was_active = jw_editor_active;
-    if (ImGui::Checkbox("Edit Mode", &jw_editor_active)) {
-        LogMsg("Edit Mode checkbox changed to %s", jw_editor_active ? "ON" : "OFF");
-    }
+    ImGui::TextUnformatted("Jetway Editor for fine tuning (zero config) library jetway instances");
+    ImGui::TextUnformatted("EXPERIMENTAL backport of the jetway editor for XP 12.4.4");
 
+    bool was_active = jw_editor_active;
+    ImGui::Checkbox("Edit Mode", &jw_editor_active);
     if (!jw_editor_active)
         return;
-
-    ImGui::TextUnformatted("EXPERIMENTAL");
 
     // create entry for listbox, e.g. "Jetway 1 configured 'jetway1'"
     auto MkLbEntry = [](const SamJw* jw) -> std::string {
         const char* lib_id = "(not seen)";
         if (0 < jw->library_id && jw->library_id < (int)lib_jw.size())
             lib_id = lib_jw[jw->library_id]->id.c_str();
-        return std::format("{:20} {} '{}'", jw->name, jw->is_zc_jw ? "(zero config)" : "configured", lib_id);
+        return std::format("{:16} {:16} '{}'", jw->name, jw->is_zc_jw ? "(zero config)" : "configured", lib_id);
     };
 
     bool must_reload = false;
@@ -156,7 +154,7 @@ void JwEditor::BuildInterface() {
         LogMsg("sam.xml: %s", os_arpt->sam_xml_pathname_.c_str());
     }
 
-    // .. or if the camera position changed significantly we have to rebuild the listbox content
+    // .. or if the camera position changed significantly, too
     XPLMCameraPosition_t cam_pos_lcl;
     XPLMReadCameraPosition(&cam_pos_lcl);
 
