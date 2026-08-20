@@ -247,6 +247,14 @@ in the current directory and uses the specified set name for datarefs.\
 
 **Note**: all collected library jetways share a single global namespace. Hence be specific with your set names e.g. include your studio name.
 
+## Jetway Editor for library jetway instances
+You can fine tune library jetway instances, e.g. if wheels should be parked in marked areas or other setups can can be
+achieved with zero config.
+
+Tweak these instances as needed with *Jetway Editor*.
+
+![Image](images/jw-editor.jpg)
+
 ## Additional datarefs
 You can close the canopy of a jetway using ``sam/jetway/canopy``.\
 Docking:   After reaching the door position this dataref changes from 0 to 1 within 5 seconds. \
