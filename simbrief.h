@@ -34,6 +34,7 @@ struct Ofp {
     std::string icao_airline;
     std::string flight_number;
     std::string aircraft_icao;
+    std::string origin;
     std::string destination;
     std::string pax_count;
     std::string freight;

@@ -40,6 +40,7 @@ static bool init_done;
 DEF_OFP_DR(icao_airline);
 DEF_OFP_DR(flight_number);
 DEF_OFP_DR(aircraft_icao);
+DEF_OFP_DR(origin);
 DEF_OFP_DR(destination);
 DEF_OFP_DR(pax_count);
 DEF_OFP_DR(freight);
@@ -103,6 +104,7 @@ void Ofp::Initialize() {
         FIND_OFP_DREF(icao_airline);
         FIND_OFP_DREF(flight_number);
         FIND_OFP_DREF(aircraft_icao);
+        FIND_OFP_DREF(origin);
         FIND_OFP_DREF(destination);
         FIND_OFP_DREF(pax_count);
         FIND_OFP_DREF(freight);
@@ -147,6 +149,7 @@ bool Ofp::LoadIfNewer() {
     GET_OFP_DREF(icao_airline);
     GET_OFP_DREF(flight_number);
     GET_OFP_DREF(aircraft_icao);
+    GET_OFP_DREF(origin);
     GET_OFP_DREF(destination);
     GET_OFP_DREF(pax_count);
     GET_OFP_DREF(freight);
@@ -180,6 +183,7 @@ bool Ofp::LoadIfNewer() {
     LOG_FIELD(icao_airline);
     LOG_FIELD(flight_number);
     LOG_FIELD(aircraft_icao);
+    LOG_FIELD(origin);
     LOG_FIELD(destination);
     LOG_FIELD(pax_count);
     LOG_FIELD(freight);

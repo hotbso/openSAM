@@ -161,6 +161,7 @@ class Safedock_X : public DGS {
     float boarding_completed_ts_ = 1.0E9;  // time when boarding was completed
 
     bool ofp_mode_ = false;  // whether the Safedock_X is in OFP mode (showing OFP info)
+    bool ofp_valid_ = false;  // whether the OFP info is valid (OFP loaded and origin == current airport)
 
     CdmPage cdm_page_;       // page showing CDM info
     StandPage stand_page_;   // page showing stand name + OFP
@@ -370,7 +371,7 @@ void Safedock_X::SetMode(Mode mode) {
         display_inst_ref_ = CreateInstance(idle_display_obj, dgs_dlist_dr);
     } else if (mode_ == kParked) {
         parked_ts_ = now;
-        if (Ofp::ofp.seqno > 0) {
+        if (Ofp::ofp.seqno > 0 && Ofp::ofp.destination == arpt_icao_) {
             int zm = XPLMGetDatai(zulu_time_minutes_dr);
             int zh = XPLMGetDatai(zulu_time_hours_dr);
             scroll_txt_ = std::make_unique<ScrollTxt>(std::format("{} AIBT {:02d}{:02d}   ", Ofp::ofp.callsign, zh, zm));
@@ -400,7 +401,8 @@ void Safedock_X::SetPaxNo(int pax_no) {
 }
 
 void Safedock_X::NotifyOfpUpdate() {
-    if (Ofp::ofp.seqno > 0)
+    ofp_valid_ = (Ofp::ofp.seqno > 0 && Ofp::ofp.origin == arpt_icao_);
+    if (ofp_valid_)
         logo::LoadAirlineLogo(Ofp::ofp.icao_airline, kLogoSize);  // is async
 }
 
@@ -580,7 +582,7 @@ void DisplayDiffToTOBT(DynDisplay::DisplayPtr& dd, int zulu_h, int zulu_m, const
 }
 
 bool CdmPage::Update() {
-    if (Ofp::ofp.seqno <= 0)
+    if (!sdx_->ofp_valid_)
         return false;
 
     int zulu_m = XPLMGetDatai(zulu_time_minutes_dr);
@@ -664,8 +666,11 @@ bool StandPage::Update() {
     int zulu_m = XPLMGetDatai(zulu_time_minutes_dr);
 
     if (dd_ == nullptr || Ofp::ofp.seqno > ofp_seqno_ || zulu_m != zulu_m_ || sdx_->pax_no_ != pax_no_disp_) {
-        LogMsg("Updating StandPage for stand '%s', ofp seqno: %d, pax_no: %d", sdx_->name_.c_str(), Ofp::ofp.seqno, sdx_->pax_no_);
+        LogMsg("Updating StandPage for stand '%s', ofp seqno: %d, pax_no: %d", sdx_->name_.c_str(), Ofp::ofp.seqno,
+               sdx_->pax_no_);
         TimeCodeBlock tc("StandPage::Update");
+
+        ofp_seqno_ = Ofp::ofp.seqno;
 
         inst_ref_ = nullptr;
         dd_ = CreateDisplayX();
@@ -676,17 +681,16 @@ bool StandPage::Update() {
         dd_->SetTxtHeight(kTxtHeight);
         dd_->SetLineSpacing(kLineSpacing);
 
-
         // if we have an ofp we start with callsign / destination
-        if (Ofp::ofp.seqno > 0) {
+        if (sdx_->ofp_valid_) {
             if (logo::airline_logo) {
                 auto [x, y] = dd_->GetPos();
                 dd_->Paste(*logo::airline_logo.get(), 0.05f, y - 0.02f);
-               dd_->TextAt(0.25f, y, kTextColor, *dd_font, Ofp::ofp.callsign);
-           } else
-               dd_->TextLine(kTextColor, *dd_font, Ofp::ofp.callsign, true);
+                dd_->TextAt(0.25f, y, kTextColor, *dd_font, Ofp::ofp.callsign);
+            } else
+                dd_->TextLine(kTextColor, *dd_font, Ofp::ofp.callsign, true);
 
-           dd_->TextLine(kTextColor, *dd_font, Ofp::ofp.destination, true);
+            dd_->TextLine(kTextColor, *dd_font, Ofp::ofp.destination, true);
         }
 
         // stand + clock
@@ -707,22 +711,20 @@ bool StandPage::Update() {
             dd_->TextLine(kTextGreen, *dd_font, "BOARDING", true);
             dd_->TextLine(kTextGreen, *dd_font, "COMPLETE", true);
             dd_->TextLine(kTextColor, *dd_font, std::format("Pax   {:3d}", pax_no_disp_), true);
-         } else if (Ofp::ofp.seqno > 0) {
-           ofp_seqno_ = Ofp::ofp.seqno;
-
+        } else if (sdx_->ofp_valid_) {
             dd_->SetPosDelta(0.0f, -0.02f);  // move down a bit
             dd_->TextAt(kCol1, -1, kTextColor, *dd_font, "Pax");
             dd_->SameLine();
-           dd_->TextAt(kCol2, -1, kTextColor, *dd_font, Ofp::ofp.pax_count);
+            dd_->TextAt(kCol2, -1, kTextColor, *dd_font, Ofp::ofp.pax_count);
 
-           float cargo = std::atof(Ofp::ofp.freight.c_str()) / 1000.0f;
+            float cargo = std::atof(Ofp::ofp.freight.c_str()) / 1000.0f;
             if (cargo > 0.0f) {
                 dd_->TextAt(kCol1, -1, kTextColor, *dd_font, "Cargo");
                 dd_->SameLine();
                 dd_->TextAt(kCol2, -1, kTextColor, *dd_font, std::format("{:.1f}", cargo));
             }
 
-           float fuel = std::atof(Ofp::ofp.fuel_plan_ramp.c_str()) / 1000.0f;
+            float fuel = std::atof(Ofp::ofp.fuel_plan_ramp.c_str()) / 1000.0f;
             if (fuel > 0.0f) {
                 dd_->TextAt(kCol1, -1, kTextColor, *dd_font, "Fuel");
                 dd_->SameLine();
@@ -763,7 +765,7 @@ bool EqPage::Update() {
         dd_->SetTxtHeight(kTxtHeight);
         dd_->SetLineSpacing(kLineSpacing);
 
-        if (Ofp::ofp.seqno > 0) {
+        if (sdx_->ofp_valid_) {
             if (logo::airline_logo) {
                 auto [_, y] = dd_->GetPos();
                 dd_->TextAt(0.25f, y, kTextColor, *dd_font, Ofp::ofp.callsign);
