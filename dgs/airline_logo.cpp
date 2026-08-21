@@ -139,6 +139,13 @@ void LoadAirlineLogo(const std::string& airline_icao, int wh) {
         return;
     }
 
+    if (airline_icao.empty()) {
+        LogMsg("Logo request for empty airline ICAO, request ignored");
+        airline_logo = nullptr;
+        icao_new.clear();
+        return;
+    }
+
     if (airline_logo && airline_icao == icao_new) {
         LogMsg("Logo for airline '%s' is already loaded, request ignored", airline_icao.c_str());
         return;
