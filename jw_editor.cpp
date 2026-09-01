@@ -65,11 +65,12 @@ class JwEditor : public ImgWindow {
 
     std::vector<SamJw*> jw_set_;          // jetways of this airport
     std::vector<std::string> lb_labels_;  // listbox labels for the jetways, e.g. "Jetway 1 (configured)"
+    Scenery* scenery_;                    // to current scenery
 
-    int selected_idx_ = -1;  // for processing the selected jetway
-    bool unsaved_changes_ = false;  // whether the user has made changes that are not yet saved to sam.xml
+    int selected_idx_ = -1;              // for processing the selected jetway
+    bool unsaved_changes_ = false;       // whether the user has made changes that are not yet saved to sam.xml
     std::string msg_line1_, msg_line2_;  // for displaying messages to the user
-    fs::path sam_xml_path_;
+    fs::path xml_path_;
     std::string pathname_short_;
 
     // Main function: creates the window's UI
@@ -135,7 +136,7 @@ void JwEditor::BuildInterface() {
     auto MkLbEntry = [](const SamJw* jw) -> std::string {
         const char* lib_id = "(not seen)";
         if (0 < jw->library_id && jw->library_id < (int)lib_jw.size())
-            lib_id = lib_jw[jw->library_id]->id.c_str();
+            lib_id = lib_jw[jw->library_id]->model_id.c_str();
         return std::format("{:16} {:16} '{}'", jw->name, jw->is_zc_jw ? "(zero config)" : "configured", lib_id);
     };
 
@@ -144,14 +145,17 @@ void JwEditor::BuildInterface() {
     if (arpt_seqno_ != os_arpt->seqno_ || !was_active) {
         LogMsg("Airport data changed or editor activated, rebuilding listbox content");
         arpt_seqno_ = os_arpt->seqno_;
+        scenery_ = os_arpt->apt_airport_.scenery_;
+        assert(scenery_);
+
         must_reload = true;
         // save as fs::path for later and create a short version for logging
-        sam_xml_path_ = os_arpt->sam_xml_pathname_;
-        if (sam_xml_path_.has_parent_path() && !sam_xml_path_.parent_path().filename().empty())
-            pathname_short_ = (sam_xml_path_.parent_path().filename() / sam_xml_path_.filename()).generic_string();
+        xml_path_ = scenery_->sam_xml_pathname_;
+        if (xml_path_.has_parent_path() && !xml_path_.parent_path().filename().empty())
+            pathname_short_ = (xml_path_.parent_path().filename() / xml_path_.filename()).generic_string();
         else
-            pathname_short_ = sam_xml_path_.generic_string();
-        LogMsg("sam.xml: %s", os_arpt->sam_xml_pathname_.c_str());
+            pathname_short_ = xml_path_.generic_string();
+        LogMsg("opensam.xml: %s", scenery_->sam_xml_pathname_.c_str());
     }
 
     // .. or if the camera position changed significantly, too
@@ -185,7 +189,7 @@ void JwEditor::BuildInterface() {
                         float delta = fem::RA((stand->hdgt() + 90.0f) - jw->psi);
                         // randomize
                         float delta_r = (0.2f + 0.8f * (0.01f * (rand() % 100))) * delta;
-                        jw->initialRot2 = delta_r;
+                        jw->initial_rot2 = delta_r;
                     } else
                         jw->base_name = "zc_jw";  // fallback name for zero config jetways
                 }
@@ -257,24 +261,24 @@ void JwEditor::BuildInterface() {
         changed = true;
     }
 
-    if (ImGui::SliderFloat("Initial Extend", &jw->initialExtent, 0.0f, 10.0f, "%.1f m")) {
+    if (ImGui::SliderFloat("Initial Extend", &jw->initial_extent, 0.0f, 10.0f, "%.1f m")) {
         changed = true;;
-        jw->extent = jw->initialExtent;
+        jw->extent = jw->initial_extent;
     }
 
-    if (ImGui::SliderFloat("Initial Rotate 1", &jw->initialRot1, -90.0f, 90.0f, "%.1f °")) {
+    if (ImGui::SliderFloat("Initial Rotate 1", &jw->initial_rot1, -90.0f, 90.0f, "%.1f °")) {
         changed = true;
-        jw->rotate1 = jw->initialRot1;
+        jw->rotate1 = jw->initial_rot1;
     }
 
-    if (ImGui::SliderFloat("Initial Rotate 2", &jw->initialRot2, -90.0f, 90.0f, "%1.0f °")) {
+    if (ImGui::SliderFloat("Initial Rotate 2", &jw->initial_rot2, -90.0f, 90.0f, "%1.0f °")) {
         changed = true;
-        jw->rotate2 = jw->initialRot2;
+        jw->rotate2 = jw->initial_rot2;
     }
 
-    if (ImGui::SliderFloat("Initial Rotate 3", &jw->initialRot3, -5.0f, 5.0f, "%.1f °")) {
+    if (ImGui::SliderFloat("Initial Rotate 3", &jw->initial_rot3, -5.0f, 5.0f, "%.1f °")) {
         changed = true;
-        jw->rotate3 = jw->initialRot3;
+        jw->rotate3 = jw->initial_rot3;
         jw->SetWheels();
     }
 
@@ -289,25 +293,25 @@ void JwEditor::BuildInterface() {
 
     if (unsaved_changes_) {
         ImGui::Spacing();
-        ImGui::TextUnformatted("Unsaved changes, click 'Save to sam.xml' to save");
+        ImGui::TextUnformatted("Unsaved changes, click 'Save to opensam.xml' to save");
         ImGui::Spacing();
-        if (ImGui::Button("Save to sam.xml")) {
-            auto ftime = fs::last_write_time(sam_xml_path_);
+        if (ImGui::Button("Save to opensam.xml")) {
+            auto ftime = fs::last_write_time(xml_path_);
             auto stime = std::chrono::file_clock::to_sys(ftime);
 
             // Truncate sub-seconds and format as ISO 8601 UTC (e.g., 2026-08-18T20:34:46Z)
             std::string iso_str = std::format("{:%FT%TZ}", std::chrono::floor<std::chrono::seconds>(stime));
             std::ranges::replace(iso_str, ':', '.');  // replace ':' with '.' for filename safety
 
-            // backup pathname: sam.xml_2026-08-18T20.34.46Z.xml
-            fs::path bpn = sam_xml_path_.parent_path() / std::format("{}_{}.xml", sam_xml_path_.stem().string(), iso_str);
-            LogMsg("Backing up '%s' to '%s'", os_arpt->sam_xml_pathname_.c_str(), bpn.generic_string().c_str());
+            // backup pathname: opensam.xml_2026-08-18T20.34.46Z.xml
+            fs::path bpn = xml_path_.parent_path() / std::format("{}_{}.xml", xml_path_.stem().string(), iso_str);
+            LogMsg("Backing up '%s' to '%s'", xml_path_.generic_string().c_str(), bpn.generic_string().c_str());
             try {
-                fs::copy_file(sam_xml_path_, bpn, fs::copy_options::overwrite_existing);
+                fs::copy_file(xml_path_, bpn, fs::copy_options::overwrite_existing);
             } catch (const std::exception& e) {
-                LogMsg("Failed to backup '%s' to '%s': %s", os_arpt->sam_xml_pathname_.c_str(),
+                LogMsg("Failed to backup '%s' to '%s': %s", xml_path_.generic_string().c_str(),
                        bpn.generic_string().c_str(), e.what());
-                msg_line1_ = std::format("Failed to backup '{}': {}", os_arpt->sam_xml_pathname_, e.what());
+                msg_line1_ = std::format("Failed to backup '{}': {}", xml_path_.generic_string(), e.what());
                 msg_line2_.clear();
                 return;
             }
@@ -320,8 +324,8 @@ void JwEditor::BuildInterface() {
                 bpn_short = bpn.generic_string();
             msg_line1_ = std::format("Backed up '../{}'", bpn_short.c_str());
 
-            LogMsg("Saving changes to %s", os_arpt->sam_xml_pathname_.c_str());
-            if (UpdateSamXml(jw_set_, os_arpt->sam_xml_pathname_)) {
+            LogMsg("Saving changes to %s", xml_path_.generic_string().c_str());
+            if (scenery_->UpdateOpenSamXml(jw_set_)) {
                 unsaved_changes_ = false;
                 msg_line2_ = std::format("Saved changes to '../{}'", pathname_short_);
             }

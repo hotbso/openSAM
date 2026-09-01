@@ -24,12 +24,18 @@
 #include <numbers>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "os_anim.h"
 
 static constexpr float kD2R = std::numbers::pi/180.0;
 
 struct SamJw;
+struct SamJwModel;
+
+namespace dgs {
+    class AptAirport;
+}
 
 struct SceneryPacks {
     std::string openSAM_Library_path;
@@ -41,17 +47,22 @@ struct SceneryPacks {
 };
 
 class Scenery {
-  public:
-    static std::vector<Scenery> sceneries;
+   public:
+    static std::vector<Scenery*> sceneries_;
+
+    dgs::AptAirport* airport_ = nullptr;  // non-owning pointer to airport if any
 
     std::string name_;
     std::string arpt_icao_;
+    std::string sam_xml_pathname_;  // full path to the opensam.xml file, if any
 
     std::vector<SamObj> sam_objs_;
     std::vector<SamAnim> sam_anims_;
 
-    // 'iterators' into the global sam_jw_list for the jetways learned from the scenery's sam.xml
-    // only used for testing and debugging, not for actual lookup, which is done by quadtree
+    std::unordered_map<std::string, SamJwModel*> jw_models_;  // local jw models for this scenery
+
+    // 'iterators' into the global sam_jw_list for the jetways learned from the scenery's opensam.xml.
+    // Do not use for actual lookup, which is done by quadtree
     int jw_idx_start_ = 0;
     int jw_idx_end_ = 0;
 
@@ -66,9 +77,9 @@ class Scenery {
     Scenery& operator=(const Scenery&) = delete;
     Scenery& operator=(Scenery&&) noexcept = delete;
 
+    // Update the <jetways> section of a scenery's sam.xml with the current jetway configuration, return whether successful
+    bool UpdateOpenSamXml(const std::vector<SamJw*> jw_instances);
+
     // a poor man's factory for creating sceneries, return max # of stands in sam sceneries
     static void CollectSceneries(const SceneryPacks& scp, int& max_sam_stands);
 };
-
-// Update the <jetways> section of a scenery's sam.xml with the current jetway configuration, return whether successful
-extern bool UpdateSamXml(const std::vector<SamJw*> lib_jw_instances, const std::string& xml_pathname);

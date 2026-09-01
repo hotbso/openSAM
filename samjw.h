@@ -44,62 +44,63 @@ struct SamJw {
     static Sound alert_;
     static void AlertComplete(void* ref, FMOD_RESULT status);
 
-    int locked{};          // locked by a plane
-    int lock_pid{-1};        // id of the plane that has locked this jetway, for logging purposes
+    int locked{};      // locked by a plane
+    int lock_pid{-1};  // id of the plane that has locked this jetway, for logging purposes
 
    public:
-    static constexpr float kD2R = std::numbers::pi/180.0;
-    static constexpr float kSam2ObjMax = 2.5;     // m, max delta between coords in sam.xml and object
-    static constexpr float kSam2ObjHdgMax = 5;    // °, likewise for heading
+    static constexpr float kD2R = std::numbers::pi / 180.0;
+    static constexpr float kSam2ObjMax = 2.5;   // m, max delta between coords in sam.xml and object
+    static constexpr float kSam2ObjHdgMax = 5;  // °, likewise for heading
 
-    bool bad{};            // marked bad, e.g. terrain probe failed
+    // values fed to the datarefs in the dataref accessor, computed by a JwCtrl
+    float rotate1, rotate2, rotate3, extent, wheels, wheelrotatec{}, wheelrotater{}, wheelrotatel{}, warnlight, canopy;
+
+    // These describe placement and use of the jw instance.
+    // They are from opensam.xml or generated for zero config library jetways from scenery objects.
+    double latitude{}, longitude{};
+    float heading{}, min_rot1{}, max_rot1{}, initial_rot1{}, initial_rot2{}, initial_rot3{}, initial_extent{};
+    int door{};  // 0 = LF1 or default, 1 = LF2
+
+    std::string model_id;   // geometry model id for this jetway
+    std::string base_name;  // from sam.xml, e.g. "jetway1", "jetway2" or "jetway3"
+    std::string name;       // == base_name for sam.xml jetways or fabricated for zero config jetways
+    std::string sound;
+
+    // These geometry values are filled in from the jetways model for the instance
+    float height{}, wheel_pos{}, cabin_pos{}, cabin_length{}, wheel_diameter{}, wheel_distance{},
+        min_rot2{}, max_rot2{}, min_rot3{}, max_rot3{}, min_extent{}, max_extent{};
+    double altitude{};  // altitude is determined by terrain probe or XPLMLocalToWorld for zero config jetways
+
+    // local coordinate values of the actually drawn object
+    unsigned int obj_ref_gen{};  // only valid if this matches the generation # of the ref frame
+    float x, y, z, psi;
+
+    bool bad{};             // marked bad, e.g. terrain probe failed
     bool is_lib_jw_inst{};  // is an instance of a library jetway
-    // library id is configure when the jetway comes into view, so that may be delayed
+    // library_id is configured when the jetway comes into view, so that may be delayed
     int library_id{};  // id of the library jetway this one is configured from, 0 = none
 
     bool is_zc_jw{};       // is a zero config jw
     bool zc_stand_done{};  // for zero config jetways, whether looking for a stand has been attempted
 
-    // values from the actually drawn object
-    unsigned int obj_ref_gen{};  // only valid if this matches the generation of the ref frame
-    float x, y, z, psi;
-
-    // values fed to the datarefs
-    float rotate1, rotate2, rotate3, extent, wheels, wheelrotatec{}, wheelrotater{}, wheelrotatel{},
-        warnlight, canopy;
-
-    // values from sam.xml or filled in from library jetway
-    std::string base_name;  // from sam.xml, e.g. "jetway1", "jetway2" or "jetway3"
-    std::string name;       // == base_name for sam.xml jetways or fabricated for zero config jetways
-    std::string sound;
-
-    // we keep the variable names like the sam.xml attributes in order to allow some macro magic in the parser
-    double latitude{}, longitude{}, altitude{}; // altitude is determined by terrain probe or XPLMLocalToWorld for zero config jetways
-    float heading{}, height{}, wheelPos{}, cabinPos{}, cabinLength{}, wheelDiameter{},
-        wheelDistance{}, minRot1{}, maxRot1{}, minRot2{}, maxRot2{}, minRot3{}, maxRot3{}, minExtent{}, maxExtent{},
-        minWheels{}, maxWheels{}, initialRot1{}, initialRot2{}, initialRot3{}, initialExtent{};
-    int door{};  // 0 = LF1 or default, 1 = LF2
-
     // bounding box around the anchor point for quick lookup in quadtree, computed from lat/lon and kSam2ObjMax
     quadtree::Box<double> bbox;
 
     bool is_locked() const noexcept { return locked > 0; }
-    bool Lock(int pid) noexcept; // -> whether lock could be aquired
+    bool Lock(int pid) noexcept;  // -> whether lock could be aquired
     void Unlock() noexcept;
 
     // set wheels height
-    void SetWheels() {
-        wheels = std::tan(rotate3 * kD2R) * (wheelPos + extent);
-    }
+    void SetWheels() { wheels = std::tan(rotate3 * kD2R) * (wheel_pos + extent); }
 
     void Reset() {
         AlertOff();
         locked = 0;
         lock_pid = -1;
-        rotate1 = initialRot1;
-        rotate2 = initialRot2;
-        rotate3 = initialRot3;
-        extent = initialExtent;
+        rotate1 = initial_rot1;
+        rotate2 = initial_rot2;
+        rotate3 = initial_rot3;
+        extent = initial_extent;
         SetWheels();
         warnlight = 0;
         canopy = 0;
@@ -132,12 +133,12 @@ struct SamJw {
     static void Finalize();
 };
 
-// Geometry information of a library jetway
-struct SamLibJw {
-    std::string id;
+// Geometry information of jetway model
+struct SamJwModel {
+    std::string model_id;
     std::string name;
-    float height{}, wheelPos{}, cabinPos{}, cabinLength{}, wheelDiameter{}, wheelDistance{}, minRot1{}, maxRot1{}, minRot2{}, maxRot2{},
-        minRot3{}, maxRot3{}, minExtent{}, maxExtent{}, minWheels{}, maxWheels{};
+    float height{}, wheel_pos{}, cabin_pos{}, cabin_length{}, wheel_diameter{}, wheel_distance{}, min_rot2{}, max_rot2{},
+        min_rot3{}, max_rot3{}, min_extent{}, max_extent{};
 };
 
 // the global quadtree for all sam jetways collected from sam.xml files and zero config jetways
@@ -146,7 +147,8 @@ extern quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;  // for f
 extern std::vector<SamJw*> sam_jw_list;  // for iterating over all jetways, e.g. for resetting them
 
 // library jetways information from all collected libraryjetways.xml files
-extern std::vector<SamLibJw*> lib_jw;
+// and local <models> <library_jw> elements in the scenery files
+extern std::vector<SamJwModel*> lib_jw;
 
 // from ReadWav.cpp
 extern void ReadWav(const std::string& fname, Sound& sound);

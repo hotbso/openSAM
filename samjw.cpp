@@ -65,7 +65,7 @@ static unsigned int jwc_ref_gen = 0;  // generation # of the reference frame for
 
 quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;
 std::vector<SamJw*> sam_jw_list;
-std::vector<SamLibJw*> lib_jw;
+std::vector<SamJwModel*> lib_jw;
 Sound SamJw::alert_;
 
 bool SamJw::Lock(int pid) noexcept {  // -> whether lock could be aquired
@@ -107,7 +107,7 @@ void SamJw::FillLibraryValues(unsigned int id) {
     }
 
     library_id = id;
-    const SamLibJw* ljw = lib_jw[id];
+    const SamJwModel* ljw = lib_jw[id];
     if (ljw == nullptr) {
         LogMsg("Unconfigured library jw for '%s', id: %d", name.c_str(), id);
         return;
@@ -115,27 +115,24 @@ void SamJw::FillLibraryValues(unsigned int id) {
 
     LogMsg("filling in library data for '%s', id: %d", name.c_str(), id);
     height = ljw->height;
-    wheelPos = ljw->wheelPos;
-    cabinPos = ljw->cabinPos;
-    cabinLength = ljw->cabinLength;
+    wheel_pos = ljw->wheel_pos;
+    cabin_pos = ljw->cabin_pos;
+    cabin_length = ljw->cabin_length;
 
-    wheelDiameter = ljw->wheelDiameter;
-    wheelDistance = ljw->wheelDistance;
+    wheel_diameter = ljw->wheel_diameter;
+    wheel_distance = ljw->wheel_distance;
 
-    minRot1 = ljw->minRot1;
-    maxRot1 = ljw->maxRot1;
+    min_rot1 = -90.0f;
+    max_rot1 = 90.0f;
 
-    minRot2 = ljw->minRot2;
-    maxRot2 = ljw->maxRot2;
+    min_rot2 = ljw->min_rot2;
+    max_rot2 = ljw->max_rot2;
 
-    minRot3 = ljw->minRot3;
-    maxRot3 = ljw->maxRot3;
+    min_rot3 = ljw->min_rot3;
+    max_rot3 = ljw->max_rot3;
 
-    minExtent = ljw->minExtent;
-    maxExtent = ljw->maxExtent;
-
-    minWheels = ljw->minWheels;
-    maxWheels = ljw->maxWheels;
+    min_extent = ljw->min_extent;
+    max_extent = ljw->max_extent;
 }
 
 //
@@ -172,20 +169,20 @@ static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y,
         float delta = fem::RA((stand->hdgt() + 90.0f) - jw->psi);
         // randomize
         float delta_r = (0.2f + 0.8f * (0.01f * (rand() % 100))) * delta;
-        jw->initialRot2 = delta_r;
-        LogMsg("jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, initialRot2: %0.1f", jw->psi, stand->hdgt(), delta,
-               jw->initialRot2);
+        jw->initial_rot2 = delta_r;
+        LogMsg("jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, initial_rot2: %0.1f", jw->psi, stand->hdgt(), delta,
+               jw->initial_rot2);
     } else {
         jw->base_name = "zc_";
-        jw->initialRot2 = 5.0f;
+        jw->initial_rot2 = 5.0f;
     }
 
-    jw->initialExtent = 0.3f;
-    jw->initialRot3 = -3.0f * 0.01f * (rand() % 100);
+    jw->initial_extent = 0.3f;
+    jw->initial_rot3 = -3.0f * 0.01f * (rand() % 100);
 
-    jw->rotate2 = jw->initialRot2;
-    jw->rotate3 = jw->initialRot3;
-    jw->extent = jw->initialExtent;
+    jw->rotate2 = jw->initial_rot2;
+    jw->rotate3 = jw->initial_rot3;
+    jw->extent = jw->initial_extent;
     jw->FillLibraryValues(id);
     jw->SetWheels();
 
@@ -193,8 +190,8 @@ static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y,
     sam_jw_list.push_back(jw);
     jw_quadtree.Insert(jw);
 
-    LogMsg("added zc jetway, stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initialRot2: %0.1f",
-           jw->base_name.c_str(), jw->x, jw->z, jw->y, jw->psi, jw->initialRot2);
+    LogMsg("added zc jetway, stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initial_rot2: %0.1f",
+           jw->base_name.c_str(), jw->x, jw->z, jw->y, jw->psi, jw->initial_rot2);
 
     return jw;
 }
@@ -455,9 +452,9 @@ void SamJw::AlertSetpos() {
 
     // compute position in the local coordinate system of the scenery
     float rot1 = fem::RA((rotate1 + psi) - 90.0f);
-    pos.x = x + (extent + cabinPos) * std::cos(rot1 * kD2R);
+    pos.x = x + (extent + cabin_pos) * std::cos(rot1 * kD2R);
     pos.y = y + height;
-    pos.z = z + (extent + cabinPos) * std::sin(rot1 * kD2R);
+    pos.z = z + (extent + cabin_pos) * std::sin(rot1 * kD2R);
     XPLMSetAudioPosition(alert_chn_, &pos, &vel);
 }
 
@@ -486,7 +483,7 @@ void SamJw::Init(int max_sam_stands) {
                                  NULL, NULL, NULL, (void*)(uint64_t)drc, NULL);
 
         for (unsigned int i = 1; i < lib_jw.size(); i++) {
-            snprintf(name, sizeof(name) - 1, "sam/jetway/%s/%s", lib_jw[i]->id.c_str(), dr_name_jw[drc]);
+            snprintf(name, sizeof(name) - 1, "sam/jetway/%s/%s", lib_jw[i]->model_id.c_str(), dr_name_jw[drc]);
             uint64_t ctx = (uint64_t)i << 32 | (uint64_t)drc;
             XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL, NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                      NULL, NULL, NULL, (void*)ctx, NULL);

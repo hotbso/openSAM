@@ -66,7 +66,7 @@ class JwCtrl {
     float parked_x_, parked_z_;
 
     // target cabin position with corresponding dref values
-    // docked_x/z is a cabinLength abeam of the door
+    // docked_x/z is a cabin_length abeam of the door
     float docked_x_, docked_z_, docked_y_, docked_rot1_, docked_rot2_, docked_rot3_, docked_extent_;
     float ap_x_, ap_z_;  // intermediate alignment point abeam docked_x/z
 

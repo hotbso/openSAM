@@ -47,7 +47,7 @@ unsigned long long stat_sc_last;
 std::vector<SamJw*> sam_jw_list;
 
 quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;
-std::vector<SamLibJw*> lib_jw;
+std::vector<SamJwModel*> lib_jw;
 
 void scenery_test() {
 
@@ -57,7 +57,7 @@ void scenery_test() {
         SceneryPacks scp(xp_dir);
         int max_sam_stands;
         Scenery::CollectSceneries(scp, max_sam_stands);
-        LogMsg("%d sceneries with sam jetways found, max stands: %d", (int)Scenery::sceneries.size(), max_sam_stands);
+        LogMsg("%d sceneries with sam jetways found, max stands: %d", (int)Scenery::sceneries_.size(), max_sam_stands);
         int n_stands;
         if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, true, n_stands)) {
              LogMsg("WARNING: global apt.dat could not be parsed, no DGS support!");
@@ -72,7 +72,7 @@ void scenery_test() {
 
     dgs::AptAirport::LoadingFinished();
 
-    printf("\n%d sceneries collected\n", (int)Scenery::sceneries.size());
+    printf("\n%d sceneries collected\n", (int)Scenery::sceneries_.size());
 
     printf("%d datarefs collected\n", (int)SamDrf::sam_drfs.size());
 
@@ -87,31 +87,47 @@ void scenery_test() {
         puts("");
     }
 
-    for (const auto& sc : Scenery::sceneries) {
-        printf("\nScenery '%s', %d objects, %d animations, %d jetways\n", sc.name_.c_str(), (int)sc.sam_objs_.size(),
-               (int)sc.sam_anims_.size(), sc.jw_idx_end_ - sc.jw_idx_start_);
+    for (const auto sc : Scenery::sceneries_) {
+        if (sc->airport_)
+            printf("Scenery '%s' has airport '%s'\n", sc->name_.c_str(), sc->airport_->icao_.c_str());
+        else
+            printf("Scenery '%s' has no airport\n", sc->name_.c_str());
+
+        printf("  back pointer scenery -> airport -> scenery: %s\n", sc->airport_ ? (sc->airport_->scenery_ == sc ? "ok" : "mismatch") : "no airport");
+
+        printf("\nScenery '%s', %d objects, %d animations, %d jetways\n", sc->name_.c_str(), (int)sc->sam_objs_.size(),
+               (int)sc->sam_anims_.size(), sc->jw_idx_end_ - sc->jw_idx_start_);
+
         puts("\nObjects");
-        for (auto& obj : sc.sam_objs_)
+        for (auto& obj : sc->sam_objs_)
             printf("'%s' %5.6f %5.6f %5.6f %5.6f\n", obj.id.c_str(), obj.latitude, obj.longitude,
                    obj.elevation, obj.heading);
 
         puts("\nAnimations");
-        for (auto& anim : sc.sam_anims_)
+        for (auto& anim : sc->sam_anims_)
             printf("'%s' '%s', obj: '%s', drf: '%s'\n", anim.label.c_str(), anim.title.c_str(),
-                   sc.sam_objs_[anim.obj_idx].id.c_str(), SamDrf::sam_drfs[anim.drf_idx].name.c_str());
+                   sc->sam_objs_[anim.obj_idx].id.c_str(), SamDrf::sam_drfs[anim.drf_idx].name.c_str());
 
+        puts("\nJetway models");
+        for (const auto& [id, ljw] : sc->jw_models_) {
+            std::string id_prn = "'" + id + "'";
+            printf("%-30s, height: %0.2f, cabin_pos: %0.2f, cabin_length: %0.2f, wheel_diameter: %0.2f, wheel_distance: %0.2f, min_rot2: %0.2f, max_rot2: %0.2f, min_rot3: %0.2f, max_rot3: %0.2f, min_extent: %0.2f, max_extent: %0.2f\n",
+                   id_prn.c_str(), ljw->height, ljw->cabin_pos, ljw->cabin_length, ljw->wheel_diameter, ljw->wheel_distance,
+                   ljw->min_rot2, ljw->max_rot2, ljw->min_rot3, ljw->max_rot3,
+                   ljw->min_extent, ljw->max_extent);
+            }
         puts("\nJetways");
-        for (auto i = sc.jw_idx_start_; i < sc.jw_idx_end_; i++) {
+        for (auto i = sc->jw_idx_start_; i < sc->jw_idx_end_; i++) {
             const SamJw* jw = sam_jw_list[i];
-            printf("%s %5.6f %5.6f door: %d\n", jw->name.c_str(), jw->latitude, jw->longitude, jw->door);
+            printf("%s id: '%s' ll:(%5.6f,%5.6f) door: %d\n", jw->name.c_str(), jw->model_id.c_str(), jw->latitude, jw->longitude, jw->door);
         }
         puts("\n");
     }
 
     puts("Library jetways");
     for (unsigned int i = 1; i < lib_jw.size(); i++) {
-        const SamLibJw *ljw = lib_jw[i];
-        printf("'%s'; '%s', height: %0.2f, cabinPos: %0.2f\n", ljw->id.c_str(), ljw->name.c_str(), ljw->height, ljw->cabinPos);
+        const SamJwModel *ljw = lib_jw[i];
+        printf("'%s'; '%s', height: %0.2f, cabin_pos: %0.2f\n", ljw->model_id.c_str(), ljw->name.c_str(), ljw->height, ljw->cabin_pos);
     }
 
     printf("\napt.dat collected: %d\n\n", dgs::AptAirport::NumAirports());
@@ -144,7 +160,7 @@ void scenery_test() {
     else
         printf("\nEDDF not found by position lookup\n");
 
-    jw_quadtree.Dump();
+    // jw_quadtree.Dump();
 
     printf("\n\nSearching in +-50m box around EDDM stand 251A (11.797650, 48.354206)\n");
     std::vector<SamJw*>found_items;

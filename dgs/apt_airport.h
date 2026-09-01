@@ -30,6 +30,7 @@
 #include "quadtree.h"
 
 extern void scenery_test();  // for testing purposes, to access private members
+class Scenery;
 
 namespace dgs {
 
@@ -66,7 +67,7 @@ class AptAirport {
    public:
     bool is_opensam_{false};    // whether this is an openSAM airport
     bool has_xp12_jws_{false};  // whether this airport has XP12 jetways, from apt.dat
-    std::string sam_xml_pathname_;  // full path to the sam.xml file, if any
+    Scenery* scenery_{nullptr};  // non-owning pointer to the scenery that owns this airport, if any
 
     std::vector<AptStand> stands_;
     std::vector<AptRunway> rwys_;

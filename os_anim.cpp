@@ -66,12 +66,12 @@ float SamAnim::AnimAcc(void* ref) {
         return 0.0f;
     }
 
-    for (auto& sc : Scenery::sceneries) {
-        for (auto& anim : sc.sam_anims_) {
+    for (auto sc : Scenery::sceneries_) {
+        for (auto& anim : sc->sam_anims_) {
             if (drf_idx != anim.drf_idx)
                 continue;
 
-            SamObj& obj = sc.sam_objs_[anim.obj_idx];
+            SamObj& obj = sc->sam_objs_[anim.obj_idx];
 
             if (fabsf(fem::RA(obj.heading - obj_psi)) > kSam2ObjHdgMax)
                 continue;
@@ -92,7 +92,7 @@ float SamAnim::AnimAcc(void* ref) {
             SamDrf& drf = SamDrf::sam_drfs[drf_idx];
 
             if (now > cur_sc_ts + 20.0f) {  // avoid high freq flicker
-                cur_sc = &sc;
+                cur_sc = sc;
                 cur_sc_ts = now;
                 cur_sc_ref_gen = ref_gen;
             }
