@@ -772,6 +772,9 @@ bool Scenery::UpdateOpenSamXml(const std::vector<SamJw*> jw_instances) {
     jetways.append_child(pugi::node_comment).set_value(jetways_comment);
 
     for (auto jw : jw_instances) {
+        if (jw->is_undefined)
+            continue;
+
         pugi::xml_node jetway = jetways.append_child("jetway");
         jetway.append_attribute("name") = jw->name.c_str();
         if (jw->is_lib_jw_inst)

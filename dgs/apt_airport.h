@@ -101,6 +101,7 @@ class AptAirport {
     double lon() const { return (bbox_min_.lon + bbox_max_.lon) / 2; }  // center point
     double lat() const { return (bbox_min_.lat + bbox_max_.lat) / 2; }
     quadtree::Box<double> bounds() const { return {bbox_min_.lon, bbox_min_.lat, bbox_max_.lon, bbox_max_.lat}; }
+    bool hidden() const { return false; }
     std::string repr() const { return icao_; }
 };
 

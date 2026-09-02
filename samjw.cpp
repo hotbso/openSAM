@@ -150,7 +150,7 @@ static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y,
     jw->is_zc_jw = true;
     jw->is_lib_jw_inst = true;  // zc jetways are always library instances
 
-    // fill the 'sam.xml' related position values
+    // fill the 'opensam.xml' related position values
     XPLMLocalToWorld(obj_x, obj_y, obj_z, &jw->latitude,  &jw->longitude, &jw->altitude);
     jw->heading = obj_psi;
 
@@ -159,7 +159,7 @@ static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y,
     // try to update stand related parameters or delay that until os_arpt is available
     const OsStand* stand = nullptr;
     if (os_arpt) {
-        jw->zc_stand_done = true;   // one shot only
+        jw->stand_retrieved = true;   // one shot only
         stand = os_arpt->FindStandForJw(jw->x, jw->z);
     }
 
@@ -237,7 +237,8 @@ static float JwAnimAcc(void* ref) {
     if (it != jw_cache.end()) [[likely]] {
         stat_jw_cache_hit++;
         jw = it->second;
-        if (jw == nullptr)
+        assert(jw);
+        if (jw->is_undefined)
             return 0.0f;  // negative cache entry, object at this position is not a recognized jetway
     } else {
         const float obj_psi = XPLMGetDataf(draw_object_psi_dr);
@@ -245,10 +246,22 @@ static float JwAnimAcc(void* ref) {
         double obj_lat, obj_lon, obj_alt;
         XPLMLocalToWorld(obj_x, obj_y, obj_z, &obj_lat, &obj_lon, &obj_alt);
 
-        // make negative cache entry for key
-        auto NegativeCacheEntry = [&]() {
-            LogMsg("negative cache entry for position: ll: (%0.6f, %0.6f), x: %5.3f, z: %5.3f", obj_lat, obj_lon, key.x, key.z);
-            jw_cache[key] = nullptr;
+        // create an undefined jw at the current object position
+        auto AddUndefinedJw = [&]() {
+            SamJw* jw = new SamJw();
+            jw->is_undefined = true;
+            jw->latitude = obj_lat;
+            jw->longitude = obj_lon;
+            jw->altitude = obj_alt;
+            jw->heading = obj_psi;
+            jw->obj_ref_gen = ref_gen;
+            jw->x = obj_x;
+            jw->y = obj_y;
+            jw->z = obj_z;
+            sam_jw_list.push_back(jw);
+            jw_quadtree.Insert(jw);
+            LogMsg("creating undefined jetway for position: ll: (%0.6f, %0.6f), x: %5.3f, z: %5.3f", obj_lat, obj_lon, key.x, key.z);
+            jw_cache[key] = jw;
         };
 
         std::array<SamJw*, kMaxJwPerNode> candidates;
@@ -262,7 +275,7 @@ static float JwAnimAcc(void* ref) {
                 LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", jw->name.c_str(),
                        jw->heading, obj_psi);
                 LogMsg("negative cached: obj: ll(%0.6f, %0.6f), candidate: ll(%0.6f, %0.6f)", obj_lat, obj_lon, jw->latitude, jw->longitude);
-                NegativeCacheEntry();
+                AddUndefinedJw();
                 return 0.0f;
             }
 
@@ -297,7 +310,7 @@ static float JwAnimAcc(void* ref) {
 
             if (nearest == nullptr) {
                 LogMsg("all candidates rejected by heading");
-                NegativeCacheEntry();
+                AddUndefinedJw();
                 return 0.0f;
             }
 
@@ -320,7 +333,7 @@ static float JwAnimAcc(void* ref) {
             std::unordered_map<SamJw*, bool>  around = jw_quadtree.FindInBox(search_box);
             if (around.empty()) {
                 LogMsg("FindInBox found no candidates either");
-                NegativeCacheEntry();
+                AddUndefinedJw();
                 return 0.0f;
             }
 
@@ -346,7 +359,7 @@ static float JwAnimAcc(void* ref) {
 
             if (nearest == nullptr) {
                 LogMsg("FindInBox found no nearest candidate");
-                NegativeCacheEntry();
+                AddUndefinedJw();
                 return 0.0f;
             }
 
@@ -370,10 +383,13 @@ static float JwAnimAcc(void* ref) {
 
         if (nullptr == jw) {          // still unconfigured -> bad luck
             LogMsg("could not configure jw");
-            NegativeCacheEntry();
+            AddUndefinedJw();
             return 0.0f;
         }
     }  // no cache hit
+
+    if (jw->is_undefined)       // we have hit an undefined jetway
+        return 0.0f;
 
     switch (drc) {
         case kRotate1:
@@ -497,13 +513,13 @@ void SamJw::Init(int max_sam_stands) {
 }
 
 void SamJw::Finalize() {
-#if 0
+#if 1
     // dump the quadtree and the list of jetways for debugging
     jw_quadtree.Dump();
     for (int i = 0; i < (int)sam_jw_list.size(); i++) {
         SamJw* jw = sam_jw_list[i];
-        LogMsg("jw[%d]: '%s', ll: (%0.6f, %0.6f), local: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f", i, jw->name.c_str(),
-               jw->latitude, jw->longitude, jw->x, jw->z, jw->y, jw->psi);
+        LogMsg("jw[%d]: '%s', ll: (%0.6f, %0.6f), is_undefined: %d, local: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f", i,
+               jw->name.c_str(), jw->latitude, jw->longitude, jw->is_undefined, jw->x, jw->z, jw->y, jw->psi);
     }
 #endif
 }

@@ -323,8 +323,8 @@ int JwCtrl::FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<Jw
     if (os_arpt) {
         for (auto& njw : nearest_jws) {
             SamJw* jw = njw.jw_;
-            if (jw->is_zc_jw && !jw->zc_stand_done) {
-                jw->zc_stand_done = true;  // one shot only
+            if (jw->is_zc_jw && !jw->stand_retrieved) {
+                jw->stand_retrieved = true;  // one shot only
 
                 const OsStand* stand = os_arpt->FindStandForJw(jw->x, jw->z);
                 if (stand) {

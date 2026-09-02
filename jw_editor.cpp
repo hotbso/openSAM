@@ -179,8 +179,8 @@ void JwEditor::BuildInterface() {
         for (const auto [jw, _] : near_jws) {
             // lib jws in view
             if (jw->is_lib_jw_inst) {
-                if (jw->is_zc_jw && !jw->zc_stand_done) {
-                    jw->zc_stand_done = true;  // one shot only
+                if (jw->is_zc_jw && !jw->stand_retrieved) {
+                    jw->stand_retrieved = true;  // one shot only
 
                     const OsStand* stand = os_arpt->FindStandForJw(jw->x, jw->z);
                     if (stand) {

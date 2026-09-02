@@ -47,6 +47,7 @@
 //  Float lon()
 //  Float lat()
 //  Box<Float> bounds()
+//  bool hidden()           // don't return in query results if true, unless with_hidden flag is set
 //  std::string repr() (for debugging)
 //
 
@@ -125,10 +126,10 @@ class LLQuadTree {
     bool empty() const { return root_ == nullptr; }
     size_t size() const { return root_ ? root_->n_below_ : 0; }
     void Insert(Item* item);
-    int Find(Float lon, Float lat, std::array<Item*, kMaxItem>& items, int* depth = nullptr) const;
+    int Find(Float lon, Float lat, std::array<Item*, kMaxItem>& items, bool with_hidden = false, int* depth = nullptr) const;
 
     // find all items in a box, e.g. jetways near to a stand
-    std::unordered_map<Item*, bool> FindInBox(const Box<Float>& box) const;
+    std::unordered_map<Item*, bool> FindInBox(const Box<Float>& box, bool with_hidden = false) const;
 
     void Dump();    // for debugging
 };

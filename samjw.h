@@ -80,8 +80,9 @@ struct SamJw {
     // library_id is configured when the jetway comes into view, so that may be delayed
     int library_id{};  // id of the library jetway this one is configured from, 0 = none
 
-    bool is_zc_jw{};       // is a zero config jw
-    bool zc_stand_done{};  // for zero config jetways, whether looking for a stand has been attempted
+    bool is_zc_jw{};         // is a zero config jw
+    bool stand_retrieved{};  // whether looking for a matching stand for this jw has been attempted
+    bool is_undefined{};     // whether this jetway is present in the scenery but undefined in opensam.xml
 
     // bounding box around the anchor point for quick lookup in quadtree, computed from lat/lon and kSam2ObjMax
     quadtree::Box<double> bbox;
@@ -109,7 +110,6 @@ struct SamJw {
     void FillLibraryValues(unsigned int id);
 
     // for the quadtree...
-
     void ComputeBbox() {
         static constexpr float kLat2m = 111120;  // 1° lat in m
         double dlat = SamJw::kSam2ObjMax / kLat2m;
@@ -121,6 +121,7 @@ struct SamJw {
     double lat() const { return latitude; }
     quadtree::Box<double> bounds() const { return bbox; }
     std::string repr() const { return name; }
+    bool hidden() const {return is_undefined; }
 
     // sound stuff
     void AlertOn();
