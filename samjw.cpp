@@ -258,6 +258,7 @@ static float JwAnimAcc(void* ref) {
             jw->x = obj_x;
             jw->y = obj_y;
             jw->z = obj_z;
+            jw->ComputeBbox();
             sam_jw_list.push_back(jw);
             jw_quadtree.Insert(jw);
             LogMsg("creating undefined jetway for position: ll: (%0.6f, %0.6f), x: %5.3f, z: %5.3f", obj_lat, obj_lon, key.x, key.z);
