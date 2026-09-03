@@ -38,6 +38,7 @@
 #include <Carbon/Carbon.h>
 #endif
 
+#include <unordered_map>
 #include "ImgWindow.h"
 
 #include <XPLMDataAccess.h>
@@ -106,6 +107,10 @@ static ImGuiKey TranslateXPLMKeyToImGui(unsigned char inVirtualKey) {
     return ImGuiKey_None;
 }
 
+static std::unordered_map<ImgWindow*, bool> active_window_map_; // ptr -> visible
+static XPLMFlightLoopID fltl_id = nullptr;
+static bool fl_running = false;
+
 std::shared_ptr<ImgFontAtlas> ImgWindow::sFontAtlas;
 
 ImgWindow::ImgWindow(
@@ -137,6 +142,17 @@ ImgWindow::ImgWindow(
 		gProjectionMatrixRef = XPLMFindDataRef("sim/graphics/view/projection_matrix");
         gFrameRatePeriodRef = XPLMFindDataRef("sim/operation/misc/frame_rate_period");
 		first_init=true;
+
+        // Create a flight loop id, but don't schedule it yet
+        XPLMCreateFlightLoop_t loop_params = {
+            sizeof(loop_params),                      // structSize
+            xplm_FlightLoop_Phase_BeforeFlightModel,  // phase
+            XPFlightLoopCb,                             // callbackFunc
+            nullptr,                              // refcon
+        };
+
+        fltl_id = XPLMCreateFlightLoop(&loop_params);
+        fl_running = false;
 	}
 
 	// set up the Keymap - no longer needed in ImGui 1.87+
@@ -205,10 +221,12 @@ ImgWindow::ImgWindow(
 		HandleRightClickFuncCB,
 	};
 	mWindowID = XPLMCreateWindowEx(&windowParams);
+    active_window_map_[this] = true;
 }
 
 ImgWindow::~ImgWindow()
 {
+    active_window_map_.erase(this);
 	ImGui::SetCurrentContext(mImGuiContext);
 	if (!mFontAtlas) {
 	    // if we didn't have an explicit font atlas, destroy the texture.
@@ -436,6 +454,15 @@ void
 ImgWindow::DrawWindowCB(XPLMWindowID /* inWindowID */, void *inRefcon)
 {
 	auto *thisWindow = reinterpret_cast<ImgWindow *>(inRefcon);
+    active_window_map_[thisWindow] = true;
+
+    if (!fl_running) {
+        // obviously the window is visible so we kick off the flight loop to do the actual drawing.
+        LogMsg("ImgWindow::DrawWindowCB: window %p, scheduled flight loop", (void *)thisWindow);
+        XPLMScheduleFlightLoop(fltl_id, -1.0f, 1);  // schedule the flight loop to run immediately
+        fl_running = true;
+        return;
+    }
 
 	thisWindow->updateImgui();
 
@@ -803,17 +830,7 @@ ImgWindow::IsInsideWindowDragArea (int x, int y) const
 void
 ImgWindow::SafeDelete()
 {
-	sPendingDestruction.push(this);
-	if (sSelfDestructHandler == nullptr) {
-        XPLMCreateFlightLoop_t flParams{
-            sizeof(flParams),
-            xplm_FlightLoop_Phase_BeforeFlightModel,
-            &ImgWindow::SelfDestructCallback,
-            nullptr,
-        };
-        sSelfDestructHandler = XPLMCreateFlightLoop(&flParams);
-	}
-	XPLMScheduleFlightLoop(sSelfDestructHandler, -1, 1);
+    assert(0);
 }
 
 std::queue<ImgWindow *>  ImgWindow::sPendingDestruction;
@@ -825,12 +842,42 @@ ImgWindow::SelfDestructCallback(float /*inElapsedSinceLastCall*/,
                                 int   /*inCounter*/,
                                 void* /*inRefcon*/)
 {
-    while (!sPendingDestruction.empty()) {
-        auto *thisObj = sPendingDestruction.front();
-        sPendingDestruction.pop();
-        delete thisObj;
-    }
+    assert(0);
     return 0;
 }
 
+// run stuff that is not allowed in the draw context, like texture updates.
+bool ImgWindow::FlightLoopCb() {
+    // LogMsg("ImgWindow::XPFlightLoopCb window %p", (void *)this);
+    if (!GetVisible()) {
+        // LogMsg("ImgWindow::XPFlightLoopCb window %d: window not visible, unscheduling flight loop", id_);
+        active_window_map_[this] = false;
+        return false;  // unschedule the flight loop if the window is not visible
+    }
+
+    FlightLoopUserCb();
+
+    return true;
+}
+
+// static
+float ImgWindow::XPFlightLoopCb([[maybe_unused]] float inElapsedSinceLastCall,
+                                [[maybe_unused]] float inElapsedTimeSinceLastFlightLoop, [[maybe_unused]] int inCounter,
+                                [[maybe_unused]] void* inRefcon) {
+    bool have_active_window = false;
+    for (auto& [window, visible] : active_window_map_) {
+        if (!visible)
+            continue;
+        if (window->FlightLoopCb())
+            have_active_window = true;
+    }
+
+    if (!have_active_window) {
+        LogMsg("ImgWindow::XPFlightLoopCb: no active windows, unscheduling flight loop");
+        fl_running = false;
+        return 0;  // unschedule the flight loop if there are no active windows
+    }
+
+    return -1.0f;
+}
 

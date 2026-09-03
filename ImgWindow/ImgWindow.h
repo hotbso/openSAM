@@ -181,6 +181,11 @@ public:
      */
     bool IsInsideWindowDragArea (int x, int y) const;
 
+    // called pre rendering, in flight loop context.
+    virtual void FlightLoopUserCb() noexcept {
+        // default: do nothing
+    }
+
 protected:
     /** mFirstRender can be checked during buildInterface() to see if we're
      * being rendered for the first time or not.  This is particularly
@@ -264,9 +269,8 @@ protected:
      */
     virtual bool onShow();
 
-    /** SafeDelete() can be used within buildInterface() to get the object to
-     *     self-delete once it's finished rendering this frame.
-     */
+    // Hhhm, what is the use case here?
+    // It won't work for any window that has some external reference that will be left behind dangling.
     void SafeDelete();
 
     /** Returns X-Plane's internal Window id */
@@ -274,6 +278,11 @@ protected:
 
 private:
     std::shared_ptr<ImgFontAtlas> mFontAtlas;
+
+    // one global flight loop for all windows
+    static float XPFlightLoopCb(float inElapsedSinceLastCall, float inElapsedTimeSinceLastFlightLoop,
+                                int inCounter, void* inRefcon);
+    bool FlightLoopCb();    // -> window is visible
 
     static void DrawWindowCB(XPLMWindowID inWindowID, void *inRefcon);
 
