@@ -120,7 +120,7 @@ static void ParseObjects(const pugi::xml_node& sc_node, Scenery* sc) {
         obj.longitude = instance.attribute("longitude").as_float(0.0f);
         obj.elevation = instance.attribute("elevation").as_float(0.0f);
         obj.heading = instance.attribute("heading").as_float(0.0f);
-        LogMsg("Parsed object: id='%s', lat=%0.6f, lon=%0.6f, elev=%0.2f, heading=%0.2f", obj.id.c_str(), obj.latitude, obj.longitude, obj.elevation, obj.heading);
+        // LogMsg("Parsed object: id='%s', lat=%0.6f, lon=%0.6f, elev=%0.2f, heading=%0.2f", obj.id.c_str(), obj.latitude, obj.longitude, obj.elevation, obj.heading);
         sc->sam_objs_.push_back(std::move(obj));
     }
 }
@@ -247,6 +247,7 @@ static bool ParseSamXml(const std::string& fn, std::unordered_map<std::string, S
     if (!result)
         return false;
 
+    LogMsg("Processing '%s'", fn.c_str());
     pugi::xml_node lib = doc.child("libraryjetwayconfiguration");
     if (!lib.empty()) {
         ParseLibraryJetways(lib, lib_jw_map);
