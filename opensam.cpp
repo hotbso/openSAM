@@ -499,18 +499,22 @@ static int CmdXp12ToggleJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPh
         return 1;
 
     LogMsg("CmdXp12ToggleJwCb called");
+    bool has_xp12_jw{false};
     if (os_arpt) {
+        has_xp12_jw = os_arpt->active_stand_has_xp12_jw();
         my_plane->RequestToggle();
-        return 0;   // done
-    }
+    } else if (adgs_arpt)
+        has_xp12_jw = adgs_arpt->active_stand_has_xp12_jw();
 
-    if (adgs_arpt && adgs_arpt->active_stand_has_xp12_jw()) {
+    // best effort to track the XP12 jetway connection status
+    if (has_xp12_jw) {
         xp12_jw_connected = !xp12_jw_connected;
         xp12_jw_connected_ts = now;
         LogMsg("xp12_jw_connected now: %d", xp12_jw_connected);
     }
 
-    return 1;  // pass on to XP12
+    // always pass on to X-Plane. If there isn't a jetway XP will just ignore it.
+    return 1;
 }
 
 static int AdgsCmdCycleDgsCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase phase, [[maybe_unused]] void* ref) {
