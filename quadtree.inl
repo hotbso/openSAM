@@ -165,8 +165,11 @@ void LLQuadTreeNode<Float, Item, kMaxItem>::Insert(Item* new_item) {
         //LogMsg("Node %d at capacity with %d items, pushing down to quadrants", id_, (int)items_.size());
         // a full leaf node, push down the existing items
         assert(Verify("pre insert push down"));
-        for (Item* it : items_)
+        for (Item* it : items_) {
+            if (it->deleted())
+                continue;  // Skip deleted items
             InsertIntoQuadrants(it);
+        }
 
         items_.clear();  // This node is no longer a leaf
         items_.shrink_to_fit();
@@ -187,6 +190,8 @@ void LLQuadTreeNode<Float, Item, kMaxItem>::Dump(const char* label, int indent, 
     LogMsg("%*sNode %d %s: lon (%.3f, %.3f] - lat (%.3f, %.3f], n_below %d, size (%.3f m, %.3f m)", indent, "", id_,
            label, bounds_.min_lon_, bounds_.max_lon_, bounds_.min_lat_, bounds_.max_lat_, n_below_, dlon_m, dlat_m);
     for (Item* item : items_) {
+        if (item->deleted())
+            continue;  // Skip deleted items
         Float item_lon = item->lon(), item_lat = item->lat();
         LogMsg("%*sItem at (%.7f, %.7f), '%s', hidden: %d", indent + 2, "", item_lon, item_lat, item->repr().c_str(),
                item->hidden());
@@ -209,6 +214,9 @@ template <typename Float, typename Item, int kMaxItem>
 bool LLQuadTreeNode<Float, Item, kMaxItem>::Verify(const char* label) const {
     // Verify that all items in this node intersect with the node's bounds
     for (Item* item : items_) {
+        if (item->deleted())
+            continue;  // Skip deleted items
+
         if (!bounds_.Intersects(item->bounds())) {
             LogMsg("Item bounds do not intersect with node bounds for node %d", id_);
             LogMsg("Node bounds: lon (%.3f, %.3f] - lat (%.3f, %.3f]", bounds_.min_lon_, bounds_.max_lon_,
@@ -266,6 +274,9 @@ int LLQuadTree<Float, Item, kMaxItem>::Find(Float lon, Float lat, std::array<Ite
         if (!node->items_.empty()) {
             assert(node->items_.size() <= kMaxItem);
             for (Item* item : node->items_) {
+                if (item->deleted())
+                    continue;  // Skip deleted items
+
                 Box<Float> item_bounds = item->bounds();
                 if (!item_bounds.Contains(lon, lat))
                     continue;  // Item bounds do not contain the point
@@ -311,9 +322,13 @@ std::unordered_map<Item*, bool> LLQuadTree<Float, Item, kMaxItem>::FindInBox(con
         if (!node->bounds_.Intersects(box))
             return;
 
-        for (Item* item : node->items_)
+        for (Item* item : node->items_) {
+            if (item->deleted())
+                continue;  // Skip deleted items
+
             if ((with_hidden || !item->hidden()) && box.Contains(item->lon(), item->lat()))
                 found_items[item] = true;  // mark item as found, that's auto dup removal
+        }
 
         // recurse
         for (const auto& child : node->children_) {

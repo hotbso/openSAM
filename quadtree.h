@@ -48,6 +48,7 @@
 //  Float lat()
 //  Box<Float> bounds()
 //  bool hidden()           // don't return in query results if true, unless with_hidden flag is set
+//  bool deleted()          // never shows up
 //  std::string repr() (for debugging)
 //
 

@@ -238,7 +238,7 @@ static float JwAnimAcc(void* ref) {
         stat_jw_cache_hit++;
         jw = it->second;
         assert(jw);
-        if (jw->is_undefined)
+        if (jw->is_undefined || jw->is_deleted)
             return 0.0f;  // negative cache entry, object at this position is not a recognized jetway
     } else {
         const float obj_psi = XPLMGetDataf(draw_object_psi_dr);
@@ -389,7 +389,7 @@ static float JwAnimAcc(void* ref) {
         }
     }  // no cache hit
 
-    if (jw->is_undefined)       // we have hit an undefined jetway
+    if (jw->is_undefined || jw->is_deleted)       // we have hit an undefined or deleted jetway
         return 0.0f;
 
     switch (drc) {

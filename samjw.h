@@ -83,6 +83,7 @@ struct SamJw {
     bool is_zc_jw{};         // is a zero config jw
     bool stand_retrieved{};  // whether looking for a matching stand for this jw has been attempted
     bool is_undefined{};     // whether this jetway is present in the scenery but undefined in opensam.xml
+    bool is_deleted{};       // whether this jetway instance was deleted by the editor
 
     // bounding box around the anchor point for quick lookup in quadtree, computed from lat/lon and kSam2ObjMax
     quadtree::Box<double> bbox;
@@ -122,6 +123,7 @@ struct SamJw {
     quadtree::Box<double> bounds() const { return bbox; }
     std::string repr() const { return name; }
     bool hidden() const {return is_undefined; }
+    bool deleted() const { return is_deleted; }  // never shows up
 
     // sound stuff
     void AlertOn();
