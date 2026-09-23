@@ -36,9 +36,7 @@
 
 namespace dgs {
 
-static constexpr float kMinBrightness = 0.025;  // relative to 1
-static constexpr float kMinEv100 = 6.0f;
-static constexpr float kMaxEv100 = 11.0f;
+static constexpr float kMinBrightness = 0.02;  // relative to 1
 
 XPLMDataRef ground_speed_dr;
 
@@ -157,7 +155,7 @@ static float DummyDgsFloat([[maybe_unused]] void* ref) {
 }
 
 static bool ev100_probed = false;
-static XPLMDataRef ev100_dr, zulu_time_sec_dr, percent_lights_dr;
+static XPLMDataRef ev100_mtr_dr, zulu_time_sec_dr, percent_lights_dr;
 XPLMDataRef zulu_time_minutes_dr, zulu_time_hours_dr;
 std::string dyn_display_obj_dir;
 
@@ -194,8 +192,8 @@ void Finalize() {
 float VDGSBrightness() noexcept {
     // private datarefs are usually intialized late, so we probe here when we actually need it for the first time
     if (!ev100_probed) {
-        ev100_dr = XPLMFindDataRef("sim/private/controls/photometric/ev100");
-        if (ev100_dr)
+        ev100_mtr_dr = XPLMFindDataRef("sim/private/controls/photometric/ev100");
+        if (ev100_mtr_dr)
             LogMsg("ev100 dataref mapped");
         else
             LogMsg("ev100 dataref not found, using percent_lights_on as fallback for brightness");
@@ -203,13 +201,20 @@ float VDGSBrightness() noexcept {
         ev100_probed = true;
     }
 
-    if (ev100_dr) {
-        float ev100 = XPLMGetDataf(ev100_dr);
-        ev100 = std::clamp(ev100, kMinEv100, kMaxEv100);
-        const float f = (ev100 - kMinEv100) / (kMaxEv100 - kMinEv100);
-        // ev100 is logarithmic and vdgs_brightness linear, so we use exp here
-        const float exp_f = (std::exp(f) - 1.0f) / (std::exp(1.0f) - 1.0f);
-        return kMinBrightness + (1.0f - kMinBrightness) * exp_f;
+    if (ev100_mtr_dr) {
+        // nits = 2^(ev100 - 3)
+        // = exp(ln(2) *(ev100 -3))
+        // as we have a additional and unknown function that blends albedo + lit texture
+        // we use exp(a * (ev100 -b))
+        // it looks like ev100 > 9 albedo already dominates
+        static constexpr float a = 0.7f;
+        static constexpr float b = 3.0f;
+        static constexpr float kMaxNits = 8000.0f;    // defined in the .obj file
+        float ev100 = XPLMGetDataf(ev100_mtr_dr);
+        float nits = std::exp(a * (ev100 - b));
+        float vdgs_brightness = std::clamp(nits / kMaxNits, kMinBrightness, 1.0f);
+        // LogMsg("ev100: %0.2f, raw nits: %0.2f, vdgs_brightness: %0.2f, vdgs nits: %0.2f", ev100, nits, vdgs_brightness, vdgs_brightness * kMaxNits);
+        return vdgs_brightness;
     } else {
         // fallback: use percent_lights_on
         return kMinBrightness + (1.0f - kMinBrightness) * std::pow(1.0f - XPLMGetDataf(percent_lights_dr), 6.0f);
