@@ -27,6 +27,12 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <WinHttp.h>
+bool HttpGetInitialize() {
+    return true;
+}
+
+void HttpGetFinalize() {
+}
 
 bool
 HttpGet(const std::string& url, std::string& data, int timeout)
@@ -151,6 +157,17 @@ error_out:
 
 #else   // Linux or MacOS
 #include <curl/curl.h>
+
+bool HttpGetInitialize() {
+    CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
+    LogMsg("HttpGetInitialize result: %d", (result == CURLE_OK));
+    return (result == CURLE_OK);
+}
+
+void HttpGetFinalize() {
+    curl_global_cleanup();
+}
+
 static size_t
 write_cb(const void *ptr, size_t size, size_t nmemb, void *userdata)
 {
@@ -165,7 +182,6 @@ HttpGet(const std::string& url, std::string& data, int timeout)
 {
     CURL *curl;
     CURLcode res;
-    curl_global_init(CURL_GLOBAL_ALL);
     curl = curl_easy_init();
     if(curl == NULL)
         return 0;
@@ -193,7 +209,6 @@ HttpGet(const std::string& url, std::string& data, int timeout)
         LogMsg("Downloaded %d bytes", (int)dl_size);
 
     curl_easy_cleanup(curl);
-    curl_global_cleanup();
     return true;
 }
 #endif

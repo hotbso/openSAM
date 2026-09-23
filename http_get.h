@@ -1,5 +1,5 @@
 //
-//    Copyright (C) 2025  Holger Teutsch
+//    Copyright (C) 2025, 2026  Holger Teutsch
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Lesser General Public
@@ -17,12 +17,11 @@
 //    USA
 //
 
-#ifndef _HTTP_GET_
-#define _HTTP_GET_
-
+#pragma once
 #include <string>
 
+// call these from the main thread on startup and shutdown respectively
+extern bool HttpGetInitialize();
+extern void HttpGetFinalize();
+
 extern bool HttpGet(const std::string& url, std::string& data, int timeout);
-
-#endif
-

@@ -52,6 +52,7 @@
 #include "ui.h"
 #include "adgs_editor.h"
 #include "jw_editor.h"
+#include "http_get.h"
 #include "log_msg.h"
 
 #include "version.h"
@@ -682,6 +683,9 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     pref_path = user_cfg_dir + "prefs.prf";
     std::string res_dir = base_dir + "resources/";
 
+    if (!HttpGetInitialize())
+        return 0;
+
     try {
         // create tmp dir and verify it's writeable
         // all later errors for io here will throw
@@ -888,6 +892,7 @@ PLUGIN_API void XPluginStop(void) {
         } catch (const std::exception& ex) { LogMsg("Failed to clean tmp dir '%s': %s", clean_dir.c_str(), ex.what()); }
     }
 
+    HttpGetFinalize();
     LogMsg("plugin stopped");
 }
 
