@@ -98,8 +98,8 @@ bool CollisionCheck(const Vec2& S1, const Vec2& E1, const Vec2& S2, const Vec2& 
         return false;
     float s = det(C, B) / d;
     float t = det(A, C) / d;
-    LogMsg("collision check between start1: (%0.2f, %0.2f), end1: (%0.2f, %0.2f) and start2: (%0.2f, %0.2f), end2: (%0.2f, %0.2f), s = %0.2f, t = %0.2f",
-           S1.x, S1.z, E1.x, E1.z, S2.x, S2.z, E2.x, E2.z, s, t);
+    // LogMsg("collision check between start1: (%0.2f, %0.2f), end1: (%0.2f, %0.2f) and start2: (%0.2f, %0.2f), end2: (%0.2f, %0.2f), s = %0.2f, t = %0.2f",
+    //       S1.x, S1.z, E1.x, E1.z, S2.x, S2.z, E2.x, E2.z, s, t);
 
     // we allow a bit of leeway for the start and end points
     if (is_between(t, -0.1f, 1.1f) && is_between(s, -0.1f, 1.1f)) {
@@ -429,10 +429,10 @@ bool JwCtrl::CollisionCheck(const JwCtrl& njw2) {
     Vec2 s2_right = s2 - ortho_dir;
     Vec2 e2_right = e2 - ortho_dir;
 
-    LogMsg("expanded line segments for collision check: start1_left: (%0.2f, %0.2f), end1_left: (%0.2f, %0.2f) and start1_right: (%0.2f, %0.2f), end1_right: (%0.2f, %0.2f)",
-               s1_left.x, s1_left.z, e1_left.x, e1_left.z, s1_right.x, s1_right.z, e1_right.x, e1_right.z);
-    LogMsg("expanded line segments for collision check: start2_left: (%0.2f, %0.2f), end2_left: (%0.2f, %0.2f) and start2_right: (%0.2f, %0.2f), end2_right: (%0.2f, %0.2f)",
-           s2_left.x, s2_left.z, e2_left.x, e2_left.z, s2_right.x, s2_right.z, e2_right.x, e2_right.z);
+    // LogMsg("expanded line segments for collision check: start1_left: (%0.2f, %0.2f), end1_left: (%0.2f, %0.2f) and start1_right: (%0.2f, %0.2f), end1_right: (%0.2f, %0.2f)",
+    //            s1_left.x, s1_left.z, e1_left.x, e1_left.z, s1_right.x, s1_right.z, e1_right.x, e1_right.z);
+    // LogMsg("expanded line segments for collision check: start2_left: (%0.2f, %0.2f), end2_left: (%0.2f, %0.2f) and start2_right: (%0.2f, %0.2f), end2_right: (%0.2f, %0.2f)",
+    //        s2_left.x, s2_left.z, e2_left.x, e2_left.z, s2_right.x, s2_right.z, e2_right.x, e2_right.z);
 
     // check s1_left against all 4 walls of the parked jetway
     if (::CollisionCheck(s1_left, e1_left, s2_right, e2_right) ||   // along axis
