@@ -65,11 +65,8 @@ MpPlane_xPilot::MpPlane_xPilot(int slot, const std::string& flight_id, const std
 
     LogMsg("pid=%02d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao_.c_str());
 
-    door_info_.clear();
-    // Use iterator to check and assign door_info_[0]
-    auto it = csl_door_info_map.find(icao_ + '1');
-    if (it != csl_door_info_map.end()) {
-        door_info_.push_back(it->second);
+    MpAdapter::LoadDoorInfo(*this, icao_);
+    if (!door_info_.empty()) {
         LogMsg("pid=%02d, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, door_info_[0].x,
                door_info_[0].y, door_info_[0].z);
     } else {

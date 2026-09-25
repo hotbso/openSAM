@@ -117,7 +117,6 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
         return;
     }
 
-    door_info_.clear();
     // first an optional translation to icao code
     auto it = acf_generic_type_map.find(type_code);
     if (it != acf_generic_type_map.end())
@@ -125,11 +124,9 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     else
         icao_ = type_code;
 
-    auto door_it = csl_door_info_map.find(icao_ + '1');
-    if (door_it != csl_door_info_map.end()) {
-        door_info_.push_back(door_it->second);
-
-        // lateral adjustment
+    MpAdapter::LoadDoorInfo(*this, icao_);
+    if (!door_info_.empty()) {
+        // logitudinal adjustment
         constexpr float z_adjust = 1.0f;  // backwards
         x_ = x + -sinf(kD2R * psi) * z_adjust;
         z_ = z + cosf(kD2R * psi) * z_adjust;
@@ -149,15 +146,6 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
         state_ = kDisabled;
         return;
     }
-
-    // door 2 +3 are optional
-    auto it2 = csl_door_info_map.find(icao_ + '2');
-    if (it2 != csl_door_info_map.end())
-        door_info_.push_back(it2->second);
-
-    auto it3 = csl_door_info_map.find(icao_ + '3');
-    if (it3 != csl_door_info_map.end())
-        door_info_.push_back(it3->second);
 
     state_ = kIdle;
 }
