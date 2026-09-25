@@ -24,6 +24,8 @@
 #include <unordered_map>
 #include <memory>
 
+#include "os_plane.h"
+
 // Wrapper around the different plugins providing multiplayer planes
 // xPilot, TGXP, liveTraffic, ...
 class MpAdapter {
@@ -38,6 +40,9 @@ class MpAdapter {
     virtual float update() = 0;     // update status of MP planes
     float JwStateMachine();       // return delay to next call
     void Reset();
+
+    // load door info for multiplayer plane
+    static void LoadDoorInfo(OsPlane& mp_plane, const std::string& icao);
 };
 
 // hopefully will detect which plugin is active and returns the appropriate service

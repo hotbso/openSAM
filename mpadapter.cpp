@@ -29,6 +29,7 @@
 #include "mpadapter_xpilot.h"
 #include "mpadapter_tgxp.h"
 #include "mpadapter_lt.h"
+#include "mpadapter_vat.h"
 #include "log_msg.h"
 
 std::unordered_map<std::string, DoorInfo> csl_door_info_map;
@@ -53,6 +54,8 @@ std::unique_ptr<MpAdapter> MpAdapter_factory() {
         adapter = std::unique_ptr<MpAdapter>(new MpAdapter_lt());
     else if (MpAdapter_tgxp::probe())
         adapter = std::unique_ptr<MpAdapter>(new MpAdapter_tgxp());
+    else if (MpAdapter_vat::probe())
+        adapter = std::unique_ptr<MpAdapter>(new MpAdapter_vat());
 
     active = (adapter != nullptr);
     return adapter;
@@ -68,4 +71,24 @@ float MpAdapter::JwStateMachine() {
 void MpAdapter::Reset() {
     LogMsg("MpAdapter::Reset() called, clearing MP planes");
     mp_planes_.clear();
+}
+
+// load door info for multiplayer plane
+void MpAdapter::LoadDoorInfo(OsPlane& mp_plane, const std::string& icao) {
+    mp_plane.door_info_.clear();
+
+    auto door_it = csl_door_info_map.find(icao + '1');
+    if (door_it != csl_door_info_map.end())
+        mp_plane.door_info_.push_back(door_it->second);
+    else
+        return;
+
+    // door 2 + 3 are optional
+    auto it2 = csl_door_info_map.find(icao + '2');
+    if (it2 != csl_door_info_map.end())
+        mp_plane.door_info_.push_back(it2->second);
+
+    auto it3 = csl_door_info_map.find(icao + '3');
+    if (it3 != csl_door_info_map.end())
+        mp_plane.door_info_.push_back(it3->second);
 }

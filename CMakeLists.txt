@@ -56,7 +56,7 @@ SET(IMGUI_SRCS
 add_library(openSAM SHARED opensam.cpp autodgs_airport.cpp adgs_api.cpp seasons.cpp simbrief.cpp
     os_airport.cpp samjw.cpp jwctrl.cpp os_anim.cpp scenery.cpp read_wav.cpp
     os_plane.cpp my_plane.cpp
-    LTAPI.cpp mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp
+    LTAPI.cpp mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp mpadapter_vat.cpp
     dgs/apt_airport.cpp dgs/dgs.cpp dgs/plane.cpp dgs/airport.cpp dgs/marshaller.cpp
     dgs/safedock_t2_24.cpp dgs/safedock_x.cpp dgs/dyn_display.cpp dgs/airline_logo.cpp
     sam1_dgs.cpp
@@ -78,6 +78,7 @@ target_include_directories(openSAM PRIVATE
     ${CMAKE_SOURCE_DIR}/ImgWindow
     ${CMAKE_SOURCE_DIR}/stb
     ${CMAKE_SOURCE_DIR}/pugixml-1.16/src
+    ${CMAKE_SOURCE_DIR}/third-party
     ${SDK}/CHeaders/XPLM
 )
 
