@@ -41,13 +41,13 @@ endif()
 
 
 SET(IMGUI_SRCS
-    ${CMAKE_SOURCE_DIR}/imgui/imgui.cpp
-    ${CMAKE_SOURCE_DIR}/imgui/imgui_draw.cpp
-    ${CMAKE_SOURCE_DIR}/imgui/imgui_widgets.cpp
-    ${CMAKE_SOURCE_DIR}/imgui/imgui_tables.cpp
-    ${CMAKE_SOURCE_DIR}/imgui/misc/cpp/imgui_stdlib.cpp
-    ${CMAKE_SOURCE_DIR}/ImgWindow/ImgWindow.cpp
-    ${CMAKE_SOURCE_DIR}/ImgWindow/ImgFontAtlas.cpp
+    third-party/imgui/imgui.cpp
+    third-party/imgui/imgui_draw.cpp
+    third-party/imgui/imgui_widgets.cpp
+    third-party/imgui/imgui_tables.cpp
+    third-party/imgui/misc/cpp/imgui_stdlib.cpp
+    ImgWindow/ImgWindow.cpp
+    ImgWindow/ImgFontAtlas.cpp
 )
 
 # ==============================================================================
@@ -56,15 +56,16 @@ SET(IMGUI_SRCS
 add_library(openSAM SHARED opensam.cpp autodgs_airport.cpp adgs_api.cpp seasons.cpp simbrief.cpp
     os_airport.cpp samjw.cpp jwctrl.cpp os_anim.cpp scenery.cpp read_wav.cpp
     os_plane.cpp my_plane.cpp
-    LTAPI.cpp mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp mpadapter_vat.cpp
+    mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp mpadapter_vat.cpp
     dgs/apt_airport.cpp dgs/dgs.cpp dgs/plane.cpp dgs/airport.cpp dgs/marshaller.cpp
     dgs/safedock_t2_24.cpp dgs/safedock_x.cpp dgs/dyn_display.cpp dgs/airline_logo.cpp
     sam1_dgs.cpp
     ui.cpp adgs_editor.cpp jw_editor.cpp
     http_get.cpp simbrief.cpp log_msg.cpp
     ${IMGUI_SRCS}
-    spng.c
-    ${CMAKE_SOURCE_DIR}/pugixml-1.16/src/pugixml.cpp)
+    third-party/spng.c
+    third-party/pugixml-1.16/src/pugixml.cpp
+    third-party/LTAPI.cpp)
 set_target_properties(openSAM PROPERTIES PREFIX "" SUFFIX ".xpl")
 
 # ==============================================================================
@@ -73,12 +74,12 @@ set_target_properties(openSAM PROPERTIES PREFIX "" SUFFIX ".xpl")
 target_include_directories(openSAM PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/dgs
-    ${CMAKE_SOURCE_DIR}/imgui
-    ${CMAKE_SOURCE_DIR}/imgui/misc/cpp
     ${CMAKE_SOURCE_DIR}/ImgWindow
-    ${CMAKE_SOURCE_DIR}/stb
-    ${CMAKE_SOURCE_DIR}/pugixml-1.16/src
-    ${CMAKE_SOURCE_DIR}/third-party
+    third-party/imgui
+    third-party/imgui/misc/cpp
+    third-party
+    third-party/stb
+    third-party/pugixml-1.16/src
     ${SDK}/CHeaders/XPLM
 )
 
@@ -153,12 +154,12 @@ if(BUILD_TESTS)
         scenery_test.cpp
         scenery.cpp
         dgs/apt_airport.cpp
-        pugixml-1.16/src/pugixml.cpp
+        third-party/pugixml-1.16/src/pugixml.cpp
         log_msg.cpp
     )
     target_include_directories(scenery_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_SOURCE_DIR}/pugixml-1.16/src
+        ${CMAKE_SOURCE_DIR}/third-party/pugixml-1.16/src
         ${SDK}/CHeaders/XPLM
     )
     target_compile_definitions(scenery_test PRIVATE
