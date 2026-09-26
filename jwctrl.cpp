@@ -253,12 +253,7 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCt
             LogMsg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f", jw->name.c_str(),
                    jw->door, njw.docked_rot1_, njw.docked_rot2_, njw.docked_rot3_, njw.docked_extent_);
             LogMsg("  does not fulfil min max criteria in sam.xml");
-            float extra_extent = njw.docked_extent_ - jw->max_extent;
-            if (extra_extent < 10.0f) {
-                LogMsg("  as extra extent of %0.1f m < 10.0 m we take it as a soft match", extra_extent);
-                njw.soft_match_ = 1;
-            } else
-                continue;
+            continue;
         }
 
         // ... survived, add to list

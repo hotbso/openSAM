@@ -46,19 +46,9 @@ void OsPlane::AutoSelectJws() {
     if (door_info_.empty())
         return;
 
-    bool have_hard_match = false;
-    for (auto& njw : nearest_jws_)
-        if (!njw.soft_match_) {
-            have_hard_match = true;
-            break;
-        }
-
     unsigned i_door = 0;
     unsigned i_jw = 0;
     while (i_jw < nearest_jws_.size()) {
-        if (have_hard_match && nearest_jws_[i_jw].soft_match_)
-            goto skip;
-
         // skip over collisions
         for (unsigned j = i_jw + 1; j < nearest_jws_.size(); j++) {
             assert(i_door < door_info_.size());

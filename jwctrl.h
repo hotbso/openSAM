@@ -60,8 +60,6 @@ class JwCtrl {
     // everything in plane local coordinates
     float x_, y_, z_, psi_;
 
-    int soft_match_{};  // does not really fulfill matching criteria
-
     // parked position of jw
     float parked_x_, parked_z_;
 
