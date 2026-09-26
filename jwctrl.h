@@ -57,7 +57,7 @@ class JwCtrl {
     SamJw* jw_;
     JwCtrlState state_{kParked};
 
-    // everything in plane local coordinates
+    // jw position in plane local coordinates
     float x_, y_, z_, psi_;
 
     // parked position of jw
@@ -81,6 +81,9 @@ class JwCtrl {
 
     // convert tunnel end at (cabin_x, cabin_z) to dataref values; rot2, rot3 are optional
     void XzToSamDref(float cabin_x, float cabin_z, float& rot1, float& extent, float* rot2, float* rot3);
+
+    // check wether the target docking position and orientation of the jetway satisfies all constraints
+    bool CheckConstraints() const noexcept;
 
     //
     // animation

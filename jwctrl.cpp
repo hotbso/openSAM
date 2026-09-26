@@ -184,7 +184,12 @@ void JwCtrl::SetupForDoor(const DoorInfo& door_info) {
 
     ap_x_ = docked_x_ - kAlignDist;
     ap_z_ = docked_z_;
-    jw_->SetWheels();
+}
+
+bool JwCtrl::CheckConstraints() const noexcept {
+    return (is_between(docked_rot1_, jw_->min_rot1, jw_->max_rot1) &&
+            is_between(docked_rot2_, jw_->min_rot2, jw_->max_rot2) &&
+            is_between(docked_extent_, jw_->min_extent, jw_->max_extent));
 }
 
 // a fuzzy comparator for jetway by door number
@@ -217,9 +222,7 @@ bool operator<(const JwCtrl& a, const JwCtrl& b) noexcept{
 // filter list of jetways jws[]for candidates and add them to nearest_jws[]
 static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCtrl>& nearest_jws,
                              std::unordered_map<SamJw*, bool> near_jws_map, const DoorInfo& door_info) {
-    // Unfortunately maxExtent in sam.xml can be bogus (e.g. FlyTampa EKCH)
-    // So we find the nearest jetways on the left and do some heuristics
-
+    // Find the nearest jetways on the left and do some heuristics
     int invisible_jws = 0;
     for (auto& [jw, _] : near_jws_map) {
         if (jw->obj_ref_gen < ref_gen) {  // not visible -> not dockable
@@ -247,9 +250,7 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCt
             continue;
         }
 
-        if (!(is_between(njw.docked_rot1_, jw->min_rot1, jw->max_rot1) &&
-              is_between(njw.docked_rot2_, jw->min_rot2, jw->max_rot2) &&
-              is_between(njw.docked_extent_, jw->min_extent, jw->max_extent))) {
+        if (!njw.CheckConstraints()) {
             LogMsg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f", jw->name.c_str(),
                    jw->door, njw.docked_rot1_, njw.docked_rot2_, njw.docked_rot3_, njw.docked_extent_);
             LogMsg("  does not fulfil min max criteria in sam.xml");
@@ -284,7 +285,8 @@ int JwCtrl::FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<Jw
     // so we may end up with a stale cache
     CheckRefFrameShift();
 
-    // compute the 'average' door location
+    // compute the 'average' door location for performance reasons
+    // we do a final check later during actual jw assignment
     DoorInfo avg_di;
     avg_di.x = 0.0f;
     avg_di.z = 0.0f;

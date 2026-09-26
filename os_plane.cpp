@@ -49,11 +49,17 @@ void OsPlane::AutoSelectJws() {
     unsigned i_door = 0;
     unsigned i_jw = 0;
     while (i_jw < nearest_jws_.size()) {
+        // tentative assignment
+        nearest_jws_[i_jw].SetupForDoor(door_info_[i_door]);
+        if (!nearest_jws_[i_jw].CheckConstraints())
+            goto skip;
+
         // skip over collisions
         for (unsigned j = i_jw + 1; j < nearest_jws_.size(); j++) {
             assert(i_door < door_info_.size());
-            nearest_jws_[i_jw].SetupForDoor(door_info_[i_door]);
             nearest_jws_[j].SetupForDoor(door_info_[i_door]);
+            if (!nearest_jws_[j].CheckConstraints())
+                goto skip;
             if (nearest_jws_[i_jw].CollisionCheck(nearest_jws_[j]))
                 goto skip;
         }

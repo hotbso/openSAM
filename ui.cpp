@@ -450,6 +450,13 @@ void Ui::BuildInterface() {
                 ImGui::PushID(id++);  // ensure unique ID for each checkbox
                 bool selected = jw_selected_[j][d];
                 if (ImGui::Checkbox("", &selected)) {
+                    // Can't override constraints
+                    if (selected) {
+                        my_plane->nearest_jws_[j].SetupForDoor(my_plane->door_info_[d]);
+                        if (!my_plane->nearest_jws_[j].CheckConstraints())
+                            selected = false;
+                    }
+
                     jw_selected_[j][d] = selected;
                     LogMsg("JW %d door %d selection changed to %s", j + 1, d + 1,
                            jw_selected_[j][d] ? "SELECTED" : "DESELECTED");
