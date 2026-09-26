@@ -1,4 +1,7 @@
 # openSAM plugin for X-Plane 12
+
+![Image](images/simbrief.jpg)
+
 ## Marshaller and VDGS guidance for all sceneries<br> Jetway and object animation for custom sceneries
 One stop destination for DGS guidance, drop in replacement for legacy SAM, support for new custom sceneries.
 
@@ -118,7 +121,8 @@ The scenery artist placed DGS objects (Marshaller, type of VDGS) and jetways in 
 ### Multiplayer support
 openSAM supports
  - xPilot
- - Traffic Global XP
+ - Virtual Air Traffic (VAT)
+ - Traffic Global XP (TGXP)
  - LiveTraffic
 
 Set up your multiplayer environment as needed (e.g. connect to Vatsim and/or enable/disable MP plugins).\
@@ -130,9 +134,9 @@ The menu text of "Toggle Multiplayer Support" shows which personality is enabled
 xPilot and liveTraffic receive aircraft positions from other sceneries / simulators or the real world and these
 may not match up with your installed scenery. Your mileage will vary.
 
-TGXP gives the visually most pleasing rendition.
+VAT and TGXP give the visually most pleasing rendition.
 
-![Image](images/MP-TGXP.jpg)
+![Image](images/EDDF-VAT.jpg)
 
 ![Image](images/MP-xPilot.jpg)
 
