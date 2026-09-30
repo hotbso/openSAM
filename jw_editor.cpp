@@ -135,9 +135,9 @@ void JwEditor::BuildInterface() {
     // create entry for listbox, e.g. "Jetway 1 configured 'jetway1'"
     auto MkLbEntry = [](const SamJw* jw) -> std::string {
         const char* lib_id = "(not seen)";
-        if (0 < jw->library_id && jw->library_id < (int)lib_jw.size())
-            lib_id = lib_jw[jw->library_id]->model_id.c_str();
-        return std::format("{:16} {:16} '{}'", jw->name, jw->is_zc_jw ? "(zero config)" : "configured", lib_id);
+        if (0 < jw->library_id_ && jw->library_id_ < (int)lib_jw.size())
+            lib_id = lib_jw[jw->library_id_]->model_id.c_str();
+        return std::format("{:16} {:16} '{}'", jw->name_, jw->is_zc_jw_ ? "(zero config)" : "configured", lib_id);
     };
 
     bool must_reload = false;
@@ -178,28 +178,28 @@ void JwEditor::BuildInterface() {
 
         for (const auto [jw, _] : near_jws) {
             // lib jws in view
-            if (jw->is_lib_jw_inst) {
-                if (jw->is_zc_jw && !jw->stand_retrieved) {
-                    jw->stand_retrieved = true;  // one shot only
+            if (jw->is_lib_jw_inst_) {
+                if (jw->is_zc_jw_ && !jw->stand_retrieved_) {
+                    jw->stand_retrieved_ = true;  // one shot only
 
-                    const OsStand* stand = os_arpt->FindStandForJw(jw->x, jw->z);
+                    const OsStand* stand = os_arpt->FindStandForJw(jw->x_, jw->z_);
                     if (stand) {
-                        jw->base_name = stand->name();
+                        jw->base_name_ = stand->name();
                         // delta = cabin points perpendicular to stand
-                        float delta = fem::RA((stand->hdgt() + 90.0f) - jw->psi);
+                        float delta = fem::RA((stand->hdgt() + 90.0f) - jw->psi_);
                         // randomize
                         float delta_r = (0.2f + 0.8f * (0.01f * (rand() % 100))) * delta;
-                        jw->initial_rot2 = delta_r;
+                        jw->initial_rot2_ = delta_r;
                     } else
-                        jw->base_name = "zc_jw";  // fallback name for zero config jetways
+                        jw->base_name_ = "zc_jw";  // fallback name for zero config jetways
                 }
 
-                if (jw->name.empty()) {
-                    LogMsg("Assigning name to jetway '%s' (lib id %d) at ll: (%0.6f, %0.6f)", jw->base_name.c_str(), jw->library_id, jw->latitude, jw->longitude);
-                    if (jw->base_name.length() > 10)
-                        jw->name = jw->base_name.substr(0, 10);
+                if (jw->name_.empty()) {
+                    LogMsg("Assigning name to jetway '%s' (lib id %d) at ll: (%0.6f, %0.6f)", jw->base_name_.c_str(), jw->library_id_, jw->latitude_, jw->longitude_);
+                    if (jw->base_name_.length() > 10)
+                        jw->name_ = jw->base_name_.substr(0, 10);
                     else
-                        jw->name = jw->base_name;
+                        jw->name_ = jw->base_name_;
                 }
 
                 jw_set_.push_back(jw);
@@ -211,7 +211,7 @@ void JwEditor::BuildInterface() {
             return;
         }
 
-        std::sort(jw_set_.begin(), jw_set_.end(), [](const SamJw* a, const SamJw* b) { return a->name < b->name; });
+        std::sort(jw_set_.begin(), jw_set_.end(), [](const SamJw* a, const SamJw* b) { return a->name_ < b->name_; });
         lb_labels_.clear();
         for (const SamJw* jw : jw_set_)
             lb_labels_.push_back(MkLbEntry(jw));
@@ -252,38 +252,38 @@ void JwEditor::BuildInterface() {
 
     assert(0 <= selected_idx_ && selected_idx_ < (int)jw_set_.size());
     SamJw* jw = jw_set_[selected_idx_];
-    ImGui::Text("Editing jetway: %s", jw->name.c_str());
+    ImGui::Text("Editing jetway: %s", jw->name_.c_str());
 
     bool changed = false;
-    if (ImGui::InputText("Name", &jw->name)) {
-        LogMsg("Jetway name set to '%s'", jw->name.c_str());
-        jw->base_name = jw->name;  // keep base name in sync
+    if (ImGui::InputText("Name", &jw->name_)) {
+        LogMsg("Jetway name set to '%s'", jw->name_.c_str());
+        jw->base_name_ = jw->name_;  // keep base name in sync
         changed = true;
     }
 
-    if (ImGui::SliderFloat("Initial Extend", &jw->initial_extent, 0.0f, 10.0f, "%.1f m")) {
+    if (ImGui::SliderFloat("Initial Extend", &jw->initial_extent_, 0.0f, 10.0f, "%.1f m")) {
         changed = true;;
-        jw->extent = jw->initial_extent;
+        jw->extent_ = jw->initial_extent_;
     }
 
-    if (ImGui::SliderFloat("Initial Rotate 1", &jw->initial_rot1, -90.0f, 90.0f, "%.1f °")) {
+    if (ImGui::SliderFloat("Initial Rotate 1", &jw->initial_rot1_, -90.0f, 90.0f, "%.1f °")) {
         changed = true;
-        jw->rotate1 = jw->initial_rot1;
+        jw->rotate1_ = jw->initial_rot1_;
     }
 
-    if (ImGui::SliderFloat("Initial Rotate 2", &jw->initial_rot2, -90.0f, 90.0f, "%1.0f °")) {
+    if (ImGui::SliderFloat("Initial Rotate 2", &jw->initial_rot2_, -90.0f, 90.0f, "%1.0f °")) {
         changed = true;
-        jw->rotate2 = jw->initial_rot2;
+        jw->rotate2_ = jw->initial_rot2_;
     }
 
-    if (ImGui::SliderFloat("Initial Rotate 3", &jw->initial_rot3, -5.0f, 5.0f, "%.1f °")) {
+    if (ImGui::SliderFloat("Initial Rotate 3", &jw->initial_rot3_, -5.0f, 5.0f, "%.1f °")) {
         changed = true;
-        jw->rotate3 = jw->initial_rot3;
+        jw->rotate3_ = jw->initial_rot3_;
         jw->SetWheels();
     }
 
     if (changed) {
-        jw->is_zc_jw = false;       // no longer zero configured
+        jw->is_zc_jw_ = false;       // no longer zero configured
         lb_labels_[selected_idx_] = MkLbEntry(jw);  // update listbox content
         unsaved_changes_ = true;
         msg_line1_.clear(); msg_line2_.clear();

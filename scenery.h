@@ -30,7 +30,7 @@
 
 static constexpr float kD2R = std::numbers::pi/180.0;
 
-struct SamJw;
+class SamJw;
 struct SamJwModel;
 
 namespace dgs {

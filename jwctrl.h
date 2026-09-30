@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-struct SamJw;
+class SamJw;
 struct DoorInfo;
 
 struct JwCtrlPlaneInfo {

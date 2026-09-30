@@ -164,49 +164,49 @@ static void SamParseJetways(const pugi::xml_node& sc_node) {
 
     for (pugi::xml_node jetway : jetways.children("jetway")) {
         SamJw* jw = new SamJw();
-        jw->is_lib_jw_inst = jetway.attribute("libraryInstance").as_bool(false);
-        jw->name = jetway.attribute("name").as_string("");
-        jw->latitude = jetway.attribute("latitude").as_float(0.0f);
-        jw->longitude = jetway.attribute("longitude").as_float(0.0f);
-        jw->heading = jetway.attribute("heading").as_float(0.0f);
-        jw->height = jetway.attribute("height").as_float(0.0f);
-        jw->wheel_pos = jetway.attribute("wheelPos").as_float(0.0f);
-        jw->cabin_pos = jetway.attribute("cabinPos").as_float(0.0f);
-        jw->cabin_length = jetway.attribute("cabinLength").as_float(0.0f);
-        jw->wheel_diameter = jetway.attribute("wheelDiameter").as_float(0.0f);
-        jw->wheel_distance = jetway.attribute("wheelDistance").as_float(0.0f);
-        jw->sound = jetway.attribute("sound").as_string("");
-        jw->min_rot1 = jetway.attribute("minRot1").as_float(-90.0f);
-        jw->max_rot1 = jetway.attribute("maxRot1").as_float(90.0f);
-        jw->min_rot2 = jetway.attribute("minRot2").as_float(-5.0f);
-        jw->max_rot2 = jetway.attribute("maxRot2").as_float(90.0f);
-        jw->min_rot3 = jetway.attribute("minRot3").as_float(-6.0f);
-        jw->max_rot3 = jetway.attribute("maxRot3").as_float(6.0f);
-        jw->min_extent = jetway.attribute("minExtent").as_float(0.0f);
-        jw->max_extent = jetway.attribute("maxExtent").as_float(0.0f);
-        jw->initial_rot1 = jetway.attribute("initialRot1").as_float(0.0f);
-        jw->initial_rot2 = jetway.attribute("initialRot2").as_float(0.0f);
-        jw->initial_rot3 = jetway.attribute("initialRot3").as_float(0.0f);
-        jw->initial_extent = jetway.attribute("initialExtent").as_float(0.0f);
+        jw->is_lib_jw_inst_ = jetway.attribute("libraryInstance").as_bool(false);
+        jw->name_ = jetway.attribute("name").as_string("");
+        jw->latitude_ = jetway.attribute("latitude").as_float(0.0f);
+        jw->longitude_ = jetway.attribute("longitude").as_float(0.0f);
+        jw->heading_ = jetway.attribute("heading").as_float(0.0f);
+        jw->height_ = jetway.attribute("height").as_float(0.0f);
+        jw->wheel_pos_ = jetway.attribute("wheelPos").as_float(0.0f);
+        jw->cabin_pos_ = jetway.attribute("cabinPos").as_float(0.0f);
+        jw->cabin_length_ = jetway.attribute("cabinLength").as_float(0.0f);
+        jw->wheel_diameter_ = jetway.attribute("wheelDiameter").as_float(0.0f);
+        jw->wheel_distance_ = jetway.attribute("wheelDistance").as_float(0.0f);
+        jw->sound_ = jetway.attribute("sound").as_string("");
+        jw->min_rot1_ = jetway.attribute("minRot1").as_float(-90.0f);
+        jw->max_rot1_ = jetway.attribute("maxRot1").as_float(90.0f);
+        jw->min_rot2_ = jetway.attribute("minRot2").as_float(-5.0f);
+        jw->max_rot2_ = jetway.attribute("maxRot2").as_float(90.0f);
+        jw->min_rot3_ = jetway.attribute("minRot3").as_float(-6.0f);
+        jw->max_rot3_ = jetway.attribute("maxRot3").as_float(6.0f);
+        jw->min_extent_ = jetway.attribute("minExtent").as_float(0.0f);
+        jw->max_extent_ = jetway.attribute("maxExtent").as_float(0.0f);
+        jw->initial_rot1_ = jetway.attribute("initialRot1").as_float(0.0f);
+        jw->initial_rot2_ = jetway.attribute("initialRot2").as_float(0.0f);
+        jw->initial_rot3_ = jetway.attribute("initialRot3").as_float(0.0f);
+        jw->initial_extent_ = jetway.attribute("initialExtent").as_float(0.0f);
         const char* door_loc = jetway.attribute("forDoorLocation").as_string(nullptr);
         if (door_loc) {
             if (0 == strcmp(door_loc, "LF2"))
-                jw->door = 1;
+                jw->door_ = 1;
             else if (0 == strcmp(door_loc, "LU1"))
-                jw->door = 2;
+                jw->door_ = 2;
         }
-        jw->base_name = jw->name;  // for later use when we fabricate names for zero config jetways
+        jw->base_name_ = jw->name_;  // for later use when we fabricate names for zero config jetways
 
         // sanitize all heading values entering the plugin in order to avoid stalls in fem::RA
-        jw->heading = fmodf(jw->heading, 360.0f);
+        jw->heading_ = fmodf(jw->heading_, 360.0f);
 
         jw->ComputeBbox();
 
         // simple sanity check, e.g Aerosoft LEBL has bogus values
-        if (is_between(jw->latitude, -85.0, 85.0) && is_between(jw->longitude, -180.0, 180.0))
+        if (is_between(jw->latitude_, -85.0, 85.0) && is_between(jw->longitude_, -180.0, 180.0))
             sam_jw_list.push_back(jw);
         else {
-            LogMsg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude, jw->longitude);
+            LogMsg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude_, jw->longitude_);
             delete (jw);
         }
     }
@@ -220,64 +220,64 @@ static void OpenSamParseJetways(const pugi::xml_node& sc_node, Scenery* sc) {
 
     for (pugi::xml_node jetway : jetways.children("jetway")) {
         SamJw* jw = new SamJw();
-        jw->name = jetway.attribute("name").as_string("");
-        jw->model_id = jetway.attribute("model_id").as_string("");
-        jw->latitude = jetway.attribute("latitude").as_float(0.0f);
-        jw->longitude = jetway.attribute("longitude").as_float(0.0f);
-        jw->heading = jetway.attribute("heading").as_float(0.0f);
-        jw->door = jetway.attribute("door").as_int(0);
-        jw->initial_rot1 = jetway.attribute("min_rot1").as_float(-90.0f);
-        jw->initial_rot2 = jetway.attribute("max_rot1").as_float(90.0f);
-        jw->initial_rot1 = jetway.attribute("initial_rot1").as_float(0.0f);
-        jw->initial_rot2 = jetway.attribute("initial_rot2").as_float(0.0f);
-        jw->initial_rot3 = jetway.attribute("initial_rot3").as_float(0.0f);
-        jw->initial_extent = jetway.attribute("initial_extent").as_float(0.0f);
+        jw->name_ = jetway.attribute("name").as_string("");
+        jw->model_id_ = jetway.attribute("model_id").as_string("");
+        jw->latitude_ = jetway.attribute("latitude").as_float(0.0f);
+        jw->longitude_ = jetway.attribute("longitude").as_float(0.0f);
+        jw->heading_ = jetway.attribute("heading").as_float(0.0f);
+        jw->door_ = jetway.attribute("door").as_int(0);
+        jw->initial_rot1_ = jetway.attribute("min_rot1").as_float(-90.0f);
+        jw->initial_rot2_ = jetway.attribute("max_rot1").as_float(90.0f);
+        jw->initial_rot1_ = jetway.attribute("initial_rot1").as_float(0.0f);
+        jw->initial_rot2_ = jetway.attribute("initial_rot2").as_float(0.0f);
+        jw->initial_rot3_ = jetway.attribute("initial_rot3").as_float(0.0f);
+        jw->initial_extent_ = jetway.attribute("initial_extent").as_float(0.0f);
 
-        if (jw->model_id.empty())
-            jw->is_lib_jw_inst = true;
+        if (jw->model_id_.empty())
+            jw->is_lib_jw_inst_ = true;
         else {
-            auto it = sc->jw_models_.find(jw->model_id);
+            auto it = sc->jw_models_.find(jw->model_id_);
             if (it == sc->jw_models_.end()) {
-                LogMsg("Jetway '%s' with unknown model_id '%s' ignored", jw->name.c_str(), jw->model_id.c_str());
+                LogMsg("Jetway '%s' with unknown model_id '%s' ignored", jw->name_.c_str(), jw->model_id_.c_str());
                 delete jw;
                 continue;
             }
 
             const SamJwModel* jwm = it->second;
-            jw->model_id = jwm->model_id;
-            jw->height = jwm->height;
-            jw->wheel_pos = jwm->wheel_pos;
-            jw->cabin_pos = jwm->cabin_pos;
-            jw->cabin_length = jwm->cabin_length;
+            jw->model_id_ = jwm->model_id;
+            jw->height_ = jwm->height;
+            jw->wheel_pos_ = jwm->wheel_pos;
+            jw->cabin_pos_ = jwm->cabin_pos;
+            jw->cabin_length_ = jwm->cabin_length;
 
-            jw->wheel_diameter = jwm->wheel_diameter;
-            jw->wheel_distance = jwm->wheel_distance;
+            jw->wheel_diameter_ = jwm->wheel_diameter;
+            jw->wheel_distance_ = jwm->wheel_distance;
 
-            jw->min_rot1 = -90.0f;
-            jw->max_rot1 = 90.0f;
+            jw->min_rot1_ = -90.0f;
+            jw->max_rot1_ = 90.0f;
 
-            jw->min_rot2 = jwm->min_rot2;
-            jw->max_rot2 = jwm->max_rot2;
+            jw->min_rot2_ = jwm->min_rot2;
+            jw->max_rot2_ = jwm->max_rot2;
 
-            jw->min_rot3 = jwm->min_rot3;
-            jw->max_rot3 = jwm->max_rot3;
+            jw->min_rot3_ = jwm->min_rot3;
+            jw->max_rot3_ = jwm->max_rot3;
 
-            jw->min_extent = jwm->min_extent;
-            jw->max_extent = jwm->max_extent;
+            jw->min_extent_ = jwm->min_extent;
+            jw->max_extent_ = jwm->max_extent;
         }
 
-        jw->base_name = jw->name;  // for later use when we fabricate names for zero config jetways
+        jw->base_name_ = jw->name_;  // for later use when we fabricate names for zero config jetways
 
         // sanitize all heading values entering the plugin in order to avoid stalls in fem::RA
-        jw->heading = fmodf(jw->heading, 360.0f);
+        jw->heading_ = fmodf(jw->heading_, 360.0f);
 
         jw->ComputeBbox();
 
         // simple sanity check, e.g Aerosoft LEBL has bogus values
-        if (is_between(jw->latitude, -85.0, 85.0) && is_between(jw->longitude, -180.0, 180.0))
+        if (is_between(jw->latitude_, -85.0, 85.0) && is_between(jw->longitude_, -180.0, 180.0))
             sam_jw_list.push_back(jw);
         else {
-            LogMsg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude, jw->longitude);
+            LogMsg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude_, jw->longitude_);
             delete (jw);
         }
     }
@@ -404,42 +404,42 @@ static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_
     int iauto = 1;
     for (int i = sc->jw_idx_start_; i < sc->jw_idx_end_; i++) {
         SamJw* jw = sam_jw_list[i];
-        if (jw->is_lib_jw_inst)
+        if (jw->is_lib_jw_inst_)
             continue;
 
-        if (jw->model_id.empty()) {
+        if (jw->model_id_.empty()) {
             static constexpr float eps = 0.05f;  // allow for some rounding errors in the sam.xml values
             for (const auto& [_, jwm] : sc->jw_models_) {
-                if (std::abs(jw->height - jwm->height) < eps && std::abs(jw->wheel_pos - jwm->wheel_pos) < eps &&
-                    std::abs(jw->cabin_pos - jwm->cabin_pos) < eps &&
-                    std::abs(jw->cabin_length - jwm->cabin_length) < eps &&
-                    std::abs(jw->wheel_diameter - jwm->wheel_diameter) < eps &&
-                    std::abs(jw->wheel_distance - jwm->wheel_distance) < eps &&
-                    std::abs(jw->min_extent - jwm->min_extent) < eps &&
-                    std::abs(jw->max_extent - jwm->max_extent) < eps) {
-                    jw->model_id = jwm->model_id;
+                if (std::abs(jw->height_ - jwm->height) < eps && std::abs(jw->wheel_pos_ - jwm->wheel_pos) < eps &&
+                    std::abs(jw->cabin_pos_ - jwm->cabin_pos) < eps &&
+                    std::abs(jw->cabin_length_ - jwm->cabin_length) < eps &&
+                    std::abs(jw->wheel_diameter_ - jwm->wheel_diameter) < eps &&
+                    std::abs(jw->wheel_distance_ - jwm->wheel_distance) < eps &&
+                    std::abs(jw->min_extent_ - jwm->min_extent) < eps &&
+                    std::abs(jw->max_extent_ - jwm->max_extent) < eps) {
+                    jw->model_id_ = jwm->model_id;
                     break;
                 }
             }
-            if (jw->model_id.empty()) {
+            if (jw->model_id_.empty()) {
                 // create a model
                 SamJwModel* jwm = new SamJwModel;
                 jwm->model_id = "auto_" + std::to_string(iauto++);
-                jwm->name = "Auto-generated for " + jw->base_name;
-                jwm->height = jw->height;
-                jwm->wheel_pos = jw->wheel_pos;
-                jwm->cabin_pos = jw->cabin_pos;
-                jwm->cabin_length = jw->cabin_length;
-                jwm->wheel_diameter = jw->wheel_diameter;
-                jwm->wheel_distance = jw->wheel_distance;
-                jwm->min_rot2 = jw->min_rot2;
-                jwm->max_rot2 = jw->max_rot2;
-                jwm->min_rot3 = jw->min_rot3;
-                jwm->max_rot3 = jw->max_rot3;
-                jwm->min_extent = jw->min_extent;
-                jwm->max_extent = jw->max_extent;
+                jwm->name = "Auto-generated for " + jw->base_name_;
+                jwm->height = jw->height_;
+                jwm->wheel_pos = jw->wheel_pos_;
+                jwm->cabin_pos = jw->cabin_pos_;
+                jwm->cabin_length = jw->cabin_length_;
+                jwm->wheel_diameter = jw->wheel_diameter_;
+                jwm->wheel_distance = jw->wheel_distance_;
+                jwm->min_rot2 = jw->min_rot2_;
+                jwm->max_rot2 = jw->max_rot2_;
+                jwm->min_rot3 = jw->min_rot3_;
+                jwm->max_rot3 = jw->max_rot3_;
+                jwm->min_extent = jw->min_extent_;
+                jwm->max_extent = jw->max_extent_;
                 sc->jw_models_[jwm->model_id] = jwm;
-                jw->model_id = jwm->model_id;
+                jw->model_id_ = jwm->model_id;
             }
         }
     }
@@ -493,23 +493,23 @@ static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_
         SamJw* jw = sam_jw_list[i];
 
         pugi::xml_node jetway = jetways.append_child("jetway");
-        jetway.append_attribute("name") = jw->name.c_str();
-        if (jw->is_lib_jw_inst)
+        jetway.append_attribute("name") = jw->name_.c_str();
+        if (jw->is_lib_jw_inst_)
             jetway.append_attribute("model_id") = "";
         else
-            jetway.append_attribute("model_id") = jw->model_id.c_str();
+            jetway.append_attribute("model_id") = jw->model_id_.c_str();
 
-        jetway.append_attribute("latitude") = jw->latitude;
-        jetway.append_attribute("longitude") = jw->longitude;
-        jetway.append_attribute("heading") = jw->heading;
-        jetway.append_attribute("min_rot1") = jw->min_rot1;
-        jetway.append_attribute("max_rot1") = jw->max_rot1;
-        jetway.append_attribute("initial_rot1") = jw->initial_rot1;
-        jetway.append_attribute("initial_rot2") = jw->initial_rot2;
-        jetway.append_attribute("initial_rot3") = jw->initial_rot3;
-        jetway.append_attribute("initial_extent") = jw->initial_extent;
-        if (!jw->is_lib_jw_inst)
-            jetway.append_attribute("door") = jw->door;
+        jetway.append_attribute("latitude") = jw->latitude_;
+        jetway.append_attribute("longitude") = jw->longitude_;
+        jetway.append_attribute("heading") = jw->heading_;
+        jetway.append_attribute("min_rot1") = jw->min_rot1_;
+        jetway.append_attribute("max_rot1") = jw->max_rot1_;
+        jetway.append_attribute("initial_rot1") = jw->initial_rot1_;
+        jetway.append_attribute("initial_rot2") = jw->initial_rot2_;
+        jetway.append_attribute("initial_rot3") = jw->initial_rot3_;
+        jetway.append_attribute("initial_extent") = jw->initial_extent_;
+        if (!jw->is_lib_jw_inst_)
+            jetway.append_attribute("door") = jw->door_;
     }
 
     sc_node.insert_move_before(models, jetways);  // for readability
@@ -772,27 +772,27 @@ bool Scenery::UpdateOpenSamXml(const std::vector<SamJw*> jw_instances) {
     jetways.append_child(pugi::node_comment).set_value(jetways_comment);
 
     for (auto jw : jw_instances) {
-        if (jw->is_undefined)
+        if (jw->is_undefined_)
             continue;
 
         pugi::xml_node jetway = jetways.append_child("jetway");
-        jetway.append_attribute("name") = jw->name.c_str();
-        if (jw->is_lib_jw_inst)
+        jetway.append_attribute("name") = jw->name_.c_str();
+        if (jw->is_lib_jw_inst_)
             jetway.append_attribute("model_id") = "";
         else
-            jetway.append_attribute("model_id") = jw->model_id.c_str();
+            jetway.append_attribute("model_id") = jw->model_id_.c_str();
 
-        jetway.append_attribute("latitude") = jw->latitude;
-        jetway.append_attribute("longitude") = jw->longitude;
-        jetway.append_attribute("heading") = jw->heading;
-        jetway.append_attribute("min_rot1") = jw->min_rot1;
-        jetway.append_attribute("max_rot1") = jw->max_rot1;
-        jetway.append_attribute("initial_rot1") = jw->initial_rot1;
-        jetway.append_attribute("initial_rot2") = jw->initial_rot2;
-        jetway.append_attribute("initial_rot3") = jw->initial_rot3;
-        jetway.append_attribute("initial_extent") = jw->initial_extent;
-        if (!jw->is_lib_jw_inst)
-            jetway.append_attribute("door") = jw->door;
+        jetway.append_attribute("latitude") = jw->latitude_;
+        jetway.append_attribute("longitude") = jw->longitude_;
+        jetway.append_attribute("heading") = jw->heading_;
+        jetway.append_attribute("min_rot1") = jw->min_rot1_;
+        jetway.append_attribute("max_rot1") = jw->max_rot1_;
+        jetway.append_attribute("initial_rot1") = jw->initial_rot1_;
+        jetway.append_attribute("initial_rot2") = jw->initial_rot2_;
+        jetway.append_attribute("initial_rot3") = jw->initial_rot3_;
+        jetway.append_attribute("initial_extent") = jw->initial_extent_;
+        if (!jw->is_lib_jw_inst_)
+            jetway.append_attribute("door") = jw->door_;
     }
 
     if (!doc.save_file(sam_xml_pathname_.c_str(), "  ", pugi::format_default | pugi::format_indent_attributes)) {

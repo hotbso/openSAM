@@ -119,7 +119,7 @@ void scenery_test() {
         puts("\nJetways");
         for (auto i = sc->jw_idx_start_; i < sc->jw_idx_end_; i++) {
             const SamJw* jw = sam_jw_list[i];
-            printf("%s id: '%s' ll:(%5.6f,%5.6f) door: %d\n", jw->name.c_str(), jw->model_id.c_str(), jw->latitude, jw->longitude, jw->door);
+            printf("%s id: '%s' ll:(%5.6f,%5.6f) door: %d\n", jw->name_.c_str(), jw->model_id_.c_str(), jw->latitude_, jw->longitude_, jw->door_);
         }
         puts("\n");
     }
@@ -170,8 +170,8 @@ void scenery_test() {
         printf("\nNo jetways found by FindInBox\n");
     else {
         for (auto& [jw, _] : found_map)
-            printf("Found jetway by FindInBox: '%s' at %0.6f, %0.6f\n", jw->name.c_str(), jw->latitude,
-                   jw->longitude);
+            printf("Found jetway by FindInBox: '%s' at %0.6f, %0.6f\n", jw->name_.c_str(), jw->latitude_,
+                   jw->longitude_);
     }
 }
 

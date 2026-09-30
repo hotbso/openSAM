@@ -69,28 +69,28 @@ std::vector<SamJwModel*> lib_jw;
 Sound SamJw::alert_;
 
 bool SamJw::Lock(int pid) noexcept {  // -> whether lock could be aquired
-    if (locked > 0 && lock_pid != pid) {
-        LogMsg("pid=%02d, failed to lock jw '%s', already locked by pid=%02d", pid, name.c_str(), lock_pid);
+    if (locked_ > 0 && lock_pid_ != pid) {
+        LogMsg("pid=%02d, failed to lock jw '%s', already locked_ by pid=%02d", pid, name_.c_str(), lock_pid_);
         return false;
     }
 
-    if (locked == 0)
-        LogMsg("pid=%02d, locking jw '%s'", pid, name.c_str());
+    if (locked_ == 0)
+        LogMsg("pid=%02d, locking jw '%s'", pid, name_.c_str());
 
-    locked++;
-    lock_pid = pid;
+    locked_++;
+    lock_pid_ = pid;
     return true;
 }
 
 void SamJw::Unlock() noexcept {
-    locked--;
-    if (locked == 0) {
-        LogMsg("pid=%02d, unlocking jw '%s'", lock_pid, name.c_str());
-        lock_pid = 0;
-    } else if (locked < 0) {
-        LogMsg("jw '%s' unlocked too many times, locked: %d", name.c_str(), locked);
-        locked = 0;
-        lock_pid = -1;
+    locked_--;
+    if (locked_ == 0) {
+        LogMsg("pid=%02d, unlocking jw '%s'", lock_pid_, name_.c_str());
+        lock_pid_ = 0;
+    } else if (locked_ < 0) {
+        LogMsg("jw '%s' unlocked too many times, locked_: %d", name_.c_str(), locked_);
+        locked_ = 0;
+        lock_pid_ = -1;
     }
 }
 
@@ -98,41 +98,41 @@ void SamJw::Unlock() noexcept {
 // fill in values for a library jetway
 //
 void SamJw::FillLibraryValues(unsigned int id) {
-    if (library_id)
+    if (library_id_)
         return;
 
     if (id == 0 || id >= lib_jw.size()) {
-        LogMsg("sanity check failed for jw: '%s', id: %d", name.c_str(), id);
+        LogMsg("sanity check failed for jw: '%s', id: %d", name_.c_str(), id);
         return;
     }
 
-    library_id = id;
+    library_id_ = id;
     const SamJwModel* ljw = lib_jw[id];
     if (ljw == nullptr) {
-        LogMsg("Unconfigured library jw for '%s', id: %d", name.c_str(), id);
+        LogMsg("Unconfigured library jw for '%s', id: %d", name_.c_str(), id);
         return;
     }
 
-    LogMsg("filling in library data for '%s', id: %d", name.c_str(), id);
-    height = ljw->height;
-    wheel_pos = ljw->wheel_pos;
-    cabin_pos = ljw->cabin_pos;
-    cabin_length = ljw->cabin_length;
+    LogMsg("filling in library data for '%s', id: %d", name_.c_str(), id);
+    height_ = ljw->height;
+    wheel_pos_ = ljw->wheel_pos;
+    cabin_pos_ = ljw->cabin_pos;
+    cabin_length_ = ljw->cabin_length;
 
-    wheel_diameter = ljw->wheel_diameter;
-    wheel_distance = ljw->wheel_distance;
+    wheel_diameter_ = ljw->wheel_diameter;
+    wheel_distance_ = ljw->wheel_distance;
 
-    min_rot1 = -90.0f;
-    max_rot1 = 90.0f;
+    min_rot1_ = -90.0f;
+    max_rot1_ = 90.0f;
 
-    min_rot2 = ljw->min_rot2;
-    max_rot2 = ljw->max_rot2;
+    min_rot2_ = ljw->min_rot2;
+    max_rot2_ = ljw->max_rot2;
 
-    min_rot3 = ljw->min_rot3;
-    max_rot3 = ljw->max_rot3;
+    min_rot3_ = ljw->min_rot3;
+    max_rot3_ = ljw->max_rot3;
 
-    min_extent = ljw->min_extent;
-    max_extent = ljw->max_extent;
+    min_extent_ = ljw->min_extent;
+    max_extent_ = ljw->max_extent;
 }
 
 //
@@ -142,47 +142,47 @@ void SamJw::FillLibraryValues(unsigned int id) {
 //
 static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y, float obj_psi) {
     SamJw* jw = new SamJw();
-    jw->obj_ref_gen = ref_gen;
-    jw->x = obj_x;
-    jw->z = obj_z;
-    jw->y = obj_y;
-    jw->psi = obj_psi;
-    jw->is_zc_jw = true;
-    jw->is_lib_jw_inst = true;  // zc jetways are always library instances
+    jw->obj_ref_gen_ = ref_gen;
+    jw->x_ = obj_x;
+    jw->z_ = obj_z;
+    jw->y_ = obj_y;
+    jw->psi_ = obj_psi;
+    jw->is_zc_jw_ = true;
+    jw->is_lib_jw_inst_ = true;  // zc jetways are always library instances
 
     // fill the 'opensam.xml' related position values
-    XPLMLocalToWorld(obj_x, obj_y, obj_z, &jw->latitude,  &jw->longitude, &jw->altitude);
-    jw->heading = obj_psi;
+    XPLMLocalToWorld(obj_x, obj_y, obj_z, &jw->latitude_,  &jw->longitude_, &jw->altitude_);
+    jw->heading_ = obj_psi;
 
     jw->ComputeBbox();
 
     // try to update stand related parameters or delay that until os_arpt is available
     const OsStand* stand = nullptr;
     if (os_arpt) {
-        jw->stand_retrieved = true;   // one shot only
-        stand = os_arpt->FindStandForJw(jw->x, jw->z);
+        jw->stand_retrieved_ = true;   // one shot only
+        stand = os_arpt->FindStandForJw(jw->x_, jw->z_);
     }
 
     if (stand) {
-        jw->base_name = stand->name();
+        jw->base_name_ = stand->name();
         // delta = cabin points perpendicular to stand
-        float delta = fem::RA((stand->hdgt() + 90.0f) - jw->psi);
+        float delta = fem::RA((stand->hdgt() + 90.0f) - jw->psi_);
         // randomize
         float delta_r = (0.2f + 0.8f * (0.01f * (rand() % 100))) * delta;
-        jw->initial_rot2 = delta_r;
-        LogMsg("jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, initial_rot2: %0.1f", jw->psi, stand->hdgt(), delta,
-               jw->initial_rot2);
+        jw->initial_rot2_ = delta_r;
+        LogMsg("jw->psi: %0.1f, stand->hdgt: %0.1f, delta: %0.1f, initial_rot2: %0.1f", jw->psi_, stand->hdgt(), delta,
+               jw->initial_rot2_);
     } else {
-        jw->base_name = "zc_";
-        jw->initial_rot2 = 5.0f;
+        jw->base_name_ = "zc_";
+        jw->initial_rot2_ = 5.0f;
     }
 
-    jw->initial_extent = 0.3f;
-    jw->initial_rot3 = -3.0f * 0.01f * (rand() % 100);
+    jw->initial_extent_ = 0.3f;
+    jw->initial_rot3_ = -3.0f * 0.01f * (rand() % 100);
 
-    jw->rotate2 = jw->initial_rot2;
-    jw->rotate3 = jw->initial_rot3;
-    jw->extent = jw->initial_extent;
+    jw->rotate2_ = jw->initial_rot2_;
+    jw->rotate3_ = jw->initial_rot3_;
+    jw->extent_ = jw->initial_extent_;
     jw->FillLibraryValues(id);
     jw->SetWheels();
 
@@ -191,7 +191,7 @@ static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y,
     jw_quadtree.Insert(jw);
 
     LogMsg("added zc jetway, stand: '%s', global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, initial_rot2: %0.1f",
-           jw->base_name.c_str(), jw->x, jw->z, jw->y, jw->psi, jw->initial_rot2);
+           jw->base_name_.c_str(), jw->x_, jw->z_, jw->y_, jw->psi_, jw->initial_rot2_);
 
     return jw;
 }
@@ -238,7 +238,7 @@ static float JwAnimAcc(void* ref) {
         stat_jw_cache_hit++;
         jw = it->second;
         assert(jw);
-        if (jw->is_undefined || jw->is_deleted)
+        if (jw->is_undefined_ || jw->is_deleted_)
             return 0.0f;  // negative cache entry, object at this position is not a recognized jetway
     } else {
         const float obj_psi = XPLMGetDataf(draw_object_psi_dr);
@@ -249,15 +249,15 @@ static float JwAnimAcc(void* ref) {
         // create an undefined jw at the current object position
         auto AddUndefinedJw = [&]() {
             SamJw* jw = new SamJw();
-            jw->is_undefined = true;
-            jw->latitude = obj_lat;
-            jw->longitude = obj_lon;
-            jw->altitude = obj_alt;
-            jw->heading = obj_psi;
-            jw->obj_ref_gen = ref_gen;
-            jw->x = obj_x;
-            jw->y = obj_y;
-            jw->z = obj_z;
+            jw->is_undefined_ = true;
+            jw->latitude_ = obj_lat;
+            jw->longitude_ = obj_lon;
+            jw->altitude_ = obj_alt;
+            jw->heading_ = obj_psi;
+            jw->obj_ref_gen_ = ref_gen;
+            jw->x_ = obj_x;
+            jw->y_ = obj_y;
+            jw->z_ = obj_z;
             jw->ComputeBbox();
             sam_jw_list.push_back(jw);
             jw_quadtree.Insert(jw);
@@ -270,21 +270,21 @@ static float JwAnimAcc(void* ref) {
 
         if (n_candidates == 1) [[likely]] {
             jw = candidates[0];
-            LogMsg("quadtree candidate: '%s', lat: %0.6f, lon: %0.6f", jw->name.c_str(), jw->latitude, jw->longitude);
+            LogMsg("quadtree candidate: '%s', lat: %0.6f, lon: %0.6f", jw->name_.c_str(), jw->latitude_, jw->longitude_);
 
-            if (std::abs(fem::RA(jw->heading - obj_psi)) > SamJw::kSam2ObjHdgMax) {
-                LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", jw->name.c_str(),
-                       jw->heading, obj_psi);
-                LogMsg("negative cached: obj: ll(%0.6f, %0.6f), candidate: ll(%0.6f, %0.6f)", obj_lat, obj_lon, jw->latitude, jw->longitude);
+            if (std::abs(fem::RA(jw->heading_ - obj_psi)) > SamJw::kSam2ObjHdgMax) {
+                LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", jw->name_.c_str(),
+                       jw->heading_, obj_psi);
+                LogMsg("negative cached: obj: ll(%0.6f, %0.6f), candidate: ll(%0.6f, %0.6f)", obj_lat, obj_lon, jw->latitude_, jw->longitude_);
                 AddUndefinedJw();
                 return 0.0f;
             }
 
-            jw->obj_ref_gen = ref_gen;
-            jw->x = obj_x;
-            jw->z = obj_z;
-            jw->y = obj_y;
-            jw->psi = obj_psi;
+            jw->obj_ref_gen_ = ref_gen;
+            jw->x_ = obj_x;
+            jw->z_ = obj_z;
+            jw->y_ = obj_y;
+            jw->psi_ = obj_psi;
 
             jw_cache[key] = jw;
         } else if (n_candidates > 1) [[unlikely]] {
@@ -294,15 +294,15 @@ static float JwAnimAcc(void* ref) {
 
             for (int i = 0; i < n_candidates; i++) {
                 SamJw* candidate = candidates[i];
-                LogMsg("candidate %d: '%s', lat: %0.6f, lon: %0.6f", i, candidate->name.c_str(), candidate->latitude,
-                       candidate->longitude);
-                if (std::abs(fem::RA(candidate->heading - obj_psi)) > SamJw::kSam2ObjHdgMax) {
-                    LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", candidate->name.c_str(),
-                        candidate->heading, obj_psi);
+                LogMsg("candidate %d: '%s', lat: %0.6f, lon: %0.6f", i, candidate->name_.c_str(), candidate->latitude_,
+                       candidate->longitude_);
+                if (std::abs(fem::RA(candidate->heading_ - obj_psi)) > SamJw::kSam2ObjHdgMax) {
+                    LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", candidate->name_.c_str(),
+                        candidate->heading_, obj_psi);
                     continue;
                 }
 
-                float dist = fem::len(fem::LLPos(candidate->latitude, candidate->longitude) - obj_pos);
+                float dist = fem::len(fem::LLPos(candidate->latitude_, candidate->longitude_) - obj_pos);
                 if (dist < min_dist) {
                     min_dist = dist;
                     nearest = candidate;
@@ -315,14 +315,14 @@ static float JwAnimAcc(void* ref) {
                 return 0.0f;
             }
 
-            LogMsg("nearest candidate: '%s', lat: %0.6f, lon: %0.6f, dist: %0.2fm", nearest->name.c_str(),
-                   nearest->latitude, nearest->longitude, min_dist);
+            LogMsg("nearest candidate: '%s', lat: %0.6f, lon: %0.6f, dist: %0.2fm", nearest->name_.c_str(),
+                   nearest->latitude_, nearest->longitude_, min_dist);
             jw = nearest;
-            jw->obj_ref_gen = ref_gen;
-            jw->x = obj_x;
-            jw->z = obj_z;
-            jw->y = obj_y;
-            jw->psi = obj_psi;
+            jw->obj_ref_gen_ = ref_gen;
+            jw->x_ = obj_x;
+            jw->z_ = obj_z;
+            jw->y_ = obj_y;
+            jw->psi_ = obj_psi;
 
             jw_cache[key] = jw;
         } else if (n_candidates == 0 && id == 0) [[unlikely]] {
@@ -344,14 +344,14 @@ static float JwAnimAcc(void* ref) {
             fem::LLPos obj_pos(obj_lat, obj_lon);
 
             for (auto& [ajw, _] : around) {
-                LogMsg("candidate: '%s', lat: %0.6f, lon: %0.6f", ajw->name.c_str(), ajw->latitude, ajw->longitude);
-                if (std::abs(fem::RA(ajw->heading - obj_psi)) > 2.0f * SamJw::kSam2ObjHdgMax) { // be generous as well
-                    LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", ajw->name.c_str(),
-                        ajw->heading, obj_psi);
+                LogMsg("candidate: '%s', lat: %0.6f, lon: %0.6f", ajw->name_.c_str(), ajw->latitude_, ajw->longitude_);
+                if (std::abs(fem::RA(ajw->heading_ - obj_psi)) > 2.0f * SamJw::kSam2ObjHdgMax) { // be generous as well
+                    LogMsg("candidate '%s' rejected by heading, candidate heading: %0.1f, obj_psi: %0.1f", ajw->name_.c_str(),
+                        ajw->heading_, obj_psi);
                     continue;
                 }
 
-                float dist = fem::len(fem::LLPos(ajw->latitude, ajw->longitude) - obj_pos);
+                float dist = fem::len(fem::LLPos(ajw->latitude_, ajw->longitude_) - obj_pos);
                 if (dist < min_dist) {
                     min_dist = dist;
                     nearest = ajw;
@@ -364,14 +364,14 @@ static float JwAnimAcc(void* ref) {
                 return 0.0f;
             }
 
-            LogMsg("nearest candidate: '%s', lat: %0.6f, lon: %0.6f, dist: %0.2fm", nearest->name.c_str(),
-                   nearest->latitude, nearest->longitude, min_dist);
+            LogMsg("nearest candidate: '%s', lat: %0.6f, lon: %0.6f, dist: %0.2fm", nearest->name_.c_str(),
+                   nearest->latitude_, nearest->longitude_, min_dist);
             jw = nearest;
-            jw->obj_ref_gen = ref_gen;
-            jw->x = obj_x;
-            jw->z = obj_z;
-            jw->y = obj_y;
-            jw->psi = obj_psi;
+            jw->obj_ref_gen_ = ref_gen;
+            jw->x_ = obj_x;
+            jw->z_ = obj_z;
+            jw->y_ = obj_y;
+            jw->psi_ = obj_psi;
 
             jw_cache[key] = jw;
         }
@@ -389,7 +389,7 @@ static float JwAnimAcc(void* ref) {
         }
     }  // no cache hit
 
-    if (jw->is_undefined || jw->is_deleted)       // we have hit an undefined or deleted jetway
+    if (jw->is_undefined_ || jw->is_deleted_)       // we have hit an undefined or deleted jetway
         return 0.0f;
 
     switch (drc) {
@@ -398,34 +398,34 @@ static float JwAnimAcc(void* ref) {
             if (id > 0) {
                 jw->FillLibraryValues(id);
             }
-            return jw->rotate1;
+            return jw->rotate1_;
             break;
         case kRotate2:
-            return jw->rotate2;
+            return jw->rotate2_;
             break;
         case kRotate3:
-            return jw->rotate3;
+            return jw->rotate3_;
             break;
         case kExtent:
-            return jw->extent;
+            return jw->extent_;
             break;
         case kWheels:
-            return jw->wheels;
+            return jw->wheels_;
             break;
         case kWheelRotateC:
-            return jw->wheelrotatec;
+            return jw->wheelrotatec_;
             break;
         case kWheelRotateR:
-            return jw->wheelrotater;
+            return jw->wheelrotater_;
             break;
         case kWheelRotateL:
-            return jw->wheelrotatel;
+            return jw->wheelrotatel_;
             break;
         case kWarnLight:
-            return jw->warnlight;
+            return jw->warnlight_;
             break;
         case kCanopy:
-            return jw->canopy;
+            return jw->canopy_;
             break;
         default:
             LogMsg("Accessor got invalid DR code: %d", drc);
@@ -465,13 +465,13 @@ void SamJw::AlertSetpos() {
     static FMOD_VECTOR vel = {0.0f, 0.0f, 0.0f};
     FMOD_VECTOR pos;
 
-    // the beeper position is roughly at the cabin door
+    // the beeper position is roughly at the cabin door_
 
     // compute position in the local coordinate system of the scenery
-    float rot1 = fem::RA((rotate1 + psi) - 90.0f);
-    pos.x = x + (extent + cabin_pos) * std::cos(rot1 * kD2R);
-    pos.y = y + height;
-    pos.z = z + (extent + cabin_pos) * std::sin(rot1 * kD2R);
+    float rot1 = fem::RA((rotate1_ + psi_) - 90.0f);
+    pos.x = x_ + (extent_ + cabin_pos_) * std::cos(rot1 * kD2R);
+    pos.y = y_ + height_;
+    pos.z = z_ + (extent_ + cabin_pos_) * std::sin(rot1 * kD2R);
     XPLMSetAudioPosition(alert_chn_, &pos, &vel);
 }
 
@@ -520,7 +520,7 @@ void SamJw::Finalize() {
     for (int i = 0; i < (int)sam_jw_list.size(); i++) {
         SamJw* jw = sam_jw_list[i];
         LogMsg("jw[%d]: '%s', ll: (%0.6f, %0.6f), is_undefined: %d, local: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f", i,
-               jw->name.c_str(), jw->latitude, jw->longitude, jw->is_undefined, jw->x, jw->z, jw->y, jw->psi);
+               jw->name_.c_str(), jw->latitude_, jw->longitude_, jw->is_undefined_, jw->x_, jw->z_, jw->y_, jw->psi_);
     }
 #endif
 }
