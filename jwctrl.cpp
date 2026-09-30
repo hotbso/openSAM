@@ -220,8 +220,12 @@ bool operator<(const JwCtrl& a, const JwCtrl& b) noexcept{
 }
 
 // filter list of jetways jws[]for candidates and add them to nearest_jws[]
-static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCtrl>& nearest_jws,
-                             std::unordered_map<SamJw*, bool> near_jws_map, const DoorInfo& door_info) {
+static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, int i_door,
+                             std::unordered_map<SamJw*, bool> near_jws_map, std::vector<JwCtrl>& nearest_jws) {
+    LogMsg("pid=%02d, Filter for door %d", plane_info.id, i_door);
+
+    const DoorInfo& door_info = plane_info.door_info[i_door];
+
     // Find the nearest jetways on the left and do some heuristics
     int invisible_jws = 0;
     for (auto& [jw, _] : near_jws_map) {
@@ -231,6 +235,18 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCt
         }
 
         if (jw->is_locked())
+            continue;
+
+        // check whether already in list
+        bool have_duplicate = false;
+        for (const auto& jwc : nearest_jws)
+            if (jwc.jw_ == jw) {
+                LogMsg("pid=%02d, skipping duplicate candidate %s", plane_info.id, jw->name.c_str());
+                have_duplicate = true;
+                break;
+            }
+
+        if (have_duplicate)
             continue;
 
         // LogMsg("pid=%02d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
@@ -243,17 +259,18 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCt
         // ... and send it through the filters ...
         if (njw.x_ > 1.0f ||
             is_between(fem::RA(njw.psi_ + jw->initial_rot1), -130.0f, 20.0f) ||  // on the right side or pointing away
-            njw.x_ < -80.0f || std::abs(njw.z_) > 80.0f) {                      // or far away
+            njw.x_ < -80.0f || std::abs(njw.z_) > 80.0f) {                       // or far away
             if (std::abs(njw.x_) < 120.0f && std::abs(njw.z_) < 120.0f)  // don't pollute the log with jws VERY far away
-                LogMsg("pid=%02d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initial_rot1): %0.1f",
-                       plane_info.id, jw->name.c_str(), njw.x_, njw.z_, njw.psi_ + jw->initial_rot1);
+                LogMsg(
+                    "pid=%02d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initial_rot1): %0.1f",
+                    plane_info.id, jw->name.c_str(), njw.x_, njw.z_, njw.psi_ + jw->initial_rot1);
             continue;
         }
 
         if (!njw.CheckConstraints()) {
             LogMsg("jw: %s for door %d, rot1: %0.1f, rot2: %0.1f, rot3: %0.1f, extent: %0.1f", jw->name.c_str(),
                    jw->door, njw.docked_rot1_, njw.docked_rot2_, njw.docked_rot3_, njw.docked_extent_);
-            LogMsg("  does not fulfil min max criteria in sam.xml");
+            LogMsg("  does not fulfil min max criteria in opensam.xml");
             continue;
         }
 
@@ -271,7 +288,7 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, std::vector<JwCt
         LogMsg("skipped %d invisible of %d total jetways", invisible_jws, static_cast<int>(near_jws_map.size()));
 }
 
-// find nearest jetways, order by z (= door number, hopefully)
+// find nearest jetways, order by door number, hopefully
 // static member, called by Plane
 int JwCtrl::FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<JwCtrl>& nearest_jws) {
     int n_doors = plane_info.door_info.size();
@@ -284,22 +301,6 @@ int JwCtrl::FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<Jw
     // or autogate jetways this test never executes in the data accessors
     // so we may end up with a stale cache
     CheckRefFrameShift();
-
-    // compute the 'average' door location for performance reasons
-    // we do a final check later during actual jw assignment
-    DoorInfo avg_di;
-    avg_di.x = 0.0f;
-    avg_di.z = 0.0f;
-    for (int i = 0; i < n_doors; i++) {
-        avg_di.x += plane_info.door_info[i].x;
-        avg_di.z += plane_info.door_info[i].z;
-    }
-
-    avg_di.x /= n_doors;
-    avg_di.z /= n_doors;
-    avg_di.y = plane_info.door_info[0].y;
-
-    nearest_jws.clear();
 
     double plane_lat, plane_lon, plane_alt;
     XPLMLocalToWorld(plane_info.x, plane_info.y, plane_info.z, &plane_lat, &plane_lon, &plane_alt);
@@ -314,7 +315,9 @@ int JwCtrl::FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<Jw
 
     LogMsg("found %d jetways around plane position", static_cast<int>(near_jws_map.size()));
 
-    FilterCandidates(plane_info, nearest_jws, near_jws_map, avg_di);
+    nearest_jws.clear();
+    for (int i = 0; i < n_doors; i++)
+        FilterCandidates(plane_info, i, near_jws_map, nearest_jws);
 
     // delayed processing of zc jetways now once os_arpt is available, as we need the stands for that
     if (os_arpt) {
