@@ -37,13 +37,6 @@ static constexpr float kJw2Stand = 28.0;            // m, max dist jw to stand
 
 namespace fem = flat_earth_math;
 
-struct Jetway {
-	fem::LLPos pos;
-	float hdgt;
-	float length;
-    fem::LLPos cabin;    // = pos + length * dir(hdgt)
-};
-
 std::unordered_map<std::string, AptAirport*> AptAirport::apt_airports_;
 quadtree::LLQuadTree<double, AptAirport, AptAirport::kMaxAirportsPerNode> AptAirport::apt_quadtree_;  // for fast lookup by position
 
@@ -100,8 +93,9 @@ void AptAirport::ComputeBBox() {
     //        icao_.c_str(), bbox_min_.lat, bbox_min_.lon, bbox_max_.lat, bbox_max_.lon);
 }
 
-// go through apt.dat and collect stands
-AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs, int& total_stands) {
+// go through apt.dat and collect stands and xp12 jetways
+AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs,
+                                    std::vector<AptJetway>& jetways, int& total_stands) {
     if (apt_airports_.empty()) {
         apt_airports_.reserve(8000);  // avoid too many reallocations
     }
@@ -117,7 +111,7 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool fil
     AptAirport* retval = nullptr;
     AptAirport* arpt = nullptr;
     std::string arpt_name;
-    std::vector<Jetway> jetways;
+    int jw_start_idx = jetways.size();   // start idx of jetways for the next airport
 
     // save arpt if it has a tower frequency and stands
     auto save_arpt = [&]() {
@@ -126,22 +120,29 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool fil
 
         // LogMsg("Save ---> '%s', %d, %d", arpt->icao_.c_str(), arpt->has_twr_, (int)arpt->stands_.size());
         if ((!filter_autodgs || arpt->has_twr_) && arpt->stands_.size() > 0) {
-            for (auto& s : arpt->stands_)
-                for (auto& jw : jetways)
-                    if (fem::len(jw.cabin - fem::LLPos{s.lon, s.lat}) < kJw2Stand) {
-                        s.has_xp12_jw = true;
-                        break;
-                    }
-
-            total_stands += arpt->stands_.size();
+            // final processing of stands_ vector
             arpt->stands_.shrink_to_fit();
             std::sort(arpt->stands_.begin(), arpt->stands_.end());
+
+            for (auto& s : arpt->stands_)
+                for (int i = jw_start_idx; i < (int)jetways.size(); i++) {
+                    auto& jw = jetways[i];
+                    if (fem::len(jw.cabin - fem::LLPos{s.lon, s.lat}) < kJw2Stand) {
+                        s.has_xp12_jw = true;
+                        jw.stand_name = s.name;
+                        break;
+                    }
+                }
+
+            total_stands += arpt->stands_.size();
             apt_airports_[arpt->icao_] = arpt;
             retval = arpt;
-            jetways.clear();
-            arpt->ComputeBBox();  // compute bounding box for this airport
-        } else
+            jw_start_idx = jetways.size();  // update for next airport
+            arpt->ComputeBBox();            // compute bounding box for this airport
+        } else {
             delete (arpt);
+            jetways.resize(jw_start_idx);  // rollback
+        }
 
         arpt = nullptr;
         arpt_name.clear();
@@ -196,7 +197,6 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool fil
                 continue;  // can't be an icao airport
             }
 
-
             if (apt_airports_.find(arpt_name) == apt_airports_.end()) {
                 // does not yet exist
                 arpt = new AptAirport(arpt_name);
@@ -237,8 +237,8 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool fil
         // 1500 60.3161845 24.9597493 234.4 2 1 234.4 16.17 253.2
         if (line.starts_with("1500 ")) {
             arpt->has_xp12_jws_ = true;
-            Jetway jw;
-            sscanf(line.c_str(), "%*d %lf %lf %f %*d %*d %*f %f", &jw.pos.lat, &jw.pos.lon, &jw.hdgt, &jw.length);
+            AptJetway jw;
+            sscanf(line.c_str(), "%*d %lf %lf %f %d %d %*f %f %f", &jw.pos.lat, &jw.pos.lon, &jw.hdgt, &jw.style, &jw.length_code, &jw.length, &jw.cabin_hdgt);
             fem::Vec2 dir{cosf((90.0f - jw.hdgt) * kD2R), sinf((90.0f - jw.hdgt) * kD2R)};
             jw.cabin = jw.pos + jw.length * dir;
             jetways.push_back(jw);

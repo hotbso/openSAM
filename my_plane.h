@@ -59,6 +59,8 @@ class MyPlane : public OsPlane, public dgs::Plane {
     void MemorizeParkedPos() override;  // for teleportation detection
     bool CheckParkedTeleportation() override;
 
+    OsPlane::State state() const { return state_; }
+
     // these 3 are called without prior update() call -> direct read from drefs
     float lat() { return XPLMGetDataf(plane_lat_dr_); }
 

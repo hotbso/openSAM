@@ -19,10 +19,10 @@
 //    USA
 //
 
-#ifndef _APT_AIRPORT_H_
-#define _APT_AIRPORT_H_
+#pragma once
 
 #include <string>
+#include <string_view>
 #include <vector>
 #include <unordered_map>
 
@@ -53,6 +53,19 @@ struct AptRunway {
     float width;
 };
 
+// code 1500 data
+struct AptJetway {
+	flat_earth_math::LLPos pos;
+	float hdgt;
+    int style, length_code;
+	float length;
+    float cabin_hdgt;
+
+    // derived values
+    std::string_view stand_name;
+    flat_earth_math::LLPos cabin;    // = pos + length * dir(hdgt)
+};
+
 class AptAirport {
    protected:
     friend void ::scenery_test();  // for testing purposes, to access private members
@@ -76,14 +89,16 @@ class AptAirport {
     std::string icao_;
 
     AptAirport(const AptAirport&) = delete;
+    AptAirport(const AptAirport&&) = delete;
     AptAirport& operator=(const AptAirport&) = delete;
+    AptAirport& operator=(const AptAirport&&) = delete;
 
     // parse apt.dat, enter data into apt_airports_, return pointer to (last) parsed airport or nullptr on error
     // if ignore is true, a dummy airport with that id will be added and marked as ignored
     // this will also shadow a global airport with the same id, so it won't be found by LocateAirport
-
+    // Append jetway records to the provided vector
     static AptAirport* ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs,
-                                   int& total_stands);
+                                   std::vector<AptJetway>& jetways, int& total_stands);
 
     static int NumAirports() { return apt_airports_.size(); }
     static void LoadingFinished();  // call after all airports have been loaded to build the quadtree
@@ -97,7 +112,7 @@ class AptAirport {
     void dump() const;
     void ComputeBBox();
 
-    // for quadtree
+    // for the quadtree
     double lon() const { return (bbox_min_.lon + bbox_max_.lon) / 2; }  // center point
     double lat() const { return (bbox_min_.lat + bbox_max_.lat) / 2; }
     quadtree::Box<double> bounds() const { return {bbox_min_.lon, bbox_min_.lat, bbox_max_.lon, bbox_max_.lat}; }
@@ -107,5 +122,3 @@ class AptAirport {
 };
 
 } // namespace dgs
-
-#endif

@@ -35,6 +35,7 @@
 
 #include "opensam.h"
 #include "samjw.h"
+#include "xp12_jw_instance.h"
 #include "jwctrl.h"
 #include "os_anim.h"
 #include "plane.h"
@@ -136,6 +137,7 @@ static float lat_ref{-1000}, lon_ref{-1000};
 unsigned int ref_gen{1};
 
 static int pref_auto_mode;
+bool manage_xp12_jetways;    // 1 to manage XP12 jetways, 0 to let X-Plane do its things
 
 float now;             // current timestamp
 std::string base_dir;  // base directory of openSAM
@@ -174,13 +176,13 @@ void SavePrefs() {
 
     // encode southern hemisphere with negative season
     int s = Seasons::nh ? Seasons::season : -Seasons::season;
-    fprintf(f, "%d,%d,%d,%d,%d,%d,%d,%d", Seasons::auto_season, s, pref_auto_mode, default_vdgs_type, ui_left, ui_top,
-            ui_right, ui_bottom);
+    fprintf(f, "%d,%d,%d,%d,%d,%d,%d,%d,%d", Seasons::auto_season, s, pref_auto_mode, default_vdgs_type, ui_left, ui_top,
+            ui_right, ui_bottom, manage_xp12_jetways);
     fclose(f);
 
     LogMsg(
-        "Saving prefs auto_season: %d, season: %d, auto_select_jws: %d, default_vdgs_type: %d, ui:(%d, %d, %d, %d)",
-        Seasons::auto_season, s, pref_auto_mode, default_vdgs_type, ui_left, ui_top, ui_right, ui_bottom);
+        "Saving prefs auto_season: %d, season: %d, auto_select_jws: %d, default_vdgs_type: %d, ui:(%d, %d, %d, %d), manage_xp12_jetways: %d",
+        Seasons::auto_season, s, pref_auto_mode, default_vdgs_type, ui_left, ui_top, ui_right, ui_bottom, manage_xp12_jetways);
 }
 
 static void LoadPrefs() {
@@ -194,11 +196,14 @@ static void LoadPrefs() {
     if (NULL == f)
         return;
 
-    [[maybe_unused]] int n = fscanf(f, "%i,%i,%i,%i,%i,%i,%i,%i", &Seasons::auto_season, &Seasons::season,
-                                    &pref_auto_mode, &default_vdgs_type, &ui_left, &ui_top, &ui_right, &ui_bottom);
+    int manage_xp12_jetways_i;
+    [[maybe_unused]] int n = fscanf(f, "%i,%i,%i,%i,%i,%i,%i,%i,%i", &Seasons::auto_season, &Seasons::season,
+                                    &pref_auto_mode, &default_vdgs_type, &ui_left, &ui_top, &ui_right, &ui_bottom, &manage_xp12_jetways_i);
+    manage_xp12_jetways = manage_xp12_jetways_i != 0;
+
     LogMsg(
-        "From prefs: auto_season: %d, seasons: %d, auto_select_jws: %d, default_vdgs_type: %d, ui:(%d, %d, %d, %d)",
-        Seasons::auto_season, Seasons::season, pref_auto_mode, default_vdgs_type, ui_left, ui_top, ui_right, ui_bottom);
+        "From prefs: auto_season: %d, seasons: %d, auto_select_jws: %d, default_vdgs_type: %d, ui:(%d, %d, %d, %d), manage_xp12_jetways: %d",
+        Seasons::auto_season, Seasons::season, pref_auto_mode, default_vdgs_type, ui_left, ui_top, ui_right, ui_bottom, manage_xp12_jetways);
 
     fclose(f);
 
@@ -225,6 +230,11 @@ void CheckRefFrameShift() {
 // Accessor for the "opensam/SAM_Library_installed" dataref
 static int SamLibInstalledAcc([[maybe_unused]] void* ref) {
     return sam_library_installed;
+}
+
+// Accessor for the "opensam/manage_xp12_jetways" dataref
+static int ManageXp12JetwaysAcc([[maybe_unused]] void* ref) {
+    return manage_xp12_jetways;
 }
 
 //------------------------------------------------------------------------------------
@@ -393,7 +403,9 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
 
         on_ground_prev = on_ground;
 
-       if (os_arpt  == nullptr && adgs_arpt == nullptr)
+        XP12JwInstance::InstanceAround(plane_pos.lat, plane_pos.lon, 3000.0f);
+
+        if (os_arpt  == nullptr && adgs_arpt == nullptr)
             return 1.0f;  // no airport, nothing to do
 
         if (editor) {
@@ -468,7 +480,9 @@ static int CmdDockJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase ph
 
     LogMsg("CmdDockJwCb called");
 
-    if (os_arpt) {
+    // check if the plane can dock or is already docked with openSAM managed jetways
+    auto state = my_plane->state();
+    if (state == OsPlane::kCanDock || state == OsPlane::kDocked) {
         if (ref == NULL)
             my_plane->RequestDock();
         else if (ref == (void*)1)
@@ -500,12 +514,23 @@ static int CmdXp12ToggleJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPh
         return 1;
 
     LogMsg("CmdXp12ToggleJwCb called");
-    bool has_xp12_jw{false};
-    if (os_arpt) {
-        has_xp12_jw = os_arpt->active_stand_has_xp12_jw();
+
+    // check if the plane can dock or is already docked with openSAM managed jetways
+    auto state = my_plane->state();
+    if (state == OsPlane::kCanDock || state == OsPlane::kDocked) {
         my_plane->RequestToggle();
-    } else if (adgs_arpt)
+        return 0;
+    }
+
+    if (manage_xp12_jetways)
+        return 0;
+
+    bool has_xp12_jw = false;
+    if (adgs_arpt)
         has_xp12_jw = adgs_arpt->active_stand_has_xp12_jw();
+
+    if (os_arpt)
+        has_xp12_jw = os_arpt->active_stand_has_xp12_jw();
 
     // best effort to track the XP12 jetway connection status
     if (has_xp12_jw) {
@@ -670,11 +695,6 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     XPLMGetSystemPath(buffer);
     xp_dir = std::string(buffer);
 
-    // set pref path
-    XPLMGetPrefsPath(buffer);
-    XPLMExtractFileAndPath(buffer);
-    pref_path = std::string(buffer) + "/openSAM.prf";
-
     // set plugin's base dir
     base_dir = xp_dir + "Resources/plugins/openSAM/";
     sys_cfg_dir = base_dir + "cfg/";
@@ -682,6 +702,8 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     tmp_dir = "Output/openSAM/tmp/";
     pref_path = user_cfg_dir + "prefs.prf";
     std::string res_dir = base_dir + "resources/";
+
+    LoadPrefs();
 
     if (!HttpGetInitialize())
         return 0;
@@ -720,20 +742,13 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
         sam_library_installed = !scp.SAM_Library_path.empty();
 
-        Scenery::CollectSceneries(scp, max_sam_stands);
+        Scenery::CollectSceneries(scp, manage_xp12_jetways, max_sam_stands);
         LogMsg("%d sceneries with sam jetways found", (int)Scenery::sceneries_.size());
-        int n_stands = 0;
-        if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat",
-                                          /* ignore */ false, /* filter_autodgs */ true, n_stands)) {
-            LogMsg("WARNING: global apt.dat could not be parsed, no DGS support!");
-            return 0;
-        } else {
-            LogMsg("%d stands with DGS found in global apt.dat", n_stands);
-        }
 
         dgs::AptAirport::LoadingFinished();
 
         SamJw::SoundInit();
+        XP12JwInstance::Initialize();
     } catch (const std::exception& ex) {
         LogMsg("fatal error: '%s', bye!", ex.what());
         return 0;  // bye
@@ -766,7 +781,6 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     acf_gear_z_dr = XPLMFindDataRef("sim/aircraft/parts/acf_gear_znodef");
     is_helicopter_dr = XPLMFindDataRef("sim/aircraft2/metadata/is_helicopter");
 
-    LoadPrefs();
     if (!dgs::Initialize(res_dir)) {
         LogMsg("Failed to initialize dgs library");
         return 0;
@@ -779,6 +793,8 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     XPLMRegisterDataAccessor("opensam/SAM_Library_installed", xplmType_Int, 0, SamLibInstalledAcc, NULL, NULL, NULL,
                              NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
+    XPLMRegisterDataAccessor("opensam/manage_xp12_jetways", xplmType_Int, 0, ManageXp12JetwaysAcc, NULL, NULL, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
     Seasons::InitDataRefs();
 
     // Create my_plane early. Accessors don't check whether my_plane is initialized.
@@ -881,6 +897,7 @@ PLUGIN_API void XPluginStop(void) {
     my_plane = nullptr;
     ImgWindowFini();
     SamJw::Finalize();
+    XP12JwInstance::Finalize();
 
     if (!error_disabled) {
         // and finally clean the tmp directory
@@ -897,6 +914,10 @@ PLUGIN_API void XPluginStop(void) {
 }
 
 PLUGIN_API void XPluginDisable(void) {
+    XP12JwInstance::RemoveAll();
+    os_arpt = nullptr;
+    adgs_arpt = nullptr;
+
     if (probe_ref) {
         XPLMDestroyProbe(probe_ref);
         probe_ref = NULL;

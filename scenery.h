@@ -81,5 +81,5 @@ class Scenery {
     bool UpdateOpenSamXml(const std::vector<SamJw*> jw_instances);
 
     // a poor man's factory for creating sceneries, return max # of stands in sam sceneries
-    static void CollectSceneries(const SceneryPacks& scp, int& max_sam_stands);
+    static void CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways, int& max_sam_stands);
 };

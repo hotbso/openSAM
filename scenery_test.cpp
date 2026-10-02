@@ -28,6 +28,7 @@
 
 #include "scenery.h"
 #include "samjw.h"
+#include "xp12_jw_instance.h"
 #include "os_anim.h"
 #include "dgs/airport.h"
 
@@ -49,6 +50,11 @@ std::vector<SamJw*> sam_jw_list;
 quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;
 std::vector<SamJwModel*> lib_jw;
 
+// keep the linker happy
+void XP12JwInstance::CreateInstance() {}
+void XP12JwInstance::RemoveInstance() {}
+void XP12JwInstance::UpdateInstance() {}
+
 void scenery_test() {
 
     std::cout << "scenery_test starting\n";
@@ -56,15 +62,8 @@ void scenery_test() {
     try {
         SceneryPacks scp(xp_dir);
         int max_sam_stands;
-        Scenery::CollectSceneries(scp, max_sam_stands);
+        Scenery::CollectSceneries(scp, /* manage_xp12_jetways */ true, max_sam_stands);
         LogMsg("%d sceneries with sam jetways found, max stands: %d", (int)Scenery::sceneries_.size(), max_sam_stands);
-        int n_stands;
-        if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, true, n_stands)) {
-             LogMsg("WARNING: global apt.dat could not be parsed, no DGS support!");
-            return;
-        } else {
-            LogMsg("%d stands with DGS found in global apt.dat", n_stands);
-        }
     } catch (const std::exception& ex) {
         LogMsg("fatal error: '%s', bye!", ex.what());
         return;   // bye
@@ -162,16 +161,32 @@ void scenery_test() {
 
     // jw_quadtree.Dump();
 
-    printf("\n\nSearching in +-50m box around EDDM stand 251A (11.797650, 48.354206)\n");
-    std::vector<SamJw*>found_items;
-    quadtree::Box<double> search_box(11.797650, 48.354206, 50);  // 50 m box around the stand
-    std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box);
-    if (found_map.empty())
-        printf("\nNo jetways found by FindInBox\n");
-    else {
-        for (auto& [jw, _] : found_map)
-            printf("Found jetway by FindInBox: '%s' at %0.6f, %0.6f\n", jw->name_.c_str(), jw->latitude_,
-                   jw->longitude_);
+    {
+        printf("\n\nSearching in +-50m box around EDDM stand 251A (11.797650, 48.354206)\n");
+        std::vector<SamJw*> found_items;
+        quadtree::Box<double> search_box(11.797650, 48.354206, 50);  // 50 m box around the stand
+        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box);
+        if (found_map.empty())
+            printf("\nNo jetways found by FindInBox\n");
+        else {
+            for (auto& [jw, _] : found_map)
+                printf("Found jetway by FindInBox: '%s' at %0.6f, %0.6f\n", jw->name_.c_str(), jw->latitude_,
+                       jw->longitude_);
+        }
+    }
+
+    {
+        printf("\n\nSearching in +-50m box around EKCH stand A14 (12.641780, 55.627086)\n");
+        std::vector<SamJw*> found_items;
+        quadtree::Box<double> search_box(12.641780, 55.627086, 50);  // 50 m box around the stand
+        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box);
+        if (found_map.empty())
+            printf("\nNo jetways found by FindInBox\n");
+        else {
+            for (auto& [jw, _] : found_map)
+                printf("Found jetway by FindInBox: '%s' at %0.6f, %0.6f\n", jw->name_.c_str(), jw->latitude_,
+                       jw->longitude_);
+        }
     }
 }
 

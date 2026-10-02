@@ -3,19 +3,22 @@ A
 LIBRARY
 
 ##########################################################
-#### Replacement for
-####     Scenery Animation Manager - Library 3.0.0    ####
+#### openSAM_Library
 ##########################################################
-
 
 ## always replace dockings by openSAM objects
 REGION_DEFINE default
 REGION_ALL
 
-## if SAM_Library is not installed replace remaining objects by blank
+## iff SAM_Library is not installed replace remaining SAM objects by blank
 REGION_DEFINE SAM_Library_replace
 REGION_ALL
 REGION_DREF opensam/SAM_Library_installed == 0
+
+## iff opensam/manage_xp12_jetways == 1 replace standard jetways by blank
+REGION_DEFINE openSAM_manage_xp12_jws
+REGION_ALL
+REGION_DREF opensam/manage_xp12_jetways == 1
 
 REGION default
 
@@ -44,6 +47,7 @@ EXPORT	openSAM/MisterX/libjw/Tunnel_Steel_Old_5m.fac	    MisterX/libjw/Tunnel_St
 
 # stuff below should not show up in WED
 DEPRECATED
+
 EXPORT  openSAM/dgs/Safedock-T2_2.5m.obj		dgs/Safedock-T2-24_2.5m.obj
 EXPORT  openSAM/dgs/Safedock-T2_3.0m.obj		dgs/Safedock-T2-24_3.0m.obj
 EXPORT  openSAM/dgs/Safedock-T2_3.5m.obj		dgs/Safedock-T2-24_3.5m.obj
@@ -287,3 +291,25 @@ EXPORT  SAM_Library/windturbines/windturbine_01.obj					blank/blank.obj
 EXPORT  SAM_Library/windturbines/windturbine_02.obj					blank/blank.obj
 EXPORT  SAM_Library/windturbines/windturbine_03.obj					blank/blank.obj
 EXPORT  SAM_Library/windturbines/windturbine_04.obj					blank/blank.obj
+
+# replace XP12 jetways by blanks iff openSAM_manage_xp12_jws == 1
+REGION openSAM_manage_xp12_jws
+EXPORT lib/airport/ramp_equipment/jetways/jetway_1g_3t_11-23.obj	blank/blank.obj
+EXPORT lib/airport/ramp_equipment/jetways/jetway_1g_3t_14-29.obj	blank/blank.obj
+EXPORT lib/airport/ramp_equipment/jetways/jetway_1g_3t_17-38.obj	blank/blank.obj
+EXPORT lib/airport/ramp_equipment/jetways/jetway_1g_3t_20-47.obj	blank/blank.obj
+
+EXPORT lib/airport/ramp_equipment/jetways/jetway_1s_3t_11-23.obj	blank/blank.obj
+EXPORT lib/airport/ramp_equipment/jetways/jetway_1s_3t_14-29.obj	blank/blank.obj
+EXPORT lib/airport/ramp_equipment/jetways/jetway_1s_3t_17-38.obj	blank/blank.obj
+EXPORT lib/airport/ramp_equipment/jetways/jetway_1s_3t_20-47.obj	blank/blank.obj
+
+EXPORT lib/airport/ramp_equipment/jetways/jetway_2g_3t_11-23.obj	blank/blank.obj
+EXPORT lib/airport/ramp_equipment/jetways/jetway_2g_3t_14-29.obj	blank/blank.obj
+EXPORT lib/airport/ramp_equipment/jetways/jetway_2g_3t_17-38.obj	blank/blank.obj
+EXPORT lib/airport/ramp_equipment/jetways/jetway_2g_3t_20-47.obj	blank/blank.obj
+
+EXPORT lib/airport/ramp_equipment/jetways/jetway_2s_3t_11-23.obj	blank/blank.obj
+EXPORT lib/airport/ramp_equipment/jetways/jetway_2s_3t_14-29.obj	blank/blank.obj
+EXPORT lib/airport/ramp_equipment/jetways/jetway_2s_3t_17-38.obj	blank/blank.obj
+EXPORT lib/airport/ramp_equipment/jetways/jetway_2s_3t_20-47.obj	blank/blank.obj

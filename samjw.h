@@ -48,6 +48,8 @@ class SamJw {
     int lock_pid_{-1};  // id of the plane that has locked this jetway, for logging purposes
 
    public:
+    virtual ~SamJw() = default; // jetways live forever
+
     static constexpr float kD2R = std::numbers::pi / 180.0;
     static constexpr float kSam2ObjMax = 2.5;   // m, max delta between coords in sam.xml and object
     static constexpr float kSam2ObjHdgMax = 5;  // °, likewise for heading
@@ -121,7 +123,7 @@ class SamJw {
     double lon() const { return longitude_; }
     double lat() const { return latitude_; }
     quadtree::Box<double> bounds() const { return bbox_; }
-    std::string repr() const { return name_; }
+    virtual std::string repr() const { return name_; }
     bool hidden() const {return is_undefined_; }
     bool deleted() const { return is_deleted_; }  // never shows up
 
@@ -129,6 +131,12 @@ class SamJw {
     void AlertOn();
     void AlertOff();
     void AlertSetpos();
+
+    // support for XP12 jetway instances
+    virtual void CreateInstance() {};
+    virtual void RemoveInstance() {};
+    virtual void UpdateInstance() {};
+    virtual bool is_xp12_instanced_jw() const { return false; }
 
     // Initializers and Finaliser
     static void SoundInit();  // inits device and loads wav

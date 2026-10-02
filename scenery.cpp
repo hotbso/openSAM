@@ -36,7 +36,11 @@
 #include "quadtree.inl"
 #include "opensam.h"
 #include "samjw.h"
+#include "xp12_jw_instance.h"
 #include "os_anim.h"
+
+#include "flat_earth_math.h"
+namespace fem = flat_earth_math;
 
 std::vector<Scenery*> Scenery::sceneries_;
 
@@ -642,7 +646,7 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 // collect all sceneries
-void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
+void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways, int& max_sam_stands) {
     max_sam_stands = 0;
     std::unordered_map<std::string, SamJwModel*> lib_jw_map;
 
@@ -657,6 +661,9 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
 
     sceneries_.reserve(scp.sc_paths.size());
     sam_jw_list.reserve(1000);  // avoid too many reallocations, usually there are much more stands than jetways
+
+    std::vector<dgs::AptJetway> xp12_jetways;
+    xp12_jetways.reserve(20000);
 
     for (auto& sc_path : scp.sc_paths) {
         std::string opensam_xml_pathname = sc_path + "opensam.xml";
@@ -675,7 +682,7 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
         if (is_opensam) {
             // will be used with openSAM personality
             apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", /* ignore */ false,
-                                               /* filter_autodgs */ false, n_stands);
+                                               /* filter_autodgs */ false, xp12_jetways, n_stands);
             if (apt)
                 apt->is_opensam_ = true;
         } else {
@@ -683,7 +690,7 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
             bool ignore = (std::filesystem::exists(sc_path + "no_autodgs") ||
                            std::filesystem::exists(sc_path + "no_autodgs.txt"));
             apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, /* filter_autodgs */ true,
-                                               n_stands);
+                                               xp12_jetways, n_stands);
         }
 
         if (!(apt && is_opensam)) {
@@ -719,6 +726,30 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
         lib_jw.push_back(sam_lib_jw);
 
     lib_jw.shrink_to_fit();
+
+    // Process 'Global Airports' last
+    int n_stands = 0;
+    if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, true, xp12_jetways, n_stands)) {
+            throw std::runtime_error("WARNING: global apt.dat could not be parsed, no DGS support!");
+    } else {
+        LogMsg("%d stands with DGS, %d xp12 jetways found in global apt.dat", n_stands, (int)xp12_jetways.size());
+        if (manage_xp12_jetways)
+            for (auto& xpjws : xp12_jetways) {
+                float rot2 = fem::RA(xpjws.cabin_hdgt - xpjws.hdgt);
+                if (xpjws.length_code >= 10)
+                    xpjws.length_code %= 10;
+
+                // LogMsg("%s: ll=(%f,%f), psi=%f, style=%d, length_code=%d, length=%f, rot2=%f", arpt_name.c_str(),
+                // lat,
+                //       lon, psi, style, length_code, length, rot2);
+
+                XP12JwInstance* xp12_jw = new XP12JwInstance("global", xpjws.stand_name, xpjws.pos.lat, xpjws.pos.lon, xpjws.hdgt, xpjws.style,
+                                                            xpjws.length_code, xpjws.length, rot2);
+                xp12_jw->ComputeBbox();
+                sam_jw_list.push_back(xp12_jw);
+            }
+    }
+
 
     // load the quadtree with all jetways from all sceneries for fast lookup by position in the dref accessors
     for (auto jw : sam_jw_list) {

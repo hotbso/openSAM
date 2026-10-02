@@ -54,6 +54,8 @@ extern unsigned long long stat_jw_acc_called, stat_anim_acc_called, stat_auto_dr
 extern float now;           // current timestamp
 extern bool error_disabled; // set this on severe errors to disable openSAM and hopefully allow XP to continue
 
+extern bool manage_xp12_jetways; // 1 to manage XP12 jetways, 0 to let X-Plane do its things
+
 // generation # of reference frame
 // init with 1 so jetways never seen by the accessor won't be considered in JwCtrl::FindNearestJetways()
 extern unsigned int ref_gen;
@@ -65,6 +67,7 @@ extern XPLMProbeRef probe_ref;
 // functions
 extern void create_api_drefs();
 extern void CheckRefFrameShift();
+extern void SavePrefs();
 
 template<typename T>
 bool is_between(T x, T a, T b) {

@@ -81,6 +81,8 @@ class Ui : public ImgWindow {
 
     bool jw_auto_mode_changed_ = false;  // to detect if the "Automatic mode" checkbox has been changed
 
+    bool manage_xp12_jws_changed_ = false;  // to detect if the "Manage XP12 Jetways" checkbox has been changed
+
     // Main function: creates the window's UI
     void BuildInterface() override;
 
@@ -187,6 +189,21 @@ void Ui::BuildInterface() {
 
         if (default_vdgs_type != current_vdgs_type)
             LogMsg("Default VDGS type changed to %d", default_vdgs_type);
+
+        //--------------------------------------------------
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::TextUnformatted("Manage XP12 Jetways:");
+        ImGui::SameLine();
+        if (ImGui::Checkbox("##manage_xp12_jetways", &manage_xp12_jetways)) {
+            LogMsg("Manage XP12 Jetways changed to %d", manage_xp12_jetways);
+            manage_xp12_jws_changed_ = true;
+            SavePrefs();
+        }
+
+        if (manage_xp12_jws_changed_)
+            ImGui::TextUnformatted("You must restart X-Plane now to activate this setting!!");
 
         //--------------------------------------------------
         ImGui::Spacing();
@@ -404,10 +421,10 @@ void Ui::BuildInterface() {
         }
     }
 
-    if (os_arpt == nullptr)
+    if (my_plane->nearest_jws_.empty())
         return;
 
-    // openSAM jetway UI
+    // openSAM managed jetways UI
     jw_auto_mode_ = my_plane->auto_mode();
 
     ImGui::TextUnformatted("Jetway selection mode:");
