@@ -37,6 +37,8 @@ struct Sound {
     int sample_rate;
 };
 
+struct SamJwModel;
+
 // Context of an instantiated jetway, either in sam.xml or zero config per WED within the scenery
 class SamJw {
    private:
@@ -110,7 +112,11 @@ class SamJw {
         canopy_ = 0;
     }
 
+    // Fill values from a library jetway with numeric id, e.g. from a <library_jw> element in the scenery file
     void FillLibraryValues(unsigned int id);
+
+    // Fill geometry values from a model jetway, e.g. from a <local_jw> element in the scenery file
+    void FillModelValues(const SamJwModel& ljw);
 
     // for the quadtree...
     void ComputeBbox() {

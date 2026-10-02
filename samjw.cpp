@@ -114,25 +114,24 @@ void SamJw::FillLibraryValues(unsigned int id) {
     }
 
     LogMsg("filling in library data for '%s', id: %d", name_.c_str(), id);
-    height_ = ljw->height;
-    wheel_pos_ = ljw->wheel_pos;
-    cabin_pos_ = ljw->cabin_pos;
-    cabin_length_ = ljw->cabin_length;
-
-    wheel_diameter_ = ljw->wheel_diameter;
-    wheel_distance_ = ljw->wheel_distance;
-
+    FillModelValues(*ljw);
     min_rot1_ = -90.0f;
     max_rot1_ = 90.0f;
+}
 
-    min_rot2_ = ljw->min_rot2;
-    max_rot2_ = ljw->max_rot2;
-
-    min_rot3_ = ljw->min_rot3;
-    max_rot3_ = ljw->max_rot3;
-
-    min_extent_ = ljw->min_extent;
-    max_extent_ = ljw->max_extent;
+void SamJw::FillModelValues(const SamJwModel& jwm) {
+    height_ = jwm.height;
+    wheel_pos_ = jwm.wheel_pos;
+    cabin_pos_ = jwm.cabin_pos;
+    cabin_length_ = jwm.cabin_length;
+    wheel_diameter_ = jwm.wheel_diameter;
+    wheel_distance_ = jwm.wheel_distance;
+    min_rot2_ = jwm.min_rot2;
+    max_rot2_ = jwm.max_rot2;
+    min_rot3_ = jwm.min_rot3;
+    max_rot3_ = jwm.max_rot3;
+    min_extent_ = jwm.min_extent;
+    max_extent_ = jwm.max_extent;
 }
 
 //
@@ -258,6 +257,7 @@ static float JwAnimAcc(void* ref) {
             jw->x_ = obj_x;
             jw->y_ = obj_y;
             jw->z_ = obj_z;
+            jw->psi_ = obj_psi;
             jw->ComputeBbox();
             sam_jw_list.push_back(jw);
             jw_quadtree.Insert(jw);
