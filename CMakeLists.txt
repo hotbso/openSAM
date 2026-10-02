@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # ==============================================================================
 # Configurable paths
 # ==============================================================================
-set(SDK "${CMAKE_CURRENT_SOURCE_DIR}/SDK" CACHE PATH "X-Plane SDK root")
+set(SDK "${CMAKE_CURRENT_SOURCE_DIR}/../SDK" CACHE PATH "X-Plane SDK root")
 
 # ==============================================================================
 # Version header generation (mirrors Makefile.common logic)
