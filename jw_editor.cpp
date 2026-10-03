@@ -581,7 +581,8 @@ void JwEditor::BuildInterface() {
             selected_jw = jw_set_[selected_idx_];
 
         std::unordered_map<SamJw*, bool> near_jws =
-            jw_quadtree.FindInBox(os_arpt->apt_airport_.bounds(), /* with_hidden */ true);
+            jw_quadtree.FindInBox(os_arpt->apt_airport_.bounds(), /* filter */ nullptr);
+
         jw_set_.clear();
         selected_idx_ = -1;  // reset selection when reloading
 

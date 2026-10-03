@@ -266,7 +266,7 @@ static float JwAnimAcc(void* ref) {
         };
 
         std::array<SamJw*, kMaxJwPerNode> candidates;
-        int n_candidates = jw_quadtree.Find(obj_lon, obj_lat, candidates);
+        int n_candidates = jw_quadtree.Find(obj_lon, obj_lat, candidates, SamJw::NotHiddenFilter);
 
         if (n_candidates == 1) [[likely]] {
             jw = candidates[0];
@@ -331,7 +331,7 @@ static float JwAnimAcc(void* ref) {
 
             // some support for sloppy configured scenery, e.g. sam.xml values quite off
             quadtree::Box<double> search_box(obj_lon, obj_lat, 2 * SamJw::kSam2ObjMax);  // 2 * max delta between sam.xml and object coords
-            std::unordered_map<SamJw*, bool>  around = jw_quadtree.FindInBox(search_box);
+            std::unordered_map<SamJw*, bool>  around = jw_quadtree.FindInBox(search_box, SamJw::NotHiddenFilter);
             if (around.empty()) {
                 LogMsg("FindInBox found no candidates either");
                 AddUndefinedJw();

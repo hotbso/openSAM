@@ -306,8 +306,9 @@ int JwCtrl::FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<Jw
     XPLMLocalToWorld(plane_info.x, plane_info.y, plane_info.z, &plane_lat, &plane_lon, &plane_alt);
 
     static constexpr float kMaxDist = 60.0f;  // m, max distance to consider a jetway as a candidate
+
     quadtree::Box<double> search_box(plane_lon, plane_lat, kMaxDist);  // +-60 m search box
-    std::unordered_map<SamJw*, bool> near_jws_map = jw_quadtree.FindInBox(search_box);
+    std::unordered_map<SamJw*, bool> near_jws_map = jw_quadtree.FindInBox(search_box, SamJw::NotHiddenFilter);
     if (near_jws_map.empty()) {
         LogMsg("no jetways found around plane position, in a box of %0.1f m around ll: (%0.6f, %0.6f)", kMaxDist, plane_lat, plane_lon);
         return 0;

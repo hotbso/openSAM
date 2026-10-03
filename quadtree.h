@@ -27,6 +27,7 @@
 #include <string>
 #include <memory>
 #include <algorithm>
+#include <functional>
 
 // Inspired by: https://pvigier.github.io/2019/08/04/quadtree-collision-detection.html
 
@@ -79,6 +80,10 @@ static inline float RA(float angle) {
     return angle;
 }
 
+// filter callback for quadtree queries
+template <typename Item>
+using LLQtFilterCb = std::function<bool(const Item *)>;
+
 template <typename Float>
 class Box {
     public:
@@ -127,10 +132,10 @@ class LLQuadTree {
     bool empty() const { return root_ == nullptr; }
     size_t size() const { return root_ ? root_->n_below_ : 0; }
     void Insert(Item* item);
-    int Find(Float lon, Float lat, std::array<Item*, kMaxItem>& items, bool with_hidden = false, int* depth = nullptr) const;
+    int Find(Float lon, Float lat, std::array<Item*, kMaxItem>& items, LLQtFilterCb<Item> filter, int* depth = nullptr) const;
 
     // find all items in a box, e.g. jetways near to a stand
-    std::unordered_map<Item*, bool> FindInBox(const Box<Float>& box, bool with_hidden = false) const;
+    std::unordered_map<Item*, bool> FindInBox(const Box<Float>& box, LLQtFilterCb<Item> filter) const;
 
     void Dump();    // for debugging
 };

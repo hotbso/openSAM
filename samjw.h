@@ -130,8 +130,9 @@ class SamJw {
     double lat() const { return latitude_; }
     quadtree::Box<double> bounds() const { return bbox_; }
     virtual std::string repr() const { return name_; }
-    bool hidden() const {return is_undefined_; }
     bool deleted() const { return is_deleted_; }  // never shows up
+
+    static bool NotHiddenFilter(const SamJw* jw) { return !jw->is_undefined_; }
 
     // sound stuff
     void AlertOn();

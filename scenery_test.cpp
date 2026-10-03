@@ -165,7 +165,7 @@ void scenery_test() {
         printf("\n\nSearching in +-50m box around EDDM stand 251A (11.797650, 48.354206)\n");
         std::vector<SamJw*> found_items;
         quadtree::Box<double> search_box(11.797650, 48.354206, 50);  // 50 m box around the stand
-        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box);
+        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box, SamJw::NotHiddenFilter);
         if (found_map.empty())
             printf("\nNo jetways found by FindInBox\n");
         else {
@@ -179,7 +179,7 @@ void scenery_test() {
         printf("\n\nSearching in +-50m box around EKCH stand A14 (12.641780, 55.627086)\n");
         std::vector<SamJw*> found_items;
         quadtree::Box<double> search_box(12.641780, 55.627086, 50);  // 50 m box around the stand
-        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box);
+        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box, SamJw::NotHiddenFilter);
         if (found_map.empty())
             printf("\nNo jetways found by FindInBox\n");
         else {

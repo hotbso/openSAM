@@ -210,7 +210,7 @@ void XP12JwInstance::InstanceAround(float lat, float lon, float distance) {
         refresh_ref_gen = ref_gen;
 
         quadtree::Box<double> search_box(lon, lat, distance);
-        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box);
+        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box, /* filter */ nullptr);
         for (auto& [jw, _] : found_map)
             jw->CreateInstance();
 

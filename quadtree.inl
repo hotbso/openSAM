@@ -193,8 +193,7 @@ void LLQuadTreeNode<Float, Item, kMaxItem>::Dump(const char* label, int indent, 
         if (item->deleted())
             continue;  // Skip deleted items
         Float item_lon = item->lon(), item_lat = item->lat();
-        LogMsg("%*sItem at (%.7f, %.7f), '%s', hidden: %d", indent + 2, "", item_lon, item_lat, item->repr().c_str(),
-               item->hidden());
+        LogMsg("%*sItem at (%.7f, %.7f), '%s'", indent + 2, "", item_lon, item_lat, item->repr().c_str());
     }
 
     if (!no_recurse) {
@@ -256,8 +255,8 @@ void LLQuadTree<Float, Item, kMaxItem>::Insert(Item* item) {
 }
 
 template <typename Float, typename Item, int kMaxItem>
-int LLQuadTree<Float, Item, kMaxItem>::Find(Float lon, Float lat, std::array<Item*, kMaxItem>& items, bool with_hidden,
-                                            int* depth) const {
+int LLQuadTree<Float, Item, kMaxItem>::Find(Float lon, Float lat, std::array<Item*, kMaxItem>& items,
+                                            LLQtFilterCb<Item> filter, int* depth) const {
     if (depth)
         *depth = 0;
 
@@ -280,8 +279,8 @@ int LLQuadTree<Float, Item, kMaxItem>::Find(Float lon, Float lat, std::array<Ite
                 Box<Float> item_bounds = item->bounds();
                 if (!item_bounds.Contains(lon, lat))
                     continue;  // Item bounds do not contain the point
-                if (item->hidden() && !with_hidden)
-                    continue;  // Skip hidden items unless with_hidden is true
+                if (filter && !filter(item))
+                    continue;  // Skip items that do not pass the filter
                 items[ret_items++] = item;
             }
             return ret_items;  // Found items in a leaf node
@@ -310,15 +309,15 @@ int LLQuadTree<Float, Item, kMaxItem>::Find(Float lon, Float lat, std::array<Ite
 
 // find all items in a box, e.g. jetways near to a stand
 template <typename Float, typename Item, int kMaxItem>
-std::unordered_map<Item*, bool> LLQuadTree<Float, Item, kMaxItem>::FindInBox(const Box<Float>& box,
-                                                                             bool with_hidden) const {
+std::unordered_map<Item*, bool> LLQuadTree<Float, Item, kMaxItem>::FindInBox(
+    const Box<Float>& box, LLQtFilterCb<Item> filter) const {
     std::unordered_map<Item*, bool> found_items;
     found_items.reserve(50);
 
     using Node = LLQuadTreeNode<Float, Item, kMaxItem>;
 
     std::function<void(const Node*)> collect_items = [&collect_items, &found_items, &box,
-                                                      &with_hidden](const Node* node) {
+                                                      &filter](const Node* node) {
         if (!node->bounds_.Intersects(box))
             return;
 
@@ -326,7 +325,8 @@ std::unordered_map<Item*, bool> LLQuadTree<Float, Item, kMaxItem>::FindInBox(con
             if (item->deleted())
                 continue;  // Skip deleted items
 
-            if ((with_hidden || !item->hidden()) && box.Contains(item->lon(), item->lat()))
+            if (box.Contains(item->lon(), item->lat()) &&
+                (filter == nullptr || filter(item)))
                 found_items[item] = true;  // mark item as found, that's auto dup removal
         }
 
