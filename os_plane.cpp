@@ -59,7 +59,7 @@ void OsPlane::AutoSelectJws() {
             assert(i_door < door_info_.size());
             nearest_jws_[j].SetupForDoor(door_info_[i_door]);
             if (!nearest_jws_[j].CheckConstraints())
-                goto skip;
+                continue;
             if (nearest_jws_[i_jw].CollisionCheck(nearest_jws_[j]))
                 goto skip;
         }
