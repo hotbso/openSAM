@@ -138,6 +138,8 @@ bool XP12JwInstance::UpdateDrawinfo() noexcept {
     drawinfo_.x = x_;
     drawinfo_.y = y_;
     drawinfo_.z = z_;
+
+    SetWheels(/* force_high_precision */ true);
     return true;
 }
 
@@ -154,6 +156,12 @@ void XP12JwInstance::CreateInstance() {
         active_jws[this] = true;
         Reset();
         changed = true;
+#if 0
+    LogMsg(
+        "XP12JwInstance %s instanced at ll: (%f,%f), psi: %f, style: %d, length_code: %d, initial_extent: %f, "
+        "intial_rot2: %f",
+        name_.c_str(), latitude_, longitude_, heading_, style_code_, length_code_, initial_extent_, initial_rot2_);
+#endif
     }
 
     if (changed)
@@ -183,7 +191,13 @@ void XP12JwInstance::UpdateInstance() {
     drefs[kTunnelPitch] = -rotate3_;
     drefs[kTunnelExtension] = extent_;
     drefs[kBogieRotation] = wheelrotatec_;
+
+    // there is a fundamental difference between positive and negative rotate3 that I don't understand
+    // and the -0.04f is an empirical ad-hoc adjustment to account for that difference
     drefs[kBogieElevation] = -wheels_;
+    if (rotate3_ <= -1.5f)
+        drefs[kBogieElevation] -= 0.04f;
+
     drefs[kWheelLeft] = wheelrotatel_;
     drefs[kWheelRight] = wheelrotater_;
 

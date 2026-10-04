@@ -24,10 +24,10 @@
 
 // Constructor goes here in order to avoid linking XPLM into scenery_test.cpp
 
-XP12JwInstance::XP12JwInstance(const std::string_view arpt_icao, const std::string_view stand_name, double lat, double lon, float psi, int style,
-                               int length_code, float initial_extent, float initial_rot2)
+XP12JwInstance::XP12JwInstance(const std::string_view arpt_icao, const std::string_view stand_name, double lat,
+                               double lon, float psi, int style, int length_code, float initial_extent,
+                               float initial_rot2)
     : arpt_icao_(arpt_icao) {
-
     base_name_ = stand_name;
     name_ = base_name_;
     style_code_ = style;
@@ -35,7 +35,6 @@ XP12JwInstance::XP12JwInstance(const std::string_view arpt_icao, const std::stri
 
     // 'model parameters'
     height_ = 3.9f;
-    wheel_pos_ = -3.0f;
     cabin_pos_ = 0.0f;
     cabin_length_ = 2.8f;
     wheel_diameter_ = 0.8f;
@@ -47,22 +46,24 @@ XP12JwInstance::XP12JwInstance(const std::string_view arpt_icao, const std::stri
     min_rot3_ = -10.0f;
     max_rot3_ = 10.0f;
 
-    static constexpr float extra_extent = 0.0f;
-
     if (length_code == 0) {
         min_extent_ = 11.0f;
-        max_extent_ = 23.0f + extra_extent;
+        max_extent_ = 23.0f;
+        wheel_pos_ = -3.0f;
     } else if (length_code == 1) {
         min_extent_ = 14.0f;
-        max_extent_ = 29.0f + extra_extent;
+        max_extent_ = 29.0f;
+        wheel_pos_ = -4.6f;
     } else if (length_code == 2) {
         min_extent_ = 17.0f;
-        max_extent_ = 38.0f + extra_extent;
+        max_extent_ = 38.0f;
+        wheel_pos_ = -6.0f;
     } else {
         if (length_code != 3)
             LogMsg("invalid length_code: %d, expected 1, 2, or 3, assuming 3", length_code);
         min_extent_ = 20.0f;
-        max_extent_ = 47.0f + extra_extent;
+        max_extent_ = 47.0f;
+        wheel_pos_ = -7.5f;
     }
 
     // instance parameters
@@ -72,20 +73,23 @@ XP12JwInstance::XP12JwInstance(const std::string_view arpt_icao, const std::stri
     psi_ = psi;
     min_rot1_ = -90.0f;
     max_rot1_ = 45.0f;
+
     // initial_extent in WED may be bogus
     initial_extent_ = std::clamp(initial_extent, min_extent_, max_extent_);
     initial_rot2_ = initial_rot2;
     initial_rot3_ = -2.0f;
     wheelrotatec_ = 0.5f * initial_rot2;
+
     drawinfo_.structSize = sizeof(XPLMDrawInfo_t);
     drawinfo_.pitch = 0.0f;
     drawinfo_.roll = 0.0f;
     drawinfo_.heading = psi;
-
-    // LogMsg(
-    //     "XP12JwInstance created with lat: %f, lon: %f, psi: %f, style: %d, length_code: %d, initial_extent: %f, "
-    //     "intial_rot2: %f",
-    //     latitude_, longitude_, heading_, style, length_code, this->initial_extent_, this->initial_rot2_);
+#if 0
+    LogMsg(
+        "XP12JwInstance %s created with ll: (%f,%f), psi: %f, style: %d, length_code: %d, initial_extent: %f, "
+        "intial_rot2: %f",
+        name_.c_str(), latitude_, longitude_, heading_, style, length_code, initial_extent_, initial_rot2_);
+#endif
 }
 
 XP12JwInstance::~XP12JwInstance() {

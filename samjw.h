@@ -49,6 +49,11 @@ class SamJw {
     int locked_{};      // locked by a plane
     int lock_pid_{-1};  // id of the plane that has locked this jetway, for logging purposes
 
+    // position of last high precision SetWheels operation
+    float set_wheels_x_{-1.0E9};
+    float set_wheels_z_{-1.0E9};
+    float wheels_adjust_{};      // due to terrain slope
+
    public:
     virtual ~SamJw() = default; // jetways live forever
 
@@ -97,7 +102,7 @@ class SamJw {
     void Unlock() noexcept;
 
     // set wheels height
-    void SetWheels() { wheels_ = std::tan(rotate3_ * kD2R) * (wheel_pos_ + extent_); }
+    void SetWheels(bool force_high_precision = false);
 
     void Reset() {
         AlertOff();

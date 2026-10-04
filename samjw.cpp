@@ -435,6 +435,37 @@ static float JwAnimAcc(void* ref) {
     return 0.0f;
 }
 
+void SamJw::SetWheels(bool force_high_precision) {
+    // low precision
+    wheels_ = std::tan(rotate3_ * kD2R) * (wheel_pos_ + extent_);
+
+    if (obj_ref_gen_ != ref_gen) {
+        set_wheels_x_ = -1.0E9;
+        return;
+    }
+
+    // Try terrain adjustment for the wheels
+    // As long as XPLMProbeTerrainXYZ supports only float this has limited success
+
+    float w_x = x_ + (extent_ + wheel_pos_) * std::cos((rotate1_ + psi_ - 90.0f) * kD2R);
+    float w_z = z_ + (extent_ + wheel_pos_) * std::sin((rotate1_ + psi_ - 90.0f) * kD2R);
+
+    // XPLMProbeTerrainXYZ is costly so throttle that by only probing when the wheel position has moved significantly
+    if (force_high_precision || std::abs(set_wheels_x_ - w_x) > 1.0f || std::abs(set_wheels_z_ - w_z) > 1.0f) {
+        LogMsg("Dist to origin: %0.2f", std::hypot(w_x - x_, w_z - z_));
+        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, w_x, y_, w_z, &probeinfo)) {
+            LogMsg("SetWheels terrain probe failed???");
+        }
+
+        wheels_adjust_ = probeinfo.locationY - y_;  // wheels relative to tunnel
+        set_wheels_x_ = w_x;
+        set_wheels_z_ = w_z;
+        LogMsg("SetWheels: wheels_adjust_ = %f", wheels_adjust_);
+    }
+
+    wheels_ -= wheels_adjust_;
+}
+
 void SamJw::AlertComplete(void* ref, [[maybe_unused]] FMOD_RESULT status) {
     SamJw* jw = reinterpret_cast<SamJw*>(ref);
     jw->alert_chn_ = nullptr;
@@ -474,7 +505,6 @@ void SamJw::AlertSetpos() {
     pos.z = z_ + (extent_ + cabin_pos_) * std::sin(rot1 * kD2R);
     XPLMSetAudioPosition(alert_chn_, &pos, &vel);
 }
-
 
 // static
 void SamJw::SoundInit() {
