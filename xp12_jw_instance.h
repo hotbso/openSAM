@@ -48,10 +48,10 @@ class XP12JwInstance : public SamJw {
     virtual ~XP12JwInstance();    // jetways live forever
 
     std::string repr() const override { return arpt_icao_ + ": " + name_; }
-    void CreateInstance() override;
-    void RemoveInstance() override;
-    void UpdateInstance() override;
-    bool is_xp12_instanced_jw() const override { return true; }
+
+    void CreateInstance();
+    void RemoveInstance();
+    void UpdateInstance();
 
     // Show all instances around a specific location, e.g. 3000 meters
     static void InstanceAround(float lat, float lon, float distance);

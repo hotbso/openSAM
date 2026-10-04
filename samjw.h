@@ -41,6 +41,12 @@ struct SamJwModel;
 
 // Context of an instantiated jetway, either in sam.xml or zero config per WED within the scenery
 class SamJw {
+   public:
+    enum ClassCode { kSamJw, kXP12Jw };
+
+   protected:
+    ClassCode class_code_{kSamJw};
+
    private:
     FMOD_CHANNEL* alert_chn_ = nullptr;
     static Sound alert_;
@@ -55,6 +61,8 @@ class SamJw {
     float wheels_adjust_{};      // due to terrain slope
 
    public:
+    ClassCode class_code() const { return class_code_; }
+
     virtual ~SamJw() = default; // jetways live forever
 
     static constexpr float kD2R = std::numbers::pi / 180.0;
@@ -137,18 +145,10 @@ class SamJw {
     virtual std::string repr() const { return name_; }
     bool deleted() const { return is_deleted_; }  // never shows up
 
-    static bool NotHiddenFilter(const SamJw* jw) { return !jw->is_undefined_; }
-
     // sound stuff
     void AlertOn();
     void AlertOff();
     void AlertSetpos();
-
-    // support for XP12 jetway instances
-    virtual void CreateInstance() {};
-    virtual void RemoveInstance() {};
-    virtual void UpdateInstance() {};
-    virtual bool is_xp12_instanced_jw() const { return false; }
 
     // Initializers and Finaliser
     static void SoundInit();  // inits device and loads wav

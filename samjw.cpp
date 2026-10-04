@@ -265,8 +265,11 @@ static float JwAnimAcc(void* ref) {
             jw_cache[key] = jw;
         };
 
+        // filter out undefined jetways and ensure the class code matches for SAM jetways
+        auto FilterNotUndefined = [](const SamJw* jw) { return jw->class_code() == SamJw::kSamJw && !jw->is_undefined_; };
+
         std::array<SamJw*, kMaxJwPerNode> candidates;
-        int n_candidates = jw_quadtree.Find(obj_lon, obj_lat, candidates, SamJw::NotHiddenFilter);
+        int n_candidates = jw_quadtree.Find(obj_lon, obj_lat, candidates, FilterNotUndefined);
 
         if (n_candidates == 1) [[likely]] {
             jw = candidates[0];
@@ -331,7 +334,7 @@ static float JwAnimAcc(void* ref) {
 
             // some support for sloppy configured scenery, e.g. sam.xml values quite off
             quadtree::Box<double> search_box(obj_lon, obj_lat, 2 * SamJw::kSam2ObjMax);  // 2 * max delta between sam.xml and object coords
-            std::unordered_map<SamJw*, bool>  around = jw_quadtree.FindInBox(search_box, SamJw::NotHiddenFilter);
+            std::unordered_map<SamJw*, bool>  around = jw_quadtree.FindInBox(search_box, FilterNotUndefined);
             if (around.empty()) {
                 LogMsg("FindInBox found no candidates either");
                 AddUndefinedJw();

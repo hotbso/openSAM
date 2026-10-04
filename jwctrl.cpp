@@ -31,6 +31,7 @@
 #include "plane.h"
 #include "os_airport.h"
 #include "samjw.h"
+#include "xp12_jw_instance.h"
 #include "jwctrl.h"
 #include "quadtree.h"
 #include "quadtree.inl"
@@ -308,9 +309,11 @@ int JwCtrl::FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<Jw
     static constexpr float kMaxDist = 60.0f;  // m, max distance to consider a jetway as a candidate
 
     quadtree::Box<double> search_box(plane_lon, plane_lat, kMaxDist);  // +-60 m search box
-    std::unordered_map<SamJw*, bool> near_jws_map = jw_quadtree.FindInBox(search_box, SamJw::NotHiddenFilter);
+    std::unordered_map<SamJw*, bool> near_jws_map =
+        jw_quadtree.FindInBox(search_box, [](const SamJw* jw) { return !jw->is_undefined_; });
     if (near_jws_map.empty()) {
-        LogMsg("no jetways found around plane position, in a box of %0.1f m around ll: (%0.6f, %0.6f)", kMaxDist, plane_lat, plane_lon);
+        LogMsg("no jetways found around plane position, in a box of %0.1f m around ll: (%0.6f, %0.6f)", kMaxDist,
+               plane_lat, plane_lon);
         return 0;
     }
 
@@ -705,7 +708,11 @@ bool JwCtrl::DockDrive() {
     };
 
     bool res = UpdateParams();
-    jw_->UpdateInstance();
+
+    // xp12 jetways are instances and need an explicit update call
+    if (jw_->class_code() == SamJw::kXP12Jw)
+        static_cast<XP12JwInstance*>(jw_)->UpdateInstance();
+
     return res;
 }
 
@@ -987,7 +994,11 @@ bool JwCtrl::UndockDrive() {
     };
 
     bool res = UpdateParams();
-    jw_->UpdateInstance();
+
+    // xp12 jetways are instances and need an explicit update call
+    if (jw_->class_code() == SamJw::kXP12Jw)
+        static_cast<XP12JwInstance*>(jw_)->UpdateInstance();
+
     return res;
 }
 

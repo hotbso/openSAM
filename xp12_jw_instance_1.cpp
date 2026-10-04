@@ -28,6 +28,7 @@ XP12JwInstance::XP12JwInstance(const std::string_view arpt_icao, const std::stri
                                double lon, float psi, int style, int length_code, float initial_extent,
                                float initial_rot2)
     : arpt_icao_(arpt_icao) {
+    class_code_ = kXP12Jw;
     base_name_ = stand_name;
     name_ = base_name_;
     style_code_ = style;

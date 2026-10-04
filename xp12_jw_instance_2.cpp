@@ -224,9 +224,14 @@ void XP12JwInstance::InstanceAround(float lat, float lon, float distance) {
         refresh_ref_gen = ref_gen;
 
         quadtree::Box<double> search_box(lon, lat, distance);
-        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box, /* filter */ nullptr);
-        for (auto& [jw, _] : found_map)
-            jw->CreateInstance();
+        std::unordered_map<SamJw*, bool> found_map =
+            jw_quadtree.FindInBox(search_box, [](const SamJw* jw) { return jw->class_code() == SamJw::kXP12Jw; });
+
+        for (auto& [jw, _] : found_map) {
+            assert(jw->class_code() == SamJw::kXP12Jw);
+            XP12JwInstance* xp12_jw = static_cast<XP12JwInstance*>(jw);
+            xp12_jw->CreateInstance();
+        }
 
         // remove instances that are no longer in the active zone
         for (auto it = active_jws.begin(); it != active_jws.end();) {
@@ -237,13 +242,14 @@ void XP12JwInstance::InstanceAround(float lat, float lon, float distance) {
                 ++it;
         }
 
-        LogMsg("Showing XP12 jetway instances around ll: (%f,%f), distance: %f, instances: %d", lat, lon, distance, (int)active_jws.size());
+        LogMsg("Showing XP12 jetway instances around ll: (%f,%f), distance: %f, instances: %d", lat, lon, distance,
+               (int)active_jws.size());
     }
 }
 
 void XP12JwInstance::RemoveAll() {
-    for (auto [jw, _] : active_jws)
-        jw->RemoveInstance();
+    for (auto [xp12_jw, _] : active_jws)
+        xp12_jw->RemoveInstance();
 
     active_jws.clear();
 }

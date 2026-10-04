@@ -50,11 +50,6 @@ std::vector<SamJw*> sam_jw_list;
 quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;
 std::vector<SamJwModel*> lib_jw;
 
-// keep the linker happy
-void XP12JwInstance::CreateInstance() {}
-void XP12JwInstance::RemoveInstance() {}
-void XP12JwInstance::UpdateInstance() {}
-
 void scenery_test() {
 
     std::cout << "scenery_test starting\n";
@@ -161,11 +156,13 @@ void scenery_test() {
 
     // jw_quadtree.Dump();
 
+    auto FilterNotUndefined = [](const SamJw* jw) { return !jw->is_undefined_; };
+
     {
         printf("\n\nSearching in +-50m box around EDDM stand 251A (11.797650, 48.354206)\n");
         std::vector<SamJw*> found_items;
         quadtree::Box<double> search_box(11.797650, 48.354206, 50);  // 50 m box around the stand
-        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box, SamJw::NotHiddenFilter);
+        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box, FilterNotUndefined);
         if (found_map.empty())
             printf("\nNo jetways found by FindInBox\n");
         else {
@@ -179,7 +176,7 @@ void scenery_test() {
         printf("\n\nSearching in +-50m box around EKCH stand A14 (12.641780, 55.627086)\n");
         std::vector<SamJw*> found_items;
         quadtree::Box<double> search_box(12.641780, 55.627086, 50);  // 50 m box around the stand
-        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box, SamJw::NotHiddenFilter);
+        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box, FilterNotUndefined);
         if (found_map.empty())
             printf("\nNo jetways found by FindInBox\n");
         else {
