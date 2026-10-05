@@ -366,13 +366,13 @@ void JwEditor::EditJetways() {
                 if (is_selected) {
                     is_selected = false;
                     selected_idx_ = -1;
-               } else {
+                } else {
                     is_selected = true;
                     selected_idx_ = i;
 
                     const SamJw* jw = jw_set_[i];
                     float height = jw->height_;
-                    if (height == 0.0f)         // undefined jw
+                    if (height == 0.0f)  // undefined jw
                         height = 4.5f;
 
                     if (jw->obj_ref_gen_ == ref_gen) {
@@ -391,7 +391,7 @@ void JwEditor::EditJetways() {
                         marker_draw_info_.z = probeinfo.locationZ;
                     }
                     request_place_marker_ = true;
-               }
+                }
             }
 
             // Set the initial focus when opening the combo/listbox (optional)
@@ -434,41 +434,44 @@ void JwEditor::EditJetways() {
         ImGui::Spacing();
     }
 
-    // find the model index for the selected jetway
     int model_idx = -1;
-    for (int i = 0; i < (int)model_set_.size(); i++) {
-        if (model_set_[i]->model_id == jw->model_id_) {
-            model_idx = i;
-            break;
-        }
-    }
-
     bool changed = false;
 
-    if (ImGui::BeginCombo("Model", model_idx >= 0 ? model_set_[model_idx]->model_id.c_str() : "")) {
-        for (int i = 0; i < (int)model_set_.size(); ++i) {
-            const bool is_selected = (model_idx == i);
-            if (ImGui::Selectable(model_set_[i]->model_id.c_str(), is_selected)) {
+    if (!jw->is_lib_jw_inst_) {
+        // find the model index for the selected jetway
+        for (int i = 0; i < (int)model_set_.size(); i++) {
+            if (model_set_[i]->model_id == jw->model_id_) {
                 model_idx = i;
-                changed = true;
-                jw->model_id_ = model_set_[model_idx]->model_id;
-                jw->FillModelValues(*model_set_[model_idx]);
-                if (jw->is_undefined_) {
-                    jw->is_undefined_ = false;  // mark as defined now that a model is assigned
-                    jw->min_rot1_ = -90.0f;
-                    jw->max_rot1_ = 90.0f;
-                }
+                break;
             }
-            if (is_selected)
-                ImGui::SetItemDefaultFocus();
         }
-        ImGui::EndCombo();
+
+        if (ImGui::BeginCombo("Model", model_idx >= 0 ? model_set_[model_idx]->model_id.c_str() : "")) {
+            for (int i = 0; i < (int)model_set_.size(); ++i) {
+                const bool is_selected = (model_idx == i);
+                if (ImGui::Selectable(model_set_[i]->model_id.c_str(), is_selected)) {
+                    model_idx = i;
+                    changed = true;
+                    jw->model_id_ = model_set_[model_idx]->model_id;
+                    jw->FillModelValues(*model_set_[model_idx]);
+                    if (jw->is_undefined_) {
+                        jw->is_undefined_ = false;  // mark as defined now that a model is assigned
+                        jw->min_rot1_ = -90.0f;
+                        jw->max_rot1_ = 90.0f;
+                    }
+                }
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+
+        if (model_idx < 0)
+            ImGui::TextUnformatted("Assign a model first");
     }
 
-    // additional fields only for valid models
-    if (model_idx < 0) {
-        ImGui::TextUnformatted("Assign a model first");
-    } else {
+    // additional fields only for valid models or library instances
+    if (jw->is_lib_jw_inst_ || model_idx >= 0) {
         if (ImGui::InputText("Name", &jw->name_)) {
             LogMsg("Jetway name set to '%s'", jw->name_.c_str());
             jw->base_name_ = jw->name_;  // keep base name in sync
@@ -517,8 +520,9 @@ void JwEditor::EditJetways() {
         }
 
         if (changed) {
-            jw->is_zc_jw_ = false;                            // no longer zero configured
+            jw->is_zc_jw_ = false;                           // no longer zero configured
             jw_lb_labels_[selected_idx_] = MkJwLbEntry(jw);  // update listbox content
+            jw->Reset();
             unsaved_changes_ = true;
             msg_line1_.clear();
             msg_line2_.clear();
