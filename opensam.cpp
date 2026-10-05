@@ -786,6 +786,12 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         return 0;
     }
 
+    probe_ref = XPLMCreateProbe(xplm_ProbeY);
+    if (NULL == probe_ref) {
+        LogMsg("Can't create terrain probe");
+        return 0;
+    }
+
     // If commands or dataref accessors are already registered it's too late to
     // fail XPluginStart as the dll gets unloaded and X-Plane crashes.
     // So from here on we are doomed to succeed.
@@ -910,6 +916,8 @@ PLUGIN_API void XPluginStop(void) {
     }
 
     HttpGetFinalize();
+
+    XPLMDestroyProbe(probe_ref);
     LogMsg("plugin stopped");
 }
 
@@ -917,11 +925,6 @@ PLUGIN_API void XPluginDisable(void) {
     XP12JwInstance::RemoveAll();
     os_arpt = nullptr;
     adgs_arpt = nullptr;
-
-    if (probe_ref) {
-        XPLMDestroyProbe(probe_ref);
-        probe_ref = NULL;
-    }
 
     SavePrefs();
     ui = nullptr;
@@ -939,11 +942,6 @@ PLUGIN_API int XPluginEnable(void) {
     if (error_disabled)  // once and for all
         return 0;
 
-    probe_ref = XPLMCreateProbe(xplm_ProbeY);
-    if (NULL == probe_ref) {
-        LogMsg("Can't create terrain probe");
-        return 0;
-    }
     stat_jw_acc_called = stat_anim_acc_called = stat_auto_drf_called = stat_jw_cache_hit = stat_sc_last = 0;
 
     LogMsg("plugin enabled");
