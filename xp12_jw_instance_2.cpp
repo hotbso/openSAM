@@ -19,8 +19,10 @@
 //    USA
 //
 
+#include <cmath>
 #include <string>
 #include <unordered_map>
+#include <algorithm>
 #include <stdexcept>
 
 #include "XPLMScenery.h"
@@ -65,12 +67,12 @@ static const char* jetway_anim_drefs[] = {
     "sim/graphics/animation/jetways/jw_tunnel_pitch",
     "sim/graphics/animation/jetways/jw_tunnel_extension",
     "sim/graphics/animation/jetways/jw_cabin_rotation",
-    "sim/graphics/animation/jetways/jw_bogie_elevation",
+    "sim/graphics/animation/jetways/jw_bogie_elevation",    // + = up
     "sim/graphics/animation/jetways/jw_bogie_rotation",
     "sim/graphics/animation/jetways/jw_bogie_bogie_tilt",
     "sim/graphics/animation/jetways/jw_wheel_left",
     "sim/graphics/animation/jetways/jw_wheel_right",
-    "sim/graphics/animation/jetways/jw_stairs_angle",
+    "sim/graphics/animation/jetways/jw_stairs_angle",       // relative to tunnel , + = up
     "sim/graphics/animation/jetways/jw_stairs_bogie_angle",
     "sim/graphics/animation/jetways/jw_is_moving",
     nullptr
@@ -201,12 +203,22 @@ void XP12JwInstance::UpdateInstance() {
     drefs[kWheelLeft] = wheelrotatel_;
     drefs[kWheelRight] = wheelrotater_;
 
+    // stairs
+    static constexpr float kStairsOffset = -1.65f;
+    static constexpr float kStairsLength = 7.12f;
+
+    float h_stairs = height_ + (extent_ + kStairsOffset) * std::sin(rotate3_ * kD2R) - wheels_adjust_;
+    float stairs_angle_h = std::asin(std::clamp(h_stairs / kStairsLength, -1.0f, 1.0f)) / kD2R;  // relative to horizontal
+    //LogMsg("h_stairs: %.3f, stairs_angle_h: %.3f", h_stairs, stairs_angle_h);
+    drefs[kStairsAngle] = -stairs_angle_h + rotate3_;
+    drefs[kStairsBogieAngle] = stairs_angle_h;
+
     #if 0
     LogMsg(
         "Updating XP12 jetway instance with drefs: base_rot: %.1f, cabin_rot: %.1f, tunnel_pitch: %.1f, tunnel_ext: "
-        "%.1f, bogie_rot: %.1f, bogie_elev: %.1f",
+        "%.1f, bogie_rot: %.1f, bogie_elev: %.1f, stairs_angle: %.1f",
         drefs[kBaseRotation], drefs[kCabinRotation], drefs[kTunnelPitch], drefs[kTunnelExtension],
-        drefs[kBogieRotation], drefs[kBogieElevation]);
+        drefs[kBogieRotation], drefs[kBogieElevation], drefs[kStairsAngle]);
     #endif
 
     XPLMInstanceSetPosition(instance_ref_, &drawinfo_, drefs);
