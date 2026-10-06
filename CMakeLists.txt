@@ -121,7 +121,7 @@ elseif(APPLE)
 
     target_compile_definitions(openSAM PRIVATE APL=1)
     target_compile_options(openSAM PRIVATE
-        -Wall -fPIC -fno-stack-protector -fvisibility=hidden -ffast-math -Wno-deprecated-declarations
+        -Wall -fPIC -fno-stack-protector -fvisibility=hidden -Wno-deprecated-declarations
     )
     target_link_options(openSAM PRIVATE
         -rdynamic -fvisibility=hidden
