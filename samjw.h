@@ -55,9 +55,7 @@ class SamJw {
     int locked_{};      // locked by a plane
     int lock_pid_{-1};  // id of the plane that has locked this jetway, for logging purposes
 
-    // position of last high precision SetWheels operation
-    float set_wheels_x_{-1.0E9};
-    float set_wheels_z_{-1.0E9};
+   protected:
     float wheels_adjust_{};      // due to terrain slope
 
    public:
