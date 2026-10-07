@@ -30,6 +30,7 @@
 #include "XPLMGraphics.h"
 
 #include "opensam.h"
+#include "my_plane.h"
 #include "xp12_jw_instance.h"
 #include "quadtree.inl"
 #include "log_msg.h"
@@ -230,6 +231,17 @@ static unsigned int refresh_ref_gen;
 
 // called every frame to update instances around the given location
 void XP12JwInstance::InstanceAround(float lat, float lon, float distance) {
+    // if very high remove everything
+    float y_agl = my_plane->y_agl();
+    if (y_agl > distance + 500.0f) {
+        RemoveAll();
+        return;
+    }
+
+    // in a band below that do nothing in order to avoid oscillations
+    if (y_agl > distance - 100.0f)
+        return;
+
     CheckRefFrameShift();
 
     if ((now > last_refresh_ts + kRefreshInterval) || (refresh_ref_gen < ref_gen)) {
@@ -261,7 +273,7 @@ void XP12JwInstance::InstanceAround(float lat, float lon, float distance) {
 }
 
 void XP12JwInstance::RemoveAll() {
-    for (auto [xp12_jw, _] : active_jws)
+    for (auto& [xp12_jw, _] : active_jws)
         xp12_jw->RemoveInstance();
 
     active_jws.clear();

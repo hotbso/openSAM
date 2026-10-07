@@ -900,10 +900,10 @@ PLUGIN_API void XPluginStop(void) {
     adgs_arpt = nullptr;
     dgs::Finalize();
     dgs::plane = nullptr;
-    my_plane = nullptr;
     ImgWindowFini();
     SamJw::Finalize();
     XP12JwInstance::Finalize();
+    my_plane = nullptr;
 
     if (!error_disabled) {
         // and finally clean the tmp directory
