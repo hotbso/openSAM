@@ -63,6 +63,11 @@ class Editor : public ImgWindow {
 
    public:
     Editor(int left, int top, int right, int bot);
+    Editor(const Editor&) = delete;
+    Editor& operator=(const Editor&) = delete;
+    Editor(Editor&&) = delete;
+    Editor& operator=(Editor&&) = delete;
+
     ~Editor() override;
 };
 
@@ -236,22 +241,20 @@ void Editor::BuildInterface() {
     else if (dgs_type == kMarshaller)
         ImGui::Checkbox("Stairs", &pole);  // for marshaller, pole = stairs
 
-    if (dgs_type != cur_params.dgs_type || pole != cur_params.pole) {
+    if (dgs_type != cur_params.dgs_type || pole != cur_params.pole)
         for (int idx : selected_idx_) {
             LogMsg("Changing DGS type of stand index %d to %d (pole=%s)", idx, dgs_type,
                    pole ? "true" : "false");
             adgs_arpt->SetDgsType(idx, dgs_type, pole);
             lb_stands_[idx] = adgs_arpt->GetStandParams(idx);
         }
-    }
 
-    if (ImGui::SliderFloat("Distance", &dgs_dist, 8.0f, 50.0f, "%.1f m")) {
+    if (ImGui::SliderFloat("Distance", &dgs_dist, 8.0f, 50.0f, "%.1f m"))
         for (int idx : selected_idx_) {
             LogMsg("Changing DGS distance of stand index %d to %.1f m", idx, dgs_dist);
             adgs_arpt->SetDgsDistance(idx, dgs_dist);
             lb_stands_[idx] = adgs_arpt->GetStandParams(idx);
         }
-    }
 
     if (cur_params.dgs_type != kMarshaller)
         if (ImGui::SliderFloat("Height", &dgs_height, 1.0f, 10.0f, "%.1f m")) {

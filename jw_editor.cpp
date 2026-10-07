@@ -91,11 +91,11 @@ class JwEditor : public ImgWindow {
 
     int imgui_id_;
 
-    // background processing in flightloop context, e.g. creating instances etc.
+    // marker instance management
     XPLMInstanceRef marker_inst_ = nullptr;
-    bool request_place_marker_ = false;
-    bool request_remove_marker_ = false;
     XPLMDrawInfo_t marker_draw_info_{};
+    void PlaceMarker();       // create or set to position @ marker_draw_info_
+    void RemoveMarker();
 
     std::string MkJwLbEntry(const SamJw* jw);
     bool EditModels();
@@ -104,15 +104,17 @@ class JwEditor : public ImgWindow {
     // Main function: creates the window's UI
     void BuildInterface() override;
 
-    // background processing in flightloop context, e.g. creating instances etc.
-    void FlightLoopUserCb() noexcept override;
-
     // turning to the selected jw is one shot only
     int camera_steps_ = 0;
     static int CameraCtrlCb(XPLMCameraPosition_t* inCameraPosition, int loosing_ctrl, void* inRefcon);
 
    public:
     JwEditor(int left, int top, int right, int bot);
+    JwEditor(const JwEditor&) = delete;
+    JwEditor& operator=(const JwEditor&) = delete;
+    JwEditor(JwEditor&&) = delete;
+    JwEditor& operator=(JwEditor&&) = delete;
+
     ~JwEditor() override;
 };
 
@@ -252,7 +254,7 @@ bool JwEditor::EditModels() {
                 scenery_->jw_models_[new_model->model_id] = new_model;
                 model_set_.push_back(new_model);
                 selected_model_idx_ = -1;  // reset selection when adding a new model
-                request_remove_marker_ = true;
+                RemoveMarker();
             }
         }
 
@@ -394,7 +396,7 @@ void JwEditor::EditJetways() {
                         marker_draw_info_.y = probeinfo.locationY + height + 4.0f;
                         marker_draw_info_.z = probeinfo.locationZ;
                     }
-                    request_place_marker_ = true;
+                    PlaceMarker();
                 }
             }
 
@@ -412,7 +414,7 @@ void JwEditor::EditJetways() {
     ImGui::Spacing();
 
     if (selected_idx_ < 0) {
-        request_remove_marker_ = true;
+        RemoveMarker();
         ImGui::TextUnformatted("No jetway selected");
         return;
     }
@@ -428,7 +430,7 @@ void JwEditor::EditJetways() {
     if (jw->obj_ref_gen_ != ref_gen) {
         if (ImGui::Button("Delete Jetway")) {
             jw->is_deleted_ = true;
-            request_remove_marker_ = true;
+            RemoveMarker();
             unsaved_changes_ = true;
             jw_set_.erase(jw_set_.begin() + selected_idx_);
             jw_lb_labels_.erase(jw_lb_labels_.begin() + selected_idx_);
@@ -546,7 +548,7 @@ void JwEditor::BuildInterface() {
     bool was_active = jw_editor_active;
     ImGui::Checkbox("Edit Mode", &jw_editor_active);
     if (!jw_editor_active) {
-        request_remove_marker_ = true;
+        RemoveMarker();
         return;
     }
 
@@ -566,6 +568,13 @@ void JwEditor::BuildInterface() {
         else
             pathname_short_ = xml_path_.generic_string();
         LogMsg("opensam.xml: %s", scenery_->sam_xml_pathname_.c_str());
+
+        // models only depend on the loaded scenery, so we can populate the model set here
+        model_set_.clear();
+        selected_model_idx_ = -1;
+        for (auto& [_, ljw] : scenery_->jw_models_)
+            model_set_.push_back(ljw);
+
     }
 
     // .. or if the camera position changed significantly, we do this as well
@@ -646,11 +655,6 @@ void JwEditor::BuildInterface() {
         jw_lb_labels_.clear();
         for (const SamJw* jw : jw_set_)
             jw_lb_labels_.push_back(MkJwLbEntry(jw));
-
-        model_set_.clear();
-        selected_model_idx_ = -1;
-        for (auto& [_, ljw] : scenery_->jw_models_)
-            model_set_.push_back(ljw);
 
         if (selected_jw)
             selected_idx_ = std::distance(jw_set_.begin(), std::find(jw_set_.begin(), jw_set_.end(), selected_jw));
@@ -743,41 +747,23 @@ int JwEditor::CameraCtrlCb(XPLMCameraPosition_t* cam_pos, int loosing_ctrl, [[ma
     return 1;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-// background processing in flightloop context
-void JwEditor::FlightLoopUserCb() noexcept {
+void JwEditor::PlaceMarker() {
     static const char* null_dlist[] = {nullptr};
 
-    if (os_arpt == nullptr || os_arpt->seqno_ != arpt_seqno_) {
-        request_place_marker_ = request_remove_marker_ = false;
-        // stale request
-        return;
-    }
+    LogMsg("Handling request to place marker");
+    if (marker_inst_ == nullptr)
+        marker_inst_ = XPLMCreateInstance(marker_obj_, null_dlist);
+    if (marker_inst_)
+        XPLMInstanceSetPosition(marker_inst_, &marker_draw_info_, nullptr);
 
-    try {
-        if (request_place_marker_) {
-            request_place_marker_ = false;  // reset the request flag
-            LogMsg("Handling request to place marker");
-            if (marker_inst_ == nullptr)
-                marker_inst_ = XPLMCreateInstance(marker_obj_, null_dlist);
-            if (marker_inst_)
-                XPLMInstanceSetPosition(marker_inst_, &marker_draw_info_, nullptr);
-            camera_steps_ = 0;                  // one shot only
-            XPLMControlCamera(xplm_ControlCameraUntilViewChanges, CameraCtrlCb, nullptr);
-        }
-
-        if (request_remove_marker_) {
-            request_remove_marker_ = false;  // reset the request flag
-            if (marker_inst_) {
-                LogMsg("Destroying marker");
-                XPLMDestroyInstance(marker_inst_);
-               marker_inst_ = nullptr;
-            }
-        }
-
-    } catch (const std::exception& e) {
-        LogMsg("Exception in Editor::FlightLoopUserCb: %s", e.what());
-        error_disabled = true;  // soft disable the plugin
-    }
+    camera_steps_ = 0;  // one shot only
+    XPLMControlCamera(xplm_ControlCameraUntilViewChanges, CameraCtrlCb, nullptr);
 }
 
+void JwEditor::RemoveMarker() {
+    if (marker_inst_) {
+        LogMsg("Removing marker");
+        XPLMDestroyInstance(marker_inst_);
+        marker_inst_ = nullptr;
+    }
+}
