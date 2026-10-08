@@ -60,15 +60,19 @@ jobs:
       - name: Get XPlane SDK + xplib
         shell: bash
         run: |
-            SDK_VERSION=411
-            curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o "XPSDK${SDK_VERSION}.zip"
-            unzip XPSDK${SDK_VERSION}.zip
+            SDK_VERSION=440
+            # curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o XPSDK.zip
+            # unzip XPSDK.zip
+
+            # while in beta, use the beta SDK URL
+            curl -L "https://www.x-plane.com/wp-content/uploads/2026/10/XPSDK440-b4.zip" -o XPSDK-b4.zip
+            unzip XPSDK-b4.zip
+
             mv SDK ../
-            git clone https://github.com/hotbso/xplib.git ../xplib
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y ninja-build gcc-14 g++-14 libcurl4-gnutls-dev libgl-dev libopengl-dev libopengl0
+        run: sudo apt-get update && sudo apt-get install -y ninja-build gcc-14 g++-14 libcurl4-gnutls-dev
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
@@ -133,11 +137,15 @@ jobs:
       - name: Get XPlane SDK + xplib
         shell: msys2 {0}
         run: |
-            SDK_VERSION=411
-            curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o "XPSDK${SDK_VERSION}.zip"
-            unzip XPSDK${SDK_VERSION}.zip
+            SDK_VERSION=440
+            # curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o XPSDK.zip
+            # unzip XPSDK.zip
+
+            # while in beta, use the beta SDK URL
+            curl -L "https://www.x-plane.com/wp-content/uploads/2026/10/XPSDK440-b4.zip" -o XPSDK-b4.zip
+            unzip XPSDK-b4.zip
+
             mv SDK ../
-            git clone https://github.com/hotbso/xplib.git ../xplib
 
       - name: Build Windows binaries
         shell: msys2 {0}
