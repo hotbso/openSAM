@@ -95,6 +95,9 @@ The default VDGS for standard sceneries can be selected in the menu.
 Per default all stands with jetways get a VDGS and all others get a Marshaller. This can easily be changed with the UI for the active stand.
 ![Image](images/AutoDGS-selected_gate.jpg)
 
+openSAM can manage standard XP12 jetways as well including full multiplayer support, i.e. that includes all gateway airports.
+![Image](images/MP-default_jetways.jpg)
+
 ### Airport Editor
 A full customization of all DGS be done with the Airport Editor:
 ![Image](images/editor_1.jpg)
@@ -124,7 +127,7 @@ openSAM supports
  - Virtual Air Traffic (VAT)
  - Traffic Global XP (TGXP)
  - LiveTraffic
-
+ 
 Set up your multiplayer environment as needed (e.g. connect to Vatsim and/or enable/disable MP plugins).\
 Then select "Toggle Multiplayer Support" in openSAM's menu.\
 If xPilot is connected to Vatsim that takes precedence over other installed multplayer plugins.\
@@ -251,11 +254,8 @@ in the current directory and uses the specified set name for datarefs.\
 
 **Note**: all collected library jetways share a single global namespace. Hence be specific with your set names e.g. include your studio name.
 
-## Jetway Editor for library jetway instances
-You can fine tune library jetway instances, e.g. if wheels should be parked in marked areas or other setups can can be
-achieved with zero config.
-
-Tweak these instances as needed with *Jetway Editor*.
+## Jetway Editor
+Full customization of scenery-local jetway models and and placement of all jetways can be done with *Jetway Editor*.
 
 ![Image](images/jw-editor.jpg)
 
