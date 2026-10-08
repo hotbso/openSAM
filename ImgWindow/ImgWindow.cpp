@@ -211,7 +211,7 @@ ImgWindow::ImgWindow(int left, int top, int right, int bottom, XPLMWindowDecorat
 
 ImgWindow::~ImgWindow() {
     XPLMDestroyWindow(window_id_);
-    LogMsg("draw_calls_.capacity(): %zu", draw_calls_.capacity());
+    // LogMsg("draw_calls_.capacity(): %d", (int)draw_calls_.capacity());
 
     ImGui::SetCurrentContext(imgui_context_);
 

@@ -83,34 +83,33 @@ class Image {
     // create empty
     Image(int width, int height) : width_(width), height_(height) {
         pixels_ = std::make_unique<unsigned char[]>(width_ * height_ * 4);
-   }
+    }
 
     // create from data
-    Image(const unsigned char* data, int width, int height, int channels) : width_(width), height_(height) {
+    Image(const unsigned char* data, int width, int height, [[maybe_unused]] int channels)
+        : width_(width), height_(height) {
         assert(channels == 4);  // Ensure the input data has 4 channels (RGBA)
         pixels_ = std::make_unique_for_overwrite<unsigned char[]>(width_ * height_ * 4);
         memcpy(pixels_.get(), data, width_ * height_ * 4);
     }
 
-    // create from file
-    Image(const std::string& filename);
-    Image(const Image&) = delete;
-    Image& operator=(const Image&) = delete;
-    Image(Image&&) = delete;
-    Image& operator=(Image&&) = delete;
+   // create from file
+   Image(const std::string& filename);
+   Image(const Image&) = delete;
+   Image& operator=(const Image&) = delete;
+   Image(Image&&) = delete;
+   Image& operator=(Image&&) = delete;
 
-    void Clear() {
-        memset(pixels_.get(), 0, width_ * height_ * 4);
-    }
+   void Clear() { memset(pixels_.get(), 0, width_ * height_ * 4); }
 
-    void Text(int x, int y, Font& font, float height, Color color, const std::string& txt);
-    int MeasureText(Font& font, float height, const std::string& txt);
+   void Text(int x, int y, Font& font, float height, Color color, const std::string& txt);
+   int MeasureText(Font& font, float height, const std::string& txt);
 
-    void Paste(const Image& src, int x, int y);  // paste src image into this image at (x,y)
-    bool Save(const std::string& filename) const;
+   void Paste(const Image& src, int x, int y);  // paste src image into this image at (x,y)
+   bool Save(const std::string& filename) const;
 
-    int width() const { return width_; }
-    int height() const { return height_; }
+   int width() const { return width_; }
+   int height() const { return height_; }
 };
 
 // a poor man's imgui for a dynamic display
