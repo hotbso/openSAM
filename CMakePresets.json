@@ -18,7 +18,7 @@
     {
       "name": "lx",
       "displayName": "Linux Native Release",
-      "binaryDir": "/tmp/build/lx",
+      "binaryDir": "${sourceDir}/build/lx",
       "generator": "Ninja"
     },
     {
@@ -32,7 +32,7 @@
     {
       "name": "mac",
       "displayName": "macOS Cross Compile",
-      "binaryDir": "/tmp/build/mac",
+      "binaryDir": "${sourceDir}/build/mac",
       "toolchainFile": "${sourceDir}/toolchain-osxcross.cmake",
       "generator": "Ninja"
     },

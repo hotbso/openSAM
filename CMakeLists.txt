@@ -127,7 +127,7 @@ elseif(APPLE)
         -Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/linkscript.mac
     )
     find_library(XPLM_FW     XPLM     PATHS "${SDK}/Libraries/Mac" REQUIRED)
-    target_link_libraries(openSAM PRIVATE ${XPLM_FW} "-framework OpenGL" "-framework Carbon" curl z)
+    target_link_libraries(openSAM PRIVATE ${XPLM_FW} curl z)
     install(TARGETS openSAM LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/mac_x64")
 
 elseif(UNIX)
@@ -138,7 +138,7 @@ elseif(UNIX)
         -fPIC -fno-stack-protector
     )
     target_link_options(openSAM PRIVATE -rdynamic -nodefaultlibs)
-    target_link_libraries(openSAM PRIVATE GL curl z)
+    target_link_libraries(openSAM PRIVATE curl z)
     install(TARGETS openSAM LIBRARY DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/openSAM-pkg/openSAM/lin_x64")
 endif()
 
