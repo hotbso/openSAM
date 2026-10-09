@@ -48,7 +48,7 @@ extern void ReadWav(const std::string& fname, Sound& sound);
 static constexpr float kDriveSpeed = 1.0;        // m/s
 static constexpr float kTurnSpeed = 10.0;        // °/s
 static constexpr float kHeightSpeed = 0.1;       // m/s
-static constexpr float kAnimTimeout = 50;        // s
+static constexpr float kBasicTimeout = 15;       // s ( + extent based timeout)
 static constexpr float kAlignDist = 1.0;         // m abeam door
 static constexpr float kCanopyCloseTime = 5.0f;  // s, time to close canopy after docking
 
@@ -1006,7 +1006,8 @@ void JwCtrl::SetupDockUndock(float start_time, bool with_sound) {
     state_ = kToAp;
     start_ts_ = start_time;
     last_step_ts_ = start_ts_;
-    timeout_ = start_ts_ + kAnimTimeout;
+    // make timeout dependant of extension length
+    timeout_ = start_ts_ + kBasicTimeout + (docked_extent_ + jw_->extent_) / kDriveSpeed;
     if (with_sound)
         jw_->AlertOn();
     jw_->warnlight_ = 1;
