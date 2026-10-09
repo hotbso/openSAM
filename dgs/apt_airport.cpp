@@ -48,7 +48,7 @@ void AptAirport::dump() const {
     LogMsg("Dump of airport: %s, is_opensam: %d", icao_.c_str(), is_opensam_);
 
     for (auto const& s : stands_)
-        LogMsg("'%s', %0.6f, %0.6f, %0.6f, has_jw: %d", s.name.c_str(), s.lat, s.lon, s.hdgt, s.has_xp12_jw);
+        LogMsg("'%s', %0.6f, %0.6f, %0.6f, has_jw: %d, code lettter: '%c'", s.name.c_str(), s.lat, s.lon, s.hdgt, s.has_xp12_jw, s.size_code_letter);
 
 #if 0
     for (auto & jw : jetways_)
@@ -230,6 +230,14 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool fil
             if (ofs < (int)line.size())
                 st.name = line.substr(ofs, line.size() - ofs);
             arpt->stands_.push_back(st);
+            continue;
+        }
+
+        // stand meta data
+        // 1301 C airline baw afr klm dlh vir sas aza ibe sva ber ryr vlg ezy
+        if (line.starts_with("1301 ")) {
+            if (!arpt->stands_.empty() && line.length() > 5)
+                arpt->stands_.back().size_code_letter = line[5];  // assuming the size code letter is the 6th character in the line
             continue;
         }
 

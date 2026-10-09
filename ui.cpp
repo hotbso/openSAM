@@ -24,6 +24,7 @@
 
 #include <string>
 #include <vector>
+#include <print>
 
 #include "XPLMDisplay.h"
 #include "XPLMProcessing.h"
@@ -264,8 +265,13 @@ void Ui::BuildInterface() {
         // for AutoDGS we add the DGS type
         if (adgs_arpt) {
             for (int i = 0; i < dgs_arpt->nstands(); i++) {
-                auto dgs_params = adgs_arpt->GetStandParams(i);
-                lb_stands_.push_back((dgs_params.dgs_type == kMarshaller ? "M " : "V ") + dgs_params.name);
+                auto sp = adgs_arpt->GetStandParams(i);
+                std::string label = std::format("{} {:15} {}", sp.dgs_type == kMarshaller ? 'M' : 'V',
+                                                sp.name, sp.size_code_letter);
+                if (sp.has_xp12_jw)
+                    label += " / Jetway";
+
+                lb_stands_.push_back(std::move(label));
             }
         } else {
             for (int i = 0; i < dgs_arpt->nstands(); i++)
@@ -327,11 +333,11 @@ void Ui::BuildInterface() {
     // for AutoDGS we have additional buttons to interact with the DGS
     // show them as long as we have an active stand
     if (adgs_arpt && as >= 0) {
-        auto dgs_params = adgs_arpt->GetStandParams(as);
+        auto sp = adgs_arpt->GetStandParams(as);
         int idx = as + 1;                                            // +1 due to "<automatic>"
-        lb_stands_[idx][0] = (dgs_params.dgs_type == kMarshaller ? 'M' : 'V');  // set current indicator
+        lb_stands_[idx][0] = (sp.dgs_type == kMarshaller ? 'M' : 'V');  // set current indicator
 
-        new_dgs_type_ = dgs_params.dgs_type;
+        new_dgs_type_ = sp.dgs_type;
 
         ImGui::Columns(2);  // 2 columns: one for the radio buttons, one for the "Move closer" button
         if (ImGui::RadioButton("Marshaller", new_dgs_type_ == kMarshaller)) {
@@ -348,7 +354,7 @@ void Ui::BuildInterface() {
         }
         ImGui::Columns();
 
-        if (new_dgs_type_ != dgs_params.dgs_type) {
+        if (new_dgs_type_ != sp.dgs_type) {
             new_dgs_type_stand_ = as;
             dgs_type_changed_ = true;
             LogMsg("Flight loop scheduled to apply new DGS type %d for active stand index %d", new_dgs_type_, as);
@@ -363,6 +369,7 @@ void Ui::BuildInterface() {
             height -= ImGui::GetTextLineHeightWithSpacing();  // jw selection is below the stand listbox
 
         if (ImGui::BeginListBox("##Stands", ImVec2(-FLT_MIN, height))) {
+            ImGui::PushFont(mono_font, 0.0f);
             for (int i = 0; i < (int)lb_stands_.size(); i++) {
                 ImGui::PushID(i);  // ensure unique ID for each selectable item, stand names may not be unique
                 const bool is_selected = (lb_item_ == i);
@@ -382,7 +389,7 @@ void Ui::BuildInterface() {
 
                 ImGui::PopID();
             }
-
+            ImGui::PopFont();
             ImGui::EndListBox();
         }
     }

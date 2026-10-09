@@ -42,6 +42,7 @@ struct AptStand {
 	double lon, lat;
 	float hdgt;
     bool has_xp12_jw{false};
+    char size_code_letter{' '};
 };
 
 // code 100 data

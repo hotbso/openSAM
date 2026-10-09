@@ -465,6 +465,7 @@ AdgsStandParams AdgsAirport::GetStandParams(int idx) const {
     p.dgs_left_right = s.dgs_left_right_;
     p.pole = s.dgs_pole_;
     p.has_xp12_jw = s.has_jw();
+    p.size_code_letter = s.size_code_letter();
     return p;
 }
 

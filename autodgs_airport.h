@@ -81,6 +81,7 @@ struct AdgsStandParams {
     int idx;           // index of this slot in the airport's stands_ vector
     std::string name;
     bool has_xp12_jw;
+    char size_code_letter;
 
     // these are settable by the user and are saved in the airport's .cfg file
     int dgs_type;
