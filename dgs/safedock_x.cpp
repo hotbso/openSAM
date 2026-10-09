@@ -61,7 +61,7 @@ static DynDisplay::Font* dd_font = nullptr;
 static DynDisplay::Image* eq_syms_img = nullptr;  // for chocks, gpu, pca, pbb symbols
 
 static constexpr DynDisplay::Color kTextColor = {252, 253, 193, 255};
-static constexpr DynDisplay::Color kTextRed= {255, 25, 25, 255};
+static constexpr DynDisplay::Color kTextRed= {255, 100, 42, 255};
 static constexpr DynDisplay::Color kTextGreen = {25, 255, 25, 255};
 static constexpr DynDisplay::Color kTextYellow = {255, 255, 25, 255};
 
