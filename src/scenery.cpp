@@ -682,15 +682,13 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways
         if (is_opensam) {
             // will be used with openSAM personality
             apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", /* ignore */ false,
-                                               /* filter_autodgs */ false, xp12_jetways, n_stands);
-            if (apt)
-                apt->is_opensam_ = true;
+                                               /* filter_autodgs */ false, xp12_jetways, n_stands, is_opensam);
         } else {
             // will be used with AutoDGS personality
             bool ignore = (std::filesystem::exists(sc_path + "no_autodgs") ||
                            std::filesystem::exists(sc_path + "no_autodgs.txt"));
             apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, /* filter_autodgs */ true,
-                                               xp12_jetways, n_stands);
+                                               xp12_jetways, n_stands, false);
         }
 
         if (!(apt && is_opensam)) {
@@ -729,7 +727,7 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways
 
     // Process 'Global Airports' last
     int n_stands = 0;
-    if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, true, xp12_jetways, n_stands)) {
+    if (!dgs::AptAirport::ParseAptDat(xp_dir + "/Global Scenery/Global Airports/Earth nav data/apt.dat", false, true, xp12_jetways, n_stands, false)) {
             throw std::runtime_error("WARNING: global apt.dat could not be parsed, no DGS support!");
     } else {
         LogMsg("%d stands with DGS, %d xp12 jetways found in global apt.dat", n_stands, (int)xp12_jetways.size());

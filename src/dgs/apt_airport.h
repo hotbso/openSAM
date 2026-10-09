@@ -97,9 +97,10 @@ class AptAirport {
     // parse apt.dat, enter data into apt_airports_, return pointer to (last) parsed airport or nullptr on error
     // if ignore is true, a dummy airport with that id will be added and marked as ignored
     // this will also shadow a global airport with the same id, so it won't be found by LocateAirport
-    // Append jetway records to the provided vector
+    // Append jetway records to the provided vector.
+    // Flag 'is_opensam' is propagated to all airports in this apt.dat.
     static AptAirport* ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs,
-                                   std::vector<AptJetway>& jetways, int& total_stands);
+                                   std::vector<AptJetway>& jetways, int& total_stands, bool is_opensam);
 
     static int NumAirports() { return apt_airports_.size(); }
     static void LoadingFinished();  // call after all airports have been loaded to build the quadtree
