@@ -101,7 +101,7 @@ void AptAirport::ComputeBBox() {
 }
 
 // go through apt.dat and collect stands
-AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs, int& total_stands) {
+AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs, int& total_stands, bool is_opensam) {
     if (apt_airports_.empty()) {
         apt_airports_.reserve(8000);  // avoid too many reallocations
     }
@@ -136,6 +136,7 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool fil
             total_stands += arpt->stands_.size();
             arpt->stands_.shrink_to_fit();
             std::sort(arpt->stands_.begin(), arpt->stands_.end());
+            arpt->is_opensam_ = is_opensam;
             apt_airports_[arpt->icao_] = arpt;
             retval = arpt;
             jetways.clear();

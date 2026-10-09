@@ -675,15 +675,13 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, int& max_sam_stands) {
         if (is_opensam) {
             // will be used with openSAM personality
             apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", /* ignore */ false,
-                                               /* filter_autodgs */ false, n_stands);
-            if (apt)
-                apt->is_opensam_ = true;
+                                               /* filter_autodgs */ false, n_stands, is_opensam);
         } else {
             // will be used with AutoDGS personality
             bool ignore = (std::filesystem::exists(sc_path + "no_autodgs") ||
                            std::filesystem::exists(sc_path + "no_autodgs.txt"));
             apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, /* filter_autodgs */ true,
-                                               n_stands);
+                                               n_stands, false);
         }
 
         if (!(apt && is_opensam)) {

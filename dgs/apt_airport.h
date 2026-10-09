@@ -83,7 +83,7 @@ class AptAirport {
     // this will also shadow a global airport with the same id, so it won't be found by LocateAirport
 
     static AptAirport* ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs,
-                                   int& total_stands);
+                                   int& total_stands, bool is_opensam);
 
     static int NumAirports() { return apt_airports_.size(); }
     static void LoadingFinished();  // call after all airports have been loaded to build the quadtree
