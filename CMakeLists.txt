@@ -21,14 +21,14 @@ if(GIT_FOUND)
         OUTPUT_VARIABLE OPENSAM_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
 endif()
 set(VERSION_SHORT "unknown")
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/version.mak")
-    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/version.mak" _ver_mak)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/version.mak")
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/src/version.mak" _ver_mak)
     if(_ver_mak MATCHES "VERSION=([^\r\n]+)")
         set(VERSION_SHORT "${CMAKE_MATCH_1}")
     endif()
 endif()
 set(VERSION_L "${VERSION_SHORT} ${OPENSAM_COMMIT}")
-set(_vh "${CMAKE_CURRENT_SOURCE_DIR}/version.h")
+set(_vh "${CMAKE_CURRENT_SOURCE_DIR}/src/version.h")
 set(_vh_content "// generated file!\n#define VERSION \"${VERSION_L}\"\n#define VERSION_SHORT \"${VERSION_SHORT}\"\n")
 if(EXISTS "${_vh}")
     file(READ "${_vh}" _vh_existing)
@@ -46,22 +46,22 @@ SET(IMGUI_SRCS
     third-party/imgui/imgui_widgets.cpp
     third-party/imgui/imgui_tables.cpp
     third-party/imgui/misc/cpp/imgui_stdlib.cpp
-    ImgWindow/ImgWindow.cpp
+    src/ImgWindow/ImgWindow.cpp
 )
 
 # ==============================================================================
 # Sources
 # ==============================================================================
-add_library(openSAM SHARED opensam.cpp autodgs_airport.cpp adgs_api.cpp seasons.cpp simbrief.cpp
-    os_airport.cpp samjw.cpp jwctrl.cpp os_anim.cpp scenery.cpp read_wav.cpp
-    xp12_jw_instance_1.cpp xp12_jw_instance_2.cpp
-    os_plane.cpp my_plane.cpp
-    mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp mpadapter_vat.cpp
-    dgs/apt_airport.cpp dgs/dgs.cpp dgs/plane.cpp dgs/airport.cpp dgs/marshaller.cpp
-    dgs/safedock_t2_24.cpp dgs/safedock_x.cpp dgs/dyn_display.cpp dgs/airline_logo.cpp
-    sam1_dgs.cpp
-    ui.cpp adgs_editor.cpp jw_editor.cpp
-    http_get.cpp simbrief.cpp log_msg.cpp
+add_library(openSAM SHARED src/opensam.cpp src/autodgs_airport.cpp src/adgs_api.cpp src/seasons.cpp src/simbrief.cpp
+    src/os_airport.cpp src/samjw.cpp src/jwctrl.cpp src/os_anim.cpp src/scenery.cpp src/read_wav.cpp
+    src/xp12_jw_instance_1.cpp src/xp12_jw_instance_2.cpp
+    src/os_plane.cpp src/my_plane.cpp
+    src/mpadapter.cpp src/mpadapter_xpilot.cpp src/mpadapter_tgxp.cpp src/mpadapter_lt.cpp src/mpadapter_vat.cpp
+    src/dgs/apt_airport.cpp src/dgs/dgs.cpp src/dgs/plane.cpp src/dgs/airport.cpp src/dgs/marshaller.cpp
+    src/dgs/safedock_t2_24.cpp src/dgs/safedock_x.cpp src/dgs/dyn_display.cpp src/dgs/airline_logo.cpp
+    src/sam1_dgs.cpp
+    src/ui.cpp src/adgs_editor.cpp src/jw_editor.cpp
+    src/http_get.cpp src/simbrief.cpp src/log_msg.cpp
     ${IMGUI_SRCS}
     third-party/spng.c
     third-party/pugixml-1.16/src/pugixml.cpp
@@ -72,9 +72,9 @@ set_target_properties(openSAM PROPERTIES PREFIX "" SUFFIX ".xpl")
 # Common compile settings
 # ==============================================================================
 target_include_directories(openSAM PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/dgs
-    ${CMAKE_SOURCE_DIR}/ImgWindow
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dgs
+    ${CMAKE_SOURCE_DIR}/src/ImgWindow
     third-party/imgui
     third-party/imgui/misc/cpp
     third-party
@@ -124,7 +124,7 @@ elseif(APPLE)
     )
     target_link_options(openSAM PRIVATE
         -rdynamic -fvisibility=hidden
-        -Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/linkscript.mac
+        -Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/src/linkscript.mac
     )
     find_library(XPLM_FW     XPLM     PATHS "${SDK}/Libraries/Mac" REQUIRED)
     target_link_libraries(openSAM PRIVATE ${XPLM_FW} curl z)
@@ -143,23 +143,21 @@ elseif(UNIX)
 endif()
 
 # ==============================================================================
-# scenery_test (all platforms, matching Makefile.mgw64 test target)
-# ==============================================================================
 if (WIN32)
     option(BUILD_TESTS "Build scenery_test" ON)
 endif()
 
 if(BUILD_TESTS)
     add_executable(scenery_test
-        scenery_test.cpp
-        scenery.cpp
-        xp12_jw_instance_1.cpp
-        dgs/apt_airport.cpp
+        src/scenery_test.cpp
+        src/scenery.cpp
+        src/xp12_jw_instance_1.cpp
+        src/dgs/apt_airport.cpp
         third-party/pugixml-1.16/src/pugixml.cpp
-        log_msg.cpp
+        src/log_msg.cpp
     )
     target_include_directories(scenery_test PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/third-party/pugixml-1.16/src
         ${SDK}/CHeaders/XPLM
     )

@@ -245,7 +245,7 @@ copyright = """
 //    USA
 //
 """
-with open(f"../dgs_variants_generated.h", "w", newline='\n') as f:
+with open(f"../src/dgs_variants_generated.h", "w", newline='\n') as f:
     f.write(copyright)
     f.write("\n\n")
     f.write("// Generated code for DGS variants - do not edit manually, edit gen_height_variants.py instead\n\n")
