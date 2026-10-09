@@ -57,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Get XPlane SDK + xplib
+      - name: Get XPlane SDK
         shell: bash
         run: |
             SDK_VERSION=440
@@ -134,7 +134,7 @@ jobs:
 
       - uses: actions/checkout@v6
 
-      - name: Get XPlane SDK + xplib
+      - name: Get XPlane SDK
         shell: msys2 {0}
         run: |
             SDK_VERSION=440
