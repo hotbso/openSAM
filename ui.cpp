@@ -64,28 +64,13 @@ class Ui : public ImgWindow {
     std::vector<std::string> lb_stands_;  // for the listbox content
     int lb_item_ = -1;                    // for the listbox selection
 
-    bool jw_auto_mode_ = false;  // to store the state of the "Automatic mode" checkbox
     bool jw_selected_[kNearJwLimit][kMaxDoor] = {};
     int nearest_jws_seqno_ = 0;  // for detecting changes in the nearest jetway list by the UI
-
-    bool selected_stand_changed_ = false;  // to detect changes in the listbox selection
-    int new_selected_stand_;  // to store the new selected stand index until we can apply it in the flight loop callback
-
-    bool set_mode_arrival_requested_ = false;  // to detect if the "Set mode ARRIVAL" button has been pressed
-
-    bool move_closer_requested_ = false;  // to detect if the "Move closer" button has been pressed
-
-    bool dgs_type_changed_ = false;  // to detect if the DGS type radio button selection has been changed
-    int new_dgs_type_;
-    int new_dgs_type_stand_;
-
-    bool jw_auto_mode_changed_ = false;  // to detect if the "Automatic mode" checkbox has been changed
 
     bool manage_xp12_jws_changed_ = false;  // to detect if the "Manage XP12 Jetways" checkbox has been changed
 
     // Main function: creates the window's UI
     void BuildInterface() override;
-    void FlightLoopUserCb() noexcept override;
 
    public:
     Ui(int left, int top, int right, int bot);
@@ -326,7 +311,7 @@ void Ui::BuildInterface() {
 
     if (dgs_arpt->state() == dgs::Airport::kIdle && my_plane->beacon_on()) {
         if (ImGui::Button("Set mode ARRIVAL"))
-            set_mode_arrival_requested_ = true;
+            dgs_arpt->SetArrival();
         return;
     }
 
@@ -337,27 +322,25 @@ void Ui::BuildInterface() {
         int idx = as + 1;                                            // +1 due to "<automatic>"
         lb_stands_[idx][0] = (sp.dgs_type == kMarshaller ? 'M' : 'V');  // set current indicator
 
-        new_dgs_type_ = sp.dgs_type;
+        int new_dgs_type = sp.dgs_type;
 
         ImGui::Columns(2);  // 2 columns: one for the radio buttons, one for the "Move closer" button
-        if (ImGui::RadioButton("Marshaller", new_dgs_type_ == kMarshaller)) {
-            new_dgs_type_ = kMarshaller;
-        }
+        if (ImGui::RadioButton("Marshaller", new_dgs_type == kMarshaller))
+            new_dgs_type = kMarshaller;
 
         ImGui::NextColumn();  // column 2 for the button
         if (ImGui::Button("Move closer"))
-            move_closer_requested_ = true;
+            adgs_arpt->DgsMoveCloser();
 
         ImGui::NextColumn();  // column 1 for the radio button
-        if (ImGui::RadioButton("VDGS", new_dgs_type_ != kMarshaller)) {
-            new_dgs_type_ = kDefaultVDGS;
-        }
+        if (ImGui::RadioButton("VDGS", new_dgs_type != kMarshaller))
+            new_dgs_type = kDefaultVDGS;
+
         ImGui::Columns();
 
-        if (new_dgs_type_ != sp.dgs_type) {
-            new_dgs_type_stand_ = as;
-            dgs_type_changed_ = true;
-            LogMsg("Flight loop scheduled to apply new DGS type %d for active stand index %d", new_dgs_type_, as);
+        if (new_dgs_type != sp.dgs_type) {
+            LogMsg("New DGS type %d for active stand index %d", new_dgs_type, as);
+            adgs_arpt->SetDgsType(new_dgs_type);
         }
     }
 
@@ -377,10 +360,9 @@ void Ui::BuildInterface() {
                 // Render the selectable item
                 if (ImGui::Selectable(lb_stands_[i].c_str(), is_selected)) {
                     lb_item_ = i;  // Update selection state on click
-                    new_selected_stand_ = i - 1;
-                    selected_stand_changed_ = true;
-                    LogMsg("Flight loop scheduled to apply new selected stand index %d (listbox index %d)",
-                           new_selected_stand_, lb_item_);
+                    int new_selected_stand_ = i - 1;    // -1 due to <automatic>
+                    LogMsg("Setting selected stand to %d", new_selected_stand_);
+                    dgs_arpt->SetSelectedStand(new_selected_stand_);
                 }
 
                 // Set the initial focus when opening the combo/listbox (optional)
@@ -398,19 +380,21 @@ void Ui::BuildInterface() {
         return;
 
     // openSAM managed jetways UI
-    jw_auto_mode_ = my_plane->auto_mode();
+    bool jw_auto_mode = my_plane->auto_mode();
 
     ImGui::TextUnformatted("Jetway selection mode:");
     ImGui::SameLine();
-    if (ImGui::RadioButton("Automatic", jw_auto_mode_))
-        jw_auto_mode_ = true;
+    if (ImGui::RadioButton("Automatic", jw_auto_mode))
+        jw_auto_mode = true;
 
     ImGui::SameLine();
-    if (ImGui::RadioButton("Manual", !jw_auto_mode_))
-        jw_auto_mode_ = false;
+    if (ImGui::RadioButton("Manual", !jw_auto_mode))
+        jw_auto_mode = false;
 
-    if (jw_auto_mode_ != my_plane->auto_mode())
-        jw_auto_mode_changed_ = true;
+    if (jw_auto_mode != my_plane->auto_mode()) {
+        LogMsg("Setting automatic jetway selection to %s", jw_auto_mode ? "ON" : "OFF");
+        my_plane->AutoModeSet(jw_auto_mode);
+    }
 
     if (my_plane->state() == OsPlane::kSelectJws) {
         if (nearest_jws_seqno_ != my_plane->nearest_jws_seqno_) {
@@ -539,67 +523,5 @@ void Ui::BuildInterface() {
     } else if (my_plane->state() == OsPlane::kDocked) {
         if (ImGui::Button("Undock"))
             my_plane->undock_requested_ = true;
-    }
-}
-
-// Actions that require FlightLoop context
-void Ui::FlightLoopUserCb() noexcept {
-    // check for fast exit
-    if (!(selected_stand_changed_ || set_mode_arrival_requested_ || move_closer_requested_ || dgs_type_changed_ ||
-          jw_auto_mode_changed_))
-        return;
-
-    try {
-        dgs::Airport* dgs_arpt = nullptr;
-        if (adgs_arpt)
-            dgs_arpt = adgs_arpt.get();
-        else if (os_arpt)
-            dgs_arpt = os_arpt.get();
-
-        if (dgs_arpt == nullptr || dgs_arpt->seqno_ != arpt_seqno_) {
-            // stale request
-            selected_stand_changed_ = set_mode_arrival_requested_ = move_closer_requested_ = dgs_type_changed_ =
-                jw_auto_mode_changed_ = false;
-            return;
-        }
-
-        if (selected_stand_changed_) {
-            LogMsg("Setting selected stand to %d", new_selected_stand_);
-            dgs_arpt->SetSelectedStand(new_selected_stand_);
-            selected_stand_changed_ = false;
-        }
-
-        if (set_mode_arrival_requested_) {
-            LogMsg("Setting airport mode to ARRIVAL");
-            dgs_arpt->SetArrival();
-            set_mode_arrival_requested_ = false;
-        }
-
-        if (move_closer_requested_) {
-            LogMsg("Moving plane closer to the stand");
-            if (adgs_arpt)
-                adgs_arpt->DgsMoveCloser();
-            move_closer_requested_ = false;
-        }
-
-        if (dgs_type_changed_) {
-            LogMsg("Changing DGS type of stand index %d to %d", new_dgs_type_stand_, new_dgs_type_);
-            if (adgs_arpt) {
-                int as = adgs_arpt->active_stand();
-                if (as == new_dgs_type_stand_)
-                    adgs_arpt->SetDgsType(new_dgs_type_);
-            }
-
-            dgs_type_changed_ = false;
-        }
-
-        if (jw_auto_mode_changed_) {
-            LogMsg("Setting automatic jetway selection to %s", jw_auto_mode_ ? "ON" : "OFF");
-            my_plane->AutoModeSet(jw_auto_mode_);
-            jw_auto_mode_changed_ = false;
-        }
-    } catch (const std::exception& e) {
-        LogMsg("Exception in Ui::FlightLoopUserCb: %s", e.what());
-        error_disabled = true;  // soft disable the plugin
     }
 }
