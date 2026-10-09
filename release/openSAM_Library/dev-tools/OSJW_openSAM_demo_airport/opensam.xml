@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<scenery
+  name="OSJW_openSAM_demo_airport">
+  <models>
+    <library_jw
+      model_id="hotbso_1"
+      name="based on MrXLib_Steel_Old_4m"
+      height="4.19999981"
+      wheel_pos="13"
+      cabin_pos="16.2999992"
+      cabin_length="2.79999995"
+      wheel_diameter="0.893000007"
+      wheel_distance="1.36000001"
+      min_rot2="-95"
+      max_rot2="40"
+      min_rot3="-6"
+      max_rot3="6"
+      min_extent="0"
+      max_extent="17" />
+  </models>
+  <jetways />
+</scenery>
