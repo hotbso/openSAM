@@ -79,7 +79,6 @@ class AptAirport {
     bool ignore_{false};      // e.g. no_autodgs marker present
 
    public:
-    bool is_opensam_{false};    // whether this is an openSAM airport
     bool has_xp12_jws_{false};  // whether this airport has XP12 jetways, from apt.dat
     Scenery* scenery_{nullptr};  // non-owning pointer to the scenery that owns this airport, if any
 
@@ -98,9 +97,10 @@ class AptAirport {
     // if ignore is true, a dummy airport with that id will be added and marked as ignored
     // this will also shadow a global airport with the same id, so it won't be found by LocateAirport
     // Append jetway records to the provided vector.
-    // Flag 'is_opensam' is propagated to all airports in this apt.dat.
-    static AptAirport* ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs,
-                                   std::vector<AptJetway>& jetways, int& total_stands, bool is_opensam);
+    // The Scenery pointer 'sc' is associated with all airports parsed from this apt.dat.
+    // -> true if any airport was successfully parsed, false otherwise
+    static bool ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs, std::vector<AptJetway>& jetways,
+                            int& total_stands, Scenery* sc);
 
     static int NumAirports() { return apt_airports_.size(); }
     static void LoadingFinished();  // call after all airports have been loaded to build the quadtree

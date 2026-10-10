@@ -248,7 +248,7 @@ void LoadAndActivateAirport() {
         adgs_arpt = nullptr;
     } else {
         LogMsg("now on airport: %s", arpt->icao_.c_str());
-        if (arpt->is_opensam_) {
+        if (arpt->scenery_ && arpt->scenery_->is_opensam()) {
             if (os_arpt == nullptr || os_arpt->name() != arpt->icao_) {  // don't reload same
                 os_arpt = std::make_unique<OsAirport>(*arpt);
                 if (os_arpt) {

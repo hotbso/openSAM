@@ -50,10 +50,9 @@ class Scenery {
    public:
     static std::vector<Scenery*> sceneries_;
 
-    dgs::AptAirport* airport_ = nullptr;  // non-owning pointer to airport if any
-
     std::string name_;
     std::string arpt_icao_;
+    std::string dir_pathname_;           // directory name of scenery
     std::string sam_xml_pathname_;  // full path to the opensam.xml file, if any
 
     std::vector<SamObj> sam_objs_;
@@ -76,6 +75,8 @@ class Scenery {
     Scenery(Scenery&&) noexcept = default;
     Scenery& operator=(const Scenery&) = delete;
     Scenery& operator=(Scenery&&) noexcept = delete;
+
+    bool is_opensam() const { return !sam_xml_pathname_.empty(); }
 
     // Update the <jetways> section of a scenery's sam.xml with the current jetway configuration, return whether successful
     bool UpdateOpenSamXml(const std::vector<SamJw*> jw_instances);

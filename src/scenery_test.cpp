@@ -82,15 +82,9 @@ void scenery_test() {
     }
 
     for (const auto sc : Scenery::sceneries_) {
-        if (sc->airport_)
-            printf("Scenery '%s' has airport '%s'\n", sc->name_.c_str(), sc->airport_->icao_.c_str());
-        else
-            printf("Scenery '%s' has no airport\n", sc->name_.c_str());
-
-        printf("  back pointer scenery -> airport -> scenery: %s\n", sc->airport_ ? (sc->airport_->scenery_ == sc ? "ok" : "mismatch") : "no airport");
-
-        printf("\nScenery '%s', %d objects, %d animations, %d jetways\n", sc->name_.c_str(), (int)sc->sam_objs_.size(),
+        printf("\nScenery '%s', is_opensam: %d, %d objects, %d animations, %d jetways\n", sc->name_.c_str(), sc->is_opensam(), (int)sc->sam_objs_.size(),
                (int)sc->sam_anims_.size(), sc->jw_idx_end_ - sc->jw_idx_start_);
+        printf("  directory: '%s'\n", sc->dir_pathname_.c_str());
 
         puts("\nObjects");
         for (auto& obj : sc->sam_objs_)

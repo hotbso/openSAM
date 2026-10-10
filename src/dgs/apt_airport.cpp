@@ -45,7 +45,7 @@ static bool operator<(const AptStand& a, const AptStand& b) {
 }
 
 void AptAirport::dump() const {
-    LogMsg("Dump of airport: %s, is_opensam: %d", icao_.c_str(), is_opensam_);
+    LogMsg("Dump of airport: %s", icao_.c_str());
 
     for (auto const& s : stands_)
         LogMsg("'%s', %0.6f, %0.6f, %0.6f, has_jw: %d, code lettter: '%c'", s.name.c_str(), s.lat, s.lon, s.hdgt, s.has_xp12_jw, s.size_code_letter);
@@ -94,21 +94,21 @@ void AptAirport::ComputeBBox() {
 }
 
 // go through apt.dat and collect stands and xp12 jetways
-AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs,
-                                    std::vector<AptJetway>& jetways, int& total_stands, bool is_opensam) {
+bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_autodgs,
+                                    std::vector<AptJetway>& jetways, int& total_stands, Scenery* sc) {
     if (apt_airports_.empty()) {
         apt_airports_.reserve(8000);  // avoid too many reallocations
     }
 
     std::ifstream apt(fn);
     if (apt.fail())
-        return nullptr;
+        return false;
 
     LogMsg("Processing '%s'", fn.c_str());
     std::string line;
     line.reserve(2000);  // can be quite long
 
-    AptAirport* retval = nullptr;
+    bool retval = false;
     AptAirport* arpt = nullptr;
     std::string arpt_name;
     int jw_start_idx = jetways.size();   // start idx of jetways for the next airport
@@ -135,9 +135,9 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool fil
                 }
 
             total_stands += arpt->stands_.size();
-            arpt->is_opensam_ = is_opensam;
+            arpt->scenery_ = sc;
             apt_airports_[arpt->icao_] = arpt;
-            retval = arpt;
+            retval = true;
             jw_start_idx = jetways.size();  // update for next airport
             arpt->ComputeBBox();            // compute bounding box for this airport
         } else {
@@ -248,7 +248,7 @@ AptAirport* AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool fil
             arpt->has_xp12_jws_ = true;
             AptJetway jw;
             sscanf(line.c_str(), "%*d %lf %lf %f %d %d %*f %f %f", &jw.pos.lat, &jw.pos.lon, &jw.hdgt, &jw.style, &jw.length_code, &jw.length, &jw.cabin_hdgt);
-            fem::Vec2 dir{cosf((90.0f - jw.hdgt) * kD2R), sinf((90.0f - jw.hdgt) * kD2R)};
+            fem::Vec2 dir{std::cos((90.0f - jw.hdgt) * kD2R), std::sin((90.0f - jw.hdgt) * kD2R)};
             jw.cabin = jw.pos + jw.length * dir;
             jetways.push_back(jw);
             continue;
