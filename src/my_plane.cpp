@@ -46,14 +46,16 @@ int MyPlane::JwStatusAcc(void* ref) {
     if (my_plane->BeaconOn())
         return 0;
 
-    auto [count, status] = GetXP12JwStatus();
-
-    // if there are any XP12 jetways, return their status, otherwise return our own status
-    if (count > 0) {
-        if (ref == 0)
-            return count;
-        else
-            return status;
+    // if we don't have managed jetways...
+    if (my_plane->active_jws_.empty()) {
+        // ... return the 'emulated' status of XP12's jetways
+        auto [count, status] = GetXP12JwStatus();
+        if (count > 0) {
+            if (ref == 0)
+                return count;
+            else
+                return status;
+        }
     }
 
     // opensam/jetway/number
