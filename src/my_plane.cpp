@@ -90,9 +90,13 @@ int MyPlane::JwDoorStatusAcc([[maybe_unused]] void* ref, int* values, int ofs, i
         values[i] = 0;
     }
 
-    auto [count, status] = GetXP12JwStatus();
-    if (count > 0 && status == 2) {
-        values[0] = 1;  // door 1 only
+    if (my_plane->active_jws_.empty()) {
+        auto [count, status] = GetXP12JwStatus();
+        // currently only for door 0
+        if (ofs == 0 && count > 0 && status == 2) {
+            values[0] = 1;  // door 1 only
+        }
+
         return n;
     }
 
