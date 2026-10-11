@@ -45,6 +45,18 @@ extern XPLMDataRef draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_ob
 
 extern XPLMCommandRef toggle_jetway_cmdr;
 
+struct Preferences {
+    int auto_season{1};
+    int season{1};
+    bool north_hemisphere{true};
+    bool auto_jetway_select{true};
+    bool manage_xp12_jetways{};
+    int default_vdgs_type{};
+    int ui_left{-1}, ui_top{}, ui_right{}, ui_bottom{};
+};
+
+extern Preferences prefs;
+
 // emulate the status for XP12 jetways, called by the "opensam/jetway/status" dataref accessor
 std::tuple<int, int> GetXP12JwStatus();    // -> (count, status)
 
@@ -53,8 +65,6 @@ extern unsigned long long stat_jw_acc_called, stat_anim_acc_called, stat_auto_dr
 
 extern float now;           // current timestamp
 extern bool error_disabled; // set this on severe errors to disable openSAM and hopefully allow XP to continue
-
-extern bool manage_xp12_jetways; // 1 to manage XP12 jetways, 0 to let X-Plane do its things
 
 // generation # of reference frame
 // init with 1 so jetways never seen by the accessor won't be considered in JwCtrl::FindNearestJetways()
@@ -67,6 +77,7 @@ extern XPLMProbeRef probe_ref;
 // functions
 extern void create_api_drefs();
 extern void CheckRefFrameShift();
+extern void LoadPrefs();
 extern void SavePrefs();
 
 template<typename T>

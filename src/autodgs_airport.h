@@ -37,8 +37,6 @@ enum VDgsType {
     kVdgsSafedock_X
 };
 
-extern int default_vdgs_type;
-
 enum OperationMode { kAuto, kManual };
 extern const char * const opmode_str[];
 extern OperationMode operation_mode;

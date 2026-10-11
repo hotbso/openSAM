@@ -43,6 +43,7 @@
 #include "version.h"
 
 #include "ui.h"
+#include "opensam.h"
 #include "adgs_editor.h"
 #include "log_msg.h"
 
@@ -56,7 +57,6 @@ static constexpr int kWinPad = 75;
 ImFont* std_font, *mono_font, *symbol_font;
 
 std::unique_ptr<ImgWindow> ui;
-int ui_left = -1, ui_top, ui_right, ui_bottom;  // -1 = not loaded from prefs
 
 // Our own class defining our own UI
 class Ui : public ImgWindow {
@@ -78,19 +78,19 @@ class Ui : public ImgWindow {
 };
 
 void CreateUi() {
-    if (ui_left == -1) {
+    if (prefs.ui_left == -1) {
         LogMsg("Creating UI window with default geometry");
         int sc_left, sc_top;
         XPLMGetScreenBoundsGlobal(&sc_left, &sc_top, nullptr, nullptr);
 
-        ui_left = sc_left + kWinPad;
-        ui_right = ui_left + kWinWidth;
-        ui_top = sc_top - kWinPad;
-        ui_bottom = ui_top - kWinHeight;
+        prefs.ui_left = sc_left + kWinPad;
+        prefs.ui_right = prefs.ui_left + kWinWidth;
+        prefs.ui_top = sc_top - kWinPad;
+        prefs.ui_bottom = prefs.ui_top - kWinHeight;
     } else
-        LogMsg("Creating UI window with geometry %d,%d,%d,%d", ui_left, ui_top, ui_right, ui_bottom);
+        LogMsg("Creating UI window with geometry %d,%d,%d,%d", prefs.ui_left, prefs.ui_top, prefs.ui_right, prefs.ui_bottom);
 
-    ui = std::make_unique<Ui>(ui_left, ui_top, ui_right, ui_bottom);
+    ui = std::make_unique<Ui>(prefs.ui_left, prefs.ui_top, prefs.ui_right, prefs.ui_bottom);
 }
 
 void UiLoadFonts() {
@@ -128,7 +128,7 @@ Ui::Ui(int left, int top, int right, int bot)
 }
 
 Ui::~Ui() {
-    GetWindowGeometry(ui_left, ui_top, ui_right, ui_bottom);  // save geometry for next time
+    GetWindowGeometry(prefs.ui_left, prefs.ui_top, prefs.ui_right, prefs.ui_bottom);  // save geometry for next time
 }
 
 void Ui::BuildInterface() {
@@ -138,15 +138,15 @@ void Ui::BuildInterface() {
         ImGui::Separator();
         ImGui::TextUnformatted("Default VDGS for standard airports:");
 
-        int current_vdgs_type = default_vdgs_type;
-        if (ImGui::RadioButton("Safedock T2-24", default_vdgs_type == kVdgsSafedock_T2_24))
-            default_vdgs_type = kVdgsSafedock_T2_24;
+        int current_vdgs_type = prefs.default_vdgs_type;
+        if (ImGui::RadioButton("Safedock T2-24", prefs.default_vdgs_type == kVdgsSafedock_T2_24))
+            prefs.default_vdgs_type = kVdgsSafedock_T2_24;
 
-        if (ImGui::RadioButton("Safedock-X", default_vdgs_type == kVdgsSafedock_X))
-            default_vdgs_type = kVdgsSafedock_X;
+        if (ImGui::RadioButton("Safedock-X", prefs.default_vdgs_type == kVdgsSafedock_X))
+            prefs.default_vdgs_type = kVdgsSafedock_X;
 
-        if (default_vdgs_type != current_vdgs_type)
-            LogMsg("Default VDGS type changed to %d", default_vdgs_type);
+        if (prefs.default_vdgs_type != current_vdgs_type)
+            LogMsg("Default VDGS type changed to %d", prefs.default_vdgs_type);
 
         //--------------------------------------------------
         ImGui::Spacing();
@@ -154,8 +154,8 @@ void Ui::BuildInterface() {
         ImGui::Spacing();
         ImGui::TextUnformatted("Manage XP12 Jetways:");
         ImGui::SameLine();
-        if (ImGui::Checkbox("##manage_xp12_jetways", &manage_xp12_jetways)) {
-            LogMsg("Manage XP12 Jetways changed to %d", manage_xp12_jetways);
+        if (ImGui::Checkbox("##manage_xp12_jetways", &prefs.manage_xp12_jetways)) {
+            LogMsg("Manage XP12 Jetways changed to %d", prefs.manage_xp12_jetways);
             manage_xp12_jws_changed_ = true;
             SavePrefs();
         }

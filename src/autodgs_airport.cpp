@@ -56,8 +56,6 @@ static float marshaller_pe_dist = kMarshallerDefaultDist;
 
 std::unique_ptr<AdgsAirport> adgs_arpt;
 
-int default_vdgs_type = kVdgsSafedock_T2_24;
-
 OperationMode operation_mode = kAuto;
 const char* const opmode_str[] = { "Automatic", "Manual" };
 
@@ -120,7 +118,7 @@ void AdgsStand::SetDgsType(int dgs_type, bool pole) {
         dgs_height_ = dgs_pole_ ? kStairsHeight : 0.0f;
         dgs_ = dgs::CreateMarshaller(cname());
     } else if (dgs_type_ == kDefaultVDGS) {
-        if (default_vdgs_type == kVdgsSafedock_T2_24) {
+        if (prefs.default_vdgs_type == kVdgsSafedock_T2_24) {
             dgs_height_ = kVdgsT2DefaultHeight;
             dgs_ = dgs::CreateSafedock_T2_24(cname(), arpt_icao_, /* display_only */ false, /* pole */ true);
         } else {

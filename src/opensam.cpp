@@ -116,8 +116,6 @@ std::string sys_cfg_dir;    // <base_dir>/cfg
 std::string user_cfg_dir;   // <xp_dir>/Output/openSAM
 std::string tmp_dir;
 
-static std::string pref_path;
-
 static XPLMMenuID os_menu;
 static int toggle_mp_item;
 static const char* toggle_mp_support_txt = "Toggle Multiplayer Support";
@@ -136,8 +134,7 @@ XPLMCommandRef toggle_jetway_cmdr, activate_cmdr, toggle_ui_cmdr;
 static float lat_ref{-1000}, lon_ref{-1000};
 unsigned int ref_gen{1};
 
-static int pref_auto_mode;
-bool manage_xp12_jetways;    // 1 to manage XP12 jetways, 0 to let X-Plane do its things
+Preferences prefs{.default_vdgs_type = kVdgsSafedock_T2_24};
 
 float now;             // current timestamp
 std::string base_dir;  // base directory of openSAM
@@ -168,51 +165,6 @@ static XPLMFlightLoopID flight_loop_id;
 
 static bool pending_plane_loaded_cb = false;  // delayed init
 
-void SavePrefs() {
-    FILE* f = fopen(pref_path.c_str(), "w");
-    if (NULL == f)
-        return;
-    pref_auto_mode = my_plane->auto_mode();
-
-    // encode southern hemisphere with negative season
-    int s = Seasons::nh ? Seasons::season : -Seasons::season;
-    fprintf(f, "%d,%d,%d,%d,%d,%d,%d,%d,%d", Seasons::auto_season, s, pref_auto_mode, default_vdgs_type, ui_left, ui_top,
-            ui_right, ui_bottom, manage_xp12_jetways);
-    fclose(f);
-
-    LogMsg(
-        "Saving prefs auto_season: %d, season: %d, auto_select_jws: %d, default_vdgs_type: %d, ui:(%d, %d, %d, %d), manage_xp12_jetways: %d",
-        Seasons::auto_season, s, pref_auto_mode, default_vdgs_type, ui_left, ui_top, ui_right, ui_bottom, manage_xp12_jetways);
-}
-
-static void LoadPrefs() {
-    // set some reasonable default values in case there is no pref file
-    Seasons::nh = 1;
-    Seasons::auto_season = 1;
-    Seasons::season = 1;
-    pref_auto_mode = 1;
-
-    FILE* f = fopen(pref_path.c_str(), "r");
-    if (NULL == f)
-        return;
-
-    int manage_xp12_jetways_i;
-    [[maybe_unused]] int n = fscanf(f, "%i,%i,%i,%i,%i,%i,%i,%i,%i", &Seasons::auto_season, &Seasons::season,
-                                    &pref_auto_mode, &default_vdgs_type, &ui_left, &ui_top, &ui_right, &ui_bottom, &manage_xp12_jetways_i);
-    manage_xp12_jetways = manage_xp12_jetways_i != 0;
-
-    LogMsg(
-        "From prefs: auto_season: %d, seasons: %d, auto_select_jws: %d, default_vdgs_type: %d, ui:(%d, %d, %d, %d), manage_xp12_jetways: %d",
-        Seasons::auto_season, Seasons::season, pref_auto_mode, default_vdgs_type, ui_left, ui_top, ui_right, ui_bottom, manage_xp12_jetways);
-
-    fclose(f);
-
-    if (Seasons::season < 0) {
-        Seasons::nh = 0;
-        Seasons::season = -Seasons::season;
-    }
-}
-
 // check for shift of reference frame
 void CheckRefFrameShift() {
     // check for shift of reference frame
@@ -234,7 +186,7 @@ static int SamLibInstalledAcc([[maybe_unused]] void* ref) {
 
 // Accessor for the "opensam/manage_xp12_jetways" dataref
 static int ManageXp12JetwaysAcc([[maybe_unused]] void* ref) {
-    return manage_xp12_jetways;
+    return prefs.manage_xp12_jetways;
 }
 
 //------------------------------------------------------------------------------------
@@ -522,7 +474,7 @@ static int CmdXp12ToggleJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPh
         return 0;
     }
 
-    if (manage_xp12_jetways)
+    if (prefs.manage_xp12_jetways)
         return 0;
 
     bool has_xp12_jw = false;
@@ -700,9 +652,9 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     sys_cfg_dir = base_dir + "cfg/";
     user_cfg_dir = xp_dir + "Output/openSAM/";
     tmp_dir = "Output/openSAM/tmp/";
-    pref_path = user_cfg_dir + "prefs.prf";
     std::string res_dir = base_dir + "resources/";
 
+    prefs.default_vdgs_type = kVdgsSafedock_X;
     LoadPrefs();
 
     if (!HttpGetInitialize())
@@ -742,7 +694,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
         sam_library_installed = !scp.SAM_Library_path.empty();
 
-        Scenery::CollectSceneries(scp, manage_xp12_jetways, max_sam_stands);
+        Scenery::CollectSceneries(scp, prefs.manage_xp12_jetways, max_sam_stands);
         LogMsg("%d sceneries with sam jetways found", (int)Scenery::sceneries_.size());
 
         dgs::AptAirport::LoadingFinished();
@@ -811,7 +763,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     create_api_drefs();
 
     try {
-        my_plane->AutoModeSet(pref_auto_mode);
+        my_plane->AutoModeSet(prefs.auto_jetway_select);
         SamJw::Init(max_sam_stands);
         JwCtrl::Init();
         OsAirport::Init();

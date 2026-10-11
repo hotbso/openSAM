@@ -32,7 +32,4 @@ extern ImFont* std_font, *mono_font, *symbol_font;
 extern void UiLoadFonts();
 extern void CreateUi();
 
-// current window geometry in screen coordinates
-extern int ui_left, ui_top, ui_right, ui_bottom;
-
 extern std::unique_ptr<ImgWindow> ui;
