@@ -609,7 +609,7 @@ float Airport::StateMachine() {
             dgs_params_.status = kDgsGstStop;  // stop position
             dgs_params_.lr = 3;
 
-            int parkbrake_set = (XPLMGetDataf(parkbrake_dr) > 0.5);
+            int parkbrake_set = (XPLMGetDataf(parkbrake_dr) > 0.5f);
             if (!locgood)
                 new_state = kTrack;
             else if (parkbrake_set || !beacon_on)
@@ -617,7 +617,7 @@ float Airport::StateMachine() {
         } break;
 
         case kBad:
-            if (!beacon_on && (now > timestamp_ + 5.0)) {
+            if (!beacon_on && (now > timestamp_ + 5.0f)) {
                 ResetState(kIdle);
                 return loop_delay;
             }
@@ -635,8 +635,10 @@ float Airport::StateMachine() {
             dgs_params_.status = kDgsGstOk;
             dgs_params_.lr = 0;
             // wait for beacon off
-            if (!beacon_on)
+            if (!beacon_on) {
+                timestamp_ = now;
                 new_state = kBeaconOff;
+            }
             break;
 
         case kBeaconOff:
@@ -645,7 +647,7 @@ float Airport::StateMachine() {
 
             // let the dust settle after switching off the beacon
             // e.g. for jetway selection + the guys with the chocks aren't that fast either
-            if (now > timestamp_ + 5.0) {
+            if (now > timestamp_ + 5.0f) {
                 new_state = kDone;
                 parked_pax_no_ = plane->PaxNo();
                 bool auto_post_bp = auto_post_parkbrake();
