@@ -124,6 +124,7 @@ openSAM supports
  - Virtual Air Traffic (VAT)
  - Traffic Global XP (TGXP)
  - LiveTraffic
+ - BeyondATC (its X-Plane plugin 0.1.48 or later publishes the traffic and the dock / undock request of each aircraft in the `beyondatc/ai/*` datarefs)
 
 Set up your multiplayer environment as needed (e.g. connect to Vatsim and/or enable/disable MP plugins).\
 Then select "Toggle Multiplayer Support" in openSAM's menu.\

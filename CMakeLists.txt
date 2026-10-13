@@ -58,6 +58,7 @@ add_library(openSAM SHARED opensam.cpp autodgs_airport.cpp adgs_api.cpp seasons.
     xp12_jw_instance_1.cpp xp12_jw_instance_2.cpp
     os_plane.cpp my_plane.cpp
     mpadapter.cpp mpadapter_xpilot.cpp mpadapter_tgxp.cpp mpadapter_lt.cpp mpadapter_vat.cpp
+    mpadapter_batc.cpp
     dgs/apt_airport.cpp dgs/dgs.cpp dgs/plane.cpp dgs/airport.cpp dgs/marshaller.cpp
     dgs/safedock_t2_24.cpp dgs/safedock_x.cpp dgs/dyn_display.cpp dgs/airline_logo.cpp
     sam1_dgs.cpp
