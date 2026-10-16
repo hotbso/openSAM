@@ -30,6 +30,7 @@
 #include "mpadapter_tgxp.h"
 #include "mpadapter_lt.h"
 #include "mpadapter_vat.h"
+#include "mpadapter_batc.h"
 #include "log_msg.h"
 
 std::unordered_map<std::string, DoorInfo> csl_door_info_map;
@@ -50,6 +51,8 @@ std::unique_ptr<MpAdapter> MpAdapter_factory() {
 
     if (MpAdapter_xPilot::probe())
         adapter = std::unique_ptr<MpAdapter>(new MpAdapter_xPilot());
+    else if (MpAdapter_batc::probe())
+        adapter = std::unique_ptr<MpAdapter>(new MpAdapter_batc());
     else if (MpAdapter_lt::probe())
         adapter = std::unique_ptr<MpAdapter>(new MpAdapter_lt());
     else if (MpAdapter_tgxp::probe())

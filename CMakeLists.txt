@@ -57,6 +57,7 @@ add_library(openSAM SHARED src/opensam.cpp src/preferences.cpp src/autodgs_airpo
     src/xp12_jw_instance_1.cpp src/xp12_jw_instance_2.cpp
     src/os_plane.cpp src/my_plane.cpp
     src/mpadapter.cpp src/mpadapter_xpilot.cpp src/mpadapter_tgxp.cpp src/mpadapter_lt.cpp src/mpadapter_vat.cpp
+    src/mpadapter_batc.cpp
     src/dgs/apt_airport.cpp src/dgs/dgs.cpp src/dgs/plane.cpp src/dgs/airport.cpp src/dgs/marshaller.cpp
     src/dgs/safedock_t2_24.cpp src/dgs/safedock_x.cpp src/dgs/dyn_display.cpp src/dgs/airline_logo.cpp
     src/sam1_dgs.cpp
