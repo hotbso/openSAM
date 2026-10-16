@@ -278,7 +278,8 @@ Undocking: Starts with setting the dataref back to 0 within 5 seconds, when belo
 [William Good](https://github.com/sparker256/imgui4xp) for imgui4xp\
 [Sean Barret](https://github.com/nothings/stb) for the stb library\
 [Randy](https://libspng.org/) for libspng\
-[Arseny Kapoulkine](https://github.com/zeux/pugixml) for pugixml
+[Arseny Kapoulkine](https://github.com/zeux/pugixml) for pugixml\
+[Skirmish Mode Games Inc](https://www.beyondatc.net/) for providing support for BeyondATC
 
 ## Airline Logos
 are provided by [logostream](https://airline.logostream.dev/) through a free tier license held by the author of this plugin
