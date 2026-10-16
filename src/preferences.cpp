@@ -54,6 +54,7 @@ static bool TryLoadXmlPreferences(const std::string& path) {
 
     prefs.auto_jetway_select = root.attribute("auto_jetway_select").as_bool(prefs.auto_jetway_select);
     prefs.manage_xp12_jetways = root.attribute("manage_xp12_jetways").as_bool(prefs.manage_xp12_jetways);
+    prefs.auto_enable_mp = root.attribute("auto_enable_mp").as_bool(prefs.auto_enable_mp);
     prefs.default_vdgs_type = root.attribute("default_vdgs_type").as_int(prefs.default_vdgs_type);
     prefs.auto_season = seasons.attribute("auto_season").as_int(prefs.auto_season);
     prefs.season = seasons.attribute("season").as_int(prefs.season);
@@ -93,6 +94,7 @@ static bool TryLoadLegacyPreferences(const std::string& path) {
         prefs.season = -prefs.season;
     }
 
+    prefs.auto_enable_mp = false; // default value for legacy preferences
     LogMsg("Loaded legacy preferences from '%s'", path.c_str());
     return true;
 }
@@ -120,6 +122,7 @@ void SavePrefs() {
     pugi::xml_node root = doc.append_child("preferences");
     root.append_attribute("auto_jetway_select") = prefs.auto_jetway_select;
     root.append_attribute("manage_xp12_jetways") = prefs.manage_xp12_jetways;
+    root.append_attribute("auto_enable_mp") = prefs.auto_enable_mp;
     root.append_attribute("default_vdgs_type") = prefs.default_vdgs_type;
 
     pugi::xml_node seasons = root.append_child("seasons");

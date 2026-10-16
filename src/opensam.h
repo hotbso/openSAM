@@ -46,13 +46,14 @@ extern XPLMDataRef draw_object_x_dr, draw_object_y_dr, draw_object_z_dr, draw_ob
 extern XPLMCommandRef toggle_jetway_cmdr;
 
 struct Preferences {
-    int auto_season{1};
-    int season{1};
-    bool north_hemisphere{true};
-    bool auto_jetway_select{true};
+    int auto_season{};
+    int season{};
+    bool north_hemisphere{};
+    bool auto_jetway_select{};
     bool manage_xp12_jetways{};
+    bool auto_enable_mp{};
     int default_vdgs_type{};
-    int ui_left{-1}, ui_top{}, ui_right{}, ui_bottom{};
+    int ui_left{}, ui_top{}, ui_right{}, ui_bottom{};
 };
 
 extern Preferences prefs;

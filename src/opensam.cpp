@@ -134,7 +134,7 @@ XPLMCommandRef toggle_jetway_cmdr, activate_cmdr, toggle_ui_cmdr;
 static float lat_ref{-1000}, lon_ref{-1000};
 unsigned int ref_gen{1};
 
-Preferences prefs{.default_vdgs_type = kVdgsSafedock_T2_24};
+Preferences prefs;
 
 float now;             // current timestamp
 std::string base_dir;  // base directory of openSAM
@@ -164,6 +164,8 @@ static XPLMCreateFlightLoop_t flight_loop_ctx = {sizeof(XPLMCreateFlightLoop_t),
 static XPLMFlightLoopID flight_loop_id;
 
 static bool pending_plane_loaded_cb = false;  // delayed init
+
+static float auto_enable_mp_ts = 1.0E9;          // enable mp once now > auto_enable_mp_ts
 
 // check for shift of reference frame
 void CheckRefFrameShift() {
@@ -305,6 +307,14 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
         if (pending_plane_loaded_cb) {
             pending_plane_loaded_cb = false;
             my_plane->PlaneLoadedCb();
+        }
+
+        if (now > auto_enable_mp_ts) {
+            auto_enable_mp_ts = 1.0E9;
+            if (prefs.auto_enable_mp && mp_adapter == nullptr) {
+                LogMsg("Trying to auto enable multiplayer support");
+                CmdToggleMpCb(nullptr, xplm_CommandBegin, nullptr);
+            }
         }
 
         if (ui && !ui->GetVisible()) { // close if user closed it manually
@@ -654,8 +664,19 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     tmp_dir = "Output/openSAM/tmp/";
     std::string res_dir = base_dir + "resources/";
 
+    // set default preferences
+    prefs.auto_season = 1;
+    prefs.season = 1;
+    prefs.north_hemisphere = true;
+    prefs.auto_jetway_select = true;
+    prefs.manage_xp12_jetways = true;
+    prefs.auto_enable_mp = false;
     prefs.default_vdgs_type = kVdgsSafedock_X;
+    prefs.ui_left = -1; // means uninitialized
     LoadPrefs();
+
+    if (prefs.auto_enable_mp)
+        auto_enable_mp_ts = 20.0f;
 
     if (!HttpGetInitialize())
         return 0;

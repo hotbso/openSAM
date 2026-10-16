@@ -68,6 +68,7 @@ class Ui : public ImgWindow {
     int nearest_jws_seqno_ = 0;  // for detecting changes in the nearest jetway list by the UI
 
     bool manage_xp12_jws_changed_ = false;  // to detect if the "Manage XP12 Jetways" checkbox has been changed
+    bool auto_enable_mp_changed_ = false;  // to detect if the "Auto Enable MP" checkbox has been changed
 
     // Main function: creates the window's UI
     void BuildInterface() override;
@@ -162,6 +163,21 @@ void Ui::BuildInterface() {
 
         if (manage_xp12_jws_changed_)
             ImGui::TextUnformatted("You must restart X-Plane now to activate this setting!!");
+
+        //--------------------------------------------------
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::TextUnformatted("(Try to) Auto Enable Multiplayer Support (after 20 seconds):");
+        ImGui::SameLine();
+        if (ImGui::Checkbox("##auto_enable_mp", &prefs.auto_enable_mp)) {
+            LogMsg("Auto Enable MP changed to %d", prefs.auto_enable_mp);
+            auto_enable_mp_changed_ = true;
+            SavePrefs();
+        }
+
+        if (prefs.auto_enable_mp && auto_enable_mp_changed_)
+            ImGui::TextUnformatted("Option will take effect after the next restart of X-Plane");
 
         //--------------------------------------------------
         ImGui::Spacing();
