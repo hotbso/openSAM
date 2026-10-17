@@ -166,7 +166,7 @@ float MpAdapter_xPilot::update() {
     XPLMGetDatab(flight_id_dr, flight_id_val_.get(), 0, n_planes_ * 8);
 
     std::unordered_map<std::string, bool> dref_planes;
-    dref_planes.reserve(n_planes_);
+    dref_planes.reserve(n_planes_ * 2);
 
     for (int i = 1; i < n_planes_; i++) {
         // slot empty or not on ground or far away -> ignore

@@ -213,7 +213,7 @@ float MpAdapter_batc::update() {
     XPLMGetDatab(flight_id_dr, flight_id_val_.get(), 0, n_planes * kStringSlot);
 
     std::unordered_map<std::string, bool> dref_planes;
-    dref_planes.reserve(n_planes);
+    dref_planes.reserve(n_planes * 2);
 
     int spawn_remain = kSpawnPerRun;
     for (int i = 0; i < n_planes; i++) {

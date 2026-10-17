@@ -245,7 +245,7 @@ float MpAdapter_tgxp::update() {
         flight_id_ptr[flight_id_len - 1] = '\0';
 
     std::unordered_map<std::string, bool> dref_planes;
-    dref_planes.reserve(n_planes);
+    dref_planes.reserve(n_planes * 2);
 
     int spawn_remain = kSpawnPerRun;
     for (int i = 0; i < n_planes; i++) {

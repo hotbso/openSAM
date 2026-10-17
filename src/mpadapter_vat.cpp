@@ -165,7 +165,7 @@ float MpAdapter_vat::update() {
     }
 
     std::unordered_map<std::string, bool> json_planes;
-    json_planes.reserve(200);
+    json_planes.reserve(400);
     try {
         int spawn_remain = kSpawnPerRun;
 
