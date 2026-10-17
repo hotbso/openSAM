@@ -249,6 +249,8 @@ bool JwEditor::EditModels() {
                 new_model->max_rot3 = 5.0f;
                 new_model->min_extent = 0.0f;
                 new_model->max_extent = 20.0f;
+                new_model->stair_pos = 13.0f;
+                new_model->stair_length = 9.0f;
 
                 // Add the new model to the scenery's model set
                 scenery_->jw_models_[new_model->model_id] = new_model;
@@ -286,6 +288,10 @@ bool JwEditor::EditModels() {
             model_changed_ = true;
         if (ImGui::SliderFloat("Wheel Distance", &smc.wheel_distance, 1.0f, 5.0f, "%.2f m"))
             model_changed_ = true;
+        if (ImGui::SliderFloat("Stair Position", &smc.stair_pos, 5.0f, 30.0f, "%.1f m"))
+            model_changed_ = true;
+        if (ImGui::SliderFloat("Stair Length", &smc.stair_length, 4.0f, 20.0f, "%.1f m"))
+            model_changed_ = true;
         if (ImGui::SliderFloat("Minimum Rotate 2", &smc.min_rot2, -180.0f, 180.0f, "%.f deg"))
             model_changed_ = true;
         if (ImGui::SliderFloat("Maximum Rotate 2", &smc.max_rot2, -180.0f, 180.0f, "%.f deg"))
@@ -298,6 +304,7 @@ bool JwEditor::EditModels() {
             model_changed_ = true;
         if (ImGui::SliderFloat("Maximum Extend", &smc.max_extent, 0.0f, 30.0f, "%.1f m"))
             model_changed_ = true;
+        
 
         if (model_changed_) {
             bool id_collision = false;
@@ -524,6 +531,7 @@ void JwEditor::EditJetways() {
             changed = true;
             jw->rotate3_ = jw->initial_rot3_;
             jw->SetWheels();
+            jw->SetStairs();
         }
 
         if (changed) {

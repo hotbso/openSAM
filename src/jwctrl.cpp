@@ -494,6 +494,7 @@ bool JwCtrl::RotateWheelBase(float dt) {
 void JwCtrl::Rotate1Extend() {
     XzToSamDref(cabin_x_, cabin_z_, jw_->rotate1_, jw_->extent_, nullptr, nullptr);
     jw_->SetWheels();
+    jw_->SetStairs();
 }
 
 // rotation 3
@@ -507,6 +508,7 @@ bool JwCtrl::Rotate3(float rot3, float dt) {
     }
 
     jw_->SetWheels();
+    jw_->SetStairs();
 
     if (std::abs(jw_->rotate3_ - rot3) > 0.1f)
         return false;

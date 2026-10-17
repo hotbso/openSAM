@@ -68,7 +68,7 @@ class SamJw {
     static constexpr float kSam2ObjHdgMax = 5;  // °, likewise for heading
 
     // values fed to the datarefs in the dataref accessor, computed by a JwCtrl
-    float rotate1_, rotate2_, rotate3_, extent_, wheels_, wheelrotatec_{}, wheelrotater_{}, wheelrotatel_{}, warnlight_, canopy_;
+    float rotate1_, rotate2_, rotate3_, extent_, wheels_, wheelrotatec_{}, wheelrotater_{}, wheelrotatel_{}, warnlight_, canopy_, stairrotate_{};
 
     // These describe placement and use of the jw instance.
     // They are from opensam.xml or generated for zero config library jetways from scenery objects.
@@ -83,12 +83,12 @@ class SamJw {
 
     // These geometry values are filled in from the jetways model for the instance
     float height_{}, wheel_pos_{}, cabin_pos_{}, cabin_length_{}, wheel_diameter_{}, wheel_distance_{},
-        min_rot2_{}, max_rot2_{}, min_rot3_{}, max_rot3_{}, min_extent_{}, max_extent_{};
+        min_rot2_{}, max_rot2_{}, min_rot3_{}, max_rot3_{}, min_extent_{}, max_extent_{}, stair_pos_{}, stair_length_{};
     double altitude_{};  // altitude is determined by terrain probe or XPLMLocalToWorld for zero config jetways
 
     // local coordinate values of the actually drawn object
     unsigned int obj_ref_gen_{};  // only valid if this matches the generation # of the ref frame
-    float x_, y_, z_, psi_;
+    float x_, y_, z_, psi_;     //Position in meters in local coords
 
     bool bad_{};             // marked bad, e.g. terrain probe failed
     bool is_lib_jw_inst_{};  // is an instance of a library jetway
@@ -109,6 +109,7 @@ class SamJw {
 
     // set wheels height
     void SetWheels(bool force_high_precision = false);
+    void SetStairs(bool force_high_precision = false);
 
     void Reset() {
         AlertOff();
@@ -119,6 +120,7 @@ class SamJw {
         rotate3_ = initial_rot3_;
         extent_ = initial_extent_;
         SetWheels();
+        SetStairs();
         warnlight_ = 0;
         canopy_ = 0;
     }
@@ -159,7 +161,7 @@ struct SamJwModel {
     std::string model_id;
     std::string name;
     float height{}, wheel_pos{}, cabin_pos{}, cabin_length{}, wheel_diameter{}, wheel_distance{}, min_rot2{}, max_rot2{},
-        min_rot3{}, max_rot3{}, min_extent{}, max_extent{};
+        min_rot3{}, max_rot3{}, min_extent{}, max_extent{}, stair_pos{}, stair_length{};
 };
 
 // the global quadtree for all sam jetways collected from sam.xml files and zero config jetways

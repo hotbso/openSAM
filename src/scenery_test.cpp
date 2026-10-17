@@ -99,10 +99,11 @@ void scenery_test() {
         puts("\nJetway models");
         for (const auto& [id, ljw] : sc->jw_models_) {
             std::string id_prn = "'" + id + "'";
-            printf("%-30s, height: %0.2f, cabin_pos: %0.2f, cabin_length: %0.2f, wheel_diameter: %0.2f, wheel_distance: %0.2f, min_rot2: %0.2f, max_rot2: %0.2f, min_rot3: %0.2f, max_rot3: %0.2f, min_extent: %0.2f, max_extent: %0.2f\n",
+            printf("%-30s, height: %0.2f, cabin_pos: %0.2f, cabin_length: %0.2f, wheel_diameter: %0.2f, wheel_distance: %0.2f, min_rot2: %0.2f, max_rot2: %0.2f, min_rot3: %0.2f, max_rot3: %0.2f, min_extent: %0.2f, max_extent: %0.2f, stair_pos: %0.2f, stair_length: %0.2f\n",
                    id_prn.c_str(), ljw->height, ljw->cabin_pos, ljw->cabin_length, ljw->wheel_diameter, ljw->wheel_distance,
                    ljw->min_rot2, ljw->max_rot2, ljw->min_rot3, ljw->max_rot3,
-                   ljw->min_extent, ljw->max_extent);
+                   ljw->min_extent, ljw->max_extent,
+                   ljw->stair_pos, ljw->stair_length);
             }
         puts("\nJetways");
         for (auto i = sc->jw_idx_start_; i < sc->jw_idx_end_; i++) {

@@ -192,6 +192,9 @@ static void SamParseJetways(const pugi::xml_node& sc_node) {
         jw->initial_rot2_ = jetway.attribute("initialRot2").as_float(0.0f);
         jw->initial_rot3_ = jetway.attribute("initialRot3").as_float(0.0f);
         jw->initial_extent_ = jetway.attribute("initialExtent").as_float(0.0f);
+        jw->stair_pos_ = jetway.attribute("stairPos").as_float(0.0f);
+        jw->stair_length_ = jetway.attribute("stairLength").as_float(0.0f);
+        LogMsg("Stair distance: %f, Stair length: %f", jw->stair_pos_, jw->stair_length_);
         const char* door_loc = jetway.attribute("forDoorLocation").as_string(nullptr);
         if (door_loc) {
             if (0 == strcmp(door_loc, "LF2"))
@@ -236,6 +239,9 @@ static void OpenSamParseJetways(const pugi::xml_node& sc_node, Scenery* sc) {
         jw->initial_rot2_ = jetway.attribute("initial_rot2").as_float(0.0f);
         jw->initial_rot3_ = jetway.attribute("initial_rot3").as_float(0.0f);
         jw->initial_extent_ = jetway.attribute("initial_extent").as_float(0.0f);
+        jw->stair_pos_ = jetway.attribute("stair_pos").as_float(0.0f);
+        jw->stair_length_ = jetway.attribute("stair_length").as_float(0.0f);
+        LogMsg("Stair distance: %f, Stair length: %f", jw->stair_pos_, jw->stair_length_);
 
         if (jw->model_id_.empty())
             jw->is_lib_jw_inst_ = true;
@@ -268,6 +274,9 @@ static void OpenSamParseJetways(const pugi::xml_node& sc_node, Scenery* sc) {
 
             jw->min_extent_ = jwm->min_extent;
             jw->max_extent_ = jwm->max_extent;
+
+            jw->stair_pos_ = jwm->stair_pos;
+            jw->stair_length_ = jwm->stair_length;
         }
 
         jw->base_name_ = jw->name_;  // for later use when we fabricate names for zero config jetways
@@ -322,6 +331,8 @@ static void AddModel(pugi::xml_node models, const SamJwModel* ljw, const char* m
     model.append_attribute("max_rot3") = ljw->max_rot3;
     model.append_attribute("min_extent") = ljw->min_extent;
     model.append_attribute("max_extent") = ljw->max_extent;
+    model.append_attribute("stair_pos") = ljw->stair_pos;
+    model.append_attribute("stair_length") = ljw->stair_length;
 }
 
 // opensam.xml
@@ -340,6 +351,8 @@ static void ParseJetwayModel(const pugi::xml_node& set_node, SamJwModel* jwm) {
     jwm->max_rot3 = set_node.attribute("max_rot3").as_float(8.0f);
     jwm->min_extent = set_node.attribute("min_extent").as_float(0.0f);
     jwm->max_extent = set_node.attribute("max_extent").as_float(0.0f);
+    jwm->stair_pos = set_node.attribute("stair_pos").as_float(0.0f);
+    jwm->stair_length = set_node.attribute("stair_length").as_float(0.0f);
 }
 
 // Parse <sets> and <set> elements from scenery XML and store them in the lib_jw_map
@@ -420,7 +433,9 @@ static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_
                     std::abs(jw->wheel_diameter_ - jwm->wheel_diameter) < eps &&
                     std::abs(jw->wheel_distance_ - jwm->wheel_distance) < eps &&
                     std::abs(jw->min_extent_ - jwm->min_extent) < eps &&
-                    std::abs(jw->max_extent_ - jwm->max_extent) < eps) {
+                    std::abs(jw->max_extent_ - jwm->max_extent) < eps &&
+                    std::abs(jw->stair_pos_ - jwm->stair_pos) < eps &&
+                    std::abs(jw->stair_length_ - jwm->stair_length) < eps) {
                     jw->model_id_ = jwm->model_id;
                     break;
                 }
@@ -442,6 +457,8 @@ static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_
                 jwm->max_rot3 = jw->max_rot3_;
                 jwm->min_extent = jw->min_extent_;
                 jwm->max_extent = jw->max_extent_;
+                jwm->stair_pos = jw->stair_pos_;
+                jwm->stair_length = jw->stair_length_;
                 sc->jw_models_[jwm->model_id] = jwm;
                 jw->model_id_ = jwm->model_id;
             }
@@ -512,6 +529,8 @@ static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_
         jetway.append_attribute("initial_rot2") = jw->initial_rot2_;
         jetway.append_attribute("initial_rot3") = jw->initial_rot3_;
         jetway.append_attribute("initial_extent") = jw->initial_extent_;
+        jetway.append_attribute("stair_pos") = jw->stair_pos_;
+        jetway.append_attribute("stair_length") = jw->stair_length_;
         if (!jw->is_lib_jw_inst_)
             jetway.append_attribute("door") = jw->door_;
     }
@@ -820,6 +839,8 @@ bool Scenery::UpdateOpenSamXml(const std::vector<SamJw*> jw_instances) {
         jetway.append_attribute("initial_rot2") = jw->initial_rot2_;
         jetway.append_attribute("initial_rot3") = jw->initial_rot3_;
         jetway.append_attribute("initial_extent") = jw->initial_extent_;
+        jetway.append_attribute("stair_pos") = jw->stair_pos_;
+        jetway.append_attribute("stair_length") = jw->stair_length_;
         if (!jw->is_lib_jw_inst_)
             jetway.append_attribute("door") = jw->door_;
     }

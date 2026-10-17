@@ -43,6 +43,7 @@ enum DrCode {
     kWheels, kWheelRotateC, kWheelRotateR, kWheelRotateL,
     kWarnLight,
     kCanopy,
+    kStairRotate,
     kNumDrCodes
 };
 
@@ -56,7 +57,8 @@ static const char *dr_name_jw[] = {
     "wheelrotater",
     "wheelrotatel",
     "warnlight",
-    "canopy"
+    "canopy",
+    "stairrotate"
 };
 
 // The global cache for jetways keyed by (x,z)
@@ -132,6 +134,8 @@ void SamJw::FillModelValues(const SamJwModel& jwm) {
     max_rot3_ = jwm.max_rot3;
     min_extent_ = jwm.min_extent;
     max_extent_ = jwm.max_extent;
+    stair_pos_ = jwm.stair_pos;
+    stair_length_ = jwm.stair_length;
 }
 
 //
@@ -184,6 +188,7 @@ static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y,
     jw->extent_ = jw->initial_extent_;
     jw->FillLibraryValues(id);
     jw->SetWheels();
+    jw->SetStairs();
 
     // add to the global stores
     sam_jw_list.push_back(jw);
@@ -430,6 +435,9 @@ static float JwAnimAcc(void* ref) {
         case kCanopy:
             return jw->canopy_;
             break;
+        case kStairRotate:
+            return jw->stairrotate_;
+            break;
         default:
             LogMsg("Accessor got invalid DR code: %d", drc);
             return 0.0f;
@@ -465,6 +473,26 @@ void SamJw::SetWheels(bool force_high_precision) {
     }
 
     wheels_ -= wheels_adjust_;
+}
+
+void SamJw::SetStairs(bool force_high_precision) {
+    if (stair_pos_ <= 0.0f || stair_length_ <= 0.0f)
+        return;
+
+    // Get the height from the ground of the stair pivot point
+    float stair_pivot_height = std::tan(rotate3_ * kD2R) * (stair_pos_ + extent_);  //Distance ABOVE the jetway floor
+    stair_pivot_height += height_;
+
+    // Terrain a jetway is on may be sloped, but most likely, it will be linear between the wheel pos and origin.
+    // This code effectively gets what % of the way from the origin to the wheels the stair ground contact is, and multiplies the wheel offset by that amount, aka interpolating the terrain offset
+    float stair_contact_dist_from_pivot = std::cos(stairrotate_ * kD2R) * stair_length_;
+    float stair_contact_from_origin = extent_ + stair_pos_ - stair_contact_dist_from_pivot;
+    float wheel_from_origin = extent_ + wheel_pos_;
+    float stair_extent_to_wheel_extent_rat = stair_contact_from_origin / wheel_from_origin;
+    stair_pivot_height += (wheels_adjust_ * stair_extent_to_wheel_extent_rat);
+
+    stairrotate_ = (std::asin(stair_pivot_height / stair_length_) / kD2R) - rotate3_;
+
 }
 
 void SamJw::AlertComplete(void* ref, [[maybe_unused]] FMOD_RESULT status) {
