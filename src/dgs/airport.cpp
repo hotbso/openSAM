@@ -193,7 +193,7 @@ Airport::Airport(const AptAirport& apt_airport) : seqno_(++seqno_base), apt_airp
     state_ = kIdle;
     active_stand_ = selected_stand_ = departure_stand_ = -1;
 
-    timestamp_ = dgs_params_.distance = sin_wave_prev_ = 0.0f;
+    state_change_ts_ = dgs_params_.distance = sin_wave_prev_ = 0.0f;
     departure_stand_ts_ = nearest_stand_ts_ = update_dgs_log_ts_ = 0.0f;
     has_xp12_jws_ = apt_airport.has_xp12_jws_;
 }
@@ -617,7 +617,7 @@ float Airport::StateMachine() {
         } break;
 
         case kBad:
-            if (!beacon_on && (now > timestamp_ + 5.0f)) {
+            if (!beacon_on && (now > state_change_ts_ + 5.0f)) {
                 ResetState(kIdle);
                 return loop_delay;
             }
@@ -635,10 +635,8 @@ float Airport::StateMachine() {
             dgs_params_.status = kDgsGstOk;
             dgs_params_.lr = 0;
             // wait for beacon off
-            if (!beacon_on) {
-                timestamp_ = now;
+            if (!beacon_on)
                 new_state = kBeaconOff;
-            }
             break;
 
         case kBeaconOff:
@@ -647,7 +645,7 @@ float Airport::StateMachine() {
 
             // let the dust settle after switching off the beacon
             // e.g. for jetway selection + the guys with the chocks aren't that fast either
-            if (now > timestamp_ + 5.0f) {
+            if (now > state_change_ts_ + 5.0f) {
                 new_state = kDone;
                 parked_pax_no_ = plane->PaxNo();
                 bool auto_post_bp = auto_post_parkbrake();
@@ -675,7 +673,7 @@ float Airport::StateMachine() {
                 break;
             }
 
-            if (now > timestamp_ + 60.0f)
+            if (now > state_change_ts_ + 80.0f)
                 new_state = kDone;
             else
                 return as.dgs_->Tick();
@@ -691,7 +689,7 @@ float Airport::StateMachine() {
         } break;
 
         case kDone:
-            if (now > timestamp_ + 5.0) {
+            if (now > state_change_ts_ + 5.0) {
                 ResetState(kIdle);
                 return loop_delay;
             }
@@ -704,7 +702,7 @@ float Airport::StateMachine() {
     if (new_state != state_) {
         LogMsg("state transition %s -> %s, beacon: %d", state_str_[state_], state_str_[new_state], beacon_on);
         state_ = new_state;
-        timestamp_ = now;
+        state_change_ts_ = now;
         return -1;  // see you on next frame
     }
 

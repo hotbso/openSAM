@@ -125,8 +125,9 @@ class Airport {
 
     // values that must survive a single run of the state_machine
     dgs::GuidanceParams dgs_params_;
-    float timestamp_, distance_, sin_wave_prev_;
-    float nearest_stand_ts_, update_dgs_log_ts_;
+    float distance_, sin_wave_prev_;
+    // various timestamps for state changes and updates
+    float state_change_ts_, nearest_stand_ts_, update_dgs_log_ts_;
 
     void FindNearestStand();
     int FindDepartureStand();   // index in to stands_
