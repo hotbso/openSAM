@@ -27,6 +27,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <filesystem>
+#include <system_error>
 
 #include "XPLMPlugin.h"
 #include "XPLMProcessing.h"
@@ -684,7 +685,14 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
     try {
         // create tmp dir and verify it's writeable
         // all later errors for io here will throw
-        std::filesystem::create_directories(tmp_dir);
+        std::error_code ec;
+        std::filesystem::create_directories(tmp_dir, ec);
+        if (ec) {
+            LogMsg("Failed to create tmp dir '%s': %s (error %d, category '%s')",
+                   tmp_dir.c_str(), ec.message().c_str(), ec.value(), ec.category().name());
+            return 0;
+        }
+
         std::ofstream tst(tmp_dir + "test.txt");
         if (!tst) {
             LogMsg("Failed to create test file in '%s'", tmp_dir.c_str());
