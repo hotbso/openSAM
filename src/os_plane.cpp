@@ -32,13 +32,13 @@ const char* const OsPlane::state_str_[] = {"DISABLED", "IDLE",   "PARKED",    "S
                                          "DOCKING",  "DOCKED", "UNDOCKING", "CANT_DOCK"};
 
 OsPlane::~OsPlane() {
-    LogMsg("pid=%02d, Plane destructor, state: %s, active_jws: %d", id_, state_str_[state_], (int)active_jws_.size());
+    LogMsg("pid=%03d, Plane destructor, state: %s, active_jws: %d", id_, state_str_[state_], (int)active_jws_.size());
     if (kIdle <= state_) {
         for (int ajw_idx : active_jws_)
             nearest_jws_[ajw_idx].ResetJw();
     }
 
-    LogMsg("pid=%02d, Plane destructor finished", id_);
+    LogMsg("pid=%03d, Plane destructor finished", id_);
 }
 
 // auto select active jetways
@@ -98,7 +98,7 @@ float OsPlane::JwStateMachine() {
         prev_state_ = state_;
         state_ = new_state = kIdle;
         state_change_ts_ = now;
-        LogMsg("pid=%02d, new state: IDLE after teleportation", id_);
+        LogMsg("pid=%03d, new state: IDLE after teleportation", id_);
         // FALLTHROUGH into IDLE below
     }
 
@@ -137,7 +137,7 @@ float OsPlane::JwStateMachine() {
             // falling through adds much concurrency to the MP case as unused jetways get unlocked much earlier
             nearest_jws_seqno_++;  // for detecting changes in the nearest jetway list by the UI
             new_state = state_ = kSelectJws;
-            LogMsg("pid=%02d, new state: SELECT_JWS", id_);
+            LogMsg("pid=%03d, new state: SELECT_JWS", id_);
             // FALLTHROUGH
 
         case kSelectJws:
@@ -160,7 +160,7 @@ float OsPlane::JwStateMachine() {
             if (active_jws_.size()) {
                 for (int ajw_idx : active_jws_) {
                     JwCtrl& ajw = nearest_jws_[ajw_idx];
-                    LogMsg("pid=%02d, setting up active jw for door: %d", id_, ajw.door_);
+                    LogMsg("pid=%03d, setting up active jw for door: %d", id_, ajw.door_);
                     ajw.SetupForDoor(door_info_[ajw.door_]);
 
                     if (ajw.door_ == 0)  // slightly slant towards the nose cone for door LF1
@@ -184,7 +184,7 @@ float OsPlane::JwStateMachine() {
 
             // mp planes always dock directly
             if (dock_requested() || toggle_requested()) {
-                LogMsg("pid=%02d, docking requested", id_);
+                LogMsg("pid=%03d, docking requested", id_);
 
                 float start_ts = now + active_jws_.size() * 5.0f;
                 for (int ajw_idx : active_jws_) {
@@ -231,7 +231,7 @@ float OsPlane::JwStateMachine() {
             }
 
             if (beacon_on_)
-                LogMsg("pid=%d, DOCKED and beacon goes on", id_);
+                LogMsg("pid=%03d, DOCKED and beacon goes on", id_);
 
             if (beacon_on_ || undock_requested() || toggle_requested()) {
                 LogMsg("undocking requested");
@@ -278,7 +278,7 @@ float OsPlane::JwStateMachine() {
 
     if (new_state != state_) {
         state_change_ts_ = now;
-        LogMsg("pid=%02d, jw state transition, %s -> %s, beacon: %d", id_, state_str_[state_], state_str_[new_state],
+        LogMsg("pid=%03d, jw state transition, %s -> %s, beacon: %d", id_, state_str_[state_], state_str_[new_state],
                beacon_on_);
         state_ = new_state;
         state_machine_next_ts_ = 0.0f;

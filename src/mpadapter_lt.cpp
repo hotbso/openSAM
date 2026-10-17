@@ -59,7 +59,7 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao, fl
     on_ground_ = true;  // otherwise we were not here
     parkbrake_set_ = true;
 
-    LogMsg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao.c_str());
+    LogMsg("pid=%03d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao.c_str());
 
     door_info_.clear();
     // first an optional translation to a generic icao code
@@ -83,10 +83,10 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao, fl
         }
         y_ = probeinfo.locationY;
 
-        LogMsg("pid=%d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, icao_.c_str(),
+        LogMsg("pid=%03d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, icao_.c_str(),
                door_info_[0].x, door_info_[0].y, door_info_[0].z);
     } else {
-        LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
+        LogMsg("pid=%03d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
         state_ = kDisabled;
         return;
     }
@@ -115,7 +115,7 @@ void MpPlane_lt::update(bool beacon) {
     if (!beacon_on_ && state_ == kCantDock && now > state_change_ts_ + 60.0f)
         state_ = kParked;
 
-    LogMsg("MP update: pid=%02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, state: %s", id_, icao_.c_str(),
+    LogMsg("MP update: pid=%03d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, state: %s", id_, icao_.c_str(),
            flight_id_.c_str(), beacon_on_, parkbrake_set_, state_str_[state_]);
 }
 
@@ -190,7 +190,7 @@ float MpAdapter_lt::update() {
         OsPlane& plane = *(it->second);
 
         if (!lt_planes.contains(key)) {
-            LogMsg("pid=%02d key: %s not longer exists, deleted", plane.id_, key.c_str());
+            LogMsg("pid=%03d key: %s not longer exists, deleted", plane.id_, key.c_str());
             it = mp_planes_.erase(it);
         } else
             ++it;

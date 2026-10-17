@@ -70,12 +70,12 @@ Sound SamJw::alert_;
 
 bool SamJw::Lock(int pid) noexcept {  // -> whether lock could be aquired
     if (locked_ > 0 && lock_pid_ != pid) {
-        LogMsg("pid=%02d, failed to lock jw '%s', already locked_ by pid=%02d", pid, name_.c_str(), lock_pid_);
+        LogMsg("pid=%03d, failed to lock jw '%s', already locked_ by pid=%03d", pid, name_.c_str(), lock_pid_);
         return false;
     }
 
     if (locked_ == 0)
-        LogMsg("pid=%02d, locking jw '%s'", pid, name_.c_str());
+        LogMsg("pid=%03d, locking jw '%s'", pid, name_.c_str());
 
     locked_++;
     lock_pid_ = pid;
@@ -85,7 +85,7 @@ bool SamJw::Lock(int pid) noexcept {  // -> whether lock could be aquired
 void SamJw::Unlock() noexcept {
     locked_--;
     if (locked_ == 0) {
-        LogMsg("pid=%02d, unlocking jw '%s'", lock_pid_, name_.c_str());
+        LogMsg("pid=%03d, unlocking jw '%s'", lock_pid_, name_.c_str());
         lock_pid_ = 0;
     } else if (locked_ < 0) {
         LogMsg("jw '%s' unlocked too many times, locked_: %d", name_.c_str(), locked_);

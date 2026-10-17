@@ -59,7 +59,7 @@ class MpPlane_vat : public OsPlane {
 MpPlane_vat::MpPlane_vat(const std::string& flight_id, const std::string& flight_no, const std::string& acf_icao, float x, float y, float z, float psi)
     : flight_id_(flight_id), flight_no_(flight_no), icao_(acf_icao) {
 
-    LogMsg("pid=%d, constructing MpPlane %s/%s/%s", id_, flight_id_.c_str(), flight_no_.c_str(), acf_icao.c_str());
+    LogMsg("pid=%03d, constructing MpPlane %s/%s/%s", id_, flight_id_.c_str(), flight_no_.c_str(), acf_icao.c_str());
 
     on_ground_ = true;  // otherwise we were not here
     parkbrake_set_ = true;
@@ -75,10 +75,10 @@ MpPlane_vat::MpPlane_vat(const std::string& flight_id, const std::string& flight
         z_ = probeinfo.locationZ;
         psi_ = psi;
 
-        LogMsg("pid=%d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, icao_.c_str(),
+        LogMsg("pid=%03d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, icao_.c_str(),
                door_info_[0].x, door_info_[0].y, door_info_[0].z);
     } else {
-        LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, acf_icao.c_str());
+        LogMsg("pid=%03d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, acf_icao.c_str());
         state_ = kDisabled;
         return;
     }
@@ -98,7 +98,7 @@ void MpPlane_vat::update(bool beacon) {
     if (!beacon_on_ && state_ == kCantDock && now > state_change_ts_ + 60.0f)
         state_ = kParked;
 
-    LogMsg("VAT update: pid=%02d, id: %s, flight_no: %s, icao: %s, beacon: %d, state: %s", id_, flight_id_.c_str(),
+    LogMsg("VAT update: pid=%03d, id: %s, flight_no: %s, icao: %s, beacon: %d, state: %s", id_, flight_id_.c_str(),
            flight_no_.c_str(), icao_.c_str(), beacon_on_, state_str_[state_]);
 }
 
@@ -213,7 +213,7 @@ float MpAdapter_vat::update() {
 
         if (!json_planes.contains(key)) {
             OsPlane& plane = *(it->second);
-            LogMsg("pid=%02d key: %s not longer exists, deleted", plane.id_, key.c_str());
+            LogMsg("pid=%03d key: %s not longer exists, deleted", plane.id_, key.c_str());
             it = mp_planes_.erase(it);
         } else
             ++it;

@@ -223,7 +223,7 @@ bool operator<(const JwCtrl& a, const JwCtrl& b) noexcept{
 // filter list of jetways jws[]for candidates and add them to nearest_jws[]
 static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, int i_door,
                              std::unordered_map<SamJw*, bool> near_jws_map, std::vector<JwCtrl>& nearest_jws) {
-    LogMsg("pid=%02d, Filter for door %d", plane_info.id, i_door);
+    LogMsg("pid=%03d, Filter for door %d", plane_info.id, i_door);
 
     const DoorInfo& door_info = plane_info.door_info[i_door];
 
@@ -242,7 +242,7 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, int i_door,
         bool have_duplicate = false;
         for (const auto& jwc : nearest_jws)
             if (jwc.jw_ == jw) {
-                LogMsg("pid=%02d, skipping duplicate candidate %s", plane_info.id, jw->name_.c_str());
+                LogMsg("pid=%03d, skipping duplicate candidate %s", plane_info.id, jw->name_.c_str());
                 have_duplicate = true;
                 break;
             }
@@ -250,7 +250,7 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, int i_door,
         if (have_duplicate)
             continue;
 
-        // LogMsg("pid=%02d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
+        // LogMsg("pid=%03d, %s door %d, global: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f",
         //         plane.id_, jw->name_.c_str(), jw->door_, jw->x_, jw->z_, jw->y_, jw->psi_);
 
         // set up a tentative JwCtrl ...
@@ -263,7 +263,7 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, int i_door,
             njw.x_ < -80.0f || std::abs(njw.z_) > 80.0f) {                       // or far away
             if (std::abs(njw.x_) < 120.0f && std::abs(njw.z_) < 120.0f)  // don't pollute the log with jws VERY far away
                 LogMsg(
-                    "pid=%02d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initial_rot1_): %0.1f",
+                    "pid=%03d, too far or pointing away: %s, x: %0.2f, z: %0.2f, (njw.psi + jw->initial_rot1_): %0.1f",
                     plane_info.id, jw->name_.c_str(), njw.x_, njw.z_, njw.psi_ + jw->initial_rot1_);
             continue;
         }
@@ -277,7 +277,7 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, int i_door,
 
         // ... survived, add to list
         LogMsg(
-            "--> pid=%02d, candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
+            "--> pid=%03d, candidate %s, lib_id: %d, door %d, door frame: x: %5.3f, z: %5.3f, y: %5.3f, psi: %4.1f, "
             "rot1: %0.1f, extent: %.1f",
             plane_info.id, jw->name_.c_str(), jw->library_id_, jw->door_, njw.x_, njw.z_, njw.y_, njw.psi_,
             njw.docked_rot1_, njw.docked_extent_);

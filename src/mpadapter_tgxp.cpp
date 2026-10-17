@@ -89,7 +89,7 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     on_ground_ = true;  // otherwise we were not here
     parkbrake_set_ = true;
 
-    LogMsg("pid=%d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), acf_type.c_str());
+    LogMsg("pid=%03d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), acf_type.c_str());
 
     // now check if acf_type is of some traffic pack and
     // e.g. is "332_EUROWINGSDISCOVER_WE_RD" or "JFAI_A220_300_SWISS"
@@ -112,7 +112,7 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     }
 
     if (type_code.size() == 0) {
-        LogMsg("pid=%d, could not extract type code from '%s'", id_, acf_type.c_str());
+        LogMsg("pid=%03d, could not extract type code from '%s'", id_, acf_type.c_str());
         state_ = kDisabled;
         return;
     }
@@ -139,10 +139,10 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
 
         psi_ = psi;
 
-        LogMsg("pid=%d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, icao_.c_str(),
+        LogMsg("pid=%03d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, icao_.c_str(),
                door_info_[0].x, door_info_[0].y, door_info_[0].z);
     } else {
-        LogMsg("pid=%d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, type_code.c_str());
+        LogMsg("pid=%03d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, type_code.c_str());
         state_ = kDisabled;
         return;
     }
@@ -162,7 +162,7 @@ void MpPlane_tgxp::update(bool beacon) {
     if (!beacon_on_ && state_ == kCantDock && now > state_change_ts_ + 60.0f)
         state_ = kParked;
 
-    LogMsg("MP update: pid=%02d, slot: %02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, state: %s", id_, slot_,
+    LogMsg("MP update: pid=%03d, slot: %02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, state: %s", id_, slot_,
            icao_.c_str(), flight_id_.c_str(), beacon_on_, parkbrake_set_, state_str_[state_]);
 }
 
@@ -303,7 +303,7 @@ float MpAdapter_tgxp::update() {
         OsPlane& plane = *(it->second);
 
         if (!dref_planes.contains(key)) {
-            LogMsg("pid=%02d key: %s not longer exists, deleted", plane.id_, key.c_str());
+            LogMsg("pid=%03d key: %s not longer exists, deleted", plane.id_, key.c_str());
             it = mp_planes_.erase(it);
         } else
             ++it;

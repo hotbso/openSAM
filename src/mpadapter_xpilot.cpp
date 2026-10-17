@@ -63,14 +63,14 @@ MpPlane_xPilot::MpPlane_xPilot(int slot, const std::string& flight_id, const std
 
     on_ground_ = true;  // otherwise we were not here
 
-    LogMsg("pid=%02d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao_.c_str());
+    LogMsg("pid=%03d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao_.c_str());
 
     MpAdapter::LoadDoorInfo(*this, icao_);
     if (!door_info_.empty()) {
-        LogMsg("pid=%02d, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, door_info_[0].x,
+        LogMsg("pid=%03d, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, door_info_[0].x,
                door_info_[0].y, door_info_[0].z);
     } else {
-        LogMsg("pid=%02d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
+        LogMsg("pid=%03d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
         state_ = kDisabled;
         return;
     }
@@ -99,7 +99,7 @@ void MpPlane_xPilot::update(float x, float y, float z, float psi, float throttle
     beacon_on_ = ((lights & 1) == 1);
     parkbrake_set_ = ((now - last_move_ts_) > 10.0f);
 
-    LogMsg("MP update: pid=%02d, slot: %02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, engine_on: %d, state: %s",
+    LogMsg("MP update: pid=%03d, slot: %02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, engine_on: %d, state: %s",
            id_, slot_, icao_.c_str(), flight_id_.c_str(), beacon_on_, parkbrake_set_, engines_on_, state_str_[state_]);
 }
 
@@ -204,7 +204,7 @@ float MpAdapter_xPilot::update() {
         OsPlane& plane = *(it->second);
 
         if (!dref_planes.contains(key)) {
-            LogMsg("pid=%02d key: %s not longer exists, deleted", plane.id_, key.c_str());
+            LogMsg("pid=%03d key: %s not longer exists, deleted", plane.id_, key.c_str());
             it = mp_planes_.erase(it);
         } else
             ++it;
