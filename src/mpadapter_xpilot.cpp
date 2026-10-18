@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2025, 2026  Holger Teutsch
 //
@@ -65,7 +65,7 @@ MpPlane_xPilot::MpPlane_xPilot(int slot, const std::string& flight_id, const std
 
     LogMsg("pid=%03d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao_.c_str());
 
-    MpAdapter::LoadDoorInfo(*this, icao_);
+    MpAdapter::LoadDoorInfo(*this);
     if (!door_info_.empty()) {
         LogMsg("pid=%03d, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, door_info_[0].x,
                door_info_[0].y, door_info_[0].z);

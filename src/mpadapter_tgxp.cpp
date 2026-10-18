@@ -124,7 +124,7 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     else
         icao_ = type_code;
 
-    MpAdapter::LoadDoorInfo(*this, icao_);
+    MpAdapter::LoadDoorInfo(*this);
     if (!door_info_.empty()) {
         // logitudinal adjustment
         constexpr float z_adjust = 1.0f;  // backwards

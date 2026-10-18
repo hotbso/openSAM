@@ -19,8 +19,7 @@
 //    USA
 //
 
-#ifndef _MPADAPTER_XPILOT_H_
-#define _MPADAPTER_XPILOT_H_
+#pragma once
 
 #include <memory>
 
@@ -46,4 +45,3 @@ class MpAdapter_xPilot : public MpAdapter {
     };
     float update() override;
 };
-#endif

@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2025, 2026  Holger Teutsch
 //
@@ -18,8 +18,7 @@
 //    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 //    USA
 //
-#ifndef _MPADAPTER_LT_H_
-#define _MPADAPTER_LT_H_
+#pragma once
 
 #include <memory>
 #include "mpadapter.h"
@@ -41,4 +40,3 @@ class MpAdapter_lt : public MpAdapter {
     };
     float update() override;
 };
-#endif

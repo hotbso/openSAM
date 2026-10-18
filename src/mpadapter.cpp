@@ -77,21 +77,24 @@ void MpAdapter::Reset() {
 }
 
 // load door info for multiplayer plane
-void MpAdapter::LoadDoorInfo(OsPlane& mp_plane, const std::string& icao) {
+void MpAdapter::LoadDoorInfo(OsPlane& mp_plane) {
     mp_plane.door_info_.clear();
+    std::string key = mp_plane.icao() + '1';
 
-    auto door_it = csl_door_info_map.find(icao + '1');
+    auto door_it = csl_door_info_map.find(key);
     if (door_it != csl_door_info_map.end())
         mp_plane.door_info_.push_back(door_it->second);
     else
         return;
 
     // door 2 + 3 are optional
-    auto it2 = csl_door_info_map.find(icao + '2');
+    key.back() = '2';
+    auto it2 = csl_door_info_map.find(key);
     if (it2 != csl_door_info_map.end())
         mp_plane.door_info_.push_back(it2->second);
 
-    auto it3 = csl_door_info_map.find(icao + '3');
+    key.back() = '3';
+    auto it3 = csl_door_info_map.find(key);
     if (it3 != csl_door_info_map.end())
         mp_plane.door_info_.push_back(it3->second);
 }

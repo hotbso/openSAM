@@ -85,7 +85,7 @@ MpPlane_batc::MpPlane_batc(const std::string& flight_id, const std::string& acf_
     else
         icao_ = acf_type;
 
-    MpAdapter::LoadDoorInfo(*this, icao_);
+    MpAdapter::LoadDoorInfo(*this);
     if (door_info_.empty()) {
         LogMsg("pid=%03d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, acf_type.c_str());
         state_ = kDisabled;

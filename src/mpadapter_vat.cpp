@@ -44,7 +44,6 @@ static XPLMDataRef planes_json_dr, json_freq_dr;
 class MpPlane_vat : public OsPlane {
     const std::string flight_id_;
     const std::string flight_no_;
-    const std::string icao_;
 
    public:
     MpPlane_vat(const std::string& flight_id, const std::string& flight_no, const std::string& acf_icao, float x, float y, float z, float psi);
@@ -57,14 +56,14 @@ class MpPlane_vat : public OsPlane {
 };
 
 MpPlane_vat::MpPlane_vat(const std::string& flight_id, const std::string& flight_no, const std::string& acf_icao, float x, float y, float z, float psi)
-    : flight_id_(flight_id), flight_no_(flight_no), icao_(acf_icao) {
+    : flight_id_(flight_id), flight_no_(flight_no) {
 
     LogMsg("pid=%03d, constructing MpPlane %s/%s/%s", id_, flight_id_.c_str(), flight_no_.c_str(), acf_icao.c_str());
-
+    icao_ = acf_icao;
     on_ground_ = true;  // otherwise we were not here
     parkbrake_set_ = true;
 
-    MpAdapter::LoadDoorInfo(*this, icao_);
+    MpAdapter::LoadDoorInfo(*this);
     if (!door_info_.empty()) {
         // final terrain probe
         if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {

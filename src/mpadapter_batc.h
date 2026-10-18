@@ -20,8 +20,7 @@
 //    USA
 //
 
-#ifndef _MPADAPTER_BATC_H_
-#define _MPADAPTER_BATC_H_
+#pragma once
 
 #include <memory>
 
@@ -52,4 +51,3 @@ class MpAdapter_batc : public MpAdapter {
     const char* personality() const override { return "BeyondATC"; };
     float update() override;
 };
-#endif

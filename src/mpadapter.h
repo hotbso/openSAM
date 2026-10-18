@@ -42,7 +42,7 @@ class MpAdapter {
     void Reset();
 
     // load door info for multiplayer plane
-    static void LoadDoorInfo(OsPlane& mp_plane, const std::string& icao);
+    static void LoadDoorInfo(OsPlane& mp_plane);
 };
 
 // hopefully will detect which plugin is active and returns the appropriate service

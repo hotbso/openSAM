@@ -1,5 +1,5 @@
 //
-//    openSAM: open source SAM emulator for X Plane
+//    openSAM: manage DGS and jetways for X Plane
 //
 //    Copyright (C) 2025, 2026  Holger Teutsch
 //
@@ -18,8 +18,8 @@
 //    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 //    USA
 //
-#ifndef _MPADAPTER_TGXP_H_
-#define _MPADAPTER_TGXP_H_
+
+#pragma once
 
 #include <memory>
 
@@ -45,4 +45,3 @@ class MpAdapter_tgxp : public MpAdapter {
     const char* personality() const override { return "TGXP"; };
     float update() override;
 };
-#endif

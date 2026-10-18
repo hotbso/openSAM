@@ -69,10 +69,8 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao, fl
     else
         icao_ = icao;
 
-    auto door_it = csl_door_info_map.find(icao_ + '1');
-    if (door_it != csl_door_info_map.end()) {
-        door_info_.push_back(door_it->second);
-
+    MpAdapter::LoadDoorInfo(*this);
+    if (!door_info_.empty()) {
         x_ = x;
         z_ = z;
         psi_ = psi;
@@ -90,15 +88,6 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao, fl
         state_ = kDisabled;
         return;
     }
-
-    // door 2 +3 are optional
-    auto it2 = csl_door_info_map.find(icao_ + '2');
-    if (it2 != csl_door_info_map.end())
-        door_info_.push_back(it2->second);
-
-    auto it3 = csl_door_info_map.find(icao_ + '3');
-    if (it3 != csl_door_info_map.end())
-        door_info_.push_back(it3->second);
 
     state_ = kIdle;
 }
