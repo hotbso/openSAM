@@ -109,7 +109,7 @@ class SamJw {
 
     // set wheels height
     void SetWheels(bool force_high_precision = false);
-    void SetStairs(bool force_high_precision = false);
+    void SetStairs();
 
     void Reset() {
         AlertOff();

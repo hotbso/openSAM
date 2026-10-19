@@ -475,7 +475,7 @@ void SamJw::SetWheels(bool force_high_precision) {
     wheels_ -= wheels_adjust_;
 }
 
-void SamJw::SetStairs(bool force_high_precision) {
+void SamJw::SetStairs() {
     if (stair_pos_ <= 0.0f || stair_length_ <= 0.0f)
         return;
 
