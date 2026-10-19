@@ -476,7 +476,7 @@ void SamJw::SetWheels(bool force_high_precision) {
 }
 
 void SamJw::SetStairs() {
-    if (stair_pos_ <= 0.0f || stair_length_ <= 0.0f)
+    if (stair_pos_ <= 0.0f || stair_length_ == 0.0f)
         return;
 
     // Get the height from the ground of the stair pivot point
@@ -491,7 +491,7 @@ void SamJw::SetStairs() {
     float stair_extent_to_wheel_extent_rat = stair_contact_from_origin / wheel_from_origin;
     stair_pivot_height += (wheels_adjust_ * stair_extent_to_wheel_extent_rat);
 
-    stairrotate_ = (std::asin(std::clamp(stair_pivot_height / stair_length_, -1.0f, 1.0f)) / kD2R) - rotate3_;
+    stairrotate_ = (std::asin(std::clamp(stair_pivot_height / std::abs(stair_length_), -1.0f, 1.0f)) / kD2R) - rotate3_;
 
 }
 
