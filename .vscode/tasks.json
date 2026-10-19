@@ -1,0 +1,26 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Windows (MSYS2 CLANG64)",
+            "type": "process",
+            "command": "C:/msys64/usr/bin/bash.exe",
+            "args": [
+                "-lc",
+                "cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -S . -B build && cmake --build build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "MSYSTEM": "CLANG64",
+                    "CHERE_INVOKING": "1"
+                }
+            },
+            "problemMatcher": "$gcc",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

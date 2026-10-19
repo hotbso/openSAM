@@ -144,6 +144,7 @@ bool XP12JwInstance::UpdateDrawinfo() noexcept {
     drawinfo_.z = z_;
 
     SetWheels(/* force_high_precision */ true);
+    SetStairs();
     return true;
 }
 
