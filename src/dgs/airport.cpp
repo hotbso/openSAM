@@ -83,7 +83,7 @@ Stand::Stand(const AptStand& as, const std::string& arpt_icao, float elevation)
 
     CheckRefFrame();
 
-    LogMsg("Stand '%s', constructed", cname());
+    // LogMsg("Stand '%s', constructed", cname());
 }
 
 Stand::~Stand() {

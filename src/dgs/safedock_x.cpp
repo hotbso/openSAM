@@ -481,7 +481,7 @@ float Safedock_X::Tick() {
             }
 
             if (now > cycle_ts_ + kCycleTime) {
-                LogMsg("Tick, cycling page %d", dep_page_seq_);
+                // LogMsg("Tick, cycling page %d", dep_page_seq_);
                 dep_pages_[dep_page_seq_]->Hide();
                 dep_page_seq_++;
                 if (dep_page_seq_ >= (int)dep_pages_.size())

@@ -82,7 +82,7 @@ AdgsStand::AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, floa
 }
 
 AdgsStand::~AdgsStand() {
-    LogMsg("AdgsStand '%s' destructed", cname());
+    // LogMsg("AdgsStand '%s' destructed", cname());
 }
 
 bool AdgsStand::has_jw() const {

@@ -360,14 +360,14 @@ void Display::BakePhase2() {
 
     async_in_progress_ = true;
     XPLMLoadObjectAsync(obj_pathname_.c_str(), ObjectLoadedCb, this);
-    LogMsg("Bake: Started async loading of display object '%s'", obj_pathname_.c_str());
+    // LogMsg("Bake: Started async loading of display object '%s'", obj_pathname_.c_str());
 }
 
 void Display::ObjectLoadedCb(XPLMObjectRef inObject, void* inRefcon) {
     Display* display = reinterpret_cast<Display*>(inRefcon);
     display->xplm_obj_ = inObject;
     display->async_in_progress_ = false;
-    LogMsg("Display::ObjectLoaded: Async load callback for display %d, object=%p", display->id_, inObject);
+    // LogMsg("Display::ObjectLoaded: Async load callback for display %d, object=%p", display->id_, inObject);
 
     if (display->retired_) {
         LogMsg("Display::ObjectLoaded: Display was marked for retirement, deleting now");
