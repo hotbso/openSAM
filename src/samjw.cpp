@@ -187,8 +187,7 @@ static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y,
     jw->rotate3_ = jw->initial_rot3_;
     jw->extent_ = jw->initial_extent_;
     jw->FillLibraryValues(id);
-    jw->SetWheels();
-    jw->SetStairs();
+    jw->SetWheelsStairs();
 
     // add to the global stores
     sam_jw_list.push_back(jw);
@@ -446,7 +445,7 @@ static float JwAnimAcc(void* ref) {
     return 0.0f;
 }
 
-void SamJw::SetWheels(bool force_high_precision) {
+void SamJw::SetWheelsStairs(bool force_high_precision) {
     // low precision
     wheels_ = std::tan(rotate3_ * kD2R) * (wheel_pos_ + extent_);
 
@@ -464,23 +463,21 @@ void SamJw::SetWheels(bool force_high_precision) {
         float w_z = z_ + (extent_ + wheel_pos_) * std::sin((rotate1_ + psi_ - 90.0f) * kD2R);
 
         if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, w_x, y_, w_z, &probeinfo)) {
-            LogMsg("SetWheels terrain probe failed???");
+            LogMsg("SetWheelsStairs terrain probe failed???");
             wheels_adjust_ = 0.0f;
-        } else
+        } else {
             wheels_adjust_ = probeinfo.locationY - y_;  // wheels relative to tunnel
-
-            // LogMsg("SetWheels: wheels_adjust_ = %f", wheels_adjust_);
+            // LogMsg("SetWheelsStairs: wheels_adjust_ = %f", wheels_adjust_);
+        }
     }
 
     wheels_ -= wheels_adjust_;
-}
 
-void SamJw::SetStairs() {
-    if (stair_pos_ <= 0.0f || stair_length_ == 0.0f)
+    if (stair_length_ == 0.0f)
         return;
 
     // Get the height from the ground of the stair pivot point
-    float stair_pivot_height = std::tan(rotate3_ * kD2R) * (stair_pos_ + extent_);  //Distance ABOVE the jetway floor
+    float stair_pivot_height = std::sin(rotate3_ * kD2R) * (stair_pos_ + extent_);  //Distance ABOVE the jetway floor
     stair_pivot_height += height_;
 
     // Terrain a jetway is on may be sloped, but most likely, it will be linear between the wheel pos and origin.
@@ -489,10 +486,9 @@ void SamJw::SetStairs() {
     float stair_contact_from_origin = extent_ + stair_pos_ - stair_contact_dist_from_pivot;
     float wheel_from_origin = extent_ + wheel_pos_;
     float stair_extent_to_wheel_extent_rat = stair_contact_from_origin / wheel_from_origin;
-    stair_pivot_height += (wheels_adjust_ * stair_extent_to_wheel_extent_rat);
-
+    stair_pivot_height -= (wheels_adjust_ * stair_extent_to_wheel_extent_rat);
+    // LogMsg("stair_pivot_height: %.3f, stair_extent_to_wheel_extent_rat: %.3f", stair_pivot_height, stair_extent_to_wheel_extent_rat);
     stairrotate_ = (std::asin(std::clamp(stair_pivot_height / std::abs(stair_length_), -1.0f, 1.0f)) / kD2R) - rotate3_;
-
 }
 
 void SamJw::AlertComplete(void* ref, [[maybe_unused]] FMOD_RESULT status) {

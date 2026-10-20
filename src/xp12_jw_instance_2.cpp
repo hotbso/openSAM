@@ -143,8 +143,7 @@ bool XP12JwInstance::UpdateDrawinfo() noexcept {
     drawinfo_.y = y_;
     drawinfo_.z = z_;
 
-    SetWheels(/* force_high_precision */ true);
-    SetStairs();
+    SetWheelsStairs(/* force_high_precision */ true);
     return true;
 }
 
@@ -205,16 +204,8 @@ void XP12JwInstance::UpdateInstance() {
 
     drefs[kWheelLeft] = wheelrotatel_;
     drefs[kWheelRight] = wheelrotater_;
-
-    // stairs
-    static constexpr float kStairsOffset = -1.65f;
-    static constexpr float kStairsLength = 7.12f;
-
-    float h_stairs = height_ + (extent_ + kStairsOffset) * std::sin(rotate3_ * kD2R) - wheels_adjust_;
-    float stairs_angle_h = std::asin(std::clamp(h_stairs / kStairsLength, -1.0f, 1.0f)) / kD2R;  // relative to horizontal
-    //LogMsg("h_stairs: %.3f, stairs_angle_h: %.3f", h_stairs, stairs_angle_h);
-    drefs[kStairsAngle] = -stairs_angle_h + rotate3_;
-    drefs[kStairsBogieAngle] = stairs_angle_h;
+    drefs[kStairsAngle] = -stairrotate_;
+    drefs[kStairsBogieAngle] = stairrotate_ + rotate3_;
 
     #if 0
     LogMsg(

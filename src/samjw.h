@@ -107,9 +107,8 @@ class SamJw {
     bool Lock(int pid) noexcept;  // -> whether lock could be aquired
     void Unlock() noexcept;
 
-    // set wheels height
-    void SetWheels(bool force_high_precision = false);
-    void SetStairs();
+    // set wheels height + stairs angles
+    void SetWheelsStairs(bool force_high_precision = false);
 
     void Reset() {
         AlertOff();
@@ -119,8 +118,7 @@ class SamJw {
         rotate2_ = initial_rot2_;
         rotate3_ = initial_rot3_;
         extent_ = initial_extent_;
-        SetWheels();
-        SetStairs();
+        SetWheelsStairs();
         warnlight_ = 0;
         canopy_ = 0;
     }

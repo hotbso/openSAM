@@ -194,7 +194,7 @@ static void SamParseJetways(const pugi::xml_node& sc_node) {
         jw->initial_extent_ = jetway.attribute("initialExtent").as_float(0.0f);
         jw->stair_pos_ = jetway.attribute("stairPos").as_float(0.0f);
         jw->stair_length_ = jetway.attribute("stairLength").as_float(0.0f);
-        LogMsg("Stair distance: %f, Stair length: %f", jw->stair_pos_, jw->stair_length_);
+        // LogMsg("Stair distance: %f, Stair length: %f", jw->stair_pos_, jw->stair_length_);
         const char* door_loc = jetway.attribute("forDoorLocation").as_string(nullptr);
         if (door_loc) {
             if (0 == strcmp(door_loc, "LF2"))
@@ -241,7 +241,6 @@ static void OpenSamParseJetways(const pugi::xml_node& sc_node, Scenery* sc) {
         jw->initial_extent_ = jetway.attribute("initial_extent").as_float(0.0f);
         jw->stair_pos_ = jetway.attribute("stair_pos").as_float(0.0f);
         jw->stair_length_ = jetway.attribute("stair_length").as_float(0.0f);
-        LogMsg("Stair distance: %f, Stair length: %f", jw->stair_pos_, jw->stair_length_);
 
         if (jw->model_id_.empty())
             jw->is_lib_jw_inst_ = true;

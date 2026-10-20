@@ -493,8 +493,7 @@ bool JwCtrl::RotateWheelBase(float dt) {
 // rotation1 + extend
 void JwCtrl::Rotate1Extend() {
     XzToSamDref(cabin_x_, cabin_z_, jw_->rotate1_, jw_->extent_, nullptr, nullptr);
-    jw_->SetWheels();
-    jw_->SetStairs();
+    jw_->SetWheelsStairs();
 }
 
 // rotation 3
@@ -507,8 +506,7 @@ bool JwCtrl::Rotate3(float rot3, float dt) {
             jw_->rotate3_ = std::min(jw_->rotate3_ + d_rot3, rot3);
     }
 
-    jw_->SetWheels();
-    jw_->SetStairs();
+    jw_->SetWheelsStairs();
 
     if (std::abs(jw_->rotate3_ - rot3) > 0.1f)
         return false;

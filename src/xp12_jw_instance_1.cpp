@@ -35,7 +35,7 @@ XP12JwInstance::XP12JwInstance(const std::string_view arpt_icao, const std::stri
     length_code_ = length_code;
 
     // 'model parameters'
-    height_ = 3.9f;
+    height_ = 4.0f;
     cabin_pos_ = 0.0f;
     cabin_length_ = 2.8f;
     wheel_diameter_ = 0.8f;
@@ -46,6 +46,8 @@ XP12JwInstance::XP12JwInstance(const std::string_view arpt_icao, const std::stri
     max_rot2_ = 70.0f;
     min_rot3_ = -10.0f;
     max_rot3_ = 10.0f;
+    stair_length_ = 7.12f;
+    stair_pos_ = -1.65f;
 
     if (length_code == 0) {
         min_extent_ = 11.0f;

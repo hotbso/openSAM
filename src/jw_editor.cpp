@@ -304,7 +304,7 @@ bool JwEditor::EditModels() {
             model_changed_ = true;
         if (ImGui::SliderFloat("Maximum Extend", &smc.max_extent, 0.0f, 30.0f, "%.1f m"))
             model_changed_ = true;
-        
+
 
         if (model_changed_) {
             bool id_collision = false;
@@ -530,8 +530,7 @@ void JwEditor::EditJetways() {
         if (ImGui::SliderFloat("Initial Rotate 3", &jw->initial_rot3_, jw->min_rot3_, jw->max_rot3_, "%.1f °")) {
             changed = true;
             jw->rotate3_ = jw->initial_rot3_;
-            jw->SetWheels();
-            jw->SetStairs();
+            jw->SetWheelsStairs();
         }
 
         if (changed) {
