@@ -294,22 +294,22 @@ EXPORT  SAM_Library/windturbines/windturbine_04.obj					blank/blank.obj
 
 # replace XP12 jetways by blanks iff openSAM_manage_xp12_jws == 1
 REGION openSAM_manage_xp12_jws
-EXPORT lib/airport/ramp_equipment/jetways/jetway_1g_3t_11-23.obj	blank/blank.obj
-EXPORT lib/airport/ramp_equipment/jetways/jetway_1g_3t_14-29.obj	blank/blank.obj
-EXPORT lib/airport/ramp_equipment/jetways/jetway_1g_3t_17-38.obj	blank/blank.obj
-EXPORT lib/airport/ramp_equipment/jetways/jetway_1g_3t_20-47.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_1g_3t_11-23.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_1g_3t_14-29.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_1g_3t_17-38.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_1g_3t_20-47.obj	blank/blank.obj
 
-EXPORT lib/airport/ramp_equipment/jetways/jetway_1s_3t_11-23.obj	blank/blank.obj
-EXPORT lib/airport/ramp_equipment/jetways/jetway_1s_3t_14-29.obj	blank/blank.obj
-EXPORT lib/airport/ramp_equipment/jetways/jetway_1s_3t_17-38.obj	blank/blank.obj
-EXPORT lib/airport/ramp_equipment/jetways/jetway_1s_3t_20-47.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_1s_3t_11-23.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_1s_3t_14-29.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_1s_3t_17-38.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_1s_3t_20-47.obj	blank/blank.obj
 
-EXPORT lib/airport/ramp_equipment/jetways/jetway_2g_3t_11-23.obj	blank/blank.obj
-EXPORT lib/airport/ramp_equipment/jetways/jetway_2g_3t_14-29.obj	blank/blank.obj
-EXPORT lib/airport/ramp_equipment/jetways/jetway_2g_3t_17-38.obj	blank/blank.obj
-EXPORT lib/airport/ramp_equipment/jetways/jetway_2g_3t_20-47.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_2g_3t_11-23.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_2g_3t_14-29.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_2g_3t_17-38.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_2g_3t_20-47.obj	blank/blank.obj
 
-EXPORT lib/airport/ramp_equipment/jetways/jetway_2s_3t_11-23.obj	blank/blank.obj
-EXPORT lib/airport/ramp_equipment/jetways/jetway_2s_3t_14-29.obj	blank/blank.obj
-EXPORT lib/airport/ramp_equipment/jetways/jetway_2s_3t_17-38.obj	blank/blank.obj
-EXPORT lib/airport/ramp_equipment/jetways/jetway_2s_3t_20-47.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_2s_3t_11-23.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_2s_3t_14-29.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_2s_3t_17-38.obj	blank/blank.obj
+EXPORT_EXCLUDE lib/airport/ramp_equipment/jetways/jetway_2s_3t_20-47.obj	blank/blank.obj
