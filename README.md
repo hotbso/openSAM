@@ -24,6 +24,9 @@ In addition commands ```AutoDGS/...```  are renamed to ```openSAM/...``` so your
     - "openSAM_Library" into "Custom Scenery"
     - "openSAM"         into "Resources/plugins"
 1. Start X-Plane into the startup menu and close it immediately.
+2. Edit ``scenery_packs.ini``
+   - Make sure that "openSAM_library" is *above* of "\*GLOBAL AIRPORTS\*"
+   - If SAM_Library is installed (see below) make sure that "openSAM_library" is *above* of SAM_Library
 
 Some sceneries (e.g. for Zero Dollar Payware, Taimodels) require the original SAM_Library
 - If not already done link or copy the SAM_library into "Custom Scenery"
@@ -227,8 +230,8 @@ door_2 -2.93 1.77 -14.40
 
 Please share results so they can be included in future updates.
 
-# Support for Scenery builders with "openSAM Zero Configuration"
-## Zero configuration for Marshallers, VDGS and MisterX jetways
+# Support for Scenery builders
+## "Zero configuration" for Marshallers, VDGS and MisterX jetways
 
 openSAM_Library contains a Marshaller, a VDGS (with or without pole) in various heights and MisterX's jetways as SAM library jetways.\
 Just place these assets from the openSAM folder in WED's library view.\
@@ -237,7 +240,7 @@ perpendicular to the stand with slight random variations.
 
 Then copy file ```openSAM_Library/dev-tools/sam.xml``` into your scenery and you are done.
 
-## Zero Configuration jetways for own jetway objects
+## "Zero Configuration jetways" for own jetway objects
 
 As a scenery designer you can add your own jetway objects as library jetways
 - in a separate XP12 standard library, requires a ```samlibraryjetways.xml```
@@ -271,7 +274,7 @@ Undocking: Starts with setting the dataref back to 0 within 5 seconds, when belo
 [Papickx](https://forums.x-plane.org/profile/823983-papickx/) + @cxn0026 for providing better textures and day + night lighting\
 [zodiac1214 (aka cfanap)](https://github.com/zodiac1214) for creating the automated build and release system including skunkcrafts support\
 [TwinFan](https://github.com/TwinFan) for providing LTAPI\
-[X-Codr](https://www.x-codrdesigns.com/) for performance improvements\
+[X-Codr](https://www.x-codrdesigns.com/) for performance improvements and support of stairs for jetways\
 [Pierre](https://github.com/pierr3) for reworking the VDGS model and giving it much more precision and details\
 [MisterX](https://forums.x-plane.org/profile/125097-misterx6/) for allowing to include his jetways as library jetways in openSAM_Library\
 [Blender KIT](https://www.blenderkit.com/) for free pbr materials\
