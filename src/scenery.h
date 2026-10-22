@@ -42,7 +42,7 @@ struct SceneryPacks {
     std::string SAM_Library_path;
 
     std::vector<std::string> sc_paths;
-
+    int opensam_lib_idx{-1}, sam_lib_idx{-1}, global_idx{-1};
     SceneryPacks(const std::string& xp_dir);
 };
 

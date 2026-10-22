@@ -26,6 +26,7 @@
 #include <fstream>
 #include <filesystem>
 #include <unordered_map>
+#include <algorithm>
 
 #include "pugiconfig.hpp"
 #include "pugixml.hpp"
@@ -602,7 +603,7 @@ static bool ParseOpenSamXml(const std::string& fn, std::unordered_map<std::strin
 
 // SceneryPacks constructor
 SceneryPacks::SceneryPacks(const std::string& xp_dir) {
-    std::string scpi_name(xp_dir + "/Custom Scenery/scenery_packs.ini");
+    std::string scpi_name(xp_dir + "Custom Scenery/scenery_packs.ini");
 
     std::ifstream scpi(scpi_name);
     if (scpi.fail()) {
@@ -613,15 +614,22 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
     sc_paths.reserve(500);
     std::string line;
 
+    int iline = 0;
     while (std::getline(scpi, line)) {
+        iline++;
         if (line.empty())
             continue;
 
         if (line.back() == '\r')
             line.pop_back();
 
-        if (!line.starts_with("SCENERY_PACK ") || line.contains("*GLOBAL_AIRPORTS*"))
+        if (!line.starts_with("SCENERY_PACK "))
             continue;
+
+        if (line.contains("*GLOBAL_AIRPORTS*")) {
+            global_idx = iline;
+            continue;
+        }
 
         line.erase(0, 13);
         if (line.empty())   // be paranoid
@@ -632,12 +640,10 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
         if (is_absolute)
             sc_path = line;
         else
-            sc_path = xp_dir + "/" + line;
+            sc_path = xp_dir + line;
 
         // posixify
-        for (unsigned i = 0; i < sc_path.size(); i++)
-            if (sc_path[i] == '\\')
-                sc_path[i] = '/';
+        std::ranges::replace(sc_path, '\\', '/');
 
         // autoortho pretends every file exists but
         // reads give errors. And likely XPME isn't better.
@@ -645,11 +651,13 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
             continue;
 
         if (sc_path.contains("/openSAM_Library/")) {
+            opensam_lib_idx = iline;
             openSAM_Library_path = sc_path;
             continue;
         }
 
         if (sc_path.contains("/SAM_Library/")) {
+            sam_lib_idx = iline;
             SAM_Library_path = sc_path;
             continue;
         }

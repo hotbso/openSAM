@@ -718,6 +718,28 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
         TimeCodeBlock tc("Scenery Collection");
         SceneryPacks scp(xp_dir);
+
+        bool inst_error = false;
+        if (scp.opensam_lib_idx == -1) {
+            LogMsg("ERROR: openSAM_Library not found in scenery_packs.ini!");
+            inst_error = true;
+        }
+
+        if (scp.opensam_lib_idx > scp.global_idx) {
+            LogMsg("ERROR: openSAM_Library must be above *GLOBAL AIRPORTS* in scenery_packs.ini!");
+            inst_error = true;
+        }
+
+        if (scp.sam_lib_idx >= 0 && scp.sam_lib_idx < scp.opensam_lib_idx) {
+            LogMsg("ERROR: SAM_Library must be below openSAM_Library in scenery_packs.ini!");
+            inst_error = true;
+        }
+
+        if (inst_error) {
+            LogMsg("Installation errors detected, please fix scenery_packs.ini, bye!");
+            return 0;
+        }
+
         if (scp.openSAM_Library_path.empty())
             LogMsg("WARNING: openSAM_Library not found!");
 
