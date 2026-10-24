@@ -421,7 +421,7 @@ void Page::Hide() {
         return;
 
     hidden_ = true;
-    XPLMDrawInfo_t drawinfo = drawinfo_;
+    XPLMDrawInfoDouble_t drawinfo = drawinfo_;
     drawinfo.y -= 20.0f;  // move the page down by 20 meters to hide it
     float brightness = 0.0f;
     inst_ref_->SetPosition(&drawinfo, &brightness);

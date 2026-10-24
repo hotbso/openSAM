@@ -37,7 +37,7 @@ class Marshaller : public DGS {
     Mode mode_ = kIdle;
     const std::string name_;  // for logging only
     ObjInstRef inst_ref_, stairs_inst_ref_;  // marshaller instance and stairs instance
-    XPLMDrawInfo_t drawinfo_{}, stairs_drawinfo_{};
+    XPLMDrawInfoDouble_t drawinfo_{}, stairs_drawinfo_{};
     bool check_high_{};     // check for MarshallerHigh once
     bool need_stairs_{};    // MarshallerHigh detected, need stairs
     float marshaller_y_0_;  // ground zero for MarshallerHigh
@@ -56,8 +56,8 @@ class Marshaller : public DGS {
     bool isVdgs() const noexcept override { return false; }
 
     void SetGuidanceParams(const GuidanceParams& params) override;
-    void SetPos(const XPLMDrawInfo_t& drawinfo, float height) override;
-    void SetPos(const XPLMDrawInfo_t& drawinfo) override;
+    void SetPos(const XPLMDrawInfoDouble_t& drawinfo, float height) override;
+    void SetPos(const XPLMDrawInfoDouble_t& drawinfo) override;
     void SetMode(Mode mode) override;
     void UpdateInstance() override;  // update instance position and drefs
 };
@@ -160,7 +160,7 @@ void Marshaller::SetGuidanceParams(const GuidanceParams& dgs_params) {
     distance_prev_ = params.distance;
 }
 
-void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo, [[maybe_unused]] float height) {
+void Marshaller::SetPos(const XPLMDrawInfoDouble_t& drawinfo, [[maybe_unused]] float height) {
     height_ = height;  // store for later use in SetPos(drawinfo)
     drawinfo_ = drawinfo;
     drawinfo_.y += height_;  // move up by height (AGL)
@@ -195,7 +195,7 @@ void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo, [[maybe_unused]] float h
         stairs_inst_ref_->SetPosition(&stairs_drawinfo_, NULL);
 }
 
-void Marshaller::SetPos(const XPLMDrawInfo_t& drawinfo) {
+void Marshaller::SetPos(const XPLMDrawInfoDouble_t& drawinfo) {
     SetPos(drawinfo, 0.0f);
 }
 

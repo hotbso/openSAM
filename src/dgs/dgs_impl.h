@@ -139,9 +139,9 @@ class ObjInstance {
 
     static int ActiveInstances() { return active_instances_; }
 
-    void SetPosition(const XPLMDrawInfo_t* drawinfo, float* drefs) const noexcept {
+    void SetPosition(const XPLMDrawInfoDouble_t* drawinfo, float* drefs) const noexcept {
         if (inst_ref_)
-            XPLMInstanceSetPosition(inst_ref_, drawinfo, drefs);
+            XPLMInstanceSetPositionDouble(inst_ref_, drawinfo, drefs);
     }
 };
 

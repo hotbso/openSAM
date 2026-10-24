@@ -49,9 +49,9 @@ class Safedock_T2_24 : public DGS {
 
     float drefs_[DGS_DR_NUM]{};
 
-    XPLMDrawInfo_t pb_drawinfo_{};  // for pole base, on ground
+    XPLMDrawInfoDouble_t pb_drawinfo_{};  // for pole base, on ground
     float height_{};                // height of the Safedock_T2_24 above ground
-    XPLMDrawInfo_t drawinfo_{};     // height adjusted for box and display
+    XPLMDrawInfoDouble_t drawinfo_{};     // height adjusted for box and display
     std::unique_ptr<ScrollTxt> scroll_txt_;
     int pax_no_ = 0;
     bool pole_;
@@ -64,8 +64,8 @@ class Safedock_T2_24 : public DGS {
     bool isVdgs() const noexcept override { return true; }
 
     void SetGuidanceParams(const GuidanceParams& params) override;
-    void SetPos(const XPLMDrawInfo_t& drawinfo, float height) override;
-    void SetPos(const XPLMDrawInfo_t& drawinfo) override;
+    void SetPos(const XPLMDrawInfoDouble_t& drawinfo, float height) override;
+    void SetPos(const XPLMDrawInfoDouble_t& drawinfo) override;
     void SetMode(Mode mode) override;
     void SetPaxNo(int pax_no) override;
     void NotifyOfpUpdate() override;
@@ -194,7 +194,7 @@ void Safedock_T2_24::SetGuidanceParams(const GuidanceParams& params) {
     UpdateInstance();
 }
 
-void Safedock_T2_24::SetPos(const XPLMDrawInfo_t& drawinfo, float height) {
+void Safedock_T2_24::SetPos(const XPLMDrawInfoDouble_t& drawinfo, float height) {
     height_ = height;
     pb_drawinfo_ = drawinfo;
     drawinfo_ = drawinfo;
@@ -204,7 +204,7 @@ void Safedock_T2_24::SetPos(const XPLMDrawInfo_t& drawinfo, float height) {
     UpdateInstance();
 }
 
-void Safedock_T2_24::SetPos(const XPLMDrawInfo_t& drawinfo) {
+void Safedock_T2_24::SetPos(const XPLMDrawInfoDouble_t& drawinfo) {
     SetPos(drawinfo, height_);
 }
 

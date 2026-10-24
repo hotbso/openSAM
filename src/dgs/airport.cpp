@@ -71,11 +71,11 @@ Stand::Stand(const AptStand& as, const std::string& arpt_icao, float elevation)
     : as_(as), arpt_icao_(arpt_icao) {
     elevation_ = elevation;
     elevation_is_estimate_ = true;
-    sin_hdgt_ = sinf(kD2R * as_.hdgt);
-    cos_hdgt_ = cosf(kD2R * as_.hdgt);
+    sin_hdgt_ = std::sin(kD2R * as_.hdgt);
+    cos_hdgt_ = std::cos(kD2R * as_.hdgt);
     drawinfo_.structSize = sizeof(drawinfo_);
     drawinfo_.heading = as_.hdgt;
-    drawinfo_.pitch = drawinfo_.roll = 0.0f;
+    drawinfo_.pitch = drawinfo_.roll = 0.0;
 
     // determine local coords of stand, DGS position will be set once available
     ref_gen_ = -1;  // force update
@@ -91,7 +91,7 @@ Stand::~Stand() {
     dgs_ = nullptr;
 }
 
-void Stand::SetDgsPosition(double lat, double lon, double elevation, float x, float y, float z, float psi) {
+void Stand::SetDgsPosition(double lat, double lon, double elevation, double x, double y, double z, float psi) {
     dgs_lat_ = lat;
     dgs_lon_ = lon;
     dgs_altitude_ = elevation;
@@ -108,26 +108,24 @@ void Stand::CheckRefFrame() {
         return;
 
     ref_gen_ = ref_gen;
-    double x, y, z;
-    XPLMWorldToLocal(as_.lat, as_.lon, elevation_, &x, &y, &z);
+    XPLMWorldToLocal(as_.lat, as_.lon, elevation_, &x_, &y_, &z_);
 
     if (elevation_is_estimate_) {
         XPLMProbeInfo_t probeinfo;
         probeinfo.structSize = sizeof(XPLMProbeInfo_t);
 
        // refine elevation with probe, get is_wet_ info
-        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
+        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x_, y_, z_, &probeinfo)) {
             LogMsg("terrain probe 1 failed, name: %s, lat: %f, lon: %f, elevation: %f", cname(), as_.lat, as_.lon, elevation_);
             throw std::runtime_error("XPLMProbeTerrainXYZ 1 failed");
         }
 
         // On the first pass elevation is only an estimate so we iterate.
         // It makes a difference on higher elevation airports like LOWI.
-        double lat, lon;
-        XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, &lat, &lon, &elevation_);
-        XPLMWorldToLocal(as_.lat, as_.lon, elevation_, &x, &y, &z);
-
-        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x, y, z, &probeinfo)) {
+        double unused;
+        XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, &unused, &unused, &elevation_);
+        XPLMWorldToLocal(as_.lat, as_.lon, elevation_, &x_, &y_, &z_);
+        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x_, y_, z_, &probeinfo)) {
             LogMsg("terrain probe 1a failed, name: %s, lat: %f, lon: %f, elevation: %f", cname(), as_.lat, as_.lon, elevation_);
             throw std::runtime_error("XPLMProbeTerrainXYZ 1a failed");
         }
@@ -138,28 +136,24 @@ void Stand::CheckRefFrame() {
         z_ = probeinfo.locationZ;
 
         elevation_is_estimate_ = false;
-    } else {
-        x_ = x;
-        y_ = y;
-        z_ = z;
     }
 
     if (dgs_position_set_) {
-        double x, y, z;
-        XPLMWorldToLocal(dgs_lat_, dgs_lon_, dgs_altitude_, &x, &y, &z);
-        drawinfo_.x = x;
-        drawinfo_.y = y;
-        drawinfo_.z = z;
+        XPLMWorldToLocal(dgs_lat_, dgs_lon_, dgs_altitude_, &x_, &y_, &z_);
+        drawinfo_.x = x_;
+        drawinfo_.y = y_;
+        drawinfo_.z = z_;
         if (dgs_)
             dgs_->SetPos(drawinfo_);
     }
 }
 
-void Stand::Local2Stand(float x, float z, float& x_stand_local, float& z_stand_local) {
+void Stand::Local2Stand(double x, double z, float& x_stand_local, float& z_stand_local) {
     CheckRefFrame();
     // transform into stand local coordinate system
 
     // xlate + rotate into stand frame
+    // float: double precision not needed for local stand coordinates, a few 100m max
     float dx = x - x_;
     float dz = z - z_;
 

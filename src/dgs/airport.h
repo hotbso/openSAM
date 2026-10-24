@@ -45,14 +45,14 @@ class Stand {
     double elevation_;      // ground elevation of stand [m] (starts as an estimate from plane at touchdown)
     bool elevation_is_estimate_;  // whether elevation is still an estimate
     unsigned int ref_gen_;  // reference frame generation number
-    float x_, y_, z_;       // position of stand in current reference frame
+    double x_, y_, z_;       // position of stand in current reference frame
     float sin_hdgt_, cos_hdgt_;
 
     // dgs position
     bool dgs_position_set_;
     double dgs_lat_, dgs_lon_, dgs_altitude_;
 
-    XPLMDrawInfo_t drawinfo_;  // for the DGS, ground level
+    XPLMDrawInfoDouble_t drawinfo_;  // for the DGS, ground level
     bool is_wet_;
 
     void CheckRefFrame();  // make sure all local coordinates are current in reference frame
@@ -74,9 +74,9 @@ class Stand {
 
     // set DGS position from lat, lon, elevation AND x, y, z in the current ref frame
     // in order to reduce multiple calls to XPLMWorldToLocal
-    void SetDgsPosition(double lat, double lon, double elevation, float x, float y, float z, float psi);
+    void SetDgsPosition(double lat, double lon, double elevation, double x, double y, double z, float psi);
 
-    void Local2Stand(float x, float z, float& x_stand_local, float& z_stand_local);
+    void Local2Stand(double x, double z, float& x_stand_local, float& z_stand_local);
 
     // accessors
     const std::string& name() const { return as_.name; };

@@ -229,7 +229,7 @@ using DisplayPtr = std::unique_ptr<Display, void(*)(Display*)>;
 
 // the page is a generic class agnostic of the DGS implementation
 class Page {
-    XPLMDrawInfo_t& drawinfo_;
+    XPLMDrawInfoDouble_t& drawinfo_;
     bool hidden_ = false;  // true if the page is hidden, i.e. moved down by 20 meters
 
    protected:
@@ -240,7 +240,7 @@ class Page {
     float ts_ = 0.0f;  // time when this page was shown
 
    public:
-    Page(XPLMDrawInfo_t& drawinfo) : drawinfo_(drawinfo) {}
+    Page(XPLMDrawInfoDouble_t& drawinfo) : drawinfo_(drawinfo) {}
     Page(const Page&) = delete;
     Page(Page&&) = delete;
     Page& operator=(const Page&) = delete;

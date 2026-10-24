@@ -36,7 +36,7 @@ class Sam1Legacy : public DGS {
     Mode prev_mode_ = kIdle;
 
     const std::string name_;  // for logging only
-    XPLMDrawInfo_t drawinfo_{};
+    XPLMDrawInfoDouble_t drawinfo_{};
 
    public:
     Sam1Legacy(const std::string& name);
@@ -45,8 +45,8 @@ class Sam1Legacy : public DGS {
     bool isVdgs() const noexcept override { return false; }
 
     void SetGuidanceParams(const GuidanceParams& params) override;
-    void SetPos(const XPLMDrawInfo_t& drawinfo, float height) override;
-    void SetPos(const XPLMDrawInfo_t& drawinfo) override;
+    void SetPos(const XPLMDrawInfoDouble_t& drawinfo, float height) override;
+    void SetPos(const XPLMDrawInfoDouble_t& drawinfo) override;
     void SetMode(Mode mode) override;
     void UpdateInstance() override {};  // no instance to update
 };
@@ -121,7 +121,7 @@ void Sam1Legacy::SetGuidanceParams(const GuidanceParams& dgs_params) {
     }
 }
 
-void Sam1Legacy::SetPos(const XPLMDrawInfo_t& drawinfo, [[maybe_unused]]float height) {
+void Sam1Legacy::SetPos(const XPLMDrawInfoDouble_t& drawinfo, [[maybe_unused]]float height) {
     drawinfo_ = drawinfo;
     LogMsg("SAM1 position updated, x: %0.1f, y: %0.1f, z: %0.1f", drawinfo_.x, drawinfo_.y, drawinfo_.z);
     if (mode_ >= kArrival) {
@@ -130,7 +130,7 @@ void Sam1Legacy::SetPos(const XPLMDrawInfo_t& drawinfo, [[maybe_unused]]float he
     }
 }
 
-void Sam1Legacy::SetPos(const XPLMDrawInfo_t& drawinfo) {
+void Sam1Legacy::SetPos(const XPLMDrawInfoDouble_t& drawinfo) {
     SetPos(drawinfo, 0.0f);
 }
 
