@@ -213,7 +213,12 @@ void LoadAndActivateAirport() {
             }
         } else {                                                             // AutoDGS
             if (adgs_arpt == nullptr || adgs_arpt->name() != arpt->icao_) {  // don't reload same
-                adgs_arpt = std::make_unique<AdgsAirport>(*arpt);
+                adgs_arpt = nullptr;
+                const auto filter = FilterAdgsAirport(arpt->icao_);
+                if (filter.enabled)
+                    adgs_arpt = std::make_unique<AdgsAirport>(*arpt, filter.dgs_type);
+                else
+                    LogMsg("AutoDGS disabled for airport %s by autodgs_filter.cfg", arpt->icao_.c_str());
             }
             if (adgs_arpt) {
                 LogMsg("airport %s loaded successfully with AutoDGS personality", adgs_arpt->name().c_str());
@@ -681,6 +686,8 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     if (!HttpGetInitialize())
         return 0;
+
+    ParseAdgsFilterConfig(user_cfg_dir + "autodgs_filter.cfg");
 
     try {
         // create tmp dir and verify it's writeable

@@ -95,7 +95,10 @@ Full CDM support with display of TSAT, SID, CTOT etc. in the VDGS is included.
 The default VDGS for standard sceneries can be selected in the menu.
 ![Image](images/ui-1.jpg)
 
-Per default all stands with jetways get a VDGS and all others get a Marshaller. This can easily be changed with the UI for the active stand.
+Per default all stands with jetways get a VDGS and all others get a Marshaller. In addition you can customize the behavior of AutoDGS with the config file ``autodgs_filter.cfg``, e.g. disable airports altogether or force marshaller-only service for certain airports.\
+See a sample file in ``plugins/openSAM/autodgs_filter.cfg``.
+
+On a tactical level the DGS for the active stand can be easily be changed with the UI.
 ![Image](images/AutoDGS-selected_gate.jpg)
 
 openSAM can manage standard XP12 jetways as well including full multiplayer support, i.e. that includes all gateway airports.
@@ -116,7 +119,7 @@ See the editor in action on Youtube here -> [Airport Editor](https://www.youtube
 The configuration is saved in ```<xp_dir>/Output/openSAM/<airport_icao>.cfg``` and loaded automatically on your next visit of the airport.
 
 ## Custom sceneries
-The scenery artist placed DGS objects (Marshaller, type of VDGS) and jetways in WED. There is no further customization option.
+The scenery artist placed DGS objects (Marshaller, type of VDGS) and jetways in WED. There is no further customization option for users.
 
 ### Jetways
 ![Image](images/EDDM_A340-600.jpg)

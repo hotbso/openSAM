@@ -24,6 +24,8 @@
 
 #include <memory>
 #include <tuple>
+#include <string>
+#include <vector>
 
 #include "dgs/airport.h"
 
@@ -98,7 +100,8 @@ class AdgsAirport : public dgs::Airport {
 
    public:
     AdgsAirport() = delete;
-    AdgsAirport(const dgs::AptAirport&);
+    // default_dgs_type: kAutomatic or kMarshaller, used for stands without explicit config
+    AdgsAirport(const dgs::AptAirport&, int default_dgs_type = kAutomatic);
     ~AdgsAirport();
 
     // editor support
@@ -121,5 +124,24 @@ class AdgsAirport : public dgs::Airport {
     bool auto_post_parkbrake() const override;
     void ConnectJetway() override;
 };
+
+// User defined filtering of an airport before activating it
+
+// Result of filtering an airport through autodgs_filter.cfg
+struct AdgsFilterResult {
+    bool enabled{true};
+    int dgs_type;  // VDgsType, kAutomatic = "default"
+
+    AdgsFilterResult();
+};
+
+// Parse the filter file (format see autodgs_filter.cfg).
+// A missing file yields an empty config.
+void ParseAdgsFilterConfig(const std::string& pathname);
+
+// Determine the settings for 'icao' using a previously parsed config.
+// No matching entry yields enabled with the default DGS type.
+AdgsFilterResult FilterAdgsAirport(const std::string& icao);
+
 
 extern std::unique_ptr<AdgsAirport> adgs_arpt;

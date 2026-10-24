@@ -22,7 +22,10 @@
 
 #include <cassert>
 #include <cstdio>
+#include <string>
+#include <vector>
 #include <fstream>
+#include <sstream>
 #include <map>
 #include <algorithm>
 #include <numbers>
@@ -237,7 +240,7 @@ using DgsCfgMap = std::unordered_map<std::string, DgsCfg>;  // stand_name -> cfg
 
 void LoadCfg(const std::string& pathname, DgsCfgMap& cfg);
 
-AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_airport) {
+AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport, int default_dgs_type) : dgs::Airport(apt_airport) {
     DgsCfgMap cfg;
     LoadCfg(user_cfg_dir + name() + ".cfg", cfg);
     if (cfg.empty())
@@ -247,12 +250,13 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport) : dgs::Airport(apt_
     LogMsg("Airport '%s', elevation from plane: %0.1f", name_.c_str(), arpt_elevation);
 
     for (auto const& as : apt_airport.stands_) {
-        int dgs_type = kAutomatic;
+        int dgs_type = default_dgs_type;
         float dgs_dist;
         bool pole;
         float dgs_height;
 
-        if (as.has_xp12_jw) {
+        const bool vdgs = (default_dgs_type == kAutomatic) ? as.has_xp12_jw : false;
+        if (vdgs) {
             dgs_dist = kVdgsDefaultDist;
             dgs_height = (dgs_type == kVdgsSafedock_T2_24) ? kVdgsT2DefaultHeight : kVdgsXDefaultHeight;
             pole = true;
@@ -553,4 +557,140 @@ void AdgsAirport::SetEditorMode(bool on_off) {
         }
     } else
         Reset();    // the whole airport
+}
+
+//--------------------- Filtering --------------------------------------------------------------
+
+AdgsFilterResult::AdgsFilterResult() : dgs_type(kAutomatic) {}
+
+namespace {
+
+bool GlobMatch(const char* p, const char* s) {
+    const char* star = nullptr;
+    const char* star_s = nullptr;
+
+    while (*s) {
+        if (*p == '*') {
+            star = p++;
+            star_s = s;
+        } else if (*p == '?' || *p == *s) {
+            p++;
+            s++;
+        } else if (star) {
+            p = star + 1;
+            s = ++star_s;
+        } else
+            return false;
+    }
+
+    while (*p == '*')
+        p++;
+    return *p == '\0';
+}
+
+std::string Trim(const std::string& s) {
+    size_t b = s.find_first_not_of(" \t\r\n");
+    if (b == std::string::npos)
+        return "";
+    size_t e = s.find_last_not_of(" \t\r\n");
+    return s.substr(b, e - b + 1);
+}
+
+struct Section {
+    std::string pattern;
+    bool has_wildcard;
+    int specificity;
+    AdgsFilterResult res;
+};
+
+
+std::vector<Section> sections;
+}  // namespace
+
+void ParseAdgsFilterConfig(const std::string& pathname) {
+    std::ifstream f(pathname);
+    if (!f.is_open())
+        return;
+
+    std::string line;
+    int line_no = 0;
+
+    while (std::getline(f, line)) {
+        line_no++;
+        if (auto pos = line.find('#'); pos != std::string::npos)
+            line.erase(pos);
+
+        line = Trim(line);
+        if (line.empty())
+            continue;
+
+        if (line[0] == '[') {
+            auto close = line.find(']');
+            if (close == std::string::npos) {
+                LogMsg("%s:%d: missing ']'", pathname.c_str(), line_no);
+                continue;
+            }
+
+            Section sec;
+            sec.pattern = Trim(line.substr(1, close - 1));
+            sec.has_wildcard = sec.pattern.find_first_of("*?") != std::string::npos;
+            sec.specificity = (int)std::count_if(sec.pattern.begin(), sec.pattern.end(),
+                                                 [](char c) { return c != '*' && c != '?'; });
+            sections.push_back(std::move(sec));
+            continue;
+        }
+
+        if (sections.empty()) {
+            LogMsg("%s:%d: keyword outside of section ignored: '%s'", pathname.c_str(), line_no, line.c_str());
+            continue;
+        }
+
+        std::istringstream iss(line);
+        std::string kw;
+        iss >> kw;
+        AdgsFilterResult& r = sections.back().res;
+
+        if (kw == "disabled")
+            r.enabled = false;
+        else if (kw == "enabled")
+            r.enabled = true;
+        else if (kw == "dgs") {
+            std::string arg;
+            iss >> arg;
+            if (arg == "marshaller")
+                r.dgs_type = kMarshaller;
+            else if (arg == "default")
+                r.dgs_type = kAutomatic;
+            else
+                LogMsg("%s:%d: invalid dgs argument '%s'", pathname.c_str(), line_no, arg.c_str());
+        } else
+            LogMsg("%s:%d: unknown keyword '%s'", pathname.c_str(), line_no, kw.c_str());
+    }
+
+    return;
+}
+
+AdgsFilterResult FilterAdgsAirport(const std::string& icao) {
+    // explicit ICAO wins over glob, among globs the most specific, ties go to the first
+    const Section* best = nullptr;
+
+    for (const auto& sec : sections) {
+        if (!GlobMatch(sec.pattern.c_str(), icao.c_str()))
+            continue;
+
+        if (!sec.has_wildcard) {
+            best = &sec;
+            break;
+        }
+
+        if (best == nullptr || sec.specificity > best->specificity)
+            best = &sec;
+    }
+
+    if (best == nullptr)
+        return {};
+
+    LogMsg("autodgs filter for '%s' matched [%s]: enabled: %d, dgs_type: %d", icao.c_str(), best->pattern.c_str(),
+           best->res.enabled, best->res.dgs_type);
+    return best->res;
 }
