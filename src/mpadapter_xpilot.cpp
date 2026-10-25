@@ -27,6 +27,8 @@
 #include "mpadapter_xpilot.h"
 #include "log_msg.h"
 
+namespace {
+
 static XPLMDataRef modeS_id_dr, icao_type_dr, flight_id_dr,  // identity
     x_dr, y_dr, z_dr, psi_dr,                                // position
     on_ground_dr, lights_dr, throttle_dr;                    // state
@@ -44,18 +46,15 @@ class MpPlane_xPilot : public OsPlane {
 
    public:
     MpPlane_xPilot(int slot, const std::string& flight_id, const std::string& icao);
-    ~MpPlane_xPilot() override {
-    }
+    ~MpPlane_xPilot() override {}
 
     void update(float x, float y, float z, float psi, float throttle, int lights);
 
-    bool auto_mode() const override {
-        return true;
-    }
-    bool dock_requested() override {
-        return true;
-    }
+    bool auto_mode() const override { return true; }
+    bool dock_requested() override { return true; }
 };
+
+} // namespace
 
 MpPlane_xPilot::MpPlane_xPilot(int slot, const std::string& flight_id, const std::string& icao) : slot_(slot) {
     flight_id_ = flight_id;
@@ -90,7 +89,7 @@ void MpPlane_xPilot::update(float x, float y, float z, float psi, float throttle
     engines_on_ = (throttle > 0.1f);
 
     // 'parkbrake' detection
-    if (fabsf(x_ - x_last_move_) > 0.5f || fabsf(z_ - z_last_move_) > 0.5f) {
+    if (std::abs(x_ - x_last_move_) > 0.5 || std::abs(z_ - z_last_move_) > 0.5) {
         x_last_move_ = x_;
         z_last_move_ = z_;
         last_move_ts_ = now;
