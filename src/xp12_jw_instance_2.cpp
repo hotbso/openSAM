@@ -55,7 +55,7 @@ enum JetwayAnimDref {
     kCabinRotation,
     kBogieElevation,
     kBogieRotation,
-    kBogieBogieTilt,
+    kBogieTilt,
     kWheelLeft,
     kWheelRight,
     kStairsAngle,
@@ -196,6 +196,7 @@ void XP12JwInstance::UpdateInstance() {
     if (rotate3_ <= -1.5f)
         drefs[kBogieElevation] -= 0.04f;
 
+    drefs[kBogieTilt] = -rotate3_ * std::sin(wheelrotatec_ * kD2R);
     drefs[kWheelLeft] = wheelrotatel_;
     drefs[kWheelRight] = wheelrotater_;
     drefs[kStairsAngle] = -stairrotate_;
