@@ -102,48 +102,42 @@ void XP12JwInstance::Finalize() {
     LogMsg("Finalizing XP12 jetway instance");
 }
 
+static double last_altitude = 200.0;        // the next jw will use this as the initial altitude estimate
+
 bool XP12JwInstance::UpdateDrawinfo() noexcept {
     if (obj_ref_gen_ == ref_gen)
         return false;
 
-    // I love this mixture of float/double for the same values in the SDK
-    double xx, yy, zz;
     if (altitude_is_estimate_) {
-        XPLMWorldToLocal(latitude_, longitude_, 200.0, &xx, &yy, &zz);
         altitude_is_estimate_ = false;
+        XPLMWorldToLocal(latitude_, longitude_, last_altitude, &x_, &y_, &z_);
 
-        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, xx, yy, zz, &probeinfo)) {
+        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x_, y_, z_, &probeinfo)) {
             LogMsg("terrain probe 1 failed???");
         }
-        xx = probeinfo.locationX;
-        yy = probeinfo.locationY;
-        zz = probeinfo.locationZ;
 
         // now a terrain probe with better altitude estimate
         double dummy1, dummy2;
-        XPLMLocalToWorld(xx, yy, zz, &dummy1, &dummy2, &altitude_);
-        XPLMWorldToLocal(latitude_, longitude_, altitude_, &xx, &yy, &zz);
-        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, xx, yy, zz, &probeinfo)) {
+        XPLMLocalToWorld(x_, probeinfo.locationY, z_, &dummy1, &dummy2, &altitude_);
+        XPLMWorldToLocal(latitude_, longitude_, altitude_, &x_, &y_, &z_);
+        if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x_, y_, z_, &probeinfo)) {
             LogMsg("terrain probe 2 failed???");
         }
 
-        xx = probeinfo.locationX;
-        yy = probeinfo.locationY;
-        zz = probeinfo.locationZ;
-        XPLMLocalToWorld(xx, yy, zz, &dummy1, &dummy2, &altitude_);
-    } else
-        XPLMWorldToLocal(latitude_, longitude_, altitude_, &xx, &yy, &zz);
+        y_ = probeinfo.locationY;
+        XPLMLocalToWorld(x_, y_, z_, &dummy1, &dummy2, &altitude_);
+    }
+
+    XPLMWorldToLocal(latitude_, longitude_, altitude_, &x_, &y_, &z_);
 
     obj_ref_gen_ = ref_gen;
-    x_ = xx;
-    y_ = yy;
-    z_ = zz;
 
     drawinfo_.x = x_;
     drawinfo_.y = y_;
     drawinfo_.z = z_;
 
     SetWheelsStairs(/* force_high_precision */ true);
+    last_altitude = altitude_;
     return true;
 }
 
@@ -215,7 +209,7 @@ void XP12JwInstance::UpdateInstance() {
         drefs[kBogieRotation], drefs[kBogieElevation], drefs[kStairsAngle]);
     #endif
 
-    XPLMInstanceSetPosition(instance_ref_, &drawinfo_, drefs);
+    XPLMInstanceSetPositionDouble(instance_ref_, &drawinfo_, drefs);
 }
 
 static float last_refresh_ts = -1000.0f;

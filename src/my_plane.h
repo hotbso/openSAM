@@ -38,12 +38,12 @@ class MyPlane : public OsPlane, public dgs::Plane {
 
     float on_ground_ts_;
     // for teleportation detection
-    float parked_x_, parked_z_;
+    double parked_x_, parked_z_;
     unsigned parked_ngen_{};
 
     bool auto_mode_{}, dock_requested_{}, undock_requested_{}, toggle_requested_{};
 
-    float elevation_{};
+    double elevation_{};
 
     dgs::EqStatusVal GetPbbEqStatus() override;
 
@@ -61,14 +61,11 @@ class MyPlane : public OsPlane, public dgs::Plane {
 
     OsPlane::State state() const { return state_; }
 
-    // these 3 are called without prior update() call -> direct read from drefs
-    float lat() { return XPLMGetDataf(plane_lat_dr_); }
-
-    float lon() { return XPLMGetDataf(plane_lon_dr_); }
-
+    // these next 3 are called without prior update() call -> direct read from drefs
+    double lat() { return XPLMGetDatad(plane_lat_dr_); }
+    double lon() { return XPLMGetDatad(plane_lon_dr_); }
     float y_agl() { return XPLMGetDataf(plane_y_agl_dr_); }
-
-    float elevation() const { return elevation_; }
+    double elevation() const { return elevation_; }
 
     bool with_alert_sound() override { return true; }
 

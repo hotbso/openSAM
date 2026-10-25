@@ -211,6 +211,7 @@ static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y,
 // sam/jetways/15/rotate2  -> (15, kRotate2)
 //
 static float JwAnimAcc(void* ref) {
+    // hopefully one day we get these as double
     const float obj_x = XPLMGetDataf(draw_object_x_dr);
     const float obj_z = XPLMGetDataf(draw_object_z_dr);
     const float obj_y = XPLMGetDataf(draw_object_y_dr);
@@ -459,8 +460,8 @@ void SamJw::SetWheelsStairs(bool force_high_precision) {
     static uint_fast8_t throttle;  // global for all moving jetways
 
     if (force_high_precision || (throttle++ & 0x8)) {
-        float w_x = x_ + (extent_ + wheel_pos_) * std::cos((rotate1_ + psi_ - 90.0f) * kD2R);
-        float w_z = z_ + (extent_ + wheel_pos_) * std::sin((rotate1_ + psi_ - 90.0f) * kD2R);
+        double w_x = x_ + (extent_ + wheel_pos_) * std::cos((rotate1_ + psi_ - 90.0f) * kD2R);
+        double w_z = z_ + (extent_ + wheel_pos_) * std::sin((rotate1_ + psi_ - 90.0f) * kD2R);
 
         if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, w_x, y_, w_z, &probeinfo)) {
             LogMsg("SetWheelsStairs terrain probe failed???");

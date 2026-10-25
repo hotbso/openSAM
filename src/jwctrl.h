@@ -29,7 +29,8 @@ struct DoorInfo;
 
 struct JwCtrlPlaneInfo {
     int id;
-    float x, y, z, psi;
+    double  x, y, z;
+    float psi;
     std::vector<DoorInfo>& door_info;
 };
 

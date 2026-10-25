@@ -260,9 +260,9 @@ void MyPlane::PlaneLoadedCb() {
 }
 
 void MyPlane::Update() {
-    x_ = XPLMGetDataf(plane_x_dr);
-    y_ = XPLMGetDataf(plane_y_dr);
-    z_ = XPLMGetDataf(plane_z_dr);
+    x_ = XPLMGetDatad(plane_x_dr);
+    y_ = XPLMGetDatad(plane_y_dr);
+    z_ = XPLMGetDatad(plane_z_dr);
     psi_ = XPLMGetDataf(plane_true_psi_dr);
 
     // on ground detection
@@ -320,7 +320,7 @@ bool MyPlane::CheckParkedTeleportation() {
     if (!on_ground())
         return false;
 
-    if (parked_ngen_ != ::ref_gen || fabsf(parked_x_ - x_) > 1.0f || fabsf(parked_z_ - z_) > 1.0f) {
+    if (parked_ngen_ != ::ref_gen || std::abs(parked_x_ - x_) > 1.0 || std::abs(parked_z_ - z_) > 1.0) {
         LogMsg("parked_ngen: %d, ngen: %d, parked_x: %0.3f, x: %0.3f, parked_z: %0.3f, z: %0.3f", parked_ngen_,
                ::ref_gen, parked_x_, x_, parked_z_, z_);
         return true;

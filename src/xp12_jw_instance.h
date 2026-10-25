@@ -36,7 +36,7 @@ class XP12JwInstance : public SamJw {
     int style_code_, length_code_;
 
     bool altitude_is_estimate_{true};
-    XPLMDrawInfo_t drawinfo_;
+    XPLMDrawInfoDouble_t drawinfo_;
     XPLMInstanceRef instance_ref_{nullptr};
 
     // update drawinfo_ from global coords / ref_gen

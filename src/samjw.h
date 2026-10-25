@@ -88,9 +88,9 @@ class SamJw {
 
     // local coordinate values of the actually drawn object
     unsigned int obj_ref_gen_{};  // only valid if this matches the generation # of the ref frame
-    float x_, y_, z_, psi_;     //Position in meters in local coords
+    double x_, y_, z_;            // Position in meters in local coords
+    float psi_;
 
-    bool bad_{};             // marked bad, e.g. terrain probe failed
     bool is_lib_jw_inst_{};  // is an instance of a library jetway
     // library_id is configured when the jetway comes into view, so that may be delayed
     int library_id_{};  // id of the library jetway this one is configured from, 0 = none

@@ -56,7 +56,8 @@ class OsPlane {
 
     bool beacon_on_{false}, engines_on_{false}, on_ground_{false}, parkbrake_set_{false};
     std::string icao_;
-    float x_, y_, z_, psi_;
+    double x_, y_, z_;
+    float psi_;
 
     std::vector<JwCtrl> nearest_jws_;
     std::vector<int> active_jws_;  // index into nearest_jws_ of active jetways
@@ -83,31 +84,22 @@ class OsPlane {
     std::string& icao() { return icao_; }
 
     // position
-    float x() const { return x_; }
-
-    float y() const { return y_; }
-
-    float z() const { return z_; }
-
+    double x() const { return x_; }
+    double y() const { return y_; }
+    double z() const { return z_; }
     float psi() const { return psi_; }
 
     // detailed state
     bool on_ground() const { return on_ground_; }
-
     bool beacon_on() const { return beacon_on_; }
-
     bool parkbrake_set() const { return parkbrake_set_; }
-
     bool engines_on() const { return engines_on_; }
 
     // cmd support
     virtual bool auto_mode() const = 0;
     virtual bool dock_requested() { return false; }
-
     virtual bool undock_requested() { return false; }
-
     virtual bool toggle_requested() { return false; }
-
     virtual bool call_pre_post_dock_cmd() { return false; }
 
     // in general no sound on (mass-) docking
