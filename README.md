@@ -241,13 +241,13 @@ Just place these assets from the openSAM folder in WED's library view.\
 For jetways use a proper initial orientation of the tunnel. At runtime the cabin will point
 perpendicular to the stand with slight random variations.
 
-Then copy file ```openSAM_Library/dev-tools/sam.xml``` into your scenery and you are done.
+Then copy file ```openSAM_Library/dev-tools/opensam.xml``` into your scenery and you are done.
 
 ## "Zero Configuration jetways" for own jetway objects
 
 As a scenery designer you can add your own jetway objects as library jetways
 - in a separate XP12 standard library, requires a ```samlibraryjetways.xml```
-- locally in the scenery, direct put the definition in the sam.xml file
+- locally in the scenery, direct put the definition in the ```opensam.xml``` file
 
 ```openSAM_Library/dev-tools``` contains example files and an example airport.\
 In case you want to keep your jetway objects unmodified script ```dev-tools/gen_libjw_from_jw.py``` converts your object
