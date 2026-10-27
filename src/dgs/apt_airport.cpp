@@ -24,11 +24,11 @@
 #include <unordered_map>
 #include <algorithm>
 #include <numbers>
-#include <chrono>
 
 #include "dgs_impl.h"
 #include "apt_airport.h"
 #include "quadtree.inl"
+#include "time_code_block.h"
 #include "log_msg.h"
 
 namespace dgs {
@@ -69,7 +69,7 @@ void AptAirport::ComputeBBox() {
     bbox_min_ = {+1000.0, +1000.0};
 
     for (const auto& s : stands_) {
-        const double dlon = kDlat * cosf(s.lat * kD2R);
+        const double dlon = kDlat * std::cos(s.lat * kD2R);
         bbox_min_.lon = std::min(bbox_min_.lon, fem::RA(s.lon - dlon));
         bbox_max_.lon = std::max(bbox_max_.lon, fem::RA(s.lon + dlon));
         bbox_min_.lat = std::min(bbox_min_.lat, s.lat - kDlat);
@@ -77,7 +77,7 @@ void AptAirport::ComputeBBox() {
     }
 
     for (const auto& r : rwys_) {
-        const double dlon = kDlat * cosf(r.end1.lat * kD2R);
+        const double dlon = kDlat * std::cos(r.end1.lat * kD2R);
         bbox_min_.lon = std::min(bbox_min_.lon, fem::RA(r.end1.lon - dlon));
         bbox_max_.lon = std::max(bbox_max_.lon, fem::RA(r.end1.lon + dlon));
         bbox_min_.lat = std::min(bbox_min_.lat, r.end1.lat - kDlat);
@@ -230,7 +230,7 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
             sscanf(line.c_str(), "%*d %lf %lf %f %*s %*s %n", &st.lat, &st.lon, &st.hdgt, &ofs);
             if (ofs < (int)line.size())
                 st.name = line.substr(ofs, line.size() - ofs);
-            arpt->stands_.push_back(st);
+            arpt->stands_.push_back(std::move(st));
             continue;
         }
 
@@ -250,7 +250,7 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
             sscanf(line.c_str(), "%*d %lf %lf %f %d %d %*f %f %f", &jw.pos.lat, &jw.pos.lon, &jw.hdgt, &jw.style, &jw.length_code, &jw.length, &jw.cabin_hdgt);
             fem::Vec2 dir{std::cos((90.0f - jw.hdgt) * kD2R), std::sin((90.0f - jw.hdgt) * kD2R)};
             jw.cabin = jw.pos + jw.length * dir;
-            jetways.push_back(jw);
+            jetways.push_back(std::move(jw));
             continue;
         }
 
@@ -272,7 +272,7 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
                     continue;
                 }
                 rwy.cl = (1 / rwy.len) * rwy.cl;  // normalize
-                arpt->rwys_.push_back(rwy);
+                arpt->rwys_.push_back(std::move(rwy));
             }
             continue;
         }
@@ -284,16 +284,12 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
 }
 
 void AptAirport::LoadingFinished() {
-    auto t_start = std::chrono::high_resolution_clock::now();
     LogMsg("Loaded %d airports, building quadtree ...", (int)apt_airports_.size());
+    TimeCodeBlock tcb("airport quadtree");
     for (const auto& [n, a] : apt_airports_) {
         if (!a->ignore_)
             apt_quadtree_.Insert(a);
     }
-
-    auto t_end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration<double>(t_end - t_start).count();
-    LogMsg("Quadtree built in %0.4f s", duration);
 }
 
 const AptAirport* AptAirport::LookupAirport(const std::string& airport_id) {
@@ -306,7 +302,7 @@ const AptAirport* AptAirport::LookupAirport(const std::string& airport_id) {
     }
 
     if (arpt == nullptr)
-        LogMsg("sorry, '%s' is not an AutoDGS airport", airport_id.c_str());
+        LogMsg("sorry, '%s' is not known airport", airport_id.c_str());
 
     return arpt;
 }

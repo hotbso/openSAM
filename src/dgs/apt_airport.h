@@ -93,7 +93,7 @@ class AptAirport {
     AptAirport& operator=(const AptAirport&) = delete;
     AptAirport& operator=(const AptAirport&&) = delete;
 
-    // parse apt.dat, enter data into apt_airports_, return pointer to (last) parsed airport or nullptr on error
+    // parse apt.dat, enter data into apt_airports_
     // if ignore is true, a dummy airport with that id will be added and marked as ignored
     // this will also shadow a global airport with the same id, so it won't be found by LocateAirport
     // Append jetway records to the provided vector.
