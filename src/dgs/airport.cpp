@@ -38,6 +38,7 @@
 
 namespace fem = flat_earth_math;
 
+namespace {
 // DGS _A = angles [°] (to centerline), _X, _Z = [m] (to stand)
 static constexpr float kCapA = 15;   // Capture
 static constexpr float kCapZ = 105;  // (50-80 in Safedock2 flier)
@@ -58,8 +59,7 @@ static constexpr int kTurnRight = 1;  // arrow on left side
 static constexpr int kTurnLeft = 2;   // arrow on right side
 
 static float ofp_ts;                   // timestamp of last ofp check
-
-#define SQR(x) ((x) * (x))
+} // namespace
 
 namespace dgs {
 
@@ -220,8 +220,8 @@ void Airport::FindNearestStand() {
     double dist = 1.0E10;
     int min_stand = -1;
 
-    float plane_x = XPLMGetDataf(plane_x_dr);
-    float plane_z = XPLMGetDataf(plane_z_dr);
+    double plane_x = XPLMGetDatad(plane_x_dr);
+    double plane_z = XPLMGetDatad(plane_z_dr);
 
     float plane_hdgt = XPLMGetDataf(plane_true_psi_dr);
 
@@ -246,9 +246,9 @@ void Airport::FindNearestStand() {
 
             // nose wheel
             float nw_z = z_sl - plane->nw_z_;
-            float nw_x = x_sl + plane->nw_z_ * sinf(kD2R * local_hdgt);
+            float nw_x = x_sl + plane->nw_z_ * std::sin(kD2R * local_hdgt);
 
-            float d = sqrt(SQR(nw_x) + SQR(nw_z));
+            float d = std::hypot(nw_x, nw_z);
             if (d > kCapZ + 50)  // fast exit
                 continue;
 
@@ -280,7 +280,7 @@ void Airport::FindNearestStand() {
 
             // for the final comparison give xtrack a higher weight + consider heading deviation
             static constexpr float xtrack_weight = 4.0;
-            d = sqrt(SQR(xtrack_weight * nw_x) + SQR(nw_z)) + fabsf(local_hdgt);
+            d = std::hypot(xtrack_weight * nw_x, nw_z) + std::abs(local_hdgt);
 
             if (d < dist) {
                 // LogMsg("new min: %s, z: %2.1f, x: %2.1f", s.cname(), nw_z, nw_x);
@@ -315,15 +315,15 @@ int Airport::FindDepartureStand() {
     float plane_hdgt = XPLMGetDataf(plane_true_psi_dr);
 
     // nose wheel
-    float nw_z = plane_z - plane->nw_z_ * cosf(kD2R * plane_hdgt);
-    float nw_x = plane_x + plane->nw_z_ * sinf(kD2R * plane_hdgt);
+    float nw_z = plane_z - plane->nw_z_ * std::cos(kD2R * plane_hdgt);
+    float nw_x = plane_x + plane->nw_z_ * std::sin(kD2R * plane_hdgt);
 
     for (int i = 0; i < (int)stands_.size(); i++) {
         Stand& s = *stands_[i];
         if (!s.isVdgs())
             continue;
 
-        if (fabsf(fem::RA(plane_hdgt - s.hdgt())) > 3.0f)
+        if (std::abs(fem::RA(plane_hdgt - s.hdgt())) > 3.0f)
             continue;
 
         float dx = nw_x - s.x_;
@@ -488,18 +488,18 @@ float Airport::StateMachine() {
 
     // nose wheel
     float nw_z = local_z - plane->nw_z_;
-    float nw_x = local_x + plane->nw_z_ * sinf(kD2R * local_hdgt);
+    float nw_x = local_x + plane->nw_z_ * std::sin(kD2R * local_hdgt);
 
     // main wheel pos on logitudinal axis
     float mw_z = local_z - plane->mw_z_;
-    float mw_x = local_x + plane->mw_z_ * sinf(kD2R * local_hdgt);
+    float mw_x = local_x + plane->mw_z_ * std::sin(kD2R * local_hdgt);
 
     // ref pos on logitudinal axis of acf blending from mw to nw as we come closer
     // should be nw if dist is below 6 m
     float a = std::clamp((nw_z - kAziCrossover) / 20.0, 0.0, 1.0);
     float plane_ref_z = (1.0 - a) * plane->nw_z_ + a * plane->mw_z_;
     float ref_z = local_z - plane_ref_z;
-    float ref_x = local_x + plane_ref_z * sinf(kD2R * local_hdgt);
+    float ref_x = local_x + plane_ref_z * std::sin(kD2R * local_hdgt);
 
     float xtrack = 0.0;  // xtrack for VDGS, set later if needed
 
@@ -509,7 +509,7 @@ float Airport::StateMachine() {
     else
         azimuth_nw = 0.0;
 
-    bool locgood = (fabsf(mw_x) <= kGoodX && kGoodZ_m <= nw_z && nw_z <= kGoodZ_p);
+    bool locgood = (std::abs(mw_x) <= kGoodX && kGoodZ_m <= nw_z && nw_z <= kGoodZ_p);
     bool beacon_on = plane->BeaconOn();
 
     memset(&dgs_params_, 0, sizeof(dgs_params_));
@@ -519,7 +519,7 @@ float Airport::StateMachine() {
     switch (state_) {
         case kEngaged:
             if (beacon_on) {
-                if ((dgs_params_.distance <= kCapZ) && (fabsf(azimuth_nw) <= kCapA))
+                if ((dgs_params_.distance <= kCapZ) && (std::abs(azimuth_nw) <= kCapA))
                     new_state = kTrack;
             } else {  // not beacon_on
                 new_state = kDone;
@@ -548,13 +548,13 @@ float Airport::StateMachine() {
                 break;
             }
 
-            if ((dgs_params_.distance > kCapZ) || (fabsf(azimuth_nw) > kCapA)) {
+            if ((dgs_params_.distance > kCapZ) || (std::abs(azimuth_nw) > kCapA)) {
                 new_state = kEngaged;  // moving away from current gate
                 break;
             }
 
             dgs_params_.status = kDgsGstIdentified;  // plane id
-            if (dgs_params_.distance > kAziZ || fabsf(azimuth_nw) > kAziA) {
+            if (dgs_params_.distance > kAziZ || std::abs(azimuth_nw) > kAziA) {
                 dgs_params_.track = 1;  // lead-in only
                 break;
             }
@@ -569,14 +569,14 @@ float Airport::StateMachine() {
             // compute left/right command
             if (ref_z > kAziCrossover) {
                 // far, aim to an intermediate point between ref point and stand
-                float req_hdgt = atanf(-ref_x / (0.3f * ref_z)) / kD2R;  // required hdgt
+                float req_hdgt = std::atan2(-ref_x, 0.3f * ref_z) / kD2R;  // required hdgt
                 float d_hdgt = req_hdgt - local_hdgt;  // degrees to turn
                 if (d_hdgt < -1.5f)
                     dgs_params_.lr = kTurnLeft;
                 else if (d_hdgt > 1.5f)
                     dgs_params_.lr = kTurnRight;
 
-                if (now > update_dgs_log_ts_ + 2.0)
+                if (now > update_dgs_log_ts_ + 2.0f)
                     LogMsg(
                         "req_hdgt: %0.1f, local_hdgt: %0.1f, d_hdgt: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), "
                         "ref: (%0.1f, %0.1f), "
@@ -683,7 +683,7 @@ float Airport::StateMachine() {
         } break;
 
         case kDone:
-            if (now > state_change_ts_ + 5.0) {
+            if (now > state_change_ts_ + 5.0f) {
                 ResetState(kIdle);
                 return loop_delay;
             }
@@ -703,7 +703,7 @@ float Airport::StateMachine() {
     // guidance postprocessing and logging
     if (kArrival < state_ && state_ < kParked) {
         // don't flood the log
-        if (now > update_dgs_log_ts_ + 2.0) {
+        if (now > update_dgs_log_ts_ + 2.0f) {
             update_dgs_log_ts_ = now;
             LogMsg("stand: %s, state: %s, status: %d, track: %d, lr: %d, distance: %0.2f, xtrack: %0.1f m",
                    as.name().c_str(), state_str_[state_], dgs_params_.status, dgs_params_.track, dgs_params_.lr, dgs_params_.distance, dgs_params_.xtrack);
