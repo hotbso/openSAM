@@ -132,7 +132,7 @@ void OsAirport::ConnectJetway() {
     my_plane->RequestDock();
 }
 
-const OsStand* OsAirport::FindStandForJw(float jw_x, float jw_z) {
+const OsStand* OsAirport::FindStandForJw(double jw_x, double jw_z) {
     const OsStand* min_stand = nullptr;
     float min_dist = std::numeric_limits<float>::max();
 
