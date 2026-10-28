@@ -22,6 +22,8 @@
 #include <cstdlib>
 #include <cassert>
 #include <cmath>
+#include <string_view>
+#include <print>
 
 #include "my_plane.h"
 #include "mpadapter_xpilot.h"
@@ -40,12 +42,9 @@ class MpPlane_xPilot : public OsPlane {
     // parking brake emulation
     float last_move_ts_{0};
     float x_last_move_{0}, z_last_move_{0};
-    float y_adjust_;  // plane y + y_adjust_ == y of ground level
-
-    float scan_mp_planes();
 
    public:
-    MpPlane_xPilot(int slot, const std::string& flight_id, const std::string& icao);
+    MpPlane_xPilot(int slot, std::string_view flight_id, std::string_view icao);
     ~MpPlane_xPilot() override {}
 
     void update(float x, float y, float z, float psi, float throttle, int lights);
@@ -56,7 +55,7 @@ class MpPlane_xPilot : public OsPlane {
 
 } // namespace
 
-MpPlane_xPilot::MpPlane_xPilot(int slot, const std::string& flight_id, const std::string& icao) : slot_(slot) {
+MpPlane_xPilot::MpPlane_xPilot(int slot, std::string_view flight_id, std::string_view icao) : slot_(slot) {
     flight_id_ = flight_id;
     icao_ = icao;
 
@@ -176,14 +175,14 @@ float MpAdapter_xPilot::update() {
         // flight_id
         char* cptr = flight_id_val_.get() + i * 8;
         cptr[7] = '\0';  // play it safe
-        std::string flight_id = cptr;
+        std::string_view flight_id(cptr);
 
         // icao type
         cptr = icao_type_val_.get() + i * 8;
         cptr[7] = '\0';  // play it safe
-        std::string icao = cptr;
+        std::string_view icao(cptr);
 
-        std::string key = flight_id + '/' + icao;
+        std::string key = std::format("{}/{}", flight_id, icao);
         dref_planes[key] = true;
 
         auto it = mp_planes_.find(key);
