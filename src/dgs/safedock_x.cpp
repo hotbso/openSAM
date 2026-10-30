@@ -22,7 +22,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
-#include <print>
+#include <format>
 #include <filesystem>
 #include <vector>
 
@@ -196,39 +196,39 @@ bool InitSafedock_X(const std::string& res_dir) {
     std::string obj_fn = res_dir + "Safedock-X-display.obj";
     display_obj = XPLMLoadObject(obj_fn.c_str());
     if (display_obj == nullptr) {
-        LogMsg("Can't load Safedock_X display object from '%s'", obj_fn.c_str());
+        LogMsg("Can't load Safedock_X display object from '{}'", obj_fn);
         return false;
     }
 
     obj_fn = res_dir + "Safedock-X-idle.obj";
     idle_display_obj = XPLMLoadObject(obj_fn.c_str());
     if (idle_display_obj == nullptr) {
-        LogMsg("Can't load Safedock_X idle object from '%s'", obj_fn.c_str());
+        LogMsg("Can't load Safedock_X idle object from '{}'", obj_fn);
         return false;
     }
 
     std::string on = res_dir + "pole_base.obj";
     base_obj = XPLMLoadObject(on.c_str());
     if (base_obj == nullptr) {
-        LogMsg("Can't load pole base object from '%s'", on.c_str());
+        LogMsg("Can't load pole base object from '{}'", on);
         return false;
     }
 
     on = res_dir + "Safedock-X-pole.obj";
     box_pole_obj = XPLMLoadObject(on.c_str());
     if (box_pole_obj == nullptr) {
-        LogMsg("Can't load box pole object from '%s'", on.c_str());
+        LogMsg("Can't load box pole object from '{}'", on);
         return false;
     }
 
     on = res_dir + "Safedock-X.obj";
     box_obj = XPLMLoadObject(on.c_str());
     if (box_obj == nullptr) {
-        LogMsg("Can't load box object from '%s'", on.c_str());
+        LogMsg("Can't load box object from '{}'", on);
         return false;
     }
 
-    LogMsg("Safedock_X display objects loaded from '%s'", res_dir.c_str());
+    LogMsg("Safedock_X display objects loaded from '{}'", res_dir);
     return true;
 }
 
@@ -241,7 +241,7 @@ std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std::string
 Safedock_X::Safedock_X(const std::string& name, const std::string& arpt_icao, bool display_only,
                        bool pole)
     : name_(name), arpt_icao_(arpt_icao), pole_(pole), cdm_page_(this), stand_page_(this), eq_page_(this) {
-    LogMsg("Creating Safedock_X instance for stand '%s'", name_.c_str());
+    LogMsg("Creating Safedock_X instance for stand '{}'", name_);
 
     display_name_ = ExtractDisplayName(name_, kR1Nchar);
 
@@ -258,16 +258,16 @@ Safedock_X::Safedock_X(const std::string& name, const std::string& arpt_icao, bo
     SetMode(kIdle);
     startup_ts_ = now;
     dep_pages_ = {&stand_page_, &cdm_page_, &eq_page_};
-    LogMsg("Safedock_X instance created for stand '%s', display name: '%s'", name_.c_str(), display_name_.c_str());
+    LogMsg("Safedock_X instance created for stand '{}', display name: '{}'", name_, display_name_);
 }
 
 Safedock_X::~Safedock_X() {
-    LogMsg("Destroying Safedock_X instance for stand '%s'", name_.c_str());
+    LogMsg("Destroying Safedock_X instance for stand '{}'", name_);
 
     for (auto p : dep_pages_)
         p->Clear();
 
-    LogMsg("active Displays after Safedock_X destructor: %d", DynDisplay::Display::active_displays());
+    LogMsg("active Displays after Safedock_X destructor: {}", DynDisplay::Display::active_displays());
 }
 
 void Safedock_X::SetGuidanceParams(const GuidanceParams& params) {
@@ -332,7 +332,7 @@ void Safedock_X::SetPos(const XPLMDrawInfoDouble_t& drawinfo, float height) {
     height_ = height;
     pb_drawinfo_ = drawinfo;
     drawinfo_ = drawinfo;
-    LogMsg("Safedock_X position updated for stand '%s', x: %0.1f, y: %0.1f, z: %0.1f", name_.c_str(), drawinfo_.x,
+    LogMsg("Safedock_X position updated for stand '{}', x: {:0.1f}, y: {:0.1f}, z: {:0.1f}", name_, drawinfo_.x,
            drawinfo_.y, drawinfo_.z);
     drawinfo_.y += height_;
     UpdateInstance();
@@ -354,7 +354,7 @@ void Safedock_X::SetMode(Mode mode) {
     }
 
     mode_ = mode;
-    LogMsg("SetMode %d stand: '%s'", mode_, name_.c_str());
+    LogMsg("SetMode {} stand: '{}'", (int)mode_, name_);
 
     parked_ts_ = 0.0f;  // reset parked mode start time
 
@@ -434,7 +434,7 @@ float Safedock_X::Tick() {
     bool show_eq_status_small = false;
 
     if (mode_ == kParked || mode_ == kDeparture || mode_ == kDeboarding) {
-        // LogMsg("Tick for parked stand '%s', refreshing eq status", name_.c_str());
+        // LogMsg("Tick for parked stand '{}', refreshing eq status", name_);
 
         EqStatus eq_status;
         plane->GetEqStatus(eq_status);
@@ -461,7 +461,7 @@ float Safedock_X::Tick() {
                     boarding_ = true;
                     boarding_completed_ = false;
                 } else if (boarding_ && !boarding_completed_ && now > pax_change_ts_ + 20.0f) {
-                    LogMsg("Boarding completed, pax no: %d", pax_no_);
+                    LogMsg("Boarding completed, pax no: {}", pax_no_);
                     boarding_completed_ = true;
                     boarding_ = false;
                     boarding_completed_ts_ = now;
@@ -481,7 +481,7 @@ float Safedock_X::Tick() {
             }
 
             if (now > cycle_ts_ + kCycleTime) {
-                // LogMsg("Tick, cycling page %d", dep_page_seq_);
+                // LogMsg("Tick, cycling page {}", dep_page_seq_);
                 dep_pages_[dep_page_seq_]->Hide();
                 dep_page_seq_++;
                 if (dep_page_seq_ >= (int)dep_pages_.size())
@@ -514,8 +514,7 @@ float Safedock_X::Tick() {
         int blink = ((size_t)now) & 1;  // blink at 1Hz
         drefs_[DGS_DR_DEBOARDING] = blink;
         delay = std::min(delay, 0.2f);
-        // LogMsg("Tick for deboarding stand '%s', pax no: %d, dref: %f", name_.c_str(), pax_no_,
-        // drefs_[DGS_DR_DEBOARDING]);
+        // LogMsg("Tick for deboarding stand '{}', pax no: {}, dref: {:f}", name_, pax_no_, drefs_[DGS_DR_DEBOARDING]);
     }
 
     UpdateInstance();
@@ -586,8 +585,8 @@ bool CdmPage::Update() {
     int zulu_h = XPLMGetDatai(zulu_time_hours_dr);
 
     if (dd_ == nullptr || Ofp::ofp.seqno > ofp_seqno_ || zulu_m != zulu_m_) {
-        LogMsg("Updating CdmPage for stand '%s', ofp seqno: %d", sdx_->name_.c_str(), Ofp::ofp.seqno);
-        LogMsg("airline logo is available: %d", logo::airline_logo != nullptr);
+        LogMsg("Updating CdmPage for stand '{}', ofp seqno: {}", sdx_->name_, Ofp::ofp.seqno);
+        LogMsg("airline logo is available: {}", logo::airline_logo != nullptr);
         TimeCodeBlock tc("CdmPage::Update");
 
         ofp_seqno_ = Ofp::ofp.seqno;
@@ -674,7 +673,7 @@ bool StandPage::Update() {
     int zulu_m = XPLMGetDatai(zulu_time_minutes_dr);
 
     if (dd_ == nullptr || Ofp::ofp.seqno > ofp_seqno_ || zulu_m != zulu_m_ || sdx_->pax_no_ != pax_no_disp_) {
-        LogMsg("Updating StandPage for stand '%s', ofp seqno: %d, pax_no: %d", sdx_->name_.c_str(), Ofp::ofp.seqno,
+        LogMsg("Updating StandPage for stand '{}', ofp seqno: {}, pax_no: {}", sdx_->name_, Ofp::ofp.seqno,
                sdx_->pax_no_);
         TimeCodeBlock tc("StandPage::Update");
 
@@ -757,7 +756,7 @@ bool EqPage::Update() {
     int zulu_h = XPLMGetDatai(zulu_time_hours_dr);
 
     if (dd_ == nullptr || cur_eq_status != eq_status_ || Ofp::ofp.seqno > ofp_seqno_ || zulu_m != zulu_m_) {
-        LogMsg("Updating EqPage for stand '%s', ofp seqno: %d", sdx_->name_.c_str(), Ofp::ofp.seqno);
+        LogMsg("Updating EqPage for stand '{}', ofp seqno: {}", sdx_->name_, Ofp::ofp.seqno);
         TimeCodeBlock tc("EqPage::Update");
         ofp_seqno_ = Ofp::ofp.seqno;
         zulu_m_ = zulu_m;

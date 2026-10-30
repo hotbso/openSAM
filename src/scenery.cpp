@@ -77,7 +77,7 @@ static void ParseDatarefs(const pugi::xml_node& sc_node) {
         }
 
         if (LookupDrf(name) >= 0) {
-            LogMsg("duplicate definition for dataref '%s', ignored", name);
+            LogMsg("duplicate definition for dataref '{}', ignored", name);
             continue;
         }
 
@@ -128,7 +128,8 @@ static void ParseObjects(const pugi::xml_node& sc_node, Scenery* sc) {
         obj.longitude = instance.attribute("longitude").as_float(0.0f);
         obj.elevation = instance.attribute("elevation").as_float(0.0f);
         obj.heading = instance.attribute("heading").as_float(0.0f);
-        // LogMsg("Parsed object: id='%s', lat=%0.6f, lon=%0.6f, elev=%0.2f, heading=%0.2f", obj.id.c_str(), obj.latitude, obj.longitude, obj.elevation, obj.heading);
+        // LogMsg("Parsed object: id='{}', lat={:0.6f}, lon={:0.6f}, elev={:.2}, heading={:.2}", obj.id,
+        //     obj.latitude, obj.longitude, obj.elevation, obj.heading);
         sc->sam_objs_.push_back(std::move(obj));
     }
 }
@@ -195,7 +196,7 @@ static void SamParseJetways(const pugi::xml_node& sc_node) {
         jw->initial_extent_ = jetway.attribute("initialExtent").as_float(0.0f);
         jw->stair_pos_ = jetway.attribute("stairPos").as_float(0.0f);
         jw->stair_length_ = jetway.attribute("stairLength").as_float(0.0f);
-        // LogMsg("Stair distance: %f, Stair length: %f", jw->stair_pos_, jw->stair_length_);
+        // LogMsg("Stair distance: {:f}, Stair length: {:f}", jw->stair_pos_, jw->stair_length_);
         const char* door_loc = jetway.attribute("forDoorLocation").as_string(nullptr);
         if (door_loc) {
             if (0 == strcmp(door_loc, "LF2"))
@@ -214,7 +215,7 @@ static void SamParseJetways(const pugi::xml_node& sc_node) {
         if (is_between(jw->latitude_, -85.0, 85.0) && is_between(jw->longitude_, -180.0, 180.0))
             sam_jw_list.push_back(jw);
         else {
-            LogMsg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude_, jw->longitude_);
+            LogMsg("Jetway with invalid lat,lon: {:.6}, {:.6} ignored", jw->latitude_, jw->longitude_);
             delete (jw);
         }
     }
@@ -248,7 +249,7 @@ static void OpenSamParseJetways(const pugi::xml_node& sc_node, Scenery* sc) {
         else {
             auto it = sc->jw_models_.find(jw->model_id_);
             if (it == sc->jw_models_.end()) {
-                LogMsg("Jetway '%s' with unknown model_id '%s' ignored", jw->name_.c_str(), jw->model_id_.c_str());
+                LogMsg("Jetway '{}' with unknown model_id '{}' ignored", jw->name_, jw->model_id_);
                 delete jw;
                 continue;
             }
@@ -290,7 +291,7 @@ static void OpenSamParseJetways(const pugi::xml_node& sc_node, Scenery* sc) {
         if (is_between(jw->latitude_, -85.0, 85.0) && is_between(jw->longitude_, -180.0, 180.0))
             sam_jw_list.push_back(jw);
         else {
-            LogMsg("Jetway with invalid lat,lon: %0.6f, %0.6f ignored", jw->latitude_, jw->longitude_);
+            LogMsg("Jetway with invalid lat,lon: {:.6}, {:.6} ignored", jw->latitude_, jw->longitude_);
             delete (jw);
         }
     }
@@ -390,17 +391,17 @@ static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_
     if (!result)
         return false;
 
-    LogMsg("Processing '%s'", fn.c_str());
+    LogMsg("Processing '{}'", fn);
     pugi::xml_node lib = doc.child("libraryjetwayconfiguration");
     if (!lib.empty()) {
         ParseSets(lib, lib_jw_map);
-        LogMsg("Parsing library jetways from '%s'", fn.c_str());
+        LogMsg("Parsing library jetways from '{}'", fn);
         return true;  // for now
     }
 
     pugi::xml_node sc_node = doc.child("scenery");
     if (sc_node.empty()) {
-        LogMsg("No <scenery> element found in '%s'", fn.c_str());
+        LogMsg("No <scenery> element found in '{}'", fn);
         return false;
     }
 
@@ -538,7 +539,7 @@ static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_
     sc_node.insert_move_before(models, jetways);  // for readability
 
     if (!doc.save_file(opensam_xml_pathname.c_str(), "  ", pugi::format_default | pugi::format_indent_attributes)) {
-        LogMsg("Failed to save '%s'", opensam_xml_pathname.c_str());
+        LogMsg("Failed to save '{}'", opensam_xml_pathname);
         return false;
     }
 
@@ -558,15 +559,15 @@ static bool ParseOpenSamXml(const std::string& fn, std::unordered_map<std::strin
     pugi::xml_node lib = doc.child("libraryjetwayconfiguration");
     if (!lib.empty()) {
         ParseSets(lib, lib_jw_map);
-        LogMsg("Parsing library jetways from '%s'", fn.c_str());
+        LogMsg("Parsing library jetways from '{}'", fn);
         return true;  // for now
     }
 
-    LogMsg("Parsing opensam.xml from '%s'", fn.c_str());
+    LogMsg("Parsing opensam.xml from '{}'", fn);
 
     pugi::xml_node sc_node = doc.child("scenery");
     if (sc_node.empty()) {
-        LogMsg("No <scenery> element found in '%s'", fn.c_str());
+        LogMsg("No <scenery> element found in '{}'", fn);
         return false;
     }
 
@@ -607,7 +608,7 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
 
     std::ifstream scpi(scpi_name);
     if (scpi.fail()) {
-        LogMsg("Can't open '%s'", scpi_name.c_str());
+        LogMsg("Can't open '{}'", scpi_name);
         return;
     }
 
@@ -757,16 +758,15 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways
                                       xp12_jetways, n_stands, nullptr)) {
         throw std::runtime_error("WARNING: global apt.dat could not be parsed, no DGS support!");
     } else {
-        LogMsg("%d stands with DGS, %d xp12 jetways found in global apt.dat", n_stands, (int)xp12_jetways.size());
+        LogMsg("{} stands with DGS, {} xp12 jetways found in global apt.dat", n_stands, xp12_jetways.size());
         if (manage_xp12_jetways)
             for (auto& xpjws : xp12_jetways) {
                 float rot2 = fem::RA(xpjws.cabin_hdgt - xpjws.hdgt);
                 if (xpjws.length_code >= 10)
                     xpjws.length_code %= 10;
 
-                // LogMsg("%s: ll=(%f,%f), psi=%f, style=%d, length_code=%d, length=%f, rot2=%f", arpt_name.c_str(),
-                // lat,
-                //       lon, psi, style, length_code, length, rot2);
+                // LogMsg("{}: ll=({:f},{:f}), psi={:f}, style={}, length_code={}, length={:f}, rot2={:f}",
+                //     arpt_name, lat, lon, psi, (int)style, (int)length_code, length, rot2);
 
                 XP12JwInstance* xp12_jw = new XP12JwInstance("global", xpjws.stand_name, xpjws.pos.lat, xpjws.pos.lon, xpjws.hdgt, xpjws.style,
                                                             xpjws.length_code, xpjws.length, rot2);
@@ -777,12 +777,12 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways
 
     // load the quadtree with all jetways from all sceneries for fast lookup by position in the dref accessors
     for (auto jw : sam_jw_list) {
-        //LogMsg("Inserting jetway '%s' at %0.6f, %0.6f into quadtree", jw->repr().c_str(), jw->lat(), jw->lon());
+        // LogMsg("Inserting jetway '{}' at {:0.6f}, {:0.6f} into quadtree", jw->repr(), jw->lat(), jw->lon());
         jw_quadtree.Insert(jw);
         //jw_quadtree.Dump();
     }
 
-    LogMsg("Finished collecting sceneries, total jetways in quadtree: %u", (unsigned)jw_quadtree.size());
+    LogMsg("Finished collecting sceneries, total jetways in quadtree: {}", jw_quadtree.size());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -797,7 +797,7 @@ bool Scenery::UpdateOpenSamXml(const std::vector<SamJw*> jw_instances) {
 
     pugi::xml_node sc_node = doc.child("scenery");
     if (sc_node.empty()) {
-        LogMsg("No <scenery> element found in '%s'", sam_xml_pathname_.c_str());
+        LogMsg("No <scenery> element found in '{}'", sam_xml_pathname_);
         return false;
     }
 
@@ -853,7 +853,7 @@ bool Scenery::UpdateOpenSamXml(const std::vector<SamJw*> jw_instances) {
     }
 
     if (!doc.save_file(sam_xml_pathname_.c_str(), "  ", pugi::format_default | pugi::format_indent_attributes)) {
-        LogMsg("Failed to save '%s'", sam_xml_pathname_.c_str());
+        LogMsg("Failed to save '{}'", sam_xml_pathname_);
         return false;
     }
 

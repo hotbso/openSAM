@@ -43,7 +43,7 @@ class TimeCodeBlock {
     ~TimeCodeBlock() {
         const std::clock_t c_end = std::clock();
         auto t_end = std::chrono::high_resolution_clock::now();
-        LogMsg("TimeCodeBlock '%s': CPU: %1.6fs, elapsed: %1.6fs", name_.c_str(), (double)(c_end - c_start) / CLOCKS_PER_SEC,
+        LogMsg("TimeCodeBlock '{}': CPU: {:1.6f}s, elapsed: {:1.6f}s", name_, (double)(c_end - c_start) / CLOCKS_PER_SEC,
                std::chrono::duration<double>(t_end - t_start).count());
     }
 };

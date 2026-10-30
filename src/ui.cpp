@@ -89,7 +89,7 @@ void CreateUi() {
         prefs.ui_top = sc_top - kWinPad;
         prefs.ui_bottom = prefs.ui_top - kWinHeight;
     } else
-        LogMsg("Creating UI window with geometry %d,%d,%d,%d", prefs.ui_left, prefs.ui_top, prefs.ui_right, prefs.ui_bottom);
+        LogMsg("Creating UI window with geometry {},{},{},{}", prefs.ui_left, prefs.ui_top, prefs.ui_right, prefs.ui_bottom);
 
     ui = std::make_unique<Ui>(prefs.ui_left, prefs.ui_top, prefs.ui_right, prefs.ui_bottom);
 }
@@ -147,7 +147,7 @@ void Ui::BuildInterface() {
             prefs.default_vdgs_type = kVdgsSafedock_X;
 
         if (prefs.default_vdgs_type != current_vdgs_type)
-            LogMsg("Default VDGS type changed to %d", prefs.default_vdgs_type);
+            LogMsg("Default VDGS type changed to {}", prefs.default_vdgs_type);
 
         //--------------------------------------------------
         ImGui::Spacing();
@@ -156,7 +156,7 @@ void Ui::BuildInterface() {
         ImGui::TextUnformatted("Manage XP12 Jetways:");
         ImGui::SameLine();
         if (ImGui::Checkbox("##manage_xp12_jetways", &prefs.manage_xp12_jetways)) {
-            LogMsg("Manage XP12 Jetways changed to %d", prefs.manage_xp12_jetways);
+            LogMsg("Manage XP12 Jetways changed to {}", prefs.manage_xp12_jetways);
             manage_xp12_jws_changed_ = true;
             SavePrefs();
         }
@@ -171,7 +171,7 @@ void Ui::BuildInterface() {
         ImGui::TextUnformatted("(Try to) Auto Enable Multiplayer Support (after 20 seconds):");
         ImGui::SameLine();
         if (ImGui::Checkbox("##auto_enable_mp", &prefs.auto_enable_mp)) {
-            LogMsg("Auto Enable MP changed to %d", prefs.auto_enable_mp);
+            LogMsg("Auto Enable MP changed to {}", prefs.auto_enable_mp);
             auto_enable_mp_changed_ = true;
             SavePrefs();
         }
@@ -220,7 +220,7 @@ void Ui::BuildInterface() {
                 bool on = anim.is_on();
                 if (ImGui::Checkbox(anim.ui_line.c_str(), &on)) {
                     anim.SetState(on);
-                    LogMsg("Animation '%s' state changed to %s", anim.ui_line.c_str(), on ? "ON" : "OFF");
+                    LogMsg("Animation '{}' state changed to {}", anim.ui_line, on ? "ON" : "OFF");
                 }
             }
 
@@ -355,7 +355,7 @@ void Ui::BuildInterface() {
         ImGui::Columns();
 
         if (new_dgs_type != sp.dgs_type) {
-            LogMsg("New DGS type %d for active stand index %d", new_dgs_type, as);
+            LogMsg("New DGS type {} for active stand index {}", new_dgs_type, as);
             adgs_arpt->SetDgsType(new_dgs_type);
         }
     }
@@ -377,7 +377,7 @@ void Ui::BuildInterface() {
                 if (ImGui::Selectable(lb_stands_[i].c_str(), is_selected)) {
                     lb_item_ = i;  // Update selection state on click
                     int new_selected_stand_ = i - 1;    // -1 due to <automatic>
-                    LogMsg("Setting selected stand to %d", new_selected_stand_);
+                    LogMsg("Setting selected stand to {}", new_selected_stand_);
                     dgs_arpt->SetSelectedStand(new_selected_stand_);
                 }
 
@@ -408,7 +408,7 @@ void Ui::BuildInterface() {
         jw_auto_mode = false;
 
     if (jw_auto_mode != my_plane->auto_mode()) {
-        LogMsg("Setting automatic jetway selection to %s", jw_auto_mode ? "ON" : "OFF");
+        LogMsg("Setting automatic jetway selection to {}", jw_auto_mode ? "ON" : "OFF");
         my_plane->AutoModeSet(jw_auto_mode);
     }
 
@@ -446,7 +446,7 @@ void Ui::BuildInterface() {
                     }
 
                     jw_selected_[j][d] = selected;
-                    LogMsg("JW %d door %d selection changed to %s", j + 1, d + 1,
+                    LogMsg("JW {} door {} selection changed to {}", j + 1, d + 1,
                            jw_selected_[j][d] ? "SELECTED" : "DESELECTED");
 
                     if (selected) {
@@ -488,7 +488,7 @@ void Ui::BuildInterface() {
                             njw.selected_ = true;
                             njw.door_ = i;
                             my_plane->active_jws_.push_back(j);
-                            LogMsg("JW %d door %d selected for docking", j + 1, i + 1);
+                            LogMsg("JW {} door {} selected for docking", j + 1, i + 1);
                         }
                     }
                 }

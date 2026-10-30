@@ -67,7 +67,7 @@ HttpGet(const std::string& url, std::string& data, int timeout)
 
     // Crack the url_wc.
     if (!WinHttpCrackUrl(url_wc, 0, 0, &urlComp)) {
-        LogMsg("Error in WinHttpCrackUrl: %lu", GetLastError());
+        LogMsg("Error in WinHttpCrackUrl: {}", GetLastError());
         goto error_out;
     }
 
@@ -100,31 +100,31 @@ HttpGet(const std::string& url, std::string& data, int timeout)
                                   WINHTTP_DEFAULT_ACCEPT_TYPES,
                                   (urlComp.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0);
     if (NULL == hRequest) {
-        LogMsg("Can't open HTTP request: %lu", GetLastError());
+        LogMsg("Can't open HTTP request: {}", GetLastError());
         goto error_out;
     }
 
     bResults = WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
                                   WINHTTP_NO_REQUEST_DATA, 0, 0, 0);
     if (! bResults) {
-        LogMsg("Can't send HTTP request: %lu", GetLastError());
+        LogMsg("Can't send HTTP request: {}", GetLastError());
         goto error_out;
     }
 
     bResults = WinHttpReceiveResponse(hRequest, NULL);
     if (! bResults) {
-        LogMsg("Can't receive response: %lu", GetLastError());
+        LogMsg("Can't receive response: {}", GetLastError());
         goto error_out;
     }
 
     while (1) {
         DWORD res = WinHttpQueryDataAvailable(hRequest, &dwSize);
         if (!res) {
-            LogMsg("%lu, Error %lu in WinHttpQueryDataAvailable.", res, GetLastError());
+            LogMsg("{}, Error {} in WinHttpQueryDataAvailable.", res, GetLastError());
             goto error_out;
         }
 
-        // LogMsg("dwSize %d", dwSize);
+        // LogMsg("dwSize {}", dwSize);
         if (0 == dwSize) {
             break;
         }
@@ -134,7 +134,7 @@ HttpGet(const std::string& url, std::string& data, int timeout)
 
             bResults = WinHttpReadData(hRequest, buffer, get_len, &dwDownloaded);
             if (! bResults){
-               LogMsg("Error %lu in WinHttpReadData.", GetLastError());
+               LogMsg("Error {} in WinHttpReadData.", GetLastError());
                goto error_out;
             }
 
@@ -151,7 +151,7 @@ error_out:
     if (hConnect) WinHttpCloseHandle(hConnect);
     if (hSession) WinHttpCloseHandle(hSession);
 
-    //LogMsg("HttpGet result: %d", result);
+    // LogMsg("HttpGet result: {}", result);
     return result;
 }
 
@@ -160,7 +160,7 @@ error_out:
 
 bool HttpGetInitialize() {
     CURLcode result = curl_global_init(CURL_GLOBAL_ALL);
-    LogMsg("HttpGetInitialize result: %d", (result == CURLE_OK));
+    LogMsg("HttpGetInitialize result: {}", (result == CURLE_OK));
     return (result == CURLE_OK);
 }
 
@@ -197,7 +197,7 @@ HttpGet(const std::string& url, std::string& data, int timeout)
 
     // Check for errors
     if(res != CURLE_OK) {
-        LogMsg("curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        LogMsg("curl_easy_perform() failed: {}\n", curl_easy_strerror(res));
         curl_easy_cleanup(curl);
         curl_global_cleanup();
         return false;
@@ -206,7 +206,7 @@ HttpGet(const std::string& url, std::string& data, int timeout)
     curl_off_t dl_size;
     res = curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD_T , &dl_size);
     if(res == CURLE_OK)
-        LogMsg("Downloaded %d bytes", (int)dl_size);
+        LogMsg("Downloaded {} bytes", dl_size);
 
     curl_easy_cleanup(curl);
     return true;

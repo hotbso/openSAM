@@ -50,12 +50,12 @@ std::unique_ptr<OsAirport> os_arpt;
 OsStand::OsStand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation)
     : dgs::Stand(as, arpt_icao, elevation) {
 
-    // LogMsg("OsStand '%s', is_wet: %d, type: %d, dgs_dist: %0.1f constructed", cname(),
-    //      is_wet_ ? 1 : 0, dgs_type_, dgs_dist_);
+    // LogMsg("OsStand '{}', is_wet: {}, type: {}, dgs_dist: {:0.1f} constructed", cname(), is_wet_ ? 1 : 0,
+    //     (int)dgs_type_, dgs_dist_);
 }
 
 OsStand::~OsStand() {
-    LogMsg("OsStand '%s' destructed", cname());
+    LogMsg("OsStand '{}' destructed", name());
 }
 
 void OsStand::InstallDgs(const OsDgsCtx& ctx) {
@@ -90,7 +90,7 @@ void OsStand::InstallDgs(const OsDgsCtx& ctx) {
             dgs_ = dgs::CreateSam1Legacy(name());
             break;
         default:
-            LogMsg("Unknown DGS type %d, not creating DGS instance", ctx.dgs_type);
+            LogMsg("Unknown DGS type {}, not creating DGS instance", (int)ctx.dgs_type);
     }
 
     if (dgs_ != nullptr) {
@@ -114,11 +114,11 @@ OsAirport::OsAirport(const dgs::AptAirport& apt_airport)
 
     dgs_cache_.reserve(stands_.size() * 2);  // reserve some space for the DGS cache to avoid rehashing etc.
     pending_dgs_.reserve(stands_.size());
-    LogMsg("OsAirport '%s' with %d stands constructed", name().c_str(), (int)stands_.size());
+    LogMsg("OsAirport '{}' with {} stands constructed", name(), stands_.size());
 }
 
 OsAirport::~OsAirport() {
-    LogMsg("OsAirport '%s' destructed", name().c_str());
+    LogMsg("OsAirport '{}' destructed", name());
 }
 
 std::unique_ptr<OsAirport> OsAirport::LoadAirport(const dgs::AptAirport *arpt) {
@@ -197,10 +197,10 @@ int OsAirport::FindStandForObj(const OsDgsCtx& ctx) {
 
 void OsAirport::ProcessPendingDgs(OsDgsCtx& ctx) {
     // process a newly identified DGS, e.g. by instancing it and associating it with a stand
-    // LogMsg("Processing pending DGS: type %d, height %.1f, turn_180 %d, obj_x %.2f, obj_y %.2f, obj_z %.2f, obj_psi "
-    //    "%.1f, lat %.6f, lon %.6f, altitude %.2f",
-    //    ctx.dgs_type, ctx.height, ctx.turn_180 ? 1 : 0, ctx.obj_x, ctx.obj_y, ctx.obj_z, ctx.obj_psi, ctx.lat,
-    //    ctx.lon, ctx.altitude);
+    // LogMsg("Processing pending DGS: type {}, height {:.1f}, turn_180 {}, obj_x {:.2f}, obj_y {:.2f}, obj_z {:.2f}, obj_psi "
+    //        "{:.1f}, lat {:.6f}, lon {:.6f}, altitude {:.2f}",
+    //        (int)ctx.dgs_type, ctx.height, ctx.turn_180 ? 1 : 0, ctx.obj_x, ctx.obj_y, ctx.obj_z, ctx.obj_psi, ctx.lat,
+    //        ctx.lon, ctx.altitude);
 
     if (ctx.ref_gen != ref_gen_) {
         // we must retransform
@@ -211,21 +211,21 @@ void OsAirport::ProcessPendingDgs(OsDgsCtx& ctx) {
         ctx.obj_y = (float)y;
         ctx.obj_z = (float)z;
         ctx.ref_gen = ref_gen_;
-        LogMsg("retransformed DGS to new ref frame: obj_x %.2f, obj_y %.2f, obj_z %.2f", ctx.obj_x, ctx.obj_y, ctx.obj_z);
+        LogMsg("retransformed DGS to new ref frame: obj_x {:.2f}, obj_y {:.2f}, obj_z {:.2f}", ctx.obj_x, ctx.obj_y, ctx.obj_z);
     }
 
     int istand = FindStandForObj(ctx);
 
     if (istand < 0) {
-        LogMsg("No stand found for DGS at lat %.6f, lon %.6f, altitude %.2f", ctx.lat, ctx.lon, ctx.altitude);
+        LogMsg("No stand found for DGS at lat {:.6f}, lon {:.6f}, altitude {:.2f}", ctx.lat, ctx.lon, ctx.altitude);
         return;
     }
 
     // TODO: check whether it isw already associated, reidentify after ref frame shift etc.
-    LogMsg("Associating DGS of type %d to stand '%s'", ctx.dgs_type, stands_[istand]->cname());
+    LogMsg("Associating DGS of type {} to stand '{}'", (int)ctx.dgs_type, stands_[istand]->name());
     OsStand* s = dynamic_cast<OsStand*>(stands_[istand].get());
     if (s->dgs_position_set_) {
-        LogMsg("Stand '%s' already has a DGS associated, skipping", s->cname());
+        LogMsg("Stand '{}' already has a DGS associated, skipping", s->name());
         return;
     }
     s->InstallDgs(ctx);
@@ -294,7 +294,8 @@ float OsAirport::DgsIdentAcc(void* ref) {
     if (obj_x == 0.0f || obj_z == 0.0f || obj_psi == 0.0f)
         return 0.0f;  // likely uninitialized, datareftool poll etc.
 
-    //LogMsg("DgsIdentAcc called for variant %d, obj_x %.2f, obj_y %.2f, obj_z %.2f, obj_psi %.1f", dgs_var, obj_x, obj_y, obj_z, obj_psi);
+    // LogMsg("DgsIdentAcc called for variant {}, obj_x {:.2f}, obj_y {:.2f}, obj_z {:.2f}, obj_psi {:.1f}",
+    //     (int)dgs_var, obj_x, obj_y, obj_z, obj_psi);
     if (ref_gen != os_arpt->dgs_cache_ref_gen_) {
         os_arpt->dgs_cache_.clear();
         os_arpt->dgs_cache_ref_gen_ = ref_gen;
@@ -315,8 +316,8 @@ float OsAirport::DgsIdentAcc(void* ref) {
     PositionCacheKey key{obj_x, obj_z};
     os_arpt->dgs_cache_[key] = true;
     os_arpt->pending_dgs_.push_back(ctx);
-    //LogMsg("new DGS identified: type %d, height %.1f, turn_180 %d, obj_x %.2f, obj_y %.2f, obj_z %.2f, obj_psi %.1f", ctx.dgs_type,
-    //       ctx.height, ctx.turn_180 ? 1 : 0, ctx.obj_x, ctx.obj_y, ctx.obj_z, ctx.obj_psi);
+    // LogMsg("new DGS identified: type {}, height {:.1f}, turn_180 {}, obj_x {:.2f}, obj_y {:.2f}, obj_z {:.2f}, obj_psi {:.1f}",
+    //     (int)ctx.dgs_type, ctx.height, ctx.turn_180 ? 1 : 0, ctx.obj_x, ctx.obj_y, ctx.obj_z, ctx.obj_psi);
     return 0.0f;
 }
 
@@ -404,7 +405,7 @@ float OsAirport::StateMachine() {
 
     // process pending DGS identified in draw loop context
     if (pending_dgs_.size() > 0) {
-        LogMsg("Processing %d pending DGS", (int)pending_dgs_.size());
+        LogMsg("Processing {} pending DGS", pending_dgs_.size());
 
         for (auto& ctx : pending_dgs_)
             os_arpt->ProcessPendingDgs(ctx);
@@ -415,7 +416,7 @@ float OsAirport::StateMachine() {
     try {
         delay = std::min(delay, dgs::Airport::StateMachine());
     } catch (const std::exception& e) {
-        LogMsg("Exception in Airport::StateMachine: %s", e.what());
+        LogMsg("Exception in Airport::StateMachine: {}", e.what());
         error_disabled = true;
         return 0.0f;
     }

@@ -221,10 +221,10 @@ void MyPlane::PlaneLoadedCb() {
         DoorInfo di{};
         const std::string& val = it->second;
         if (3 != sscanf(val.c_str(), "%f %f %f", &di.x, &di.y, &di.z)) {
-            LogMsg("invalid door_1 format in cfg_: '%s'", val.c_str());
+            LogMsg("invalid door_1 format in cfg_: '{}'", val);
         } else {
             door_info_.push_back(di);
-            LogMsg("using pos for door 1 from cfg_: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[0].x, door_info_[0].y,
+            LogMsg("using pos for door 1 from cfg_: x: {:.2}, y: {:.2}, z: {:.2}", door_info_[0].x, door_info_[0].y,
                    door_info_[0].z);
         }
     }
@@ -238,8 +238,8 @@ void MyPlane::PlaneLoadedCb() {
         door_info_.push_back(di);
     }
 
-    LogMsg("plane loaded: %s, door 1: x: %1.2f, y: %1.2f, z: %1.2f",
-           acf_icao_.c_str(), door_info_[0].x, door_info_[0].y, door_info_[0].z);
+    LogMsg("plane loaded: {}, door 1: x: {:1.2f}, y: {:1.2f}, z: {:1.2f}",
+           acf_icao_, door_info_[0].x, door_info_[0].y, door_info_[0].z);
 
     // check for a second door, seems to be not available by dataref
     // data in the acf file is often bogus, so check our own config file first
@@ -248,10 +248,10 @@ void MyPlane::PlaneLoadedCb() {
         DoorInfo di{};
         const std::string& val = it->second;
         if (3 != sscanf(val.c_str(), "%f %f %f", &di.x, &di.y, &di.z)) {
-            LogMsg("invalid door_2 format in cfg_: '%s'", val.c_str());
+            LogMsg("invalid door_2 format in cfg_: '{}'", val);
         } else {
             door_info_.push_back(di);
-            LogMsg("found door 2 in cfg_: x: %0.2f, y: %0.2f, z: %0.2f", door_info_[1].x, door_info_[1].y,
+            LogMsg("found door 2 in cfg_: x: {:.2}, y: {:.2}, z: {:.2}", door_info_[1].x, door_info_[1].y,
                    door_info_[1].z);
         }
     } else {
@@ -270,7 +270,7 @@ void MyPlane::Update() {
     if (og != on_ground_ && now > on_ground_ts_ + 10.0f) {
         on_ground_ = og;
         on_ground_ts_ = now;
-        LogMsg("transition to on_ground: %d", on_ground_);
+        LogMsg("transition to on_ground: {}", on_ground_);
     }
 
     engines_on_ = dgs::Plane::EnginesOn();
@@ -299,7 +299,7 @@ void MyPlane::MemorizeParkedPos() {
     if (XPLM_NAV_NOT_FOUND != ref) {
         char airport_id[50];
         XPLMGetNavAidInfo(ref, NULL, NULL, NULL, NULL, NULL, NULL, airport_id, NULL, NULL);
-        LogMsg("parked on airport: %s, lat,lon: %0.5f,%0.5f", airport_id, lat, lon);
+        LogMsg("parked on airport: {}, lat,lon: {:0.5f},{:0.5f}", airport_id, lat, lon);
     }
 
     // due to the delayed update of datarefs it's now a good time
@@ -311,7 +311,7 @@ void MyPlane::MemorizeParkedPos() {
     if (auto door_dr = XPLMFindDataRef("AirbusFBW/A321ExitConfig")) {
         if (XPLMGetDatai(door_dr) != 0) {  // 0 = CLASSIC = 2 doors, 1 = MODERN = 1 door
             door_info_.resize(1);  // only one door supported in this config, remove the second one if it was there
-            LogMsg("n_door from dataref: %d", (int)door_info_.size());
+            LogMsg("n_door from dataref: {}", door_info_.size());
         }
     }
 }
@@ -321,7 +321,7 @@ bool MyPlane::CheckParkedTeleportation() {
         return false;
 
     if (parked_ngen_ != ::ref_gen || std::abs(parked_x_ - x_) > 1.0 || std::abs(parked_z_ - z_) > 1.0) {
-        LogMsg("parked_ngen: %d, ngen: %d, parked_x: %0.3f, x: %0.3f, parked_z: %0.3f, z: %0.3f", parked_ngen_,
+        LogMsg("parked_ngen: {}, ngen: {}, parked_x: {:0.3f}, x: {:0.3f}, parked_z: {:0.3f}, z: {:0.3f}", parked_ngen_,
                ::ref_gen, parked_x_, x_, parked_z_, z_);
         return true;
     }

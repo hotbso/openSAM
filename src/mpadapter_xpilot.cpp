@@ -61,14 +61,14 @@ MpPlane_xPilot::MpPlane_xPilot(int slot, std::string_view flight_id, std::string
 
     on_ground_ = true;  // otherwise we were not here
 
-    LogMsg("pid=%03d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), icao_.c_str());
+    LogMsg("pid={:03}, constructing MpPlane {}/{}", id_, flight_id_, icao_);
 
     MpAdapter::LoadDoorInfo(*this);
     if (!door_info_.empty()) {
-        LogMsg("pid=%03d, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, door_info_[0].x,
+        LogMsg("pid={:03}, found door 1 in door_info_map: x: {:.2}, y: {:.2}, z: {:.2}", id_, door_info_[0].x,
                door_info_[0].y, door_info_[0].z);
     } else {
-        LogMsg("pid=%03d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, icao_.c_str());
+        LogMsg("pid={:03}, {}: door 1 is not defined in door_info_map, deactivating slot", id_, icao_);
         state_ = kDisabled;
         return;
     }
@@ -97,8 +97,8 @@ void MpPlane_xPilot::update(float x, float y, float z, float psi, float throttle
     beacon_on_ = ((lights & 1) == 1);
     parkbrake_set_ = ((now - last_move_ts_) > 10.0f);
 
-    LogMsg("MP update: pid=%03d, slot: %02d, icao: %s, id: %s, beacon: %d, parkbrake_set: %d, engine_on: %d, state: %s",
-           id_, slot_, icao_.c_str(), flight_id_.c_str(), beacon_on_, parkbrake_set_, engines_on_, state_str_[state_]);
+    LogMsg("MP update: pid={:03}, slot: {:02d}, icao: {}, id: {}, beacon: {}, parkbrake_set: {}, engine_on: {}, state: {}",
+           id_, slot_, icao_, flight_id_, beacon_on_, parkbrake_set_, engines_on_, state_str_[state_]);
 }
 
 //==============  MpAdapter_xPilot ========================================
@@ -129,7 +129,7 @@ MpAdapter_xPilot::MpAdapter_xPilot() {
     }
 
     n_planes_ = XPLMGetDatavi(modeS_id_dr, NULL, 0, 0);
-    LogMsg("MpPlane_xPilot drefs #: %d", n_planes_);
+    LogMsg("MpPlane_xPilot drefs #: {}", n_planes_);
 
     modeS_id_val_ = std::make_unique_for_overwrite<int[]>(n_planes_);
     icao_type_val_ = std::make_unique_for_overwrite<char[]>(n_planes_ * 8);
@@ -202,13 +202,13 @@ float MpAdapter_xPilot::update() {
         OsPlane& plane = *(it->second);
 
         if (!dref_planes.contains(key)) {
-            LogMsg("pid=%03d key: %s not longer exists, deleted", plane.id_, key.c_str());
+            LogMsg("pid={:03} key: {} not longer exists, deleted", plane.id_, key);
             it = mp_planes_.erase(it);
         } else
             ++it;
     }
 
     if (!mp_planes_.empty())
-        LogMsg("------------------ MP active planes found: %d -----------------", (int)mp_planes_.size());
+        LogMsg("------------------ MP active planes found: {} -----------------", mp_planes_.size());
     return 2.0f;
 }

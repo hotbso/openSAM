@@ -80,7 +80,7 @@ void SetAuto() {
         }
     }
 
-    LogMsg("nh: %d, day: %d, season: %d", nh, day, season);
+    LogMsg("nh: {}, day: {}, season: {}", nh, day, season);
 }
 
 } // namespace Seasons

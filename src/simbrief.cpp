@@ -24,7 +24,7 @@
 #include <cassert>
 #include <ctime>
 #include <cstring>
-#include <print>
+#include <format>
 
 #include "XPLMDataAccess.h"
 
@@ -86,7 +86,7 @@ static void FetchDref(std::string& str, XPLMDataRef dr) {
 
 #define GET_OFP_DREF(f) FetchDref(Ofp::ofp.f, f ## _dr)
 #define GET_CDM_DREF(f) FetchDref(Ofp::ofp.cdm_ ## f, cdm_ ## f ## _dr)
-#define LOG_FIELD(f) LogMsg(" " #f ": '%s'", Ofp::ofp.f.c_str())
+#define LOG_FIELD(f) LogMsg(" " #f ": '{}'", Ofp::ofp.f)
 
 void Ofp::Initialize() {
     sbh_avail = false;
@@ -179,7 +179,7 @@ bool Ofp::LoadIfNewer() {
     ofp.est_out_str = cnv_hhmm(ofp.est_out);
     ofp.est_off_str = cnv_hhmm(ofp.est_off);
 
-    LogMsg("From simbrief_hub: Seqno: %d, Cdm: %d", ofp_seqno, cdm_seqno);
+    LogMsg("From simbrief_hub: Seqno: {}, Cdm: {}", ofp_seqno, cdm_seqno);
     LOG_FIELD(icao_airline);
     LOG_FIELD(flight_number);
     LOG_FIELD(aircraft_icao);

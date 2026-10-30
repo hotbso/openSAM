@@ -82,7 +82,7 @@ void CreateEditor() {
         editor_top = sc_top - kWinPad;
         editor_bottom = editor_top - kWinHeight;
     } else
-        LogMsg("Creating editor window with geometry %d,%d,%d,%d", editor_left, editor_top, editor_right, editor_bottom);
+        LogMsg("Creating editor window with geometry {},{},{},{}", editor_left, editor_top, editor_right, editor_bottom);
 
     editor = std::make_unique<Editor>(editor_left, editor_top, editor_right, editor_bottom);
 }
@@ -115,7 +115,7 @@ void Editor::BuildInterface() {
 
     bool was_active = editor_active;
     if (ImGui::Checkbox("Edit Mode", &editor_active)) {
-        LogMsg("Edit Mode checkbox changed to %s", editor_active ? "ON" : "OFF");
+        LogMsg("Edit Mode checkbox changed to {}", editor_active ? "ON" : "OFF");
         selection_storage_.Clear();  // clear selection when switching modes
         LogMsg("Setting edit mode in FlightLoop context");
         adgs_arpt->SetEditorMode(editor_active);
@@ -188,13 +188,13 @@ void Editor::BuildInterface() {
     }
 
     if (selection_changed) {
-        LogMsg("Listbox selection changed, selected items: %d", selection_storage_.Size);
+        LogMsg("Listbox selection changed, selected items: {}", selection_storage_.Size);
         selected_idx_.clear();
         void* it = NULL;
         ImGuiID id;
         while (selection_storage_.GetNextSelectedItem(&it, &id)) {
             selected_idx_.push_back((int)id);
-            //LogMsg("Selected stand index: %d", (int)id);
+            // LogMsg("Selected stand index: {}", (int)id);
         }
     }
 
@@ -243,15 +243,14 @@ void Editor::BuildInterface() {
 
     if (dgs_type != cur_params.dgs_type || pole != cur_params.pole)
         for (int idx : selected_idx_) {
-            LogMsg("Changing DGS type of stand index %d to %d (pole=%s)", idx, dgs_type,
-                   pole ? "true" : "false");
+            LogMsg("Changing DGS type of stand index {} to {} (pole={})", idx, dgs_type, pole);
             adgs_arpt->SetDgsType(idx, dgs_type, pole);
             lb_stands_[idx] = adgs_arpt->GetStandParams(idx);
         }
 
     if (ImGui::SliderFloat("Distance", &dgs_dist, 8.0f, 50.0f, "%.1f m"))
         for (int idx : selected_idx_) {
-            LogMsg("Changing DGS distance of stand index %d to %.1f m", idx, dgs_dist);
+            LogMsg("Changing DGS distance of stand index {} to {:.1f} m", idx, dgs_dist);
             adgs_arpt->SetDgsDistance(idx, dgs_dist);
             lb_stands_[idx] = adgs_arpt->GetStandParams(idx);
         }
@@ -259,7 +258,7 @@ void Editor::BuildInterface() {
     if (cur_params.dgs_type != kMarshaller)
         if (ImGui::SliderFloat("Height", &dgs_height, 1.0f, 10.0f, "%.1f m")) {
             for (int idx : selected_idx_) {
-                LogMsg("Changing DGS height of stand index %d to %.1f m", idx, dgs_height);
+                LogMsg("Changing DGS height of stand index {} to {:.1f} m", idx, dgs_height);
                 adgs_arpt->SetDgsHeight(idx, dgs_height);
                 lb_stands_[idx] = adgs_arpt->GetStandParams(idx);
             }
@@ -273,7 +272,7 @@ void Editor::BuildInterface() {
 
     if (dgs_left_right != cur_params.dgs_left_right)
         for (int idx : selected_idx_) {
-            LogMsg("Changing DGS left/right of stand index %d to %.1f m", idx, dgs_left_right);
+            LogMsg("Changing DGS left/right of stand index {} to {:.1f} m", idx, dgs_left_right);
             adgs_arpt->SetDgsLeftRight(idx, dgs_left_right);
             lb_stands_[idx] = adgs_arpt->GetStandParams(idx);
         }

@@ -63,7 +63,7 @@ XP12JwInstance::XP12JwInstance(const std::string_view arpt_icao, const std::stri
         wheel_pos_ = -6.0f;
     } else {
         if (length_code != 3)
-            LogMsg("invalid length_code: %d, expected 1, 2, or 3, assuming 3", length_code);
+            LogMsg("invalid length_code: {}, expected 1, 2, or 3, assuming 3", length_code);
         min_extent_ = 20.0f;
         max_extent_ = 47.0f;
         wheel_pos_ = -7.5f;
@@ -89,9 +89,9 @@ XP12JwInstance::XP12JwInstance(const std::string_view arpt_icao, const std::stri
     drawinfo_.heading = psi;
 #if 0
     LogMsg(
-        "XP12JwInstance %s created with ll: (%f,%f), psi: %f, style: %d, length_code: %d, initial_extent: %f, "
-        "intial_rot2: %f",
-        name_.c_str(), latitude_, longitude_, heading_, style, length_code, initial_extent_, initial_rot2_);
+        "XP12JwInstance {} created with ll: ({},{}), psi: {}, style: {}, length_code: {}, initial_extent: {}, "
+        "intial_rot2: {}",
+        name_, latitude_, longitude_, heading_, style, length_code, initial_extent_, initial_rot2_);
 #endif
 }
 

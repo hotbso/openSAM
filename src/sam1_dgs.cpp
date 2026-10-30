@@ -62,7 +62,7 @@ std::unique_ptr<DGS> CreateSam1Legacy(const std::string& name) {
 
 // Sam1Legacy implementation
 Sam1Legacy::Sam1Legacy(const std::string& name) : name_(name) {
-    LogMsg("Creating Sam1Legacy instance for stand '%s'", name_.c_str());
+    LogMsg("Creating Sam1Legacy instance for stand '{}'", name_);
 }
 
 void Sam1Legacy::SetMode(Mode mode) {
@@ -72,7 +72,7 @@ void Sam1Legacy::SetMode(Mode mode) {
     prev_mode_ = mode_;
     mode_ = mode;
 
-    LogMsg("Sam1Legacy '%s' mode changed from %d to %d", name_.c_str(), (int)prev_mode_, (int)mode_);
+    LogMsg("Sam1Legacy '{}' mode changed from {} to {}", name_, (int)prev_mode_, (int)mode_);
 
     if (mode_ >= kArrival) {
         sam1_drefs.is_active = true;
@@ -116,14 +116,14 @@ void Sam1Legacy::SetGuidanceParams(const GuidanceParams& dgs_params) {
     static float log_ts;
     if (now > log_ts + 2.0f) {
         log_ts = now;
-        LogMsg("SAM1, active %d, x: %0.1f, status: %d, lateral: %0.1f, longitudinal: %0.1f",
+        LogMsg("SAM1, active {}, x: {:0.1f}, status: {}, lateral: {:0.1f}, longitudinal: {:0.1f}",
                sam1_drefs.is_active, sam1_drefs.dgs_x, (int)sam1_drefs.status, sam1_drefs.lateral, sam1_drefs.longitudinal);
     }
 }
 
 void Sam1Legacy::SetPos(const XPLMDrawInfoDouble_t& drawinfo, [[maybe_unused]]float height) {
     drawinfo_ = drawinfo;
-    LogMsg("SAM1 position updated, x: %0.1f, y: %0.1f, z: %0.1f", drawinfo_.x, drawinfo_.y, drawinfo_.z);
+    LogMsg("SAM1 position updated, x: {:0.1f}, y: {:0.1f}, z: {:0.1f}", drawinfo_.x, drawinfo_.y, drawinfo_.z);
     if (mode_ >= kArrival) {
         sam1_drefs.dgs_x = drawinfo_.x;
         sam1_drefs.dgs_z = drawinfo_.z;

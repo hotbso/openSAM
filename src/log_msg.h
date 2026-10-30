@@ -18,7 +18,9 @@
 //
 
 #pragma once
+
 #include <string>
+#include <format>
 
 // define this in your plugin, e.g.
 // const char* log_msg_prefix = "opensam: ";
@@ -26,15 +28,15 @@
 extern const char* log_msg_prefix;
 
 // functions
-extern void LogMsgImpl(const char *, ...) noexcept __attribute__ ((format (printf, 1, 2)));
-extern void LogMsgRawImpl(const char *, int, const char *) noexcept;
-extern void LogMsgRawImpl(const char *, int, const std::string& str) noexcept;
+extern void LogMsgImpl(const std::string& line) noexcept;
+extern void LogMsgRawImpl(const char*, int, const char *) noexcept;
+extern void LogMsgRawImpl(const char*, int, const std::string& str) noexcept;
 
 // This macro is used to log messages with a file name and line number.
 #ifdef __FILE_NAME__
-#define LogMsg(fmt, ...) LogMsgImpl(__FILE_NAME__  ":%d: " fmt, __LINE__ __VA_OPT__(,) __VA_ARGS__)
+#define LogMsg(fmt, ...) LogMsgImpl(std::format(__FILE_NAME__ ":{}: " fmt "\n", __LINE__ __VA_OPT__(,) __VA_ARGS__))
 #define LogMsgRaw(str) LogMsgRawImpl(__FILE_NAME__, __LINE__, str)
 #else
-#define LogMsg(fmt, ...) LogMsgImpl(__FILE__  ":%d: " fmt, __LINE__ __VA_OPT__(,) __VA_ARGS__)
+#define LogMsg(fmt, ...) LogMsgImpl(std::format(__FILE__ ":{}: " fmt "\n", __LINE__ __VA_OPT__(,) __VA_ARGS__))
 #define LogMsgRaw(str) LogMsgRawImpl(__FILE__, __LINE__, str)
 #endif

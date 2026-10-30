@@ -18,8 +18,8 @@
 //
 
 #include <cstdio>
-#include <cstdarg>
 #include <cstring>
+#include <format>
 
 #include "log_msg.h"
 
@@ -34,15 +34,9 @@ void XPLMDebugString(const char *str) {
 // This function can be called from anywhere anytime (e.g. from destructors of static objects).
 // Avoid using static objects here that might already be gone when LogMsg is still be called.
 
-void LogMsgImpl(const char *fmt, ...) noexcept {
-    char line[1024];
-    char fmt_combined[256];
-    va_list ap;
-    va_start(ap, fmt);
-    snprintf(fmt_combined, sizeof(fmt_combined) - 3, "%s%s\n", log_msg_prefix, fmt);
-    vsnprintf(line, sizeof(line) - 3, fmt_combined, ap);
-    XPLMDebugString(line);
-    va_end(ap);
+void LogMsgImpl(const std::string& line) noexcept {
+    XPLMDebugString(log_msg_prefix);
+    XPLMDebugString(line.c_str());
 }
 
 void LogMsgRawImpl(const char *file, int line_no, const char *str) noexcept {

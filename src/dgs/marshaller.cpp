@@ -69,11 +69,11 @@ bool InitMarshaller(const std::string& res_dir) {
     std::string obj_fn = res_dir + "Marshaller.obj";
     obj_ref = XPLMLoadObject(obj_fn.c_str());
     if (obj_ref == nullptr) {
-        LogMsg("Can't load marshaller object from '%s'", obj_fn.c_str());
+        LogMsg("Can't load marshaller object from '{}'", obj_fn);
         return false;
     }
 
-    LogMsg("Marshaller object loaded from '%s'", obj_fn.c_str());
+    LogMsg("Marshaller object loaded from '{}'", obj_fn);
 
     stairs_obj_ref = XPLMLoadObject("Resources/default scenery/airport scenery/Ramp_Equipment/Stair_Maint_1.obj");
     if (stairs_obj_ref == nullptr) {
@@ -92,7 +92,7 @@ std::unique_ptr<DGS> CreateMarshaller(const std::string& name) {
 
 // Marshaller implementation
 Marshaller::Marshaller(const std::string& name) : name_(name) {
-    LogMsg("Creating Marshaller instance for stand '%s'", name_.c_str());
+    LogMsg("Creating Marshaller instance for stand '{}'", name_);
 }
 
 void Marshaller::SetMode(Mode mode) {
@@ -152,8 +152,8 @@ void Marshaller::SetGuidanceParams(const GuidanceParams& dgs_params) {
     drefs_[DGS_DR_TRACK] = params.track;
     drefs_[DGS_DR_LR] = params.lr;
     inst_ref_->SetPosition(&drawinfo_, drefs_);
-    // LogMsg("Marshaller params updated, status: %d, track: %d, lr: %d, distance: %0.1f", params.status, params.track,
-    //        params.lr, params.distance);
+    // LogMsg("Marshaller params updated, status: {}, track: {}, lr: {}, distance: {:0.1f}", (int)params.status,
+    //     params.track, params.lr, params.distance);
 
     trackprev_ = params.track;
     lrprev_ = params.lr;
@@ -164,14 +164,14 @@ void Marshaller::SetPos(const XPLMDrawInfoDouble_t& drawinfo, [[maybe_unused]] f
     height_ = height;  // store for later use in SetPos(drawinfo)
     drawinfo_ = drawinfo;
     drawinfo_.y += height_;  // move up by height (AGL)
-    LogMsg("Marshaller position updated, x: %0.1f, y: %0.1f, z: %0.1f", drawinfo_.x, drawinfo_.y, drawinfo_.z);
+    LogMsg("Marshaller position updated, x: {:0.1f}, y: {:0.1f}, z: {:0.1f}", drawinfo_.x, drawinfo_.y, drawinfo_.z);
 
     // one time check for marshaller high
     if (!check_high_) {
         check_high_ = true;
         if (xplm_ProbeHitTerrain == XPLMProbeTerrainXYZ(probe_ref, drawinfo_.x, drawinfo_.y, drawinfo_.z, &probeinfo)) {
             marshaller_y_0_ = probeinfo.locationY;  // ground 0
-            LogMsg("Marshaller ground level detected at y: %0.1f", marshaller_y_0_);
+            LogMsg("Marshaller ground level detected at y: {:0.1f}", marshaller_y_0_);
             if (drawinfo_.y - marshaller_y_0_ > 2.0f) {
                 LogMsg("Marshaller_high detected, place stairs");
                 need_stairs_ = true;

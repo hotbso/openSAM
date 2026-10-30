@@ -91,7 +91,7 @@ void XP12JwInstance::Initialize() {
             jetway_model_refs[i][j] = XPLMLoadObject(model_path.c_str());
             if (jetway_model_refs[i][j] == nullptr)
                 throw std::runtime_error("Failed to load jetway model: " + model_path);
-            LogMsg("Successfully loaded jetway model: %s", model_path.c_str());
+            LogMsg("Successfully loaded jetway model: {}", model_path);
         }
     }
 
@@ -150,15 +150,15 @@ void XP12JwInstance::CreateInstance() {
         assert(obj != nullptr);
 
         instance_ref_ = XPLMCreateInstance(obj, jetway_anim_drefs);
-        LogMsg("Creating XP12 jetway instance, ll: (%.5f,%.5f)", latitude_, longitude_);
+        LogMsg("Creating XP12 jetway instance, ll: ({:.5f},{:.5f})", latitude_, longitude_);
         active_jws[this] = true;
         Reset();
         changed = true;
 #if 0
     LogMsg(
-        "XP12JwInstance %s instanced at ll: (%f,%f), psi: %f, style: %d, length_code: %d, initial_extent: %f, "
-        "intial_rot2: %f",
-        name_.c_str(), latitude_, longitude_, heading_, style_code_, length_code_, initial_extent_, initial_rot2_);
+        "XP12JwInstance {} instanced at ll: ({},{}), psi: {}, style: {}, length_code: {}, initial_extent: {}, "
+        "intial_rot2: {}",
+        name_, latitude_, longitude_, heading_, style_code_, length_code_, initial_extent_, initial_rot2_);
 #endif
     }
 
@@ -167,7 +167,7 @@ void XP12JwInstance::CreateInstance() {
 }
 
 void XP12JwInstance::RemoveInstance() {
-    LogMsg("Removing XP12 jetway instance, ll: (%.5f,%.5f)", latitude_, longitude_);
+    LogMsg("Removing XP12 jetway instance, ll: ({:.5f},{:.5f})", latitude_, longitude_);
     if (instance_ref_ != nullptr) {
         XPLMDestroyInstance(instance_ref_);
         instance_ref_ = nullptr;
@@ -204,8 +204,8 @@ void XP12JwInstance::UpdateInstance() {
 
     #if 0
     LogMsg(
-        "Updating XP12 jetway instance with drefs: base_rot: %.1f, cabin_rot: %.1f, tunnel_pitch: %.1f, tunnel_ext: "
-        "%.1f, bogie_rot: %.1f, bogie_elev: %.1f, stairs_angle: %.1f",
+        "Updating XP12 jetway instance with drefs: base_rot: {:.1f}, cabin_rot: {:.1f}, tunnel_pitch: {:.1f}, tunnel_ext: "
+        "{:.1f}, bogie_rot: {:.1f}, bogie_elev: {:.1f}, stairs_angle: {:.1f}",
         drefs[kBaseRotation], drefs[kCabinRotation], drefs[kTunnelPitch], drefs[kTunnelExtension],
         drefs[kBogieRotation], drefs[kBogieElevation], drefs[kStairsAngle]);
     #endif
@@ -254,7 +254,7 @@ void XP12JwInstance::InstanceAround(float lat, float lon, float distance) {
                 ++it;
         }
 
-        LogMsg("Showing XP12 jetway instances around ll: (%f,%f), distance: %f, instances: %d", lat, lon, distance,
+        LogMsg("Showing XP12 jetway instances around ll: ({},{}), distance: {}, instances: {}", lat, lon, distance,
                (int)active_jws.size());
     }
 }

@@ -80,12 +80,12 @@ AdgsStand::AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, floa
     // don't use dgs_height_ here, as it may have been overwritten by SetDgsType by applying various defauilt values
     dgs_->SetPos(drawinfo_, dgs_height);
 
-    // LogMsg("AdgsStand '%s', is_wet: %d, type: %d, dgs_dist: %0.1f constructed", cname(),
-    //      is_wet_ ? 1 : 0, dgs_type_, dgs_dist_);
+    // LogMsg("AdgsStand '{}', is_wet: {}, type: {}, dgs_dist: {:0.1f} constructed", cname(), is_wet_ ? 1 : 0,
+    //     (int)dgs_type_, dgs_dist_);
 }
 
 AdgsStand::~AdgsStand() {
-    // LogMsg("AdgsStand '%s' destructed", cname());
+    // LogMsg("AdgsStand '{}' destructed", cname());
 }
 
 bool AdgsStand::has_jw() const {
@@ -93,7 +93,7 @@ bool AdgsStand::has_jw() const {
 }
 
 void AdgsStand::SetDgsType(int dgs_type, bool pole) {
-    LogMsg("AdgsStand::SetDgsType: AdgsStand '%s', type: %d, new_type: %d, pole: %d", cname(), dgs_type_, dgs_type, pole);
+    LogMsg("AdgsStand::SetDgsType: AdgsStand '{}', type: {}, new_type: {}, pole: {}", name(), dgs_type_, dgs_type, pole);
 
     if (dgs_type == kAutomatic) {
         if (as_.has_xp12_jw) {
@@ -143,8 +143,8 @@ void AdgsStand::SetDgsType(int dgs_type, bool pole) {
 
     SetIdle();
     // load position into DGS and force rendering
-    LogMsg("AdgsStand::SetDgsType: AdgsStand '%s', type: %d, dgs_height: %0.1f, dgs_dist: %0.1f, dgs_left_right: %0.1f, pole: %d",
-           cname(), dgs_type_, dgs_height_, dgs_dist_, dgs_left_right_, dgs_pole_);
+    LogMsg("AdgsStand::SetDgsType: AdgsStand '{}', type: {}, dgs_height: {:0.1f}, dgs_dist: {:0.1f}, dgs_left_right: {:0.1f}, pole: {}",
+           name(), dgs_type_, dgs_height_, dgs_dist_, dgs_left_right_, dgs_pole_);
     dgs_->SetPos(drawinfo_, dgs_height_);
     dgs_->UpdateInstance();
 }
@@ -179,7 +179,7 @@ void AdgsStand::CalcDgsPosition() {
                 // 4.3 ~ 1 / tan(13°) -> 13° down look
                 marshaller_pe_dist = std::max(kDgsMinDist, std::min(4.3f * pe_agl, kDgsMaxDist));
                 marshaller_pe_dist_updated = true;
-                LogMsg("setting Marshaller PE distance, pe_agl: %0.2f, dist: %0.1f", pe_agl, marshaller_pe_dist);
+                LogMsg("setting Marshaller PE distance, pe_agl: {:.2}, dist: {:0.1f}", pe_agl, marshaller_pe_dist);
             }
         }
 
@@ -211,7 +211,7 @@ void AdgsStand::DgsMoveCloser() {
         dgs_dist_ = kDgsMaxDist;
     marshaller_max_dist_ = dgs_dist_;
     CalcDgsPosition();
-    LogMsg("stand' '%s', new dgs_dist: %0.1f", cname(), dgs_dist_);
+    LogMsg("stand' '{}', new dgs_dist: {:0.1f}", name(), dgs_dist_);
 }
 
 void AdgsStand::SetDistHeightLr(float dgs_dist, float dgs_height, float dgs_left_right) {
@@ -223,7 +223,7 @@ void AdgsStand::SetDistHeightLr(float dgs_dist, float dgs_height, float dgs_left
     dgs_left_right_ = dgs_left_right;
     marshaller_max_dist_ = dgs_dist_;
     CalcDgsPosition();
-    LogMsg("stand' '%s', new dgs_dist: %0.1f, new dgs_height: %0.1f, new dgs_left_right: %0.1f", cname(), dgs_dist_, dgs_height_, dgs_left_right_);
+    LogMsg("stand' '{}', new dgs_dist: {:0.1f}, new dgs_height: {:0.1f}, new dgs_left_right: {:0.1f}", name(), dgs_dist_, dgs_height_, dgs_left_right_);
 }
 
 //--------------------- AdgsAirport --------------------------------------------------------------
@@ -247,7 +247,7 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport, int default_dgs_typ
         LoadCfg(sys_cfg_dir + name() + ".cfg", cfg);
 
     float arpt_elevation = XPLMGetDatad(plane_elevation_dr);  // best guess
-    LogMsg("Airport '%s', elevation from plane: %0.1f", name_.c_str(), arpt_elevation);
+    LogMsg("Airport '{}', elevation from plane: {:0.1f}", name_, arpt_elevation);
 
     for (auto const& as : apt_airport.stands_) {
         int dgs_type = default_dgs_type;
@@ -276,7 +276,7 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport, int default_dgs_typ
             dgs_height = c.dgs_height;
             dgs_left_right = c.dgs_left_right;
             pole = c.pole;
-            LogMsg("found in config '%s', %d, %0.1f, %0.1f, %0.1f, %d", as.name.c_str(), dgs_type, dgs_dist, dgs_height, dgs_left_right, pole);
+            LogMsg("found in config '{}', {}, {:0.1f}, {:0.1f}, {:0.1f}, {}", as.name, dgs_type, dgs_dist, dgs_height, dgs_left_right, pole);
         }
 
         stands_.emplace_back(std::make_unique<AdgsStand>(as, name_, arpt_elevation, dgs_type, dgs_dist, dgs_height, dgs_left_right, pole));
@@ -285,7 +285,7 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport, int default_dgs_typ
     user_cfg_changed_ = false;
 
     if (dgs::ofp_destination == name_) {
-        LogMsg("Now on the OFP destination '%s', looking for arrival stand %s", dgs::ofp_destination.c_str(), dgs::ofp_arrival_stand.c_str());
+        LogMsg("Now on the OFP destination '{}', looking for arrival stand {}", dgs::ofp_destination, dgs::ofp_arrival_stand);
         for (int i = 0; i < (int)stands_.size(); i++) {
             if (stands_[i]->name() == dgs::ofp_arrival_stand) {
                 selected_stand_ = i;
@@ -295,19 +295,19 @@ AdgsAirport::AdgsAirport(const dgs::AptAirport& apt_airport, int default_dgs_typ
         }
 
         if (selected_stand_ == -1)
-            LogMsg("Arrival stand '%s' from OFP not found", dgs::ofp_arrival_stand.c_str());
+            LogMsg("Arrival stand '{}' from OFP not found", dgs::ofp_arrival_stand);
     }
 }
 
 AdgsAirport::~AdgsAirport() {
     FlushUserCfg();
-    LogMsg("AdgsAirport '%s' destructed", name().c_str());
+    LogMsg("AdgsAirport '{}' destructed", name());
 }
 
 void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
     std::ifstream f(pathname);
     if (f.is_open()) {
-        LogMsg("Loading config from '%s'", pathname.c_str());
+        LogMsg("Loading config from '{}'", pathname);
 
         std::string line;
         bool first_line = true;
@@ -325,7 +325,7 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
                 if (line.starts_with("VERSION=")) {
                     line.erase(0, 8);
                     version = std::stoi(line);
-                    LogMsg("version detected: '%d'", version);
+                    LogMsg("version detected: '{}'", version);
                     continue;
                 }
             }
@@ -343,7 +343,7 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
                 int n = sscanf(line.c_str(), "%c,%f, %n", &type, &dgs_dist, &ofs);
                 if (n != 2 || ofs >= (int)line.size()  // distrust user input
                     || !(type == 'V' || type == 'M') || dgs_dist < kDgsMinDist || dgs_dist > kDgsMaxDist) {
-                    LogMsg("invalid line: '%s' %d", line.c_str(), n);
+                    LogMsg("invalid line: '{}' {}", line, n);
                     continue;
                 }
 
@@ -372,7 +372,7 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
                 char type;
                 int n = sscanf(line.c_str(), "%c,%f,%f,%f,%d, %n", &type, &dgs_dist, &dgs_height, &dgs_left_right, &pole, &ofs);
                 if (n != 5 || ofs >= (int)line.size() || dgs_height < 0.0f || dgs_height > 20.0f || dgs_left_right < -5.0f || dgs_left_right > 5.0f) { // distrust user input
-                    LogMsg("invalid line: '%s' %d", line.c_str(), n);
+                    LogMsg("invalid line: '{}' {}", line, n);
                     continue;
                 }
 
@@ -387,7 +387,7 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
                 else if (type == 'X')
                     c.dgs_type = kVdgsSafedock_X;
                 else {
-                    LogMsg("invalid line: '%s' %d", line.c_str(), n);
+                    LogMsg("invalid line: '{}' {}", line, n);
                     continue;
                 }
 
@@ -396,9 +396,9 @@ void LoadCfg(const std::string& pathname, DgsCfgMap& cfg) {
                 c.dgs_left_right = dgs_left_right;
                 c.pole = (pole != 0);
                 cfg[line.substr(ofs)] = c;
-                LogMsg("found in config '%s', %d, %0.1f, %0.1f, %0.1f, %d, %d", line.substr(ofs).c_str(), c.dgs_type, c.dgs_dist, c.dgs_height, c.dgs_left_right, pole, c.pole);
+                LogMsg("found in config '{}', {}, {:0.1f}, {:0.1f}, {:0.1f}, {}, {}", line.substr(ofs), c.dgs_type, c.dgs_dist, c.dgs_height, c.dgs_left_right, pole, c.pole);
              } else {
-                LogMsg("unsupported version: '%d'", version);
+                LogMsg("unsupported version: '{}'", version);
                 break;
             }
         }
@@ -412,7 +412,7 @@ void AdgsAirport::FlushUserCfg() {
     std::string fn = user_cfg_dir + name() + ".cfg";
     std::ofstream f(fn);
     if (!f.is_open()) {
-        LogMsg("Can't create '%s'", fn.c_str());
+        LogMsg("Can't create '{}'", fn);
         return;
     }
 
@@ -451,7 +451,7 @@ void AdgsAirport::FlushUserCfg() {
     for (auto const& kv : cfg)
         f << kv.second;
 
-    LogMsg("cfg written to '%s'", fn.c_str());
+    LogMsg("cfg written to '{}'", fn);
 }
 
 AdgsStandParams AdgsAirport::GetStandParams(int idx) const {
@@ -546,7 +546,7 @@ void AdgsAirport::SetEditorMode(bool on_off) {
         return;
 
     editor_mode_ = on_off;
-    LogMsg("editor mode %s", on_off ? "enabled" : "disabled");
+    LogMsg("editor mode {}", on_off ? "enabled" : "disabled");
 
     if (editor_mode_) {
         // Set Marshallers to Arrival mode to make them visible in the editor.
@@ -627,7 +627,7 @@ void ParseAdgsFilterConfig(const std::string& pathname) {
         if (line[0] == '[') {
             auto close = line.find(']');
             if (close == std::string::npos) {
-                LogMsg("%s:%d: missing ']'", pathname.c_str(), line_no);
+                LogMsg("{}:{}: missing ']'", pathname, line_no);
                 continue;
             }
 
@@ -641,7 +641,7 @@ void ParseAdgsFilterConfig(const std::string& pathname) {
         }
 
         if (sections.empty()) {
-            LogMsg("%s:%d: keyword outside of section ignored: '%s'", pathname.c_str(), line_no, line.c_str());
+            LogMsg("{}:{}: keyword outside of section ignored: '{}'", pathname, line_no, line);
             continue;
         }
 
@@ -662,9 +662,9 @@ void ParseAdgsFilterConfig(const std::string& pathname) {
             else if (arg == "default")
                 r.dgs_type = kAutomatic;
             else
-                LogMsg("%s:%d: invalid dgs argument '%s'", pathname.c_str(), line_no, arg.c_str());
+                LogMsg("{}:{}: invalid dgs argument '{}'", pathname, line_no, arg);
         } else
-            LogMsg("%s:%d: unknown keyword '%s'", pathname.c_str(), line_no, kw.c_str());
+            LogMsg("{}:{}: unknown keyword '{}'", pathname, line_no, kw);
     }
 
     return;
@@ -690,7 +690,7 @@ AdgsFilterResult FilterAdgsAirport(const std::string& icao) {
     if (best == nullptr)
         return {};
 
-    LogMsg("autodgs filter for '%s' matched [%s]: enabled: %d, dgs_type: %d", icao.c_str(), best->pattern.c_str(),
+    LogMsg("autodgs filter for '{}' matched [{}]: enabled: {}, dgs_type: {}", icao, best->pattern,
            best->res.enabled, best->res.dgs_type);
     return best->res;
 }

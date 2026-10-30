@@ -198,16 +198,16 @@ void LoadAndActivateAirport() {
 
     const dgs::AptAirport* arpt = dgs::AptAirport::LocateAirport(plane_pos);
     if (arpt == nullptr) {
-        LogMsg("airport could not be identified at %0.8f,%0.8f", plane_pos.lat, plane_pos.lon);
+        LogMsg("airport could not be identified at {:0.8f},{:0.8f}", plane_pos.lat, plane_pos.lon);
         os_arpt = nullptr;
         adgs_arpt = nullptr;
     } else {
-        LogMsg("now on airport: %s", arpt->icao_.c_str());
+        LogMsg("now on airport: {}", arpt->icao_);
         if (arpt->scenery_ && arpt->scenery_->is_opensam()) {
             if (os_arpt == nullptr || os_arpt->name() != arpt->icao_) {  // don't reload same
                 os_arpt = std::make_unique<OsAirport>(*arpt);
                 if (os_arpt) {
-                    LogMsg("airport %s loaded successfully with openSAM personality", os_arpt->name().c_str());
+                    LogMsg("airport {} loaded successfully with openSAM personality", os_arpt->name());
                     os_arpt->SetArrival();
                 }
             }
@@ -218,10 +218,10 @@ void LoadAndActivateAirport() {
                 if (filter.enabled)
                     adgs_arpt = std::make_unique<AdgsAirport>(*arpt, filter.dgs_type);
                 else
-                    LogMsg("AutoDGS disabled for airport %s by autodgs_filter.cfg", arpt->icao_.c_str());
+                    LogMsg("AutoDGS disabled for airport {} by autodgs_filter.cfg", arpt->icao_);
             }
             if (adgs_arpt) {
-                LogMsg("airport %s loaded successfully with AutoDGS personality", adgs_arpt->name().c_str());
+                LogMsg("airport {} loaded successfully with AutoDGS personality", adgs_arpt->name());
                 adgs_arpt->SetArrival();
             }
         }
@@ -354,10 +354,10 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
             return 5.0f; // let the dust settle
         }
 
-        //LogMsg("FlightLoopCb called, now: %0.2f, on_ground_prev: %d", now, on_ground_prev);
+        // LogMsg("FlightLoopCb called, now: {:.2}, on_ground_prev: {}", now, on_ground_prev);
         my_plane->Update();
         bool on_ground = my_plane->on_ground();
-        //LogMsg("on_ground: %d", on_ground);
+        // LogMsg("on_ground: {}", on_ground);
 
         // check for transition
         if (on_ground != on_ground_prev) {
@@ -428,14 +428,14 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
             anim_loop_delay = AnimStateMachine();
             anim_next_ts = now + anim_loop_delay;
         }
-        // LogMsg("jw_loop_delay: %0.2f", jw_loop_delay);
+        // LogMsg("jw_loop_delay: {:.2}", jw_loop_delay);
         float delay = std::min(anim_loop_delay, std::min(jw_loop_delay, dgs_loop_delay));
         if (delay <= 0.0f)  // negative is # of frames, 0 is stop
             delay = -1.0f;
 
         return delay;
     } catch (const std::exception& e) {
-        LogMsg("FlightLoopCb caught exception: %s, openSAM disabled", e.what());
+        LogMsg("FlightLoopCb caught exception: {}, openSAM disabled", e.what());
         error_disabled = true;
         return 0;
     }
@@ -504,7 +504,7 @@ static int CmdXp12ToggleJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPh
     if (has_xp12_jw) {
         xp12_jw_connected = !xp12_jw_connected;
         xp12_jw_connected_ts = now;
-        LogMsg("xp12_jw_connected now: %d", xp12_jw_connected);
+        LogMsg("xp12_jw_connected now: {}", xp12_jw_connected);
     }
 
     // always pass on to X-Plane. If there isn't a jetway XP will just ignore it.
@@ -556,7 +556,7 @@ static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, 
     if (!f.is_open())
         throw std::runtime_error("Error loading " + fn);
 
-    LogMsg("Building door_info_map from %s", fn.c_str());
+    LogMsg("Building door_info_map from {}", fn);
 
     std::string line;
     line.reserve(100);
@@ -576,7 +576,7 @@ static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, 
         float x, y, z;
         if (5 == sscanf(line.c_str(), "%4s %d %f %f %f", icao, &d, &x, &y, &z)) {
             if (d < 1 || d > kMaxDoor) {
-                LogMsg("invalid entry: '%s'", line.c_str());
+                LogMsg("invalid entry: '{}'", line);
                 continue;
             }
 
@@ -586,7 +586,7 @@ static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, 
         }
     }
 
-    LogMsg("%d mappings loaded", (int)di_map.size());
+    LogMsg("{} mappings loaded", di_map.size());
 }
 
 static void LoadAcfGenericType(const std::string& fn) {
@@ -594,7 +594,7 @@ static void LoadAcfGenericType(const std::string& fn) {
     if (!f.is_open())
         throw std::runtime_error("Error loading " + fn);
 
-    LogMsg("Building acf_generic_type_map from %s", fn.c_str());
+    LogMsg("Building acf_generic_type_map from {}", fn);
 
     std::string line;
     while (std::getline(f, line)) {
@@ -614,7 +614,7 @@ static void LoadAcfGenericType(const std::string& fn) {
 
     }
 
-    LogMsg("%d mappings loaded", (int)acf_generic_type_map.size());
+    LogMsg("{} mappings loaded", acf_generic_type_map.size());
 }
 
 // emulate the status for XP12 jetways, called by the "opensam/jetway/status" dataref accessor
@@ -695,24 +695,24 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         std::error_code ec;
         std::filesystem::create_directories(tmp_dir, ec);
         if (ec) {
-            LogMsg("Failed to create tmp dir '%s': %s (error %d, category '%s')",
-                   tmp_dir.c_str(), ec.message().c_str(), ec.value(), ec.category().name());
+            LogMsg("Failed to create tmp dir '{}': {} (error {}, category '{}')",
+                   tmp_dir, ec.message(), ec.value(), ec.category().name());
             return 0;
         }
 
         std::ofstream tst(tmp_dir + "test.txt");
         if (!tst) {
-            LogMsg("Failed to create test file in '%s'", tmp_dir.c_str());
+            LogMsg("Failed to create test file in '{}'", tmp_dir);
             return 0;
         }
 
         tst.close();
         if (!std::filesystem::remove(tmp_dir + "test.txt")) {
-            LogMsg("Failed to delete test file in '%s'", tmp_dir.c_str());
+            LogMsg("Failed to delete test file in '{}'", tmp_dir);
             return 0;
         }
     } catch (const std::exception& ex) {
-        LogMsg("Failed to create or write to tmp dir '%s': %s", tmp_dir.c_str(), ex.what());
+        LogMsg("Failed to create or write to tmp dir '{}': {}", tmp_dir, ex.what());
         return 0;
     }
 
@@ -753,14 +753,14 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         sam_library_installed = !scp.SAM_Library_path.empty();
 
         Scenery::CollectSceneries(scp, prefs.manage_xp12_jetways, max_sam_stands);
-        LogMsg("%d sceneries with sam jetways found", (int)Scenery::sceneries_.size());
+        LogMsg("{} sceneries with sam jetways found", Scenery::sceneries_.size());
 
         dgs::AptAirport::LoadingFinished();
 
         SamJw::SoundInit();
         XP12JwInstance::Initialize();
     } catch (const std::exception& ex) {
-        LogMsg("fatal error: '%s', bye!", ex.what());
+        LogMsg("fatal error: '{}', bye!", ex.what());
         return 0;  // bye
     }
 
@@ -827,7 +827,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         OsAirport::Init();
         AnimInit();
     } catch (const std::exception& e) {
-        LogMsg("fatal error during initialization: '%s', bye!", e.what());
+        LogMsg("fatal error during initialization: '{}', bye!", e.what());
         error_disabled = true;
         return 1;  // bye
     }
@@ -928,8 +928,8 @@ PLUGIN_API void XPluginStop(void) {
         std::string clean_dir = xp_dir + tmp_dir;
         try {
             auto n = std::filesystem::remove_all(clean_dir);
-            LogMsg("cleaned tmp dir '%s', %d files removed", clean_dir.c_str(), (int)n);
-        } catch (const std::exception& ex) { LogMsg("Failed to clean tmp dir '%s': %s", clean_dir.c_str(), ex.what()); }
+            LogMsg("cleaned tmp dir '{}', {} files removed", clean_dir, (int)n);
+        } catch (const std::exception& ex) { LogMsg("Failed to clean tmp dir '{}': {}", clean_dir, ex.what()); }
     }
 
     HttpGetFinalize();
@@ -946,12 +946,12 @@ PLUGIN_API void XPluginDisable(void) {
     SavePrefs();
     ui = nullptr;
 
-    LogMsg("acc called:           %9llu", stat_jw_acc_called);
-    LogMsg("sc last match:        %9llu", stat_sc_last);
-    LogMsg("stat_jw_cache_hit     %9llu", stat_jw_cache_hit);
-    LogMsg("cache hit rate:       %9.2f %%", 100.0f * stat_jw_cache_hit / (stat_jw_acc_called + 1));
-    LogMsg("stat_anim_acc_called: %9llu", stat_anim_acc_called);
-    LogMsg("stat_auto_drf_called: %9llu", stat_auto_drf_called);
+    LogMsg("acc called:           {:9d}", stat_jw_acc_called);
+    LogMsg("sc last match:        {:9d}", stat_sc_last);
+    LogMsg("stat_jw_cache_hit     {:9d}", stat_jw_cache_hit);
+    LogMsg("cache hit rate:       {:9.2f} %", 100.0f * stat_jw_cache_hit / (stat_jw_acc_called + 1));
+    LogMsg("stat_anim_acc_called: {:9d}", stat_anim_acc_called);
+    LogMsg("stat_auto_drf_called: {:9d}", stat_auto_drf_called);
     LogMsg("plugin disabled");
 }
 

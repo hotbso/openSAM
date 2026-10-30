@@ -83,11 +83,11 @@ Stand::Stand(const AptStand& as, const std::string& arpt_icao, float elevation)
 
     CheckRefFrame();
 
-    // LogMsg("Stand '%s', constructed", cname());
+    // LogMsg("Stand '{}' constructed", name());
 }
 
 Stand::~Stand() {
-    // LogMsg("Stand '%s' destructed", cname());
+    // LogMsg("Stand '{}' destructed", name());
     dgs_ = nullptr;
 }
 
@@ -116,7 +116,7 @@ void Stand::CheckRefFrame() {
 
        // refine elevation with probe, get is_wet_ info
         if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x_, y_, z_, &probeinfo)) {
-            LogMsg("terrain probe 1 failed, name: %s, lat: %f, lon: %f, elevation: %f", cname(), as_.lat, as_.lon, elevation_);
+            LogMsg("terrain probe 1 failed, name: {}, ll: ({}, {}), elevation: {}", name(), as_.lat, as_.lon, elevation_);
             throw std::runtime_error("XPLMProbeTerrainXYZ 1 failed");
         }
 
@@ -126,7 +126,7 @@ void Stand::CheckRefFrame() {
         XPLMLocalToWorld(probeinfo.locationX, probeinfo.locationY, probeinfo.locationZ, &unused, &unused, &elevation_);
         XPLMWorldToLocal(as_.lat, as_.lon, elevation_, &x_, &y_, &z_);
         if (xplm_ProbeHitTerrain != XPLMProbeTerrainXYZ(probe_ref, x_, y_, z_, &probeinfo)) {
-            LogMsg("terrain probe 1a failed, name: %s, lat: %f, lon: %f, elevation: %f", cname(), as_.lat, as_.lon, elevation_);
+            LogMsg("terrain probe 1a failed, name: {}, ll: ({}, {}), elevation: {}", name(), as_.lat, as_.lon, elevation_);
             throw std::runtime_error("XPLMProbeTerrainXYZ 1a failed");
         }
 
@@ -194,7 +194,7 @@ Airport::Airport(const AptAirport& apt_airport) : seqno_(++seqno_base), apt_airp
 
 Airport::~Airport() {
     stands_.clear();  // destroy all stands and DGS
-    LogMsg("Airport '%s' destructed, seqno: %d, active instances: %d", name().c_str(), seqno_, ObjInstance::ActiveInstances());
+    LogMsg("Airport '{}' destructed, seqno: {}, active instances: {}", name(), seqno_, ObjInstance::ActiveInstances());
 }
 
 bool Airport::active_stand_has_xp12_jw() const {
@@ -252,17 +252,17 @@ void Airport::FindNearestStand() {
             if (d > kCapZ + 50)  // fast exit
                 continue;
 
-            // LogMsg("stand: %s, z: %2.1f, x: %2.1f", s.name(), nw_z, nw_x);
+            // LogMsg("stand: {}, z: {:2.1f}, x: {:2.1f}", s.name(), nw_z, nw_x);
 
             // behind
             if (nw_z < -4.0) {
-                // LogMsg("behind: %s", s.cname());
+                // LogMsg("behind: {}", s.cname());
                 continue;
             }
 
             if (nw_z > 10.0) {
                 float angle = atan(nw_x / nw_z) / kD2R;
-                // LogMsg("angle to plane: %s, %3.1f", s.cname(), angle);
+                // LogMsg("angle to plane: {}, {:3.1f}", s.cname(), angle);
 
                 // check whether plane is in a +-60° sector relative to stand
                 if (fabsf(angle) > 60.0)
@@ -270,10 +270,10 @@ void Airport::FindNearestStand() {
 
                 // drive-by and beyond a +- 60° sector relative to plane's direction
                 float rel_to_stand = fem::RA(-angle - local_hdgt);
-                // LogMsg("rel_to_stand: %s, nw_x: %0.1f, local_hdgt %0.1f, rel_to_stand: %0.1f",
-                //        s.cname(), nw_x, local_hdgt, rel_to_stand);
+                // LogMsg("rel_to_stand: {}, nw_x: {:0.1f}, local_hdgt {:0.1f}, rel_to_stand: {:0.1f}", s.cname(), nw_x,
+                //     local_hdgt, rel_to_stand);
                 if ((nw_x > 10.0 && rel_to_stand < -60.0) || (nw_x < -10.0 && rel_to_stand > 60.0)) {
-                    // LogMsg("drive by %s", s.cname());
+                    // LogMsg("drive by {}", s.cname());
                     continue;
                 }
             }
@@ -283,7 +283,7 @@ void Airport::FindNearestStand() {
             d = std::hypot(xtrack_weight * nw_x, nw_z) + std::abs(local_hdgt);
 
             if (d < dist) {
-                // LogMsg("new min: %s, z: %2.1f, x: %2.1f", s.cname(), nw_z, nw_x);
+                // LogMsg("new min: {}, z: {:2.1f}, x: {:2.1f}", s.cname(), nw_z, nw_x);
                 dist = d;
                 min_stand = i;
             }
@@ -298,10 +298,10 @@ void Airport::FindNearestStand() {
 
         const Stand& ms = *stands_[min_stand];
         if (!ms.dgs_position_set_) {
-            LogMsg("Nearest stand '%s' found, but DGS position not yet set, ignored", ms.cname());
+            LogMsg("Nearest stand '{}' found, but DGS position not yet set, ignored", ms.name());
             return;
         }
-        LogMsg("active stand now: %s, lat,lon: %f, %f, hdgt: %f, dist: %f", ms.cname(), ms.lat(), ms.lon(), ms.hdgt(), dist);
+        LogMsg("active stand now: {}, ll: ({}, {}), hdgt: {}, dist: {}", ms.cname(), ms.lat(), ms.lon(), ms.hdgt(), dist);
 
         active_stand_ = min_stand;
         state_ = kEngaged;
@@ -328,10 +328,10 @@ int Airport::FindDepartureStand() {
 
         float dx = nw_x - s.x_;
         float dz = nw_z - s.z_;
-        // LogMsg("stand: %s, z: %2.1f, x: %2.1f", s.cname(), dz, dx);
+        // LogMsg("stand: {}, z: {:2.1f}, x: {:2.1f}", s.cname(), dz, dx);
         if (dx * dx + dz * dz < 1.0f) {
             if (!s.dgs_position_set_) {
-                LogMsg("Departure stand '%s' found, but DGS position not yet set, ignored", s.cname());
+                LogMsg("Departure stand '{}' found, but DGS position not yet set, ignored", s.name());
                 return -1;
             }
             // Return the first matching stand found
@@ -382,11 +382,11 @@ float Airport::StateMachine() {
 
             // check for stand (new or changed)
             int dsi = FindDepartureStand();
-            // LogMsg("departure stand: %s, dsi: %d", dsi >= 0 ? stands_[dsi]->cname() : "*none*", dsi);
+            // LogMsg("departure stand: {}, dsi: {}", dsi >= 0 ? stands_[dsi]->name() : "*none*", dsi);
             if (dsi != departure_stand_) {
                 if (departure_stand_ >= 0)
                     stands_[departure_stand_]->SetIdle();
-                LogMsg("Departure stand now '%s'", dsi >= 0 ? stands_[dsi]->cname() : "*none*");
+                LogMsg("Departure stand now '{}'", dsi >= 0 ? stands_[dsi]->name() : "*none*");
                 departure_stand_ = dsi;
             }
         }
@@ -401,7 +401,7 @@ float Airport::StateMachine() {
         if (plane->PaxNo() <= 0) {
             state_ = kDeparture;
             if (state_ != state_prev) {
-                LogMsg("New state %s", state_str_[state_]);
+                LogMsg("New state {}", state_str_[state_]);
                 ds.dgs_->SetMode(dgs::kDeparture);
             }
             // FALLTHROUGH
@@ -420,7 +420,7 @@ float Airport::StateMachine() {
 
                     // extract arrival stand from ofp remarks if any
                     if (!Ofp::ofp.dx_rmk.empty()) {
-                        LogMsg("OFP Departure Remarks: '%s'", Ofp::ofp.dx_rmk.c_str());
+                        LogMsg("OFP Departure Remarks: '{}'", Ofp::ofp.dx_rmk);
                         auto pos = Ofp::ofp.dx_rmk.find("ARRIVAL_STAND=");
                         if (pos != std::string::npos) {
                             ofp_arrival_stand = Ofp::ofp.dx_rmk.substr(pos + 14);
@@ -428,8 +428,8 @@ float Airport::StateMachine() {
                             if (endpos != std::string::npos)
                                 ofp_arrival_stand = ofp_arrival_stand.substr(0, endpos);
                             ofp_destination = Ofp::ofp.destination;
-                            LogMsg("OFP Arrival Stand set to '%s@%s'", ofp_arrival_stand.c_str(),
-                                   ofp_destination.c_str());
+                            LogMsg("OFP Arrival Stand set to '{}@{}'", ofp_arrival_stand,
+                                   ofp_destination);
                         }
                     } else {
                         ofp_arrival_stand.clear();
@@ -442,7 +442,7 @@ float Airport::StateMachine() {
         if (state_ == kDeparture) {
             if (plane->PaxNo() > 0) {
             state_ = kBoarding;
-                LogMsg("New state %s", state_str_[state_]);
+                LogMsg("New state {}", state_str_[state_]);
                 // FALLTHROUGH
             } else
                 return ds.dgs_->Tick();  // just scroll the text
@@ -450,7 +450,7 @@ float Airport::StateMachine() {
 
         if (state_ == kBoarding) {
             int pax_no = plane->PaxNo();
-            // LogMsg("boarding PaxNo: %d", pax_no);
+            // LogMsg("boarding PaxNo: {}", pax_no);
             ds.dgs_->SetPaxNo(pax_no);
             return ds.dgs_->Tick();
         }
@@ -578,9 +578,9 @@ float Airport::StateMachine() {
 
                 if (now > update_dgs_log_ts_ + 2.0f)
                     LogMsg(
-                        "req_hdgt: %0.1f, local_hdgt: %0.1f, d_hdgt: %0.1f, mw: (%0.1f, %0.1f), nw: (%0.1f, %0.1f), "
-                        "ref: (%0.1f, %0.1f), "
-                        "x: %0.1f, ",
+                        "req_hdgt: {:0.1f}, local_hdgt: {:0.1f}, d_hdgt: {:0.1f}, mw: ({:0.1f}, {:0.1f}), nw: ({:0.1f}, {:0.1f}), "
+                        "ref: ({:0.1f}, {:0.1f}), "
+                        "x: {:0.1f}, ",
                         req_hdgt, local_hdgt, d_hdgt, mw_x, mw_z, nw_x, nw_z, ref_x, ref_z, local_x);
 
             } else {
@@ -643,13 +643,13 @@ float Airport::StateMachine() {
                 new_state = kDone;
                 parked_pax_no_ = plane->PaxNo();
                 bool auto_post_bp = auto_post_parkbrake();
-                LogMsg("beacon off, parked_pax_no_: %d, auto_post_parkbrake: %d", parked_pax_no_, auto_post_bp);
+                LogMsg("beacon off, parked_pax_no_: {}, auto_post_parkbrake: {}", parked_pax_no_, auto_post_bp);
                 if (auto_post_bp) {
                     if (as.has_jw())
                         ConnectJetway();
 
                     if (plane->SetChocks() && as.dgs_->HasEqStatus()) {
-                        LogMsg("parked_pax_no_: %d, setting chocks", parked_pax_no_);
+                        LogMsg("parked_pax_no_: {}, setting chocks", parked_pax_no_);
                         new_state = kParked;
                     }
                 }
@@ -660,10 +660,10 @@ float Airport::StateMachine() {
         case kParked: {
             as.dgs_->SetMode(dgs::kParked);
             int pax_no = plane->PaxNo();
-            //LogMsg("parked, PaxNo: %d", pax_no);
+            // LogMsg("parked, PaxNo: {}", pax_no);
             if (pax_no < parked_pax_no_) {
                 new_state = kDeboarding;
-                LogMsg("Pax deboarding started, pax_no: %d", pax_no);
+                LogMsg("Pax deboarding started, pax_no: {}", pax_no);
                 break;
             }
 
@@ -694,7 +694,7 @@ float Airport::StateMachine() {
     }
 
     if (new_state != state_) {
-        LogMsg("state transition %s -> %s, beacon: %d", state_str_[state_], state_str_[new_state], beacon_on);
+        LogMsg("state transition {} -> {}, beacon: {}", state_str_[state_], state_str_[new_state], beacon_on);
         state_ = new_state;
         state_change_ts_ = now;
         return -1;  // see you on next frame
@@ -705,8 +705,8 @@ float Airport::StateMachine() {
         // don't flood the log
         if (now > update_dgs_log_ts_ + 2.0f) {
             update_dgs_log_ts_ = now;
-            LogMsg("stand: %s, state: %s, status: %d, track: %d, lr: %d, distance: %0.2f, xtrack: %0.1f m",
-                   as.name().c_str(), state_str_[state_], dgs_params_.status, dgs_params_.track, dgs_params_.lr, dgs_params_.distance, dgs_params_.xtrack);
+            LogMsg("stand: {}, state: {}, status: {}, track: {}, lr: {}, distance: {:.2}, xtrack: {:0.1f} m",
+                   as.name(), state_str_[state_], (int)dgs_params_.status, dgs_params_.track, dgs_params_.lr, dgs_params_.distance, dgs_params_.xtrack);
         }
 
         // xform drefs into required constraints for the OBJs
@@ -728,7 +728,7 @@ float Airport::StateMachine() {
 
 void Airport::ResetState(State new_state) {
     if (state_ != new_state)
-        LogMsg("setting state to %s", state_str_[new_state]);
+        LogMsg("setting state to {}", state_str_[new_state]);
 
     state_ = new_state;
     for (auto& s : stands_)

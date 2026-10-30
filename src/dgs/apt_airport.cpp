@@ -45,19 +45,19 @@ static bool operator<(const AptStand& a, const AptStand& b) {
 }
 
 void AptAirport::dump() const {
-    LogMsg("Dump of airport: %s", icao_.c_str());
+    LogMsg("Dump of airport: {}", icao_);
 
     for (auto const& s : stands_)
-        LogMsg("'%s', %0.6f, %0.6f, %0.6f, has_jw: %d, code lettter: '%c'", s.name.c_str(), s.lat, s.lon, s.hdgt, s.has_xp12_jw, s.size_code_letter);
+        LogMsg("'{}', {:.6}, {:.6}, {:.6}, has_jw: {}, code lettter: '{:c}'", s.name, s.lat, s.lon, s.hdgt, s.has_xp12_jw, s.size_code_letter);
 
 #if 0
     for (auto & jw : jetways_)
-         LogMsg("%0.8f, %0.8f, %0.2f, %0.1f, end: %0.8f,%0.8f",
+         LogMsg("{:0.8f}, {:0.8f}, {:.2}, {:0.1f}, end: {:0.8f},{:0.8f}",
                 jw.pos.lat, jw.pos.lon, jw.hdgt, jw.length, jw.cabin.lat, jw.cabin.lon);
 #endif
 
     for (auto const& rwy : rwys_) {
-        LogMsg("Runway: '%s', %0.8f, %0.8f, %0.8f, %0.8f, len: %0.1f, width: %0.1f", rwy.name.c_str(), rwy.end1.lat,
+        LogMsg("Runway: '{}', {:0.8f}, {:0.8f}, {:0.8f}, {:0.8f}, len: {:0.1f}, width: {:0.1f}", rwy.name, rwy.end1.lat,
                rwy.end1.lon, rwy.end2.lat, rwy.end2.lon, rwy.len, rwy.width);
     }
 }
@@ -89,8 +89,8 @@ void AptAirport::ComputeBBox() {
         bbox_max_.lat = std::max(bbox_max_.lat, r.end2.lat + kDlat);
     }
 
-    // LogMsg("BBox for airport %s: min: %0.8f,%0.8f, max: %0.8f,%0.8f",
-    //        icao_.c_str(), bbox_min_.lat, bbox_min_.lon, bbox_max_.lat, bbox_max_.lon);
+    // LogMsg("BBox for airport {}: min: {:0.8f},{:0.8f}, max: {:0.8f},{:0.8f}", icao_, bbox_min_.lat, bbox_min_.lon,
+    //     bbox_max_.lat, bbox_max_.lon);
 }
 
 // go through apt.dat and collect stands and xp12 jetways
@@ -104,7 +104,7 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
     if (apt.fail())
         return false;
 
-    LogMsg("Processing '%s'", fn.c_str());
+    LogMsg("Processing '{}'", fn);
     std::string line;
     line.reserve(2000);  // can be quite long
 
@@ -118,7 +118,7 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
         if (arpt == nullptr)
             return;
 
-        // LogMsg("Save ---> '%s', %d, %d", arpt->icao_.c_str(), arpt->has_twr_, (int)arpt->stands_.size());
+        // LogMsg("Save ---> '{}', {}, {}", arpt->icao_, arpt->has_twr_, arpt->stands_.size());
         if ((!filter_autodgs || arpt->has_twr_) && arpt->stands_.size() > 0) {
             // final processing of stands_ vector
             arpt->stands_.shrink_to_fit();
@@ -159,7 +159,7 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
 
         // 1    681 0 0 ENGM Oslo Gardermoen
         if (line.starts_with("1 ")) {
-            // LogMsg("%s", line.c_str());
+            // LogMsg("{}", line);
             save_arpt();
 
             trim(line); // some generated apt.dat files have trailing white space
@@ -172,7 +172,7 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
                 arpt_name = line.substr(ofs, len);
             } else {
                 arpt_name.clear();
-                LogMsg("could not locate airport id '%s'", line.c_str());
+                LogMsg("could not locate airport id '{}'", line);
             }
 
             continue;
@@ -202,7 +202,7 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
                 // does not yet exist
                 arpt = new AptAirport(arpt_name);
                 if (ignore) {
-                    // LogMsg("Saving '%s' with ignore", arpt->icao_.c_str());
+                    // LogMsg("Saving '{}' with ignore", arpt->icao_);
                     arpt->ignore_ = true;
                     apt_airports_[arpt->icao_] = arpt;
                     arpt = nullptr;
@@ -268,7 +268,7 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
                 rwy.cl = rwy.end2 - rwy.end1;  // center line vector
                 rwy.len = fem::len(rwy.cl);
                 if (rwy.len < 1.0) {
-                    LogMsg("Runway '%s' too short: %0.1f", rwy.name.c_str(), rwy.len);
+                    LogMsg("Runway '{}' too short: {:0.1f}", rwy.name, rwy.len);
                     continue;
                 }
                 rwy.cl = (1 / rwy.len) * rwy.cl;  // normalize
@@ -284,7 +284,7 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
 }
 
 void AptAirport::LoadingFinished() {
-    LogMsg("Loaded %d airports, building quadtree ...", (int)apt_airports_.size());
+    LogMsg("Loaded {} airports, building quadtree ...", apt_airports_.size());
     TimeCodeBlock tcb("airport quadtree");
     for (const auto& [n, a] : apt_airports_) {
         if (!a->ignore_)
@@ -302,7 +302,7 @@ const AptAirport* AptAirport::LookupAirport(const std::string& airport_id) {
     }
 
     if (arpt == nullptr)
-        LogMsg("sorry, '%s' is not known airport", airport_id.c_str());
+        LogMsg("sorry, '{}' is not known airport", airport_id);
 
     return arpt;
 }
@@ -314,21 +314,21 @@ const AptAirport *AptAirport::LocateAirport(const fem::LLPos& pos) {
 
     unsigned int n_found = apt_quadtree_.Find(pos.lon, pos.lat, found_airports, /* filter */ nullptr, &depth);
     if (n_found == 0) {
-        LogMsg("sorry, %0.8f,%0.8f is not on an AptAirport", pos.lat, pos.lon);
+        LogMsg("sorry, {:0.8f},{:0.8f} is not on an AptAirport", pos.lat, pos.lon);
         return nullptr;
     }
 
     if (n_found > 1) {
-        LogMsg("warning, %d airports found at %0.8f,%0.8f, taking first one", n_found, pos.lat, pos.lon);
+        LogMsg("warning, {} airports found at {:0.8f},{:0.8f}, taking first one", n_found, pos.lat, pos.lon);
         for (unsigned int i = 0; i < n_found; i++) {
             const dgs::AptAirport* a = found_airports[i];
-            LogMsg("Found airport '%s' at %0.8f,%0.8f", a->icao_.c_str(), pos.lat, pos.lon);
+            LogMsg("Found airport '{}' at {:0.8f},{:0.8f}", a->icao_, pos.lat, pos.lon);
         }
         n_found = 1;
     }
 
     AptAirport* arpt = found_airports[0];
-    LogMsg("Found airport '%s' location %0.8f,%0.8f, depth: %d", arpt->icao_.c_str(), pos.lat, pos.lon, depth);
+    LogMsg("Found airport '{}' location {:0.8f},{:0.8f}, depth: {}", arpt->icao_, pos.lat, pos.lon, depth);
     return arpt;
 
 #if 0
@@ -337,13 +337,13 @@ const AptAirport *AptAirport::LocateAirport(const fem::LLPos& pos) {
         for (const auto& r : a->rwys_) {
             fem::Vec2 pos_end1 = pos - r.end1;
             auto proj = pos_end1 * r.cl;
-            //LogMsg("proj: %f, runway: %s", proj, r.name.c_str());
+            // LogMsg("proj: {:f}, runway: {}", proj, r.name);
             if (proj < 0.0 || proj > r.len)
                 continue;   // not on runway
 
             float dist = fem::len(pos_end1 - proj * r.cl);
             if (dist < 0.6f * r.width) {   // be gracious with width
-                LogMsg("Found runway '%s' '%s' at %0.8f,%0.8f", a->icao_.c_str(), r.name.c_str(), pos.lat, pos.lon);
+                LogMsg("Found runway '{}' '{}' at {:0.8f},{:0.8f}", a->icao_, r.name, pos.lat, pos.lon);
                 return a;   // found runway, so this is the airport
             }
         }

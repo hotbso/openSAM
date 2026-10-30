@@ -62,7 +62,7 @@ float SamAnim::AnimAcc(void* ref) {
 
     int drf_idx = reinterpret_cast<uint64_t>(ref);
     if (drf_idx < 0 || drf_idx >= (int)SamDrf::sam_drfs.size()) {
-        LogMsg("invalid drf_idx %d in SamAnim::AnimAcc", drf_idx);
+        LogMsg("invalid drf_idx {} in SamAnim::AnimAcc", drf_idx);
         return 0.0f;
     }
 
@@ -137,7 +137,7 @@ static float AutoDrfAcc(void* ref) {
 
     int drf_idx = reinterpret_cast<uint64_t>(ref);
     if (drf_idx < 0 || drf_idx >= (int)SamDrf::sam_drfs.size()) {
-        LogMsg("invalid drf_idx %d in AutoDrfAcc", drf_idx);
+        LogMsg("invalid drf_idx {} in AutoDrfAcc", drf_idx);
         return 0.0f;
     }
 
@@ -165,7 +165,7 @@ void SamAnim::SetState(bool on) {
     if (is_on() == on)
         return;
 
-    LogMsg("SamAnim::SetState: label: %s, on: %d", label.c_str(), on);
+    LogMsg("SamAnim::SetState: label: {}, on: {}", label, on);
 
     bool reverse;
 

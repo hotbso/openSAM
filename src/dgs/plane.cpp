@@ -50,12 +50,12 @@ void FlexDref::MapDref() {
     dr_ = XPLMFindDataRef(name_.c_str());
 
     if (dr_ == nullptr) {
-        LogMsg("dataref '%s' not found", name_.c_str());
+        LogMsg("dataref '{}' not found", name_);
         throw std::runtime_error("config error, dataref not found");
     }
 
     type_id_ = XPLMGetDataRefTypes(dr_);
-    LogMsg("Mapped dataref '%s', type_id: %d, trigger_value: %f", name_.c_str(), type_id_, cmp_value_);
+    LogMsg("Mapped dataref '{}', type_id: {}, trigger_value: {}", name_, type_id_, cmp_value_);
 }
 
 void FlexDref::Clear() {
@@ -88,14 +88,14 @@ void FlexDref::Set(const std::string& name_cmp_value) {
         } else if (cmp == "lt") {
             cmp_type_ = 4;
         } else {
-            LogMsg("invalid comparison type '%s' for '%s'", cmp.c_str(), name_.c_str());
+            LogMsg("invalid comparison type '{}' for '{}'", cmp, name_);
             throw std::runtime_error("config error, invalid comparison type");
         }
 
         try {
             cmp_value_ = std::stof(words[2]);
         } catch (const std::exception& e) {
-            LogMsg("invalid comparison value in '%s': %s", name_cmp_value.c_str(), e.what());
+            LogMsg("invalid comparison value in '{}': {}", name_cmp_value, e.what());
             throw std::runtime_error("config error, invalid comparison value");
         }
     } else {
@@ -134,7 +134,7 @@ float FlexDref::GetValue() {
     } else if (type_id_ & xplmType_FloatArray) {
         XPLMGetDatavf(dr_, &value, 0, 1);
     } else {
-        LogMsg("unsupported dataref type for '%s': %d", name_.c_str(), type_id_);
+        LogMsg("unsupported dataref type for '{}': {}", name_, type_id_);
         throw std::runtime_error("config error, unsupported dataref type");
     }
 
@@ -149,18 +149,18 @@ void FlexCmd::MapCmd() {
     if (is_cmd_) {
         cmd_ = XPLMFindCommand(name_.c_str());
         if (cmd_ == nullptr) {
-            LogMsg("command '%s' not found", name_.c_str());
+            LogMsg("command '{}' not found", name_);
             throw std::runtime_error("config error, command not found");
         }
     } else {
         dr_ = XPLMFindDataRef(name_.c_str());
         if (dr_ == nullptr) {
-            LogMsg("dataref '%s' not found", name_.c_str());
+            LogMsg("dataref '{}' not found", name_);
             throw std::runtime_error("config error, dataref not found");
         }
     }
 
-    LogMsg("Mapped %s '%s', dr_value: %f", is_cmd_ ? "command" : "dataref", name_.c_str(), dr_value_);
+    LogMsg("Mapped {} '{}', dr_value: {}", is_cmd_ ? "command" : "dataref", name_, dr_value_);
 }
 
 void FlexCmd::Clear() {
@@ -188,7 +188,7 @@ void FlexCmd::Set(const std::string& name) {
             try {
                 dr_value_ = std::stof(dref_part.substr(sep + 1));
             } catch (const std::exception& e) {
-                LogMsg("invalid dataref value in '%s': %s", name.c_str(), e.what());
+                LogMsg("invalid dataref value in '{}': {}", name, e.what());
                 throw std::runtime_error("config error, invalid dataref value");
             }
         } else {
@@ -196,7 +196,7 @@ void FlexCmd::Set(const std::string& name) {
             dr_value_ = 1.0f; // default
         }
     } else {
-        LogMsg("invalid FlexCmd name '%s', must start with 'cmd ' or 'dref '", name.c_str());
+        LogMsg("invalid FlexCmd name '{}', must start with 'cmd ' or 'dref '", name);
         throw std::runtime_error("config error, invalid FlexCmd name");
     }
 }
@@ -212,7 +212,7 @@ void FlexCmd::Execute() {
         } else if (type_id & xplmType_Float) {
             XPLMSetDataf(dr_, dr_value_);
         } else {
-            LogMsg("unsupported dataref type for '%s': %d", name_.c_str(), type_id);
+            LogMsg("unsupported dataref type for '{}': {}", name_, type_id);
             throw std::runtime_error("config error, unsupported dataref type");
         }
     }
@@ -300,7 +300,7 @@ Dict GetPlaneConfig(const std::string& filepath, const std::string& target_icao,
                            const std::string& target_studio) {
     std::ifstream file(filepath);
     if (!file.is_open()) {
-        LogMsg("Can't open plane config file '%s'", filepath.c_str());
+        LogMsg("Can't open plane config file '{}'", filepath);
         return {};
     }
 
@@ -322,7 +322,7 @@ Dict GetPlaneConfig(const std::string& filepath, const std::string& target_icao,
                 std::regex icao_regex(cfg["icao"]);
                 icao_matches = std::regex_match(target_icao, icao_regex);
             } catch (const std::regex_error& e) {
-                LogMsg("Invalid regex in planes.cfg for icao: '%s', error: %s", cfg["icao"].c_str(), e.what());
+                LogMsg("Invalid regex in planes.cfg for icao: '{}', error: {}", cfg["icao"], e.what());
                 // Skip on malformed regex
                 icao_matches = false;
             }
@@ -371,9 +371,9 @@ void Plane::PlaneLoadedCb() {
     if (fallback_cfg.empty()) {
         // load fallback config once
         fallback_cfg = GetPlaneConfig(base_dir + "planes.cfg", "fallback", "openSAM");
-        LogMsg("Fallback plane config loaded, %d entries", (int)fallback_cfg.size());
+        LogMsg("Fallback plane config loaded, {} entries", fallback_cfg.size());
         for (const auto& [k, v] : fallback_cfg)
-            LogMsg("  %s: %s", k.c_str(), v.c_str());
+            LogMsg("  {}: {}", k, v);
     }
 
     pax_no_fdr_.Clear();
@@ -413,7 +413,7 @@ void Plane::PlaneLoadedCb() {
 
     char acf_path[512], acf_file[256];
     XPLMGetNthAircraftModel(XPLM_USER_AIRCRAFT, acf_file, acf_path);
-    LogMsg("acf_path: '%s'", acf_path);
+    LogMsg("acf_path: '{}'", acf_path);
 
     int acf_has_door2 = 0;
     float acf_door2_pos[3]{};
@@ -470,55 +470,55 @@ void Plane::PlaneLoadedCb() {
     }
 
     cfg_ = GetPlaneConfig(base_dir + "planes.cfg", acf_icao_, studio);
-    LogMsg("Plane config loaded for %s, studio: '%s'", acf_icao_.c_str(), studio.c_str());
+    LogMsg("Plane config loaded for {}, studio: '{}'", acf_icao_, studio);
     for (const auto& [k, v] : cfg_)
-        LogMsg("  %s: %s", k.c_str(), v.c_str());
+        LogMsg("  {}: {}", k, v);
 
     // check flags from planes.cfg
     use_engines_on_ = cfg_.contains("use_engines_on");
     dont_connect_jetway_ = cfg_.contains("dont_connect_jetway");
 
-    LogMsg("use_engines_on: %d, dont_connect_jetway: %d", use_engines_on_, dont_connect_jetway_);
+    LogMsg("use_engines_on: {}, dont_connect_jetway: {}", use_engines_on_, dont_connect_jetway_);
 
     if (!cfg_.contains("door_2") && acf_has_door2) {
         // if not explicitly configured in planes.cfg, we assume that the second door is at the position from the acf file
         // stash that away for other interested parties
         cfg_["door_2"] = std::to_string(acf_door2_pos[0]) + " " + std::to_string(acf_door2_pos[1]) + " " + std::to_string(acf_door2_pos[2]);
-        LogMsg("Inferred door_2 position from acf file: %s", cfg_["door_2"].c_str());
+        LogMsg("Inferred door_2 position from acf file: {}", cfg_["door_2"]);
     }
 
     if (auto it = cfg_.find("pax_no_dref"); it != cfg_.end())
         pax_no_fdr_.Set(it->second);
     else if (auto it = fallback_cfg.find("pax_no_dref"); it != fallback_cfg.end()) {
-        LogMsg("Using fallback config for pax_no_dref: %s", it->second.c_str());
+        LogMsg("Using fallback config for pax_no_dref: {}", it->second);
         pax_no_fdr_.Set(it->second);
     }
 
     if (auto it = cfg_.find("chk_dref"); it != cfg_.end())
         chk_fdr_.Set(it->second);
     else if (auto it = fallback_cfg.find("chk_dref"); it != fallback_cfg.end()) {
-        LogMsg("Using fallback config for chk_dref: %s", it->second.c_str());
+        LogMsg("Using fallback config for chk_dref: {}", it->second);
         chk_fdr_.Set(it->second);
     }
 
     if (auto it = cfg_.find("gpu_dref"); it != cfg_.end())
         gpu_fdr_.Set(it->second);
     else if (auto it = fallback_cfg.find("gpu_dref"); it != fallback_cfg.end()) {
-        LogMsg("Using fallback config for gpu_dref: %s", it->second.c_str());
+        LogMsg("Using fallback config for gpu_dref: {}", it->second);
         gpu_fdr_.Set(it->second);
     }
 
     if (auto it = cfg_.find("pca_dref"); it != cfg_.end())
         pca_fdr_.Set(it->second);
     else if (auto it = fallback_cfg.find("pca_dref"); it != fallback_cfg.end()) {
-        LogMsg("Using fallback config for pca_dref: %s", it->second.c_str());
+        LogMsg("Using fallback config for pca_dref: {}", it->second);
         pca_fdr_.Set(it->second);
     }
 
     if (auto it = cfg_.find("chk_set"); it != cfg_.end())
         set_chocks_fcmdr_.Set(it->second);
     else if (auto it = fallback_cfg.find("chk_set"); it != fallback_cfg.end()) {
-        LogMsg("Using fallback config for chk_set: %s", it->second.c_str());
+        LogMsg("Using fallback config for chk_set: {}", it->second);
         set_chocks_fcmdr_.Set(it->second);
     }
 
@@ -529,9 +529,9 @@ void Plane::PlaneLoadedCb() {
         acf_icao_ = "A321";
 
     LogMsg(
-        "plane loaded: %s, plane_cg_z: %1.2f, nw_z: %1.2f, mw_z: %1.2f, "
-        "pe_y_0_valid: %d, pe_y_0: %0.2f, is_helicopter_: %d",
-        acf_icao_.c_str(), plane_cg_z, nw_z_, mw_z_, pe_y_0_valid, pe_y_0, is_helicopter_);
+        "plane loaded: {}, plane_cg_z: {:1.2f}, nw_z: {:1.2f}, mw_z: {:1.2f}, "
+        "pe_y_0_valid: {}, pe_y_0: {:.2}, is_helicopter_: {}",
+        acf_icao_, plane_cg_z, nw_z_, mw_z_, pe_y_0_valid, pe_y_0, is_helicopter_);
 }
 
 } // namespace dgs

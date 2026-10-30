@@ -53,14 +53,14 @@ api_setint(XPLMDataRef ref, int val)
             ; // required by some gcc versions
             OperationMode mode = static_cast<OperationMode>(val);
             if (mode != kAuto && mode != kManual) {
-                LogMsg("API: trying to set invalid operation_mode %d, ignored", val);
+                LogMsg("API: trying to set invalid operation_mode {}, ignored", val);
                 return;
             }
 
             if (mode == operation_mode) // Lua hammers writeable drefs in a frame loop
                 return;
 
-            LogMsg("API: operation_mode set to %s", opmode_str[mode]);
+            LogMsg("API: operation_mode set to {}", opmode_str[mode]);
             operation_mode = mode;
             break;
     }

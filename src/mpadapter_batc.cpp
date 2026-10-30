@@ -76,7 +76,7 @@ MpPlane_batc::MpPlane_batc(const std::string& flight_id, const std::string& acf_
     on_ground_ = true;  // otherwise we were not here
     parkbrake_set_ = true;
 
-    LogMsg("pid=%03d, constructing MpPlane %s/%s", id_, flight_id_.c_str(), acf_type.c_str());
+    LogMsg("pid={:03}, constructing MpPlane {}/{}", id_, flight_id_, acf_type);
 
     // first an optional translation to a generic icao code
     auto it = acf_generic_type_map.find(acf_type);
@@ -87,7 +87,7 @@ MpPlane_batc::MpPlane_batc(const std::string& flight_id, const std::string& acf_
 
     MpAdapter::LoadDoorInfo(*this);
     if (door_info_.empty()) {
-        LogMsg("pid=%03d, %s: door 1 is not defined in door_info_map, deactivating slot", id_, acf_type.c_str());
+        LogMsg("pid={:03}, {}: door 1 is not defined in door_info_map, deactivating slot", id_, acf_type);
         state_ = kDisabled;
         return;
     }
@@ -105,7 +105,7 @@ MpPlane_batc::MpPlane_batc(const std::string& flight_id, const std::string& acf_
 
     psi_ = psi;
 
-    LogMsg("pid=%03d, icao: %s, found door 1 in door_info_map: x: %0.2f, y: %0.2f, z: %0.2f", id_, icao_.c_str(),
+    LogMsg("pid={:03}, icao: {}, found door 1 in door_info_map: x: {:.2}, y: {:.2}, z: {:.2}", id_, icao_,
            door_info_[0].x, door_info_[0].y, door_info_[0].z);
 
     state_ = kIdle;
@@ -133,8 +133,8 @@ bool MpPlane_batc::update(int intent, bool on_ground) {
     if (!beacon_on_ && state_ == kCantDock && now > state_change_ts_ + 60.0f)
         state_ = kParked;
 
-    LogMsg("MP update: pid=%03d, icao: %s, id: %s, intent: %d, beacon: %d, state: %s", id_, icao_.c_str(),
-           flight_id_.c_str(), intent, beacon_on_, state_str_[state_]);
+    LogMsg("MP update: pid={:03}, icao: {}, id: {}, intent: {}, beacon: {}, state: {}", id_, icao_,
+           flight_id_, intent, beacon_on_, state_str_[state_]);
     return true;
 }
 
@@ -182,11 +182,11 @@ MpAdapter_batc::~MpAdapter_batc() {
 // static
 float MpAdapter_batc::update() {
     int n_planes = XPLMGetDatai(count_dr);
-    LogMsg("MpPlane_batc drefs #: %d", n_planes);
+    LogMsg("MpPlane_batc drefs #: {}", n_planes);
 
     if (n_planes > vector_size_) {
         vector_size_ = std::max(n_planes + 50, 200);
-        LogMsg("allocated vector_size_ %d", vector_size_);
+        LogMsg("allocated vector_size_ {}", vector_size_);
         id_val_ = std::make_unique_for_overwrite<int[]>(vector_size_);
         on_ground_val_ = std::make_unique_for_overwrite<int[]>(vector_size_);
         jetway_val_ = std::make_unique_for_overwrite<int[]>(vector_size_);
@@ -255,13 +255,13 @@ float MpAdapter_batc::update() {
         OsPlane& plane = *(it->second);
 
         if (!dref_planes.contains(key)) {
-            LogMsg("pid=%03d key: %s not longer exists, deleted", plane.id_, key.c_str());
+            LogMsg("pid={:03} key: {} not longer exists, deleted", plane.id_, key);
             it = mp_planes_.erase(it);
         } else
             ++it;
     }
 
     if (!mp_planes_.empty())
-        LogMsg("------------------ MP active planes found: %d -----------------", (int)mp_planes_.size());
+        LogMsg("------------------ MP active planes found: {} -----------------", mp_planes_.size());
     return 2.0f;
 }

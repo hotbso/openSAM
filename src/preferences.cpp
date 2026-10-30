@@ -40,7 +40,7 @@ static bool TryLoadXmlPreferences(const std::string& path) {
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(path.c_str());
     if (!result) {
-        LogMsg("Could not load XML preferences '%s': %s", path.c_str(), result.description());
+        LogMsg("Could not load XML preferences '{}': {}", path, result.description());
         return false;
     }
 
@@ -48,7 +48,7 @@ static bool TryLoadXmlPreferences(const std::string& path) {
     pugi::xml_node seasons = root.child("seasons");
     pugi::xml_node ui = root.child("ui");
     if (root.empty() || seasons.empty() || ui.empty()) {
-        LogMsg("XML preferences '%s' do not have the expected structure", path.c_str());
+        LogMsg("XML preferences '{}' do not have the expected structure", path);
         return false;
     }
 
@@ -64,14 +64,14 @@ static bool TryLoadXmlPreferences(const std::string& path) {
     prefs.ui_right = ui.attribute("right").as_int(prefs.ui_right);
     prefs.ui_bottom = ui.attribute("bottom").as_int(prefs.ui_bottom);
 
-    LogMsg("Loaded preferences from '%s'", path.c_str());
+    LogMsg("Loaded preferences from '{}'", path);
     return true;
 }
 
 static bool TryLoadLegacyPreferences(const std::string& path) {
     FILE* f = fopen(path.c_str(), "r");
     if (f == nullptr) {
-        LogMsg("Could not open legacy preferences '%s'; using defaults", path.c_str());
+        LogMsg("Could not open legacy preferences '{}'; using defaults", path);
         return false;
     }
 
@@ -83,7 +83,7 @@ static bool TryLoadLegacyPreferences(const std::string& path) {
     fclose(f);
 
     if (n != 9) {
-        LogMsg("Legacy preferences '%s' are incomplete; using defaults", path.c_str());
+        LogMsg("Legacy preferences '{}' are incomplete; using defaults", path);
         return false;
     }
 
@@ -95,7 +95,7 @@ static bool TryLoadLegacyPreferences(const std::string& path) {
     }
 
     prefs.auto_enable_mp = false; // default value for legacy preferences
-    LogMsg("Loaded legacy preferences from '%s'", path.c_str());
+    LogMsg("Loaded legacy preferences from '{}'", path);
     return true;
 }
 
@@ -106,8 +106,8 @@ void LoadPrefs() {
 
     ApplySeasonPreferences();
     LogMsg(
-        "Preferences: auto_season: %d, season: %d, north_hemisphere: %d, auto_select_jws: %d, default_vdgs_type: %d, "
-        "ui:(%d, %d, %d, %d), manage_xp12_jetways: %d",
+        "Preferences: auto_season: {}, season: {}, north_hemisphere: {}, auto_select_jws: {}, default_vdgs_type: {}, "
+        "ui:({}, {}, {}, {}), manage_xp12_jetways: {}",
         prefs.auto_season, prefs.season, prefs.north_hemisphere, prefs.auto_jetway_select, prefs.default_vdgs_type, prefs.ui_left,
         prefs.ui_top, prefs.ui_right, prefs.ui_bottom, prefs.manage_xp12_jetways);
 }
@@ -138,9 +138,9 @@ void SavePrefs() {
 
     const std::string path = user_cfg_dir + "preferences.xml";
     if (!doc.save_file(path.c_str(), "  ", pugi::format_default | pugi::format_indent_attributes)) {
-        LogMsg("Failed to save preferences to '%s'", path.c_str());
+        LogMsg("Failed to save preferences to '{}'", path);
         return;
     }
 
-    LogMsg("Saved preferences to '%s'", path.c_str());
+    LogMsg("Saved preferences to '{}'", path);
 }

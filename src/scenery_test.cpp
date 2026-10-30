@@ -42,7 +42,7 @@ namespace fem = flat_earth_math;
 
 const char *log_msg_prefix = "scenery_test: ";
 
-std::string xp_dir{"E:/X-Plane-12-test"};
+std::string xp_dir{"E:/X-Plane-12-test/"};
 std::vector<SamDrf> SamDrf::sam_drfs;
 unsigned long long stat_sc_last;
 std::vector<SamJw*> sam_jw_list;
@@ -58,9 +58,9 @@ void scenery_test() {
         SceneryPacks scp(xp_dir);
         int max_sam_stands;
         Scenery::CollectSceneries(scp, /* manage_xp12_jetways */ true, max_sam_stands);
-        LogMsg("%d sceneries with sam jetways found, max stands: %d", (int)Scenery::sceneries_.size(), max_sam_stands);
+        LogMsg("{} sceneries with sam jetways found, max stands: {}", Scenery::sceneries_.size(), max_sam_stands);
     } catch (const std::exception& ex) {
-        LogMsg("fatal error: '%s', bye!", ex.what());
+        LogMsg("fatal error: '{}', bye!", ex.what());
         return;   // bye
     }
 

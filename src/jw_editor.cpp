@@ -24,7 +24,7 @@
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
-#include <print>
+#include <format>
 #include <filesystem>
 #include <chrono>
 #include <stdexcept>
@@ -127,7 +127,7 @@ void CreateJwEditor() {
         std::string marker = base_dir + "resources/marker.obj";
         marker_obj_ = XPLMLoadObject(marker.c_str());
         if (marker_obj_ == nullptr) {
-            LogMsg("Failed to load marker object from path: '%s'", marker.c_str());
+            LogMsg("Failed to load marker object from path: '{}'", marker);
             return;
         }
     }
@@ -142,7 +142,7 @@ void CreateJwEditor() {
         jw_editor_top = sc_top - kWinPad;
         jw_editor_bottom = jw_editor_top - kWinHeight;
     } else
-        LogMsg("Creating os editor window with geometry %d,%d,%d,%d", jw_editor_left, jw_editor_top, jw_editor_right, jw_editor_bottom);
+        LogMsg("Creating os editor window with geometry {},{},{},{}", jw_editor_left, jw_editor_top, jw_editor_right, jw_editor_bottom);
 
     jw_editor = std::make_unique<JwEditor>(jw_editor_left, jw_editor_top, jw_editor_right, jw_editor_bottom);
 }
@@ -326,7 +326,7 @@ bool JwEditor::EditModels() {
                 msg_line2_.clear();
 
                 if (ImGui::Button("Commit Changes to Model")) {
-                    LogMsg("Committed changes to model '%s'", smc.model_id.c_str());
+                    LogMsg("Committed changes to model '{}'", smc.model_id);
                     SamJwModel* ljw = model_set_[selected_model_idx_];
                     std::string old_id = ljw->model_id;
                     *ljw = smc;     // update from working copy
@@ -487,7 +487,7 @@ void JwEditor::EditJetways() {
     // additional fields only for valid models or library instances
     if (jw->is_lib_jw_inst_ || model_idx >= 0) {
         if (ImGui::InputText("Name", &jw->name_)) {
-            LogMsg("Jetway name set to '%s'", jw->name_.c_str());
+            LogMsg("Jetway name set to '{}'", jw->name_);
             jw->base_name_ = jw->name_;  // keep base name in sync
             changed = true;
         }
@@ -574,7 +574,7 @@ void JwEditor::BuildInterface() {
             pathname_short_ = (xml_path_.parent_path().filename() / xml_path_.filename()).generic_string();
         else
             pathname_short_ = xml_path_.generic_string();
-        LogMsg("opensam.xml: %s", scenery_->sam_xml_pathname_.c_str());
+        LogMsg("opensam.xml: {}", scenery_->sam_xml_pathname_);
 
         // models only depend on the loaded scenery, so we can populate the model set here
         model_set_.clear();
@@ -591,7 +591,7 @@ void JwEditor::BuildInterface() {
     fem::LLPos cam_ll;
     XPLMLocalToWorld(cam_pos_lcl.x, cam_pos_lcl.y, cam_pos_lcl.z, &cam_ll.lat, &cam_ll.lon, &cam_pos_alt_);
     if (fem::len(cam_ll - cam_pos_) > 100.0f) {
-        LogMsg("Camera position changed, ll: (%.6f, %.6f), reloading jws", cam_ll.lat, cam_ll.lon);
+        LogMsg("Camera position changed, ll: ({:.6f}, {:.6f}), reloading jws", cam_ll.lat, cam_ll.lon);
         cam_pos_ = cam_ll;
         must_reload = true;
     }
@@ -610,8 +610,8 @@ void JwEditor::BuildInterface() {
         selected_idx_ = -1;  // reset selection when reloading
 
         for (const auto [jw, _] : near_jws) {
-            // LogMsg("Found jetway '%s' at ll: (%0.6f, %0.6f), is_undefined: %d", jw->name.c_str(), jw->latitude,
-            // jw->longitude, jw->is_undefined);
+            // LogMsg("Found jetway '{}' at ll: ({:0.6f}, {:0.6f}), is_undefined: {}", jw->name, jw->latitude,
+            //     jw->longitude, jw->is_undefined);
             //  lib jws in view
             if (jw->is_lib_jw_inst_) {
                 if (jw->is_zc_jw_ && !jw->stand_retrieved_) {
@@ -630,7 +630,7 @@ void JwEditor::BuildInterface() {
                 }
 
                 if (jw->name_.empty()) {
-                    LogMsg("Assigning name to jetway '%s' (lib id %d) at ll: (%0.6f, %0.6f)", jw->base_name_.c_str(), jw->library_id_, jw->latitude_, jw->longitude_);
+                    LogMsg("Assigning name to jetway '{}' (lib id {}) at ll: ({:.6}, {:.6})", jw->base_name_, jw->library_id_, jw->latitude_, jw->longitude_);
                     if (jw->base_name_.length() > 10)
                         jw->name_ = jw->base_name_.substr(0, 10);
                     else
@@ -638,10 +638,10 @@ void JwEditor::BuildInterface() {
                 }
             } else if (jw->name_.empty() && !jw->stand_retrieved_) {
                 jw->stand_retrieved_ = true;  // one shot only
-                LogMsg("Assigning name to undefined jetway at ll: (%0.6f, %0.6f)", jw->latitude_, jw->longitude_);
+                LogMsg("Assigning name to undefined jetway at ll: ({:.6}, {:.6})", jw->latitude_, jw->longitude_);
                 const OsStand* stand = os_arpt->FindStandForJw(jw->x_, jw->z_);
                 if (stand) {
-                    LogMsg("Found stand '%s' for undefined jetway at ll: (%0.6f, %0.6f)", stand->name().c_str(),
+                    LogMsg("Found stand '{}' for undefined jetway at ll: ({:.6}, {:.6})", stand->name(),
                            jw->latitude_, jw->longitude_);
                     jw->base_name_ = stand->name();
                     jw->name_ = jw->base_name_;
@@ -687,12 +687,12 @@ void JwEditor::BuildInterface() {
 
             // backup pathname: opensam.xml_2026-08-18T20.34.46Z.xml
             fs::path bpn = xml_path_.parent_path() / std::format("{}_{}.xml", xml_path_.stem().string(), iso_str);
-            LogMsg("Backing up '%s' to '%s'", xml_path_.generic_string().c_str(), bpn.generic_string().c_str());
+            LogMsg("Backing up '{}' to '{}'", xml_path_.generic_string(), bpn.generic_string());
             try {
                 fs::copy_file(xml_path_, bpn, fs::copy_options::overwrite_existing);
             } catch (const std::exception& e) {
-                LogMsg("Failed to backup '%s' to '%s': %s", xml_path_.generic_string().c_str(),
-                        bpn.generic_string().c_str(), e.what());
+                LogMsg("Failed to backup '{}' to '{}': {}", xml_path_.generic_string(),
+                        bpn.generic_string(), e.what());
                 msg_line1_ = std::format("Failed to backup '{}': {}", xml_path_.generic_string(), e.what());
                 msg_line2_.clear();
                 return;
@@ -706,7 +706,7 @@ void JwEditor::BuildInterface() {
                 bpn_short = bpn.generic_string();
             msg_line1_ = std::format("Backed up '../{}'", bpn_short.c_str());
 
-            LogMsg("Saving changes to %s", xml_path_.generic_string().c_str());
+            LogMsg("Saving changes to {}", xml_path_.generic_string());
             if (scenery_->UpdateOpenSamXml(jw_set_)) {
                 unsaved_changes_ = false;
                 msg_line2_ = std::format("Saved changes to '../{}'", pathname_short_);
@@ -734,7 +734,7 @@ int JwEditor::CameraCtrlCb(XPLMCameraPosition_t* cam_pos, int loosing_ctrl, [[ma
     if (jwe == nullptr || jwe->marker_inst_ == nullptr)   // editor closed, spurious call?
         return 0;   // give back control
 
-    LogMsg("CameraCtrlCb called, step: %d", jwe->camera_steps_);
+    LogMsg("CameraCtrlCb called, step: {}", jwe->camera_steps_);
 
     XPLMReadCameraPosition(cam_pos);
     float dx = cam_pos->x - jwe->marker_draw_info_.x;
@@ -742,7 +742,8 @@ int JwEditor::CameraCtrlCb(XPLMCameraPosition_t* cam_pos, int loosing_ctrl, [[ma
     float dz = cam_pos->z - jwe->marker_draw_info_.z;
     cam_pos->heading = 90.0f + std::atan2(dz, dx) / kD2R - 180.0f;
     cam_pos->pitch = -std::atan2(dy, std::sqrt(dx * dx + dz * dz)) / kD2R;
-    //LogMsg("CameraCtrlCb: dx=%0.2f, dy=%0.2f, dz=%0.2f, heading=%0.2f, pitch=%0.2f", dx, dy, dz, cam_pos->heading, cam_pos->pitch);
+    // LogMsg("CameraCtrlCb: dx={:.2}, dy={:.2}, dz={:.2}, heading={:.2}, pitch={:.2}", dx, dy, dz,
+    //     cam_pos->heading, cam_pos->pitch);
     jwe->camera_steps_++;  // indicate that the camera has been turned
 
     if (jwe->camera_steps_ == 3) {

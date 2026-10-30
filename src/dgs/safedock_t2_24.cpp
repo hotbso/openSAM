@@ -22,7 +22,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
-#include <print>
+#include <format>
 
 #include "XPLMInstance.h"
 
@@ -81,32 +81,32 @@ bool InitSafedock_T2_24(const std::string& res_dir) {
 
     display_obj = XPLMLoadObject(obj_fn.c_str());
     if (display_obj == nullptr) {
-        LogMsg("Can't load Safedock_T2_24 object from '%s'", obj_fn.c_str());
+        LogMsg("Can't load Safedock_T2_24 object from '{}'", obj_fn);
         return false;
     }
 
     std::string on = res_dir + "pole_base.obj";
     base_obj = XPLMLoadObject(on.c_str());
     if (base_obj == nullptr) {
-        LogMsg("Can't load pole base object from '%s'", on.c_str());
+        LogMsg("Can't load pole base object from '{}'", on);
         return false;
     }
 
     on = res_dir + "Safedock-T2-24-pole.obj";
     box_pole_obj = XPLMLoadObject(on.c_str());
     if (box_pole_obj == nullptr) {
-        LogMsg("Can't load box pole object from '%s'", on.c_str());
+        LogMsg("Can't load box pole object from '{}'", on);
         return false;
     }
 
     on = res_dir + "Safedock-T2-24.obj";
     box_obj = XPLMLoadObject(on.c_str());
     if (box_obj == nullptr) {
-        LogMsg("Can't load box object from '%s'", on.c_str());
+        LogMsg("Can't load box object from '{}'", on);
         return false;
     }
 
-    LogMsg("Safedock_T2_24 object loaded from '%s'", obj_fn.c_str());
+    LogMsg("Safedock_T2_24 object loaded from '{}'", obj_fn);
     return true;
 }
 
@@ -119,7 +119,7 @@ std::unique_ptr<DGS> CreateSafedock_T2_24(const std::string& name, const std::st
 Safedock_T2_24::Safedock_T2_24(const std::string& name, const std::string& arpt_icao, bool display_only,
                                bool pole)
     : name_(name), arpt_icao_(arpt_icao), pole_(pole) {
-    LogMsg("Creating Safedock_T2_24 instance for stand '%s'", name_.c_str());
+    LogMsg("Creating Safedock_T2_24 instance for stand '{}'", name_);
 
     display_name_ = ExtractDisplayName(name_, kR1Nchar);
     display_inst_ref_ = CreateInstance(display_obj, dgs_dlist_dr);
@@ -135,11 +135,11 @@ Safedock_T2_24::Safedock_T2_24(const std::string& name, const std::string& arpt_
     GuidanceParams params{};
     params.status = kDgsGstIdle;
     SetGuidanceParams(params);
-    LogMsg("Safedock_T2_24 instance created for stand '%s', display name: '%s'", name_.c_str(), display_name_.c_str());
+    LogMsg("Safedock_T2_24 instance created for stand '{}', display name: '{}'", name_, display_name_);
 }
 
 Safedock_T2_24::~Safedock_T2_24() {
-    LogMsg("Destroying Safedock_T2_24 instance for stand '%s'", name_.c_str());
+    LogMsg("Destroying Safedock_T2_24 instance for stand '{}'", name_);
 }
 
 void Safedock_T2_24::SetGuidanceParams(const GuidanceParams& params) {
@@ -198,8 +198,8 @@ void Safedock_T2_24::SetPos(const XPLMDrawInfoDouble_t& drawinfo, float height) 
     height_ = height;
     pb_drawinfo_ = drawinfo;
     drawinfo_ = drawinfo;
-    //LogMsg("Safedock_T2_24 position updated for stand '%s', x: %0.1f, y: %0.1f, z: %0.1f", name_.c_str(), drawinfo_.x,
-    //       drawinfo_.y, drawinfo_.z);
+    // LogMsg("Safedock_T2_24 position updated for stand '{}', x: {:0.1f}, y: {:0.1f}, z: {:0.1f}", name_, drawinfo_.x,
+    //     drawinfo_.y, drawinfo_.z);
     drawinfo_.y += height_;
     UpdateInstance();
 }
@@ -215,7 +215,7 @@ void Safedock_T2_24::SetMode(Mode mode) {
     mode_ = mode;
     assert(display_inst_ref_ != nullptr);
 
-    LogMsg("SetMode %d stand: '%s'", mode_, name_.c_str());
+    LogMsg("SetMode {} stand: '{}'", (int)mode_, name_);
 
     if (mode_ == kIdle) {
         scroll_txt_ = nullptr;
@@ -249,7 +249,7 @@ void Safedock_T2_24::SetPaxNo(int pax_no)  {
 
 void Safedock_T2_24::NotifyOfpUpdate() {
     std::string ofp_str = Ofp::ofp.GenDepartureStr();
-    LogMsg("NotifyOfpUpdate for stand '%s', OFP departure str: '%s'", name_.c_str(), ofp_str.c_str());
+    LogMsg("NotifyOfpUpdate for stand '{}', OFP departure str: '{}'", name_, ofp_str);
     if (display_name_.empty())
         scroll_txt_ = std::make_unique<ScrollTxt>(arpt_icao_ + "   " + ofp_str + "   ");
     else
@@ -274,7 +274,7 @@ float Safedock_T2_24::Tick() {
     }
 
     if (mode_ == kParked) {
-        // LogMsg("Tick for parked stand '%s', refreshing eq status", name_.c_str());
+        // LogMsg("Tick for parked stand '{}', refreshing eq status", name_);
 
         EqStatus eq_status;
         plane->GetEqStatus(eq_status);
@@ -300,8 +300,8 @@ float Safedock_T2_24::Tick() {
 }
 
 void Safedock_T2_24::UpdateInstance() {
-    //LogMsg("Updating Safedock_T2_24 instance for stand '%s', x: %0.2f, y: %0.2f, z: %0.2f, psi: %0.2f", name_.c_str(), drawinfo_.x,
-    //       drawinfo_.y, drawinfo_.z, drawinfo_.heading);
+    // LogMsg("Updating Safedock_T2_24 instance for stand '{}', x: {:.2}, y: {:.2}, z: {:.2}, psi: {:.2}", name_,
+    //     drawinfo_.x, drawinfo_.y, drawinfo_.z, drawinfo_.heading);
     display_inst_ref_->SetPosition(&drawinfo_, drefs_);
 
     if (box_inst_ref_)

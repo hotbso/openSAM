@@ -213,7 +213,8 @@ float VDGSBrightness() noexcept {
         float ev100 = XPLMGetDataf(ev100_mtr_dr);
         float nits = std::exp(a * (ev100 - b));
         float vdgs_brightness = std::clamp(nits / kMaxNits, kMinBrightness, 1.0f);
-        // LogMsg("ev100: %0.2f, raw nits: %0.2f, vdgs_brightness: %0.2f, vdgs nits: %0.2f", ev100, nits, vdgs_brightness, vdgs_brightness * kMaxNits);
+        // LogMsg("ev100: {:.2}, raw nits: {:.2}, vdgs_brightness: {:.2}, vdgs nits: {:.2}", ev100, nits,
+        //     vdgs_brightness, vdgs_brightness * kMaxNits);
         return vdgs_brightness;
     } else {
         // fallback: use percent_lights_on

@@ -162,7 +162,7 @@ void LLQuadTreeNode<Float, Item, kMaxItem>::Insert(Item* new_item) {
 
     // must subdivide this node and push down the existing items if we are at capacity
     if (items_.size() == kMaxItem) {
-        //LogMsg("Node %d at capacity with %d items, pushing down to quadrants", id_, (int)items_.size());
+        // LogMsg("Node {} at capacity with {} items, pushing down to quadrants", id_, items_.size());
         // a full leaf node, push down the existing items
         assert(Verify("pre insert push down"));
         for (Item* it : items_) {
@@ -187,13 +187,13 @@ void LLQuadTreeNode<Float, Item, kMaxItem>::Dump(const char* label, int indent, 
     Float dlon = bounds_.max_lon_ - bounds_.min_lon_;
     Float dlat_m = dlat * kLat2M<Float>;
     Float dlon_m = dlon * kLat2M<Float> * std::cos((bounds_.min_lat_ + bounds_.max_lat_) / 2 * kD2R<Float>);
-    LogMsg("%*sNode %d %s: lon (%.3f, %.3f] - lat (%.3f, %.3f], n_below %d, size (%.3f m, %.3f m)", indent, "", id_,
-           label, bounds_.min_lon_, bounds_.max_lon_, bounds_.min_lat_, bounds_.max_lat_, n_below_, dlon_m, dlat_m);
+    LogMsg("{:>{}}Node {} {}: lon ({:.3f}, {:.3f}] - lat ({:.3f}, {:.3f}], n_below {}, size ({:.3f} m, {:.3f} m)",
+           "", indent, id_, label, bounds_.min_lon_, bounds_.max_lon_, bounds_.min_lat_, bounds_.max_lat_, n_below_, dlon_m, dlat_m);
     for (Item* item : items_) {
         if (item->deleted())
             continue;  // Skip deleted items
         Float item_lon = item->lon(), item_lat = item->lat();
-        LogMsg("%*sItem at (%.7f, %.7f), '%s'", indent + 2, "", item_lon, item_lat, item->repr().c_str());
+        LogMsg("{:>{}}Item at ({:.7f}, {:.7f}), '{}'", "", indent + 2, item_lon, item_lat, item->repr());
     }
 
     if (!no_recurse) {
@@ -204,7 +204,7 @@ void LLQuadTreeNode<Float, Item, kMaxItem>::Dump(const char* label, int indent, 
     } else {
         for (int i = 0; i < 4; i++) {
             if (children_[i])
-                LogMsg("%*sChild %s: node %d", indent + 2, "", child_labels_[i], children_[i]->id_);
+                LogMsg("{:>{}}Child {}: node {}", "", indent + 2, child_labels_[i], children_[i]->id_);
         }
     }
 }
@@ -217,10 +217,10 @@ bool LLQuadTreeNode<Float, Item, kMaxItem>::Verify(const char* label) const {
             continue;  // Skip deleted items
 
         if (!bounds_.Intersects(item->bounds())) {
-            LogMsg("Item bounds do not intersect with node bounds for node %d", id_);
-            LogMsg("Node bounds: lon (%.3f, %.3f] - lat (%.3f, %.3f]", bounds_.min_lon_, bounds_.max_lon_,
+            LogMsg("Item bounds do not intersect with node bounds for node {}", id_);
+            LogMsg("Node bounds: lon ({:.3f}, {:.3f}] - lat ({:.3f}, {:.3f}]", bounds_.min_lon_, bounds_.max_lon_,
                    bounds_.min_lat_, bounds_.max_lat_);
-            LogMsg("Item bounds: lon (%.3f, %.3f] - lat (%.3f, %.3f]", item->bounds().min_lon_, item->bounds().max_lon_,
+            LogMsg("Item bounds: lon ({:.3f}, {:.3f}] - lat ({:.3f}, {:.3f}]", item->bounds().min_lon_, item->bounds().max_lon_,
                    item->bounds().min_lat_, item->bounds().max_lat_);
             goto fail;
         }
@@ -228,8 +228,8 @@ bool LLQuadTreeNode<Float, Item, kMaxItem>::Verify(const char* label) const {
 
     if (!items_.empty()) {
         if (children_[0] || children_[1] || children_[2] || children_[3]) {  // A leaf has no childs and vice versa
-            LogMsg("Node %d has items but also has children", id_);
-            LogMsg("Children: sw %d, se %d, nw %d, ne %d", children_[0] ? children_[0]->id_ : -1,
+            LogMsg("Node {} has items but also has children", id_);
+            LogMsg("Children: sw {}, se {}, nw {}, ne {}", children_[0] ? children_[0]->id_ : -1,
                    children_[1] ? children_[1]->id_ : -1, children_[2] ? children_[2]->id_ : -1,
                    children_[3] ? children_[3]->id_ : -1);
             goto fail;
@@ -240,7 +240,7 @@ bool LLQuadTreeNode<Float, Item, kMaxItem>::Verify(const char* label) const {
     return true;
 
 fail:
-    LogMsg("Verification failed for node %d '%s'", id_, label);
+    LogMsg("Verification failed for node {} '{}'", id_, label);
     tree_.Dump();
     return false;
 }
@@ -349,7 +349,7 @@ void LLQuadTree<Float, Item, kMaxItem>::Dump() {
         LogMsg("Empty QuadTree");
     } else {
         root_->Dump("root", 0);
-        LogMsg("Total nodes: %u", next_node_id_);
+        LogMsg("Total nodes: {}", next_node_id_);
     }
 }
 

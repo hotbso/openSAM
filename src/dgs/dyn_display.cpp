@@ -27,7 +27,7 @@
 #include <queue>
 #include <fstream>
 #include <memory>
-#include <print>
+#include <format>
 #include <bit>
 #include <thread>
 #include <mutex>
@@ -126,7 +126,7 @@ const unsigned char* Font::GetCodepointBitmap(int codepoint, float scale_x, floa
     auto it = glyph_cache_.find(key);
     if (it != glyph_cache_.end()) {
         GlyphInfo& gi = it->second;
-        //LogMsg("Font::GetCodepointBitmap: returning cached glyph for codepoint %c, scale=%f", codepoint, gi.scale);
+        // LogMsg("Font::GetCodepointBitmap: returning cached glyph for codepoint {:c}, scale={:f}", codepoint, gi.scale);
         width = gi.width;
         height = gi.height;
         x_off = gi.x_off;
@@ -303,8 +303,8 @@ void Display::TextLine(Color color, Font& font, const std::string& txt, bool cen
 
     int height_pix = (txt_scale_ * txt_height_ / height_m_) * kImgHeight;  // Convert m to pixels
     assert(image_ != nullptr);
-    // LogMsg("Display::TextLine: Writing text '%s' at (%.3f, %.3f) m, height=%.3f m, scale=%.3f, centered=%d", txt.c_str(),
-    //       txt_x_, txt_y_, txt_height_, txt_scale_, centered);
+    // LogMsg("Display::TextLine: Writing text '{}' at ({:.3f}, {:.3f}) m, height={:.3f} m, scale={:.3f}, centered={}",
+    //     txt, txt_x_, txt_y_, txt_height_, txt_scale_, centered);
     assert(0 <= txt_x_ && txt_x_ < width_m_);
     assert(0 <= txt_y_ && txt_y_ < height_m_);
     auto [x_pix, y_pix] = ToPix(txt_x_, txt_y_);
@@ -342,8 +342,7 @@ void Display::Bake() {
     obj_pathname_ = tmp_dir + std::format("Display-{:04d}.obj", id_);
     baked_ = true;  // no double baking
 
-    // LogMsg("Bake: Creating display object '%s' and texture '%s'", obj_pathname_.c_str(),
-    //        png_pathname_.c_str());
+    // LogMsg("Bake: Creating display object '{}' and texture '{}'", obj_pathname_, png_pathname_);
     {
         std::lock_guard<std::mutex> lock(q_mtx);
         png_ok_ = false;
@@ -360,14 +359,14 @@ void Display::BakePhase2() {
 
     async_in_progress_ = true;
     XPLMLoadObjectAsync(obj_pathname_.c_str(), ObjectLoadedCb, this);
-    // LogMsg("Bake: Started async loading of display object '%s'", obj_pathname_.c_str());
+    // LogMsg("Bake: Started async loading of display object '{}'", obj_pathname_);
 }
 
 void Display::ObjectLoadedCb(XPLMObjectRef inObject, void* inRefcon) {
     Display* display = reinterpret_cast<Display*>(inRefcon);
     display->xplm_obj_ = inObject;
     display->async_in_progress_ = false;
-    // LogMsg("Display::ObjectLoaded: Async load callback for display %d, object=%p", display->id_, inObject);
+    // LogMsg("Display::ObjectLoaded: Async load callback for display {}, object={:p}", display->id_, inObject);
 
     if (display->retired_) {
         LogMsg("Display::ObjectLoaded: Display was marked for retirement, deleting now");
@@ -459,7 +458,7 @@ static bool SaveImagePng(const uint32_t* data, int width, int height, const std:
     // SPNG_ENCODE_FINALIZE will finalize the PNG with the end-of-file marker
     int ret = spng_encode_image(ctx, data, width * height * sizeof(uint32_t), SPNG_FMT_PNG, SPNG_ENCODE_FINALIZE);
     if (ret) {
-        LogMsg("spng_encode_image() error: %s", spng_strerror(ret));
+        LogMsg("spng_encode_image() error: {}", spng_strerror(ret));
         spng_ctx_free(ctx);
         return false;
     }
@@ -469,13 +468,13 @@ static bool SaveImagePng(const uint32_t* data, int width, int height, const std:
     // User owns the buffer after a successful call
 
     if (png_buf == NULL) {
-        LogMsg("spng_get_png_buffer() error: %s", spng_strerror(ret));
+        LogMsg("spng_get_png_buffer() error: {}", spng_strerror(ret));
         return false;
     }
 
     std::ofstream f(png_path, std::ios::binary);
     if (f.fail()) {
-        LogMsg("Can't open '%s'", png_path.c_str());
+        LogMsg("Can't open '{}'", png_path);
         return false;
     }
 
@@ -484,7 +483,7 @@ static bool SaveImagePng(const uint32_t* data, int width, int height, const std:
     if (f.fail())
         LogMsg("write to png failed");
     else {
-        //LogMsg("PNG '%s' created", png_path.c_str());
+        // LogMsg("PNG '{}' created", png_path);
     }
 
     free(png_buf);
@@ -556,7 +555,7 @@ void Display::BakeBg() {
     obj_file.close();
 
     png_ok_ = image_->Save(xp_dir + png_pathname_);
-    // LogMsg("Display::BakeBg: PNG file '%s' written, success=%d", png_pathname_.c_str(), png_ok_);
+    // LogMsg("Display::BakeBg: PNG file '{}' written, success={}", png_pathname_, png_ok_);
 }
 
 // static
@@ -566,8 +565,8 @@ void Display::BgPostProcess() {
     while (!out_q.empty()) {
         Display* display = out_q.front();
         out_q.pop();
-        //LogMsg("Display::BgPostProcess: Processing display %p", (void *)display);
-        //LogMsg("Display::BgPostProcess: Processing display %d", display->id_);
+        // LogMsg("Display::BgPostProcess: Processing display {:p}", (void *)display);
+        // LogMsg("Display::BgPostProcess: Processing display {}", display->id_);
         display->on_bg_q = false;
         if (display->retired_) {
             LogMsg("Display::BgPostProcess: Display was marked for retirement, deleting now");
@@ -598,7 +597,7 @@ void Display::Finalize() {
             Display* display = in_q.front();
             in_q.pop();
             if (!display->retired_) {
-                LogMsg("Display %d was on the background queue but not retired", display->id_);
+                LogMsg("Display {} was on the background queue but not retired", display->id_);
             } else
                 delete display;
         }
@@ -614,7 +613,7 @@ void Display::Finalize() {
         Display* display = out_q.front();
         out_q.pop();
         if (!display->retired_) {
-            LogMsg("Display %d was on the background queue but not retired", display->id_);
+            LogMsg("Display {} was on the background queue but not retired", display->id_);
         } else
             delete display;
     }

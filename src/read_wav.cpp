@@ -56,7 +56,7 @@ void ReadWav(const std::string& fname, Sound& sound) {
 
     FILE* f = fopen(fname.c_str(), "rb");
     if (NULL == f) {
-        LogMsg("can't open wav %s", fname.c_str());
+        LogMsg("can't open wav {}", fname);
         return;
     }
 
@@ -108,6 +108,6 @@ void ReadWav(const std::string& fname, Sound& sound) {
     }
 
     fclose(f);
-    LogMsg("can't find data chunk in %s", fname.c_str());
+    LogMsg("can't find data chunk in {}", fname);
     return;
 }

@@ -91,18 +91,18 @@ static bool DownloadLogo(int wh) {
     }
 
     std::string url = api_url + "/airlines/icao/" + icao_new + "?format=png&key=" + api_key;
-    // LogMsg("%s", url.c_str());
+    // LogMsg("{}", url);
 
     std::string png_str;
     png_str.reserve(20 * 1024);
     bool res = HttpGet(url, png_str, 5);
 
     if (!res) {
-        LogMsg("DownloadLogo: HttpGet failed for '%s'", url.c_str());
+        LogMsg("DownloadLogo: HttpGet failed for '{}'", url);
         return false;
     }
 
-    LogMsg("got png %d bytes", (int)png_str.length());
+    LogMsg("got png {} bytes", (int)png_str.length());
 
     int width, height, channels;
     unsigned char* data = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(png_str.data()), (int)png_str.size(), &width, &height, &channels, 4);
@@ -112,7 +112,7 @@ static bool DownloadLogo(int wh) {
     }
 
     if (width != height) {
-        LogMsg("Downloaded image is not square: %dx%d", width, height);
+        LogMsg("Downloaded image is not square: {}x{}", width, height);
         stbi_image_free(data);
         return false;
     }
@@ -147,7 +147,7 @@ void LoadAirlineLogo(const std::string& airline_icao, int wh) {
     }
 
     if (airline_logo && airline_icao == icao_new) {
-        LogMsg("Logo for airline '%s' is already loaded, request ignored", airline_icao.c_str());
+        LogMsg("Logo for airline '{}' is already loaded, request ignored", airline_icao);
         return;
     }
 
