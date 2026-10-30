@@ -80,12 +80,12 @@ AdgsStand::AdgsStand(const dgs::AptStand& as, const std::string& arpt_icao, floa
     // don't use dgs_height_ here, as it may have been overwritten by SetDgsType by applying various defauilt values
     dgs_->SetPos(drawinfo_, dgs_height);
 
-    // LogMsg("AdgsStand '{}', is_wet: {}, type: {}, dgs_dist: {:0.1f} constructed", cname(), is_wet_ ? 1 : 0,
+    // LogMsg("AdgsStand '{}', is_wet: {}, type: {}, dgs_dist: {:0.1f} constructed", name(), is_wet_ ? 1 : 0,
     //     (int)dgs_type_, dgs_dist_);
 }
 
 AdgsStand::~AdgsStand() {
-    // LogMsg("AdgsStand '{}' destructed", cname());
+    // LogMsg("AdgsStand '{}' destructed", name());
 }
 
 bool AdgsStand::has_jw() const {
@@ -119,23 +119,23 @@ void AdgsStand::SetDgsType(int dgs_type, bool pole) {
         // The Marshaller is tricky as it does not have a static model.
         // If the placement position is > 2.0m it automatically adds stairs below.
         dgs_height_ = dgs_pole_ ? kStairsHeight : 0.0f;
-        dgs_ = dgs::CreateMarshaller(cname());
+        dgs_ = dgs::CreateMarshaller(name());
     } else if (dgs_type_ == kDefaultVDGS) {
         if (prefs.default_vdgs_type == kVdgsSafedock_T2_24) {
             dgs_height_ = kVdgsT2DefaultHeight;
-            dgs_ = dgs::CreateSafedock_T2_24(cname(), arpt_icao_, /* display_only */ false, /* pole */ true);
+            dgs_ = dgs::CreateSafedock_T2_24(name(), arpt_icao_, /* display_only */ false, /* pole */ true);
         } else {
             dgs_height_ = kVdgsXDefaultHeight;
-            dgs_ = dgs::CreateSafedock_X(cname(), arpt_icao_, /* display_only */ false, /* pole */ true);
+            dgs_ = dgs::CreateSafedock_X(name(), arpt_icao_, /* display_only */ false, /* pole */ true);
         }
     } else if (dgs_type_ == kVdgsSafedock_T2_24) {
         if (was_marshaller)
             dgs_height_ = kVdgsT2DefaultHeight;
-        dgs_ = dgs::CreateSafedock_T2_24(cname(), arpt_icao_, /* display_only */ false, pole);
+        dgs_ = dgs::CreateSafedock_T2_24(name(), arpt_icao_, /* display_only */ false, pole);
     } else if (dgs_type_ == kVdgsSafedock_X) {
         if (was_marshaller)
             dgs_height_ = kVdgsXDefaultHeight;
-        dgs_ = dgs::CreateSafedock_X(cname(), arpt_icao_,  /* display_only */ false, pole);
+        dgs_ = dgs::CreateSafedock_X(name(), arpt_icao_,  /* display_only */ false, pole);
     } else
        assert(!"AdgsStand::SetDgsType: unknown type");
 

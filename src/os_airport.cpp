@@ -50,7 +50,7 @@ std::unique_ptr<OsAirport> os_arpt;
 OsStand::OsStand(const dgs::AptStand& as, const std::string& arpt_icao, float elevation)
     : dgs::Stand(as, arpt_icao, elevation) {
 
-    // LogMsg("OsStand '{}', is_wet: {}, type: {}, dgs_dist: {:0.1f} constructed", cname(), is_wet_ ? 1 : 0,
+    // LogMsg("OsStand '{}', is_wet: {}, type: {}, dgs_dist: {:0.1f} constructed", name(), is_wet_ ? 1 : 0,
     //     (int)dgs_type_, dgs_dist_);
 }
 

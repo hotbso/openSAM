@@ -80,7 +80,6 @@ class Stand {
 
     // accessors
     const std::string& name() const { return as_.name; };
-    const char* cname() const { return as_.name.c_str(); };
     float hdgt() const { return as_.hdgt; }
     double lat() const { return as_.lat; }
     double lon() const { return as_.lon; }

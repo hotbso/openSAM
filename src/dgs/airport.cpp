@@ -256,13 +256,13 @@ void Airport::FindNearestStand() {
 
             // behind
             if (nw_z < -4.0) {
-                // LogMsg("behind: {}", s.cname());
+                // LogMsg("behind: {}", s.name());
                 continue;
             }
 
             if (nw_z > 10.0) {
                 float angle = atan(nw_x / nw_z) / kD2R;
-                // LogMsg("angle to plane: {}, {:3.1f}", s.cname(), angle);
+                // LogMsg("angle to plane: {}, {:3.1f}", s.name(), angle);
 
                 // check whether plane is in a +-60° sector relative to stand
                 if (fabsf(angle) > 60.0)
@@ -270,10 +270,10 @@ void Airport::FindNearestStand() {
 
                 // drive-by and beyond a +- 60° sector relative to plane's direction
                 float rel_to_stand = fem::RA(-angle - local_hdgt);
-                // LogMsg("rel_to_stand: {}, nw_x: {:0.1f}, local_hdgt {:0.1f}, rel_to_stand: {:0.1f}", s.cname(), nw_x,
+                // LogMsg("rel_to_stand: {}, nw_x: {:0.1f}, local_hdgt {:0.1f}, rel_to_stand: {:0.1f}", s.name(), nw_x,
                 //     local_hdgt, rel_to_stand);
                 if ((nw_x > 10.0 && rel_to_stand < -60.0) || (nw_x < -10.0 && rel_to_stand > 60.0)) {
-                    // LogMsg("drive by {}", s.cname());
+                    // LogMsg("drive by {}", s.name());
                     continue;
                 }
             }
@@ -283,7 +283,7 @@ void Airport::FindNearestStand() {
             d = std::hypot(xtrack_weight * nw_x, nw_z) + std::abs(local_hdgt);
 
             if (d < dist) {
-                // LogMsg("new min: {}, z: {:2.1f}, x: {:2.1f}", s.cname(), nw_z, nw_x);
+                // LogMsg("new min: {}, z: {:2.1f}, x: {:2.1f}", s.name(), nw_z, nw_x);
                 dist = d;
                 min_stand = i;
             }
@@ -301,7 +301,7 @@ void Airport::FindNearestStand() {
             LogMsg("Nearest stand '{}' found, but DGS position not yet set, ignored", ms.name());
             return;
         }
-        LogMsg("active stand now: {}, ll: ({}, {}), hdgt: {}, dist: {}", ms.cname(), ms.lat(), ms.lon(), ms.hdgt(), dist);
+        LogMsg("active stand now: {}, ll: ({}, {}), hdgt: {}, dist: {}", ms.name(), ms.lat(), ms.lon(), ms.hdgt(), dist);
 
         active_stand_ = min_stand;
         state_ = kEngaged;
@@ -328,7 +328,7 @@ int Airport::FindDepartureStand() {
 
         float dx = nw_x - s.x_;
         float dz = nw_z - s.z_;
-        // LogMsg("stand: {}, z: {:2.1f}, x: {:2.1f}", s.cname(), dz, dx);
+        // LogMsg("stand: {}, z: {:2.1f}, x: {:2.1f}", s.name(), dz, dx);
         if (dx * dx + dz * dz < 1.0f) {
             if (!s.dgs_position_set_) {
                 LogMsg("Departure stand '{}' found, but DGS position not yet set, ignored", s.name());
