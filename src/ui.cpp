@@ -432,7 +432,7 @@ void Ui::BuildInterface() {
         ImGui::Separator();
         int id = 0;
         for (int j = 0; j < n_jws; j++) {
-            ImGui::TextUnformatted(my_plane->nearest_jws_[j].name());
+            ImGui::TextUnformatted(my_plane->nearest_jws_[j].name().c_str());
             ImGui::NextColumn();
             for (int d = 0; d < n_doors; d++) {
                 ImGui::PushID(id++);  // ensure unique ID for each checkbox
@@ -508,7 +508,7 @@ void Ui::BuildInterface() {
         }
         ImGui::Separator();
         for (int j = 0; j < n_jws; j++) {
-            ImGui::TextUnformatted(my_plane->nearest_jws_[j].name());
+            ImGui::TextUnformatted(my_plane->nearest_jws_[j].name().c_str());
             ImGui::NextColumn();
             for (int d = 0; d < n_doors; d++) {
                 for (int ajw_idx : my_plane->active_jws_) {

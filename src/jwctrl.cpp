@@ -1012,8 +1012,8 @@ void JwCtrl::UnlockJw() noexcept{
     jw_->Unlock();
 }
 
-const char* JwCtrl::name() const noexcept{
-    return jw_->name_.c_str();
+const std::string& JwCtrl::name() const noexcept{
+    return jw_->name_;
 }
 
 void JwCtrl::ResetJw() {

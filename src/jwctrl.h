@@ -111,7 +111,7 @@ class JwCtrl {
     // find nearest jetways, order by z (= door number, hopefully)
     static int FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<JwCtrl>& nearest_jws);
 
-    // check whether extended nearest njw would crash into parked njw2
+    // check whether 'this' njw extended would crash into parked njw2
     bool CollisionCheck(const JwCtrl& njw2);
 
     // setup for operation
@@ -121,9 +121,9 @@ class JwCtrl {
     bool DockDrive();
     bool UndockDrive();
 
-    void UnlockJw() noexcept;           // unlock the jetway controled by this controller
+    void UnlockJw() noexcept;           // unlock the jetway controlled by this controller
     void ResetJw();                     // reset the jetway controlled by this controller to the initial position
-    const char* name() const noexcept;  // name of jetway controlled by this controller
+    const std::string& name() const noexcept;  // name of jetway controlled by this controller
 
     friend bool operator<(const JwCtrl&, const JwCtrl&) noexcept;
 
