@@ -119,8 +119,11 @@ void SamJw::FillLibraryValues(unsigned int id) {
 
     LogMsg("filling in library data for '{}', id: {}", name_, id);
     FillModelValues(*ljw);
-    min_rot1_ = -90.0f;
-    max_rot1_ = 90.0f;
+    // That's for a repair of missing data from a previous version of this plugin
+    if (min_rot1_ == 0.0f && max_rot1_ == 0.0f) {
+        min_rot1_ = -90.0f;
+        max_rot1_ = 90.0f;
+    }
 }
 
 void SamJw::FillModelValues(const SamJwModel& jwm) {
@@ -154,6 +157,8 @@ static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y,
     jw->psi_ = obj_psi;
     jw->is_zc_jw_ = true;
     jw->is_lib_jw_inst_ = true;  // zc jetways are always library instances
+    jw->min_rot1_ = -90.0f;
+    jw->max_rot1_ = 90.0f;
 
     // fill the 'opensam.xml' related position values
     XPLMLocalToWorld(obj_x, obj_y, obj_z, &jw->latitude_,  &jw->longitude_, &jw->altitude_);
@@ -189,7 +194,6 @@ static SamJw* AddZeroConfigJetway(int id, float obj_x, float obj_z, float obj_y,
     jw->rotate3_ = jw->initial_rot3_;
     jw->extent_ = jw->initial_extent_;
     jw->FillLibraryValues(id);
-    jw->SetWheelsStairs();
 
     // add to the global stores
     sam_jw_list.push_back(jw);
@@ -252,24 +256,31 @@ static float JwAnimAcc(void* ref) {
         double obj_lat, obj_lon, obj_alt;
         XPLMLocalToWorld(obj_x, obj_y, obj_z, &obj_lat, &obj_lon, &obj_alt);
 
+        // Add a jetway that came just into view into the cache
+        auto CacheJw = [&](SamJw* jw) {
+            if (id > 0)
+                jw->FillLibraryValues(id);
+            jw->obj_ref_gen_ = ref_gen;
+            jw->x_ = obj_x;
+            jw->y_ = obj_y;
+            jw->z_ = obj_z;
+            jw->psi_ = obj_psi;
+            jw_cache[key] = jw;
+        };
+
         // create an undefined jw at the current object position
-        auto AddUndefinedJw = [&]() {
+        auto AddUndefinedJw = [&]() -> SamJw* {
+            LogMsg("creating undefined jetway for position: ll: ({:.6}, {:.6}), x: {:5.3f}, z: {:5.3f}", obj_lat, obj_lon, key.x, key.z);
             SamJw* jw = new SamJw();
             jw->is_undefined_ = true;
             jw->latitude_ = obj_lat;
             jw->longitude_ = obj_lon;
             jw->altitude_ = obj_alt;
             jw->heading_ = obj_psi;
-            jw->obj_ref_gen_ = ref_gen;
-            jw->x_ = obj_x;
-            jw->y_ = obj_y;
-            jw->z_ = obj_z;
-            jw->psi_ = obj_psi;
             jw->ComputeBbox();
             sam_jw_list.push_back(jw);
             jw_quadtree.Insert(jw);
-            LogMsg("creating undefined jetway for position: ll: ({:.6}, {:.6}), x: {:5.3f}, z: {:5.3f}", obj_lat, obj_lon, key.x, key.z);
-            jw_cache[key] = jw;
+            return jw;
         };
 
         // filter out undefined jetways and ensure the class code matches for SAM jetways
@@ -280,23 +291,22 @@ static float JwAnimAcc(void* ref) {
 
         if (n_candidates == 1) [[likely]] {
             jw = candidates[0];
-            LogMsg("quadtree candidate: '{}', lat: {:.6}, lon: {:.6}", jw->name_, jw->latitude_, jw->longitude_);
+            LogMsg("quadtree candidate: '{}', ll: ({}, {})", jw->name_, jw->latitude_, jw->longitude_);
 
             if (std::abs(fem::RA(jw->heading_ - obj_psi)) > SamJw::kSam2ObjHdgMax) {
                 LogMsg("candidate '{}' rejected by heading, candidate heading: {:0.1f}, obj_psi: {:0.1f}", jw->name_,
                        jw->heading_, obj_psi);
-                LogMsg("negative cached: obj: ll({:.6}, {:.6}), candidate: ll({:.6}, {:.6})", obj_lat, obj_lon, jw->latitude_, jw->longitude_);
-                AddUndefinedJw();
+                LogMsg("negative cached: obj: ll({}, {}), candidate: ll({}, {})", obj_lat, obj_lon, jw->latitude_, jw->longitude_);
+                // Create a new undefined jetway
+                // -> negative caching for this object position and heading
+                jw = AddUndefinedJw();
+                CacheJw(jw);
                 return 0.0f;
             }
 
-            jw->obj_ref_gen_ = ref_gen;
-            jw->x_ = obj_x;
-            jw->z_ = obj_z;
-            jw->y_ = obj_y;
-            jw->psi_ = obj_psi;
-
-            jw_cache[key] = jw;
+            CacheJw(jw);
+            // Now with position and terrain available adjust wheels + stairs
+            jw->SetWheelsStairs(/* high_precision */ true);
         } else if (n_candidates > 1) [[unlikely]] {
             float min_dist = 100000.0f;
             SamJw* nearest = nullptr;
@@ -304,7 +314,7 @@ static float JwAnimAcc(void* ref) {
 
             for (int i = 0; i < n_candidates; i++) {
                 SamJw* candidate = candidates[i];
-                LogMsg("candidate {}: '{}', lat: {:.6}, lon: {:.6}", i, candidate->name_, candidate->latitude_,
+                LogMsg("candidate {}: '{}', ll: ({}, {})", i, candidate->name_, candidate->latitude_,
                        candidate->longitude_);
                 if (std::abs(fem::RA(candidate->heading_ - obj_psi)) > SamJw::kSam2ObjHdgMax) {
                     LogMsg("candidate '{}' rejected by heading, candidate heading: {:0.1f}, obj_psi: {:0.1f}", candidate->name_,
@@ -321,22 +331,18 @@ static float JwAnimAcc(void* ref) {
 
             if (nearest == nullptr) {
                 LogMsg("all candidates rejected by heading");
-                AddUndefinedJw();
+                SamJw* jw = AddUndefinedJw();
+                CacheJw(jw);
                 return 0.0f;
             }
 
-            LogMsg("nearest candidate: '{}', lat: {:.6}, lon: {:.6}, dist: {:.2}m", nearest->name_,
+            LogMsg("nearest candidate: '{}', ll: ({}, {}), dist: {:.2}m", nearest->name_,
                    nearest->latitude_, nearest->longitude_, min_dist);
             jw = nearest;
-            jw->obj_ref_gen_ = ref_gen;
-            jw->x_ = obj_x;
-            jw->z_ = obj_z;
-            jw->y_ = obj_y;
-            jw->psi_ = obj_psi;
-
-            jw_cache[key] = jw;
+            CacheJw(jw);
+            jw->SetWheelsStairs(/* high_precision */ true);
         } else if (n_candidates == 0 && id == 0) [[unlikely]] {
-            LogMsg("quadtree lookup found no candidates for obj at x: {:5.3f}, z: {:5.3f}, lat: {:.6}, lon: {:.6}", obj_x,
+            LogMsg("quadtree lookup found no candidates for obj at x: {:5.3f}, z: {:5.3f}, ll: ({}, {})", obj_x,
                    obj_z, obj_lat, obj_lon);
 
             // some support for sloppy configured scenery, e.g. sam.xml values quite off
@@ -344,7 +350,8 @@ static float JwAnimAcc(void* ref) {
             std::unordered_map<SamJw*, bool>  around = jw_quadtree.FindInBox(search_box, FilterNotUndefined);
             if (around.empty()) {
                 LogMsg("FindInBox found no candidates either");
-                AddUndefinedJw();
+                SamJw* jw = AddUndefinedJw();   // negative caching for this object position and heading
+                CacheJw(jw);
                 return 0.0f;
             }
 
@@ -354,7 +361,7 @@ static float JwAnimAcc(void* ref) {
             fem::LLPos obj_pos(obj_lat, obj_lon);
 
             for (auto& [ajw, _] : around) {
-                LogMsg("candidate: '{}', lat: {:.6}, lon: {:.6}", ajw->name_, ajw->latitude_, ajw->longitude_);
+                LogMsg("candidate: '{}', ll: ({}, {})", ajw->name_, ajw->latitude_, ajw->longitude_);
                 if (std::abs(fem::RA(ajw->heading_ - obj_psi)) > 2.0f * SamJw::kSam2ObjHdgMax) { // be generous as well
                     LogMsg("candidate '{}' rejected by heading, candidate heading: {:0.1f}, obj_psi: {:0.1f}", ajw->name_,
                         ajw->heading_, obj_psi);
@@ -370,31 +377,29 @@ static float JwAnimAcc(void* ref) {
 
             if (nearest == nullptr) {
                 LogMsg("FindInBox found no nearest candidate");
-                AddUndefinedJw();
+                SamJw* jw = AddUndefinedJw();   // negative caching for this object position and heading
+                CacheJw(jw);
                 return 0.0f;
             }
 
-            LogMsg("nearest candidate: '{}', lat: {:.6}, lon: {:.6}, dist: {:.2}m", nearest->name_,
+            LogMsg("nearest candidate: '{}', ll: ({}, {}), dist: {:.2}m", nearest->name_,
                    nearest->latitude_, nearest->longitude_, min_dist);
             jw = nearest;
-            jw->obj_ref_gen_ = ref_gen;
-            jw->x_ = obj_x;
-            jw->z_ = obj_z;
-            jw->y_ = obj_y;
-            jw->psi_ = obj_psi;
-
-            jw_cache[key] = jw;
+            CacheJw(jw);
+            jw->SetWheelsStairs(/* high_precision */ true);
         }
 
         // obj was not found in the scenery's configured jetways, but maybe it's a zero config library jetway
         if (nullptr == jw && 0 < id && id < lib_jw.size()) {  // unconfigured library jetway
             jw = AddZeroConfigJetway(id, obj_x, obj_z, obj_y, obj_psi);
             jw_cache[key] = jw;
+            jw->SetWheelsStairs(/* high_precision */ true);
         }
 
         if (nullptr == jw) {          // still unconfigured -> bad luck
             LogMsg("could not configure jw");
-            AddUndefinedJw();
+            SamJw* jw = AddUndefinedJw();   // negative caching for this object position and heading
+            CacheJw(jw);
             return 0.0f;
         }
     }  // no cache hit
@@ -404,10 +409,6 @@ static float JwAnimAcc(void* ref) {
 
     switch (drc) {
         case kRotate1:
-            // a one shot event on first access
-            if (id > 0) {
-                jw->FillLibraryValues(id);
-            }
             return jw->rotate1_;
             break;
         case kRotate2:
@@ -470,7 +471,7 @@ void SamJw::SetWheelsStairs(bool force_high_precision) {
             wheels_adjust_ = 0.0f;
         } else {
             wheels_adjust_ = probeinfo.locationY - y_;  // wheels relative to tunnel
-            // LogMsg("SetWheelsStairs: wheels_adjust_ = {:f}", wheels_adjust_);
+            // LogMsg("SetWheelsStairs: {} wheels_adjust_ = {:f}", name_, wheels_adjust_);
         }
     }
 
