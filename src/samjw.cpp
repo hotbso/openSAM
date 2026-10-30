@@ -22,7 +22,9 @@
 #include <cstdlib>
 #include <cmath>
 #include <ctime>
+#include <string>
 #include <array>
+#include <format>
 
 #include "XPLMGraphics.h"
 
@@ -550,16 +552,14 @@ void SamJw::Init(int max_sam_stands) {
 
     // create the jetway animation datarefs
     for (int drc = kRotate1; drc < kNumDrCodes; drc++) {
-        char name[100];
-        name[99] = '\0';
-        snprintf(name, sizeof(name) - 1, "sam/jetway/%s", dr_name_jw[drc]);
-        XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL, NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
+        std::string name = std::format("sam/jetway/{}", dr_name_jw[drc]);
+        XPLMRegisterDataAccessor(name.c_str(), xplmType_Float, 0, NULL, NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                  NULL, NULL, NULL, (void*)(uint64_t)drc, NULL);
 
         for (unsigned int i = 1; i < lib_jw.size(); i++) {
-            snprintf(name, sizeof(name) - 1, "sam/jetway/%s/%s", lib_jw[i]->model_id.c_str(), dr_name_jw[drc]);
+            std::string name = std::format("sam/jetway/{}/{}", lib_jw[i]->model_id, dr_name_jw[drc]);
             uint64_t ctx = (uint64_t)i << 32 | (uint64_t)drc;
-            XPLMRegisterDataAccessor(name, xplmType_Float, 0, NULL, NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
+            XPLMRegisterDataAccessor(name.c_str(), xplmType_Float, 0, NULL, NULL, JwAnimAcc, NULL, NULL, NULL, NULL, NULL, NULL,
                                      NULL, NULL, NULL, (void*)ctx, NULL);
         }
     }
