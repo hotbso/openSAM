@@ -48,7 +48,7 @@ extern void ReadWav(const std::string& fname, Sound& sound);
 static constexpr float kDriveSpeed = 1.0;        // m/s
 static constexpr float kTurnSpeed = 10.0;        // °/s
 static constexpr float kHeightSpeed = 0.1;       // m/s
-static constexpr float kBasicTimeout = 15;       // s ( + extent based timeout)
+static constexpr float kBasicTimeout = 25;       // s ( + extent based timeout)
 static constexpr float kAlignDist = 1.0;         // m abeam door
 static constexpr float kCanopyCloseTime = 5.0f;  // s, time to close canopy after docking
 
