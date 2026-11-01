@@ -25,6 +25,7 @@
 #include <cassert>
 #include <cmath>
 #include <algorithm>
+#include <string_view>
 
 #include "XPLMPlugin.h"
 
@@ -33,6 +34,7 @@
 #include "mpadapter_batc.h"
 #include "log_msg.h"
 
+namespace {
 constexpr int kSpawnPerRun = 10;  // new Planes per update run
 constexpr int kStringSlot = 8;    // bytes per slot of the flight_id / icao_type byte arrays
 
@@ -49,27 +51,24 @@ enum JetwayIntent {
     JW_UNDOCK = 2,  // leaving, undock now
 };
 
+}  // namespace
+
 class MpPlane_batc : public OsPlane {
     std::string flight_id_;
     int last_intent_{JW_DOCK};
 
    public:
-    MpPlane_batc(const std::string& flight_id, const std::string& acf_type, float x, float y, float z, float psi);
-    ~MpPlane_batc() override {
-    }
+    MpPlane_batc(std::string_view flight_id, std::string_view acf_type, float x, float y, float z, float psi);
+    ~MpPlane_batc() override {}
 
     // -> false when the plane should be deleted
-    bool update(int intent, bool on_ground);
+    bool update(int intent, bool do_log);
 
-    bool auto_mode() const override {
-        return true;
-    }
-    bool dock_requested() override {
-        return true;
-    }
+    bool auto_mode() const override { return true; }
+    bool dock_requested() override { return true; }
 };
 
-MpPlane_batc::MpPlane_batc(const std::string& flight_id, const std::string& acf_type, float x, float y, float z,
+MpPlane_batc::MpPlane_batc(std::string_view flight_id, std::string_view acf_type, float x, float y, float z,
                            float psi) {
     flight_id_ = flight_id;
 
@@ -79,15 +78,14 @@ MpPlane_batc::MpPlane_batc(const std::string& flight_id, const std::string& acf_
     LogMsg("pid={:03}, constructing MpPlane {}/{}", id_, flight_id_, acf_type);
 
     // first an optional translation to a generic icao code
-    auto it = acf_generic_type_map.find(acf_type);
-    if (it != acf_generic_type_map.end())
+    icao_ = acf_type;
+    auto it = MpAdapter::acf_generic_type_map.find(icao_);
+    if (it != MpAdapter::acf_generic_type_map.end())
         icao_ = it->second;
-    else
-        icao_ = acf_type;
 
     MpAdapter::LoadDoorInfo(*this);
     if (door_info_.empty()) {
-        LogMsg("pid={:03}, {}: door 1 is not defined in door_info_map, deactivating slot", id_, acf_type);
+        LogMsg("pid={:03}, {}: door 1 is not defined in door_info_map, deactivating slot", id_, icao_);
         state_ = kDisabled;
         return;
     }
@@ -106,18 +104,14 @@ MpPlane_batc::MpPlane_batc(const std::string& flight_id, const std::string& acf_
     psi_ = psi;
 
     LogMsg("pid={:03}, icao: {}, found door 1 in door_info_map: x: {:.2}, y: {:.2}, z: {:.2}", id_, icao_,
-           door_info_[0].x, door_info_[0].y, door_info_[0].z);
+        door_info_[0].x, door_info_[0].y, door_info_[0].z);
 
     state_ = kIdle;
 }
 
-bool MpPlane_batc::update(int intent, bool on_ground) {
+bool MpPlane_batc::update(int intent, bool do_log) {
     if (state_ == kDisabled)
         return true;  // keep the slot, so the plane is not constructed again and again
-
-    // An aircraft that left the ground has left its stand for sure.
-    if (!on_ground)
-        return false;
 
     // Undocked and no new request: the aircraft moves off, the plane goes. Otherwise the
     // IDLE state would see "on the ground, beacon off" and dock the taxiing aircraft again.
@@ -133,7 +127,8 @@ bool MpPlane_batc::update(int intent, bool on_ground) {
     if (!beacon_on_ && state_ == kCantDock && now > state_change_ts_ + 60.0f)
         state_ = kParked;
 
-    LogMsg("MP update: pid={:03}, icao: {}, id: {}, intent: {}, beacon: {}, state: {}", id_, icao_,
+    if (do_log)
+        LogMsg("MP update: pid={:03}, icao: {}, id: {}, intent: {}, beacon: {}, state: {}", id_, icao_,
            flight_id_, intent, beacon_on_, state_str_[state_]);
     return true;
 }
@@ -182,7 +177,10 @@ MpAdapter_batc::~MpAdapter_batc() {
 // static
 float MpAdapter_batc::update() {
     int n_planes = XPLMGetDatai(count_dr);
-    LogMsg("MpPlane_batc drefs #: {}", n_planes);
+    // LogMsg("MpPlane_batc drefs #: {}", n_planes);
+
+    if (n_planes == 0 && mp_planes_.empty())    // fast exit
+        return 10.0f;
 
     if (n_planes > vector_size_) {
         vector_size_ = std::max(n_planes + 50, 200);
@@ -215,6 +213,15 @@ float MpAdapter_batc::update() {
     std::unordered_map<std::string, bool> dref_planes;
     dref_planes.reserve(n_planes * 2);
 
+    std::string key;
+    key.reserve(10);
+
+    bool do_log{false};
+    if (now > log_ts_) {
+        do_log = true;
+        log_ts_ = now + kLogDelta;
+    }
+
     int spawn_remain = kSpawnPerRun;
     for (int i = 0; i < n_planes; i++) {
         if (!on_ground_val_[i] || std::hypot(x_val_[i] - my_plane->x(), z_val_[i] - my_plane->z()) > kMpMaxDist)
@@ -222,20 +229,20 @@ float MpAdapter_batc::update() {
 
         char* cptr = flight_id_val_.get() + i * kStringSlot;
         cptr[kStringSlot - 1] = '\0';  // play it safe
-        std::string flight_id = cptr;
+        std::string_view flight_id{cptr};
 
         cptr = acf_type_val_.get() + i * kStringSlot;
         cptr[kStringSlot - 1] = '\0';
-        std::string acf_type = cptr;
+        std::string_view acf_type{cptr};
 
         // the BeyondATC id is the stable key; the slot of an aircraft can change
-        std::string key = std::to_string(id_val_[i]);
+        key = std::to_string(id_val_[i]);
         int intent = jetway_val_[i];
 
         auto it = mp_planes_.find(key);
         if (it != mp_planes_.end()) {
             MpPlane_batc* mp_plane = static_cast<MpPlane_batc*>(it->second.get());
-            if (mp_plane->update(intent, true))
+            if (mp_plane->update(intent, do_log))
                 dref_planes[key] = true;
             // else: not in dref_planes -> deleted below
         } else {
@@ -261,7 +268,8 @@ float MpAdapter_batc::update() {
             ++it;
     }
 
-    if (!mp_planes_.empty())
+    if (do_log && !mp_planes_.empty())
         LogMsg("------------------ MP active planes found: {} -----------------", mp_planes_.size());
+
     return 2.0f;
 }

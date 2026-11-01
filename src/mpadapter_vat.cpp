@@ -37,9 +37,11 @@
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 
+namespace {
 constexpr int kSpawnPerRun = 10;    // new Planes per update run
 
 static XPLMDataRef planes_json_dr, json_freq_dr;
+}  // namespace
 
 class MpPlane_vat : public OsPlane {
     const std::string flight_id_;
@@ -49,7 +51,7 @@ class MpPlane_vat : public OsPlane {
     MpPlane_vat(const std::string& flight_id, const std::string& flight_no, const std::string& acf_icao, float x, float y, float z, float psi);
     ~MpPlane_vat() override {}
 
-    void update(bool beacon);
+    void update(bool beacon, bool do_log);
 
     bool auto_mode() const override { return true; }
     bool dock_requested() override { return true; }
@@ -85,7 +87,7 @@ MpPlane_vat::MpPlane_vat(const std::string& flight_id, const std::string& flight
     state_ = kIdle;
 }
 
-void MpPlane_vat::update(bool beacon) {
+void MpPlane_vat::update(bool beacon, bool do_log) {
     if (state_ == kDisabled)
         return;
 
@@ -97,8 +99,9 @@ void MpPlane_vat::update(bool beacon) {
     if (!beacon_on_ && state_ == kCantDock && now > state_change_ts_ + 60.0f)
         state_ = kParked;
 
-    LogMsg("VAT update: pid={:03}, id: {}, flight_no: {}, icao: {}, beacon: {}, state: {}", id_, flight_id_,
-           flight_no_, icao_, beacon_on_, state_str_[state_]);
+    if (do_log)
+        LogMsg("VAT update: pid={:03}, id: {}, flight_no: {}, icao: {}, beacon: {}, state: {}", id_, flight_id_,
+               flight_no_, icao_, beacon_on_, state_str_[state_]);
 }
 
 //==============  MpAdapter_vat ========================================
@@ -165,6 +168,15 @@ float MpAdapter_vat::update() {
 
     std::unordered_map<std::string, bool> json_planes;
     json_planes.reserve(400);
+
+    std::string flight_id;
+    flight_id.reserve(16);
+
+    bool do_log{false};
+    if (now > log_ts_) {
+        do_log = true;
+        log_ts_ = now + kLogDelta;
+    }
     try {
         int spawn_remain = kSpawnPerRun;
 
@@ -182,13 +194,13 @@ float MpAdapter_vat::update() {
             // LogMsg("Plane ID: {}, State: {}, Aircraft Type: {}, Beacon On: {}", plane_id, state, acf_icao,
             //     beacon_on);
 
-            const std::string flight_id = std::format("ID{:05}", plane_id);
+            flight_id = std::format("ID{:05}", plane_id);
 
             json_planes[flight_id] = true;
             auto it = mp_planes_.find(flight_id);
             if (it != mp_planes_.end()) {
                 MpPlane_vat* mp_plane = static_cast<MpPlane_vat*>(it->second.get());
-                mp_plane->update(beacon_on);
+                mp_plane->update(beacon_on, do_log);
             } else {
                 if (!beacon_on) {  // new creation only in parked state
                     if (--spawn_remain < 0)
@@ -219,9 +231,8 @@ float MpAdapter_vat::update() {
             ++it;
     }
 
-    if (!mp_planes_.empty())
+    if (do_log && !mp_planes_.empty())
         LogMsg("------------------ MP active planes found: {} -----------------", mp_planes_.size());
-
 
     return 2.0f;
 }

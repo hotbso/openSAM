@@ -27,28 +27,36 @@
 #include "os_plane.h"
 
 // Wrapper around the different plugins providing multiplayer planes
-// xPilot, TGXP, liveTraffic, ...
+// xPilot, VAT, BATC, TGXP, liveTraffic, ...
 class MpAdapter {
-  protected:
+   protected:
     std::unordered_map<std::string, std::unique_ptr<OsPlane>> mp_planes_;
     MpAdapter() {};
 
-  public:
+    // throttle logging
+    static constexpr float kLogDelta = 10.0f;
+    float log_ts_{};
+
+   public:
     virtual ~MpAdapter();
     virtual const char* personality() const = 0;
 
-    virtual float update() = 0;     // update status of MP planes
-    float JwStateMachine();       // return delay to next call
+    virtual float update() = 0;  // update status of MP planes
+    float JwStateMachine();      // return delay to next call
     void Reset();
 
     // load door info for multiplayer plane
     static void LoadDoorInfo(OsPlane& mp_plane);
+
+    // key is icao or iata -> icao
+    static std::unordered_map<std::string, std::string> acf_generic_type_map;
+    // key is icao + <door num in ascii>
+    static std::unordered_map<std::string, DoorInfo> csl_door_info_map;
+
+    // load the acf_generic_type_map and csl_door_info_map from the configuration
+    // to be called once by initialization code
+    static bool LoadMaps();
 };
 
 // hopefully will detect which plugin is active and returns the appropriate service
 extern std::unique_ptr<MpAdapter> MpAdapter_factory();  // no supported MP plugin -> nullptr
-
-// key is icao + <door num in ascii>
-extern std::unordered_map<std::string, DoorInfo> csl_door_info_map;
-// key is icao or iata -> icao
-extern std::unordered_map<std::string, std::string> acf_generic_type_map;

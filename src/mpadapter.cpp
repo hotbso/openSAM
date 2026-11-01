@@ -20,10 +20,11 @@
 //
 
 #include <cassert>
-#include <unordered_map>
 #include <memory>
 #include <algorithm>
+#include <fstream>
 
+#include "opensam.h"
 #include "os_plane.h"
 #include "mpadapter.h"
 #include "mpadapter_xpilot.h"
@@ -33,8 +34,8 @@
 #include "mpadapter_batc.h"
 #include "log_msg.h"
 
-std::unordered_map<std::string, DoorInfo> csl_door_info_map;
-std::unordered_map<std::string, std::string> acf_generic_type_map;
+std::unordered_map<std::string, DoorInfo> MpAdapter::csl_door_info_map;
+std::unordered_map<std::string, std::string> MpAdapter::acf_generic_type_map;
 
 static bool active;
 
@@ -97,4 +98,77 @@ void MpAdapter::LoadDoorInfo(OsPlane& mp_plane) {
     auto it3 = csl_door_info_map.find(key);
     if (it3 != csl_door_info_map.end())
         mp_plane.door_info_.push_back(it3->second);
+}
+
+// load config files for door info and aircraft generic type mappings
+bool MpAdapter::LoadMaps() {
+    std::string fn = base_dir + "csl_door_position.txt";
+    std::ifstream f(fn);
+    if (!f.is_open()) {
+        LogMsg("Error loading '{}'", fn);
+        return false;
+    }
+
+    LogMsg("Building door_info_map from {}", fn);
+
+    std::string line;
+    line.reserve(100);
+
+    while (std::getline(f, line)) {
+        if (line.empty())
+            continue;
+
+        if (line.back() == '\r')
+            line.pop_back();
+
+        if (line.empty() || line[0] == '#')
+            continue;
+
+        char icao[5];
+        int d;
+        float x, y, z;
+        if (5 == sscanf(line.c_str(), "%4s %d %f %f %f", icao, &d, &x, &y, &z)) {
+            if (d < 1 || d > kMaxDoor) {
+                LogMsg("invalid entry: '{}'", line);
+                continue;
+            }
+
+            char c = d + '0';
+            DoorInfo di{x, y, z};
+            csl_door_info_map[std::string(icao) + c] = di;
+        }
+    }
+
+    LogMsg("{} mappings loaded", csl_door_info_map.size());
+    f.close();
+
+    fn = base_dir + "acf_generic_type.txt";
+    f.open(fn);
+    if (!f.is_open()) {
+        LogMsg("Error loading '{}'", fn);
+        return false;
+    }
+
+    LogMsg("Building acf_generic_type_map from {}", fn);
+
+    while (std::getline(f, line)) {
+        if (line.empty())
+            continue;
+
+        if (line.back() == '\r')
+            line.pop_back();
+
+        if (line.empty() || line[0] == '#')
+            continue;
+
+        char code[5];
+        char icao[5];
+        if (2 == sscanf(line.c_str(), "%4s %4s", code, icao))
+            acf_generic_type_map[std::string(code)] = std::string(icao);
+
+    }
+
+    LogMsg("{} mappings loaded", acf_generic_type_map.size());
+    f.close();
+    return true;
 }

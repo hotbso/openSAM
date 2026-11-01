@@ -118,8 +118,8 @@ MpPlane_tgxp::MpPlane_tgxp(int slot, const std::string& flight_id, const std::st
     }
 
     // first an optional translation to icao code
-    auto it = acf_generic_type_map.find(type_code);
-    if (it != acf_generic_type_map.end())
+    auto it = MpAdapter::acf_generic_type_map.find(type_code);
+    if (it != MpAdapter::acf_generic_type_map.end())
         icao_ = it->second;
     else
         icao_ = type_code;

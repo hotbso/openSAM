@@ -47,7 +47,7 @@ class MpPlane_xPilot : public OsPlane {
     MpPlane_xPilot(int slot, std::string_view flight_id, std::string_view icao);
     ~MpPlane_xPilot() override {}
 
-    void update(float x, float y, float z, float psi, float throttle, int lights);
+    void update(float x, float y, float z, float psi, float throttle, int lights, bool do_log);
 
     bool auto_mode() const override { return true; }
     bool dock_requested() override { return true; }
@@ -76,7 +76,7 @@ MpPlane_xPilot::MpPlane_xPilot(int slot, std::string_view flight_id, std::string
     state_ = kIdle;
 }
 
-void MpPlane_xPilot::update(float x, float y, float z, float psi, float throttle, int lights) {
+void MpPlane_xPilot::update(float x, float y, float z, float psi, float throttle, int lights, bool do_log) {
     if (state_ == kDisabled)
         return;
 
@@ -97,8 +97,11 @@ void MpPlane_xPilot::update(float x, float y, float z, float psi, float throttle
     beacon_on_ = ((lights & 1) == 1);
     parkbrake_set_ = ((now - last_move_ts_) > 10.0f);
 
-    LogMsg("MP update: pid={:03}, slot: {:02d}, icao: {}, id: {}, beacon: {}, parkbrake_set: {}, engine_on: {}, state: {}",
-           id_, slot_, icao_, flight_id_, beacon_on_, parkbrake_set_, engines_on_, state_str_[state_]);
+    if (do_log)
+        LogMsg(
+            "MP update: pid={:03}, slot: {:02d}, icao: {}, id: {}, beacon: {}, parkbrake_set: {}, engine_on: {}, "
+            "state: {}",
+            id_, slot_, icao_, flight_id_, beacon_on_, parkbrake_set_, engines_on_, state_str_[state_]);
 }
 
 //==============  MpAdapter_xPilot ========================================
@@ -166,6 +169,15 @@ float MpAdapter_xPilot::update() {
     std::unordered_map<std::string, bool> dref_planes;
     dref_planes.reserve(n_planes_ * 2);
 
+    std::string key;
+    key.reserve(16);
+
+    bool do_log{false};
+    if (now > log_ts_) {
+        do_log = true;
+        log_ts_ = now + kLogDelta;
+    }
+
     for (int i = 1; i < n_planes_; i++) {
         // slot empty or not on ground or far away -> ignore
         if (0 == modeS_id_val_[i] || !on_ground_val_[i] ||
@@ -182,16 +194,16 @@ float MpAdapter_xPilot::update() {
         cptr[7] = '\0';  // play it safe
         std::string_view icao(cptr);
 
-        std::string key = std::format("{}/{}", flight_id, icao);
+        key = std::format("{}/{}", flight_id, icao);
         dref_planes[key] = true;
 
         auto it = mp_planes_.find(key);
         if (it != mp_planes_.end()) {
             MpPlane_xPilot* mp_plane = static_cast<MpPlane_xPilot*>(it->second.get());
-            mp_plane->update(x_val_[i], y_val_[i], z_val_[i], psi_val_[i], throttle_val_[i], lights_val_[i]);
+            mp_plane->update(x_val_[i], y_val_[i], z_val_[i], psi_val_[i], throttle_val_[i], lights_val_[i], do_log);
         } else {
             MpPlane_xPilot* mp_plane = new MpPlane_xPilot(i, flight_id, icao);
-            mp_plane->update(x_val_[i], y_val_[i], z_val_[i], psi_val_[i], throttle_val_[i], lights_val_[i]);
+            mp_plane->update(x_val_[i], y_val_[i], z_val_[i], psi_val_[i], throttle_val_[i], lights_val_[i], do_log);
             mp_planes_.emplace(key, mp_plane);
         }
     }
@@ -208,7 +220,8 @@ float MpAdapter_xPilot::update() {
             ++it;
     }
 
-    if (!mp_planes_.empty())
+    if (do_log && !mp_planes_.empty())
         LogMsg("------------------ MP active planes found: {} -----------------", mp_planes_.size());
+
     return 2.0f;
 }

@@ -63,8 +63,8 @@ MpPlane_lt::MpPlane_lt(const std::string& flight_id, const std::string& icao, fl
 
     door_info_.clear();
     // first an optional translation to a generic icao code
-    auto it = acf_generic_type_map.find(icao);
-    if (it != acf_generic_type_map.end())
+    auto it = MpAdapter::acf_generic_type_map.find(icao);
+    if (it != MpAdapter::acf_generic_type_map.end())
         icao_ = it->second;
     else
         icao_ = icao;

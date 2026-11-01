@@ -551,72 +551,6 @@ static int JwEditorCmdCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPhase 
     return 0;
 }
 
-static void LoadDoorInfo(const std::string& fn, std::unordered_map<std::string, DoorInfo>& di_map) {
-    std::ifstream f(fn);
-    if (!f.is_open())
-        throw std::runtime_error("Error loading " + fn);
-
-    LogMsg("Building door_info_map from {}", fn);
-
-    std::string line;
-    line.reserve(100);
-
-    while (std::getline(f, line)) {
-        if (line.empty())
-            continue;
-
-        if (line.back() == '\r')
-            line.pop_back();
-
-        if (line.empty() || line[0] == '#')
-            continue;
-
-        char icao[5];
-        int d;
-        float x, y, z;
-        if (5 == sscanf(line.c_str(), "%4s %d %f %f %f", icao, &d, &x, &y, &z)) {
-            if (d < 1 || d > kMaxDoor) {
-                LogMsg("invalid entry: '{}'", line);
-                continue;
-            }
-
-            char c = d + '0';
-            DoorInfo d{x, y, z};
-            di_map[std::string(icao) + c] = d;
-        }
-    }
-
-    LogMsg("{} mappings loaded", di_map.size());
-}
-
-static void LoadAcfGenericType(const std::string& fn) {
-    std::ifstream f(fn);
-    if (!f.is_open())
-        throw std::runtime_error("Error loading " + fn);
-
-    LogMsg("Building acf_generic_type_map from {}", fn);
-
-    std::string line;
-    while (std::getline(f, line)) {
-        if (line.empty())
-            continue;
-
-        if (line.back() == '\r')
-            line.pop_back();
-
-        if (line.empty() || line[0] == '#')
-            continue;
-
-        char code[5];
-        char icao[5];
-        if (2 == sscanf(line.c_str(), "%4s %4s", code, icao))
-            acf_generic_type_map[std::string(code)] = std::string(icao);
-
-    }
-
-    LogMsg("{} mappings loaded", acf_generic_type_map.size());
-}
-
 // emulate the status for XP12 jetways, called by the "opensam/jetway/status" dataref accessor
 //
 // opensam/jetway/status dataref
@@ -716,13 +650,14 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
         return 0;
     }
 
-    int max_sam_stands;
+    if (!MpAdapter::LoadMaps()) {
+        LogMsg("Failed to load maps, bye!");
+        return 0;
+    }
 
     // collect all config and *.xml files
+    int max_sam_stands;
     try {
-        LoadDoorInfo(base_dir + "csl_door_position.txt", csl_door_info_map);
-        LoadAcfGenericType(base_dir + "acf_generic_type.txt");
-
         TimeCodeBlock tc("Scenery Collection");
         SceneryPacks scp(xp_dir);
 
