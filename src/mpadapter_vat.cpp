@@ -167,10 +167,7 @@ float MpAdapter_vat::update() {
     }
 
     std::unordered_map<std::string, bool> json_planes;
-    json_planes.reserve(400);
-
-    std::string flight_id;
-    flight_id.reserve(16);
+    json_planes.reserve(64 * 1024);
 
     bool do_log{false};
     if (now > log_ts_) {
@@ -194,7 +191,7 @@ float MpAdapter_vat::update() {
             // LogMsg("Plane ID: {}, State: {}, Aircraft Type: {}, Beacon On: {}", plane_id, state, acf_icao,
             //     beacon_on);
 
-            flight_id = std::format("ID{:05}", plane_id);
+            std::string flight_id = std::format("ID{:05}", plane_id);
 
             json_planes[flight_id] = true;
             auto it = mp_planes_.find(flight_id);

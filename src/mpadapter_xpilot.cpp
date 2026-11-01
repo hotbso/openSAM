@@ -23,7 +23,7 @@
 #include <cassert>
 #include <cmath>
 #include <string_view>
-#include <print>
+#include <format>
 
 #include "my_plane.h"
 #include "mpadapter_xpilot.h"
@@ -169,9 +169,6 @@ float MpAdapter_xPilot::update() {
     std::unordered_map<std::string, bool> dref_planes;
     dref_planes.reserve(n_planes_ * 2);
 
-    std::string key;
-    key.reserve(16);
-
     bool do_log{false};
     if (now > log_ts_) {
         do_log = true;
@@ -194,7 +191,7 @@ float MpAdapter_xPilot::update() {
         cptr[7] = '\0';  // play it safe
         std::string_view icao(cptr);
 
-        key = std::format("{}/{}", flight_id, icao);
+        std::string key = std::format("{}/{}", flight_id, icao);
         dref_planes[key] = true;
 
         auto it = mp_planes_.find(key);

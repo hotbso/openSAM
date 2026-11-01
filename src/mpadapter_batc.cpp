@@ -213,9 +213,6 @@ float MpAdapter_batc::update() {
     std::unordered_map<std::string, bool> dref_planes;
     dref_planes.reserve(n_planes * 2);
 
-    std::string key;
-    key.reserve(10);
-
     bool do_log{false};
     if (now > log_ts_) {
         do_log = true;
@@ -236,7 +233,7 @@ float MpAdapter_batc::update() {
         std::string_view acf_type{cptr};
 
         // the BeyondATC id is the stable key; the slot of an aircraft can change
-        key = std::to_string(id_val_[i]);
+        std::string key = std::to_string(id_val_[i]);
         int intent = jetway_val_[i];
 
         auto it = mp_planes_.find(key);

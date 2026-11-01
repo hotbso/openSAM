@@ -24,7 +24,7 @@
 
 #include <string>
 #include <vector>
-#include <print>
+#include <format>
 
 #include "XPLMDisplay.h"
 #include "XPLMProcessing.h"
