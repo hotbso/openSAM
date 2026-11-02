@@ -369,13 +369,13 @@ void Display::ObjectLoadedCb(XPLMObjectRef inObject, void* inRefcon) {
     // LogMsg("Display::ObjectLoaded: Async load callback for display {}, object={:p}", display->id_, inObject);
 
     if (display->retired_) {
-        LogMsg("Display::ObjectLoaded: Display was marked for retirement, deleting now");
+        // LogMsg("Display::ObjectLoaded: Display was marked for retirement, deleting now");
         delete display;
         return;
     }
 
     if (display->xplm_obj_) {
-        LogMsg("Display::ObjectLoaded: Successfully loaded object asynchronously");
+        // LogMsg("Display::ObjectLoaded: Successfully loaded object asynchronously");
     } else {
         LogMsg("Display::ObjectLoaded: Error - Failed to load object asynchronously");
     }
@@ -387,9 +387,9 @@ void Display::Deleter(Display* display) {
 
     if (display->async_in_progress_ || display->on_bg_q) {
         display->retired_ = true;
-        LogMsg("Display::Deleter: Display is still loading asynchronously or on background queue, will delete later");
+        // LogMsg("Display::Deleter: Display is still loading asynchronously or on background queue, will delete later");
     } else {
-        LogMsg("Display::Deleter: Deleting display immediately");
+        // LogMsg("Display::Deleter: Deleting display immediately");
         delete display;
     }
 }
@@ -499,7 +499,7 @@ void Display::BgWorker() {
         in_q_cv.wait(lock, [] {
             if (bg_stop_thread || !in_q.empty())
                 return true;
-            LogMsg("BgWorker waiting on cv");
+            // LogMsg("BgWorker waiting on cv");
             return false;
         });
 

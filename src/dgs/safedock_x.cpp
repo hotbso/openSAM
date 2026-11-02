@@ -241,8 +241,6 @@ std::unique_ptr<DGS> CreateSafedock_X(const std::string& name, const std::string
 Safedock_X::Safedock_X(const std::string& name, const std::string& arpt_icao, bool display_only,
                        bool pole)
     : name_(name), arpt_icao_(arpt_icao), pole_(pole), cdm_page_(this), stand_page_(this), eq_page_(this) {
-    LogMsg("Creating Safedock_X instance for stand '{}'", name_);
-
     display_name_ = ExtractDisplayName(name_, kR1Nchar);
 
     if (!display_only) {
