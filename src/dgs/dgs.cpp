@@ -36,7 +36,7 @@
 
 namespace dgs {
 
-static constexpr float kMinBrightness = 0.02;  // relative to 1
+static constexpr float kMinBrightness = 0.015;  // relative to 1
 
 XPLMDataRef ground_speed_dr;
 
