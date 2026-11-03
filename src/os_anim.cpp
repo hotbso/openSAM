@@ -73,7 +73,7 @@ float SamAnim::AnimAcc(void* ref) {
 
             SamObj& obj = sc->sam_objs_[anim.obj_idx];
 
-            if (fabsf(fem::RA(obj.heading - obj_psi)) > kSam2ObjHdgMax)
+            if (std::abs(fem::RA(obj.heading - obj_psi)) > kSam2ObjHdgMax)
                 continue;
 
             if (obj.xml_ref_gen < ref_gen) {
@@ -86,7 +86,7 @@ float SamAnim::AnimAcc(void* ref) {
                 obj.xml_ref_gen = ref_gen;
             }
 
-            if (fabs(obj_x - obj.xml_x) > kSam2ObjMax || fabs(obj_z - obj.xml_z) > kSam2ObjMax)
+            if (std::abs(obj_x - obj.xml_x) > kSam2ObjMax || std::abs(obj_z - obj.xml_z) > kSam2ObjMax)
                 continue;
 
             SamDrf& drf = SamDrf::sam_drfs[drf_idx];
@@ -149,7 +149,7 @@ static float AutoDrfAcc(void* ref) {
         // that should give a deterministic per object random value
         float obj_x = XPLMGetDataf(draw_object_x_dr);
         float obj_y = XPLMGetDataf(draw_object_y_dr);
-        t += fabsf(obj_x * 0.5f + obj_y);
+        t += std::abs(obj_x * 0.5f + obj_y);
     }
 
     float dt = fmodf(t, drf.t[drf.n_tv - 1]);

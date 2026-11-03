@@ -48,7 +48,7 @@ extern void ReadWav(const std::string& fname, Sound& sound);
 static constexpr float kDriveSpeed = 1.0;        // m/s
 static constexpr float kTurnSpeed = 10.0;        // °/s
 static constexpr float kHeightSpeed = 0.1;       // m/s
-static constexpr float kBasicTimeout = 25;       // s ( + extent based timeout)
+static constexpr float kBasicTimeout = 30;       // s ( + extent based timeout)
 static constexpr float kAlignDist = 1.0;         // m abeam door
 static constexpr float kCanopyCloseTime = 5.0f;  // s, time to close canopy after docking
 
@@ -113,6 +113,8 @@ bool CollisionCheck(const Vec2& S1, const Vec2& E1, const Vec2& S2, const Vec2& 
 
 // fill in all values that are independent of the door
 JwCtrl::JwCtrl(SamJw* jw, const JwCtrlPlaneInfo& plane_info) : jw_(jw) {
+    plane_id_ = plane_info.id;
+
     // rotate into plane local frame
     float dx = jw_->x_ - plane_info.x;
     float dz = jw_->z_ - plane_info.z;
@@ -553,7 +555,7 @@ bool JwCtrl::DockDrive() {
     auto UpdateParams = [this]() {
         // guard against a hung animation
         if (now > timeout_) {
-            LogMsg("dock_drive() timeout!");
+            LogMsg("pid={:03} dock_drive() timeout!", plane_id_);
             state_ = kDocked;
             jw_->rotate1_ = docked_rot1_;
             jw_->rotate2_ = docked_rot2_;
@@ -584,8 +586,8 @@ bool JwCtrl::DockDrive() {
             float tgt_z = ap_z_;
 
             float eps = std::max(2.0f * dt * kDriveSpeed, 0.1f);
-            // LogMsg("eps: {:0.3f}, {:0.3f}, {:0.3f}", eps, fabs(tgt_x - cabin_x_), fabs(tgt_z - cabin_z_));
-            if (fabs(tgt_x - cabin_x_) < eps && fabs(tgt_z - cabin_z_) < eps) {
+            // LogMsg("eps: {:0.3f}, {:0.3f}, {:0.3f}", eps, std::abs(tgt_x - cabin_x_), std::abs(tgt_z - cabin_z_));
+            if (std::abs(tgt_x - cabin_x_) < eps && std::abs(tgt_z - cabin_z_) < eps) {
                 state_ = kAtAp;
                 LogMsg("align point reached reached");
                 return false;
@@ -595,7 +597,7 @@ bool JwCtrl::DockDrive() {
 
             // Well, the wheels are somewhat behind the cabin so this is only approximate
             // but doesn't make much of a difference.
-            double drive_angle = atan2(tgt_z - cabin_z_, tgt_x - cabin_x_) / kD2R;
+            double drive_angle = std::atan2(tgt_z - cabin_z_, tgt_x - cabin_x_) / kD2R;
 
             // wb_rot_ is drive_angle in the 'tunnel frame'
             wb_rot_ = fem::RA(drive_angle - rot1_d);
@@ -606,8 +608,8 @@ bool JwCtrl::DockDrive() {
                 drive_angle = fem::RA(rot1_d + -90.0f);
             }
 
-            cabin_x_ += cos(drive_angle * kD2R) * ds;
-            cabin_z_ += sin(drive_angle * kD2R) * ds;
+            cabin_x_ += std::cos(drive_angle * kD2R) * ds;
+            cabin_z_ += std::sin(drive_angle * kD2R) * ds;
 
             // LogMsg("to ap: rot1_d: {:.2f}, cabin_x_: {:0.3f}, cabin_z_: {:0.3f}, drive_angle: {:.2}, wb_rot_: {:.2}",
             //     rot1_d, docked_x_, cabin_z_, drive_angle, wb_rot_);
@@ -621,7 +623,7 @@ bool JwCtrl::DockDrive() {
             // rotation2
             float tgt_rot2 = docked_rot2_;
             if (cabin_x_ < (tgt_x - 1.0f) || cabin_z_ < (tgt_z - 2.0f)) {
-                float angle_to_door = atan2f(docked_z_ - cabin_z_, docked_x_ - cabin_x_) / kD2R;
+                float angle_to_door = std::atan2(docked_z_ - cabin_z_, docked_x_ - cabin_x_) / kD2R;
                 tgt_rot2 = fem::RA(angle_to_door + 90.0f - psi_ - jw_->rotate1_);  // point to door
             }
             // LogMsg("jw_->rotate2_: {:0.1f}, tgt_rot2: {:0.1f}, tgt_rot2: {:0.1f}", jw_->rotate2_, tgt_rot2, tgt_rot2);
@@ -677,8 +679,8 @@ bool JwCtrl::DockDrive() {
             AnimateWheels(ds);
 
             float eps = std::max(2.0f * dt * kDriveSpeed, 0.05f);
-            // LogMsg("eps: {:0.3f}, d_x: {:0.3f}", eps, fabs(tgt_x - cabin_x_));
-            if (fabs(tgt_x - cabin_x_) < eps) {
+            // LogMsg("eps: {:0.3f}, d_x: {:0.3f}", eps, std::abs(tgt_x - cabin_x_));
+            if (std::abs(tgt_x - cabin_x_) < eps) {
                 state_ = kAtDoor;
                 LogMsg("door reached");
                 jw_->warnlight_ = 0;
@@ -726,7 +728,7 @@ bool JwCtrl::UndockDrive() {
     auto UpdateParams = [this]() {
         // guard against a hung animation
         if (now > timeout_) {
-            LogMsg("UndockDrive() timeout!");
+            LogMsg("pid={:03} UndockDrive() timeout!", plane_id_);
             state_ = kParked;
             jw_->Reset();
             return true;  // -> done
@@ -765,8 +767,8 @@ bool JwCtrl::UndockDrive() {
             float tgt_x = ap_x_;
             float tgt_z = ap_z_;
             float eps = std::max(2.0f * dt * kDriveSpeed, 0.1f);
-            // LogMsg("eps: {:0.3f}, {:0.3f}, {:0.3f}", eps, fabs(tgt_x - cabin_x_), fabs(tgt_z - cabin_z_));
-            if (fabs(tgt_x - cabin_x_) < eps && fabs(tgt_z - cabin_z_) < eps) {
+            // LogMsg("eps: {:0.3f}, {:0.3f}, {:0.3f}", eps, std::abs(tgt_x - cabin_x_), std::abs(tgt_z - cabin_z_));
+            if (std::abs(tgt_x - cabin_x_) < eps && std::abs(tgt_z - cabin_z_) < eps) {
                 state_ = kAtAp;
                 LogMsg("align point reached reached");
                 return false;
@@ -775,8 +777,8 @@ bool JwCtrl::UndockDrive() {
             double ds = dt * 0.5 * kDriveSpeed;
             double drive_angle = atan2(tgt_z - cabin_z_, tgt_x - cabin_x_) / kD2R;
 
-            cabin_x_ += cos(drive_angle * kD2R) * ds;
-            cabin_z_ += sin(drive_angle * kD2R) * ds;
+            cabin_x_ += std::cos(drive_angle * kD2R) * ds;
+            cabin_z_ += std::sin(drive_angle * kD2R) * ds;
             // LogMsg("to ap: rot1_d: {:.2f}, cabin_x_: {:0.3f}, cabin_z_: {:0.3f}, wheel_x: {:0.3f}, wheel_z: {:0.3f}, drive_angle: {:.2}",
             //        rot1_d, cabin_x_, cabin_z_, wheel_x, wheel_z, drive_angle);
 
@@ -823,8 +825,8 @@ bool JwCtrl::UndockDrive() {
                 drive_angle = fem::RA(rot1_d + 90.0f);
             }
 
-            cabin_x_ += cos(drive_angle * kD2R) * ds;
-            cabin_z_ += sin(drive_angle * kD2R) * ds;
+            cabin_x_ += std::cos(drive_angle * kD2R) * ds;
+            cabin_z_ += std::sin(drive_angle * kD2R) * ds;
             // LogMsg("to parked: rot1_d: {:.2f}, cabin_x_: {:0.3f}, cabin_z_: {:0.3f}, wheel_x: {:0.3f}, wheel_z: {:0.3f}, drive_angle: {:.2}",
             //        rot1_d, cabin_x_, cabin_z_, wheel_x, wheel_z, drive_angle);
 
@@ -840,8 +842,8 @@ bool JwCtrl::UndockDrive() {
             AnimateWheels(ds);
 
             float eps = std::max(2.0f * dt * kDriveSpeed, 0.1f);
-            // LogMsg("eps: {:0.3f}, {:0.3f}, {:0.3f}", eps, fabs(tgt_x - cabin_x_), fabs(tgt_z - cabin_z_));
-            if (fabs(tgt_x - cabin_x_) < eps && fabs(tgt_z - cabin_z_) < eps) {
+            // LogMsg("eps: {:0.3f}, {:0.3f}, {:0.3f}", eps, std::abs(tgt_x - cabin_x_), std::abs(tgt_z - cabin_z_));
+            if (std::abs(tgt_x - cabin_x_) < eps && std::abs(tgt_z - cabin_z_) < eps) {
                 state_ = kParked;
                 jw_->warnlight_ = 0;
                 jw_->AlertOff();
@@ -889,8 +891,8 @@ bool JwCtrl::UndockDrive() {
                 float tgt_x = ap_x_;
                 float tgt_z = ap_z_;
                 float eps = std::max(2.0f * dt * kDriveSpeed, 0.1f);
-                // LogMsg("eps: {:0.3f}, {:0.3f}, {:0.3f}", eps, fabs(tgt_x - cabin_x_), fabs(tgt_z - cabin_z_));
-                if (fabs(tgt_x - cabin_x_) < eps && fabs(tgt_z - cabin_z_) < eps) {
+                // LogMsg("eps: {:0.3f}, {:0.3f}, {:0.3f}", eps, std::abs(tgt_x - cabin_x_), std::abs(tgt_z - cabin_z_));
+                if (std::abs(tgt_x - cabin_x_) < eps && std::abs(tgt_z - cabin_z_) < eps) {
                     state_ = kAtAp;
                     LogMsg("align point reached reached");
                     return false;
@@ -899,8 +901,8 @@ bool JwCtrl::UndockDrive() {
                 double ds = dt * 0.5 * kDriveSpeed;
                 double drive_angle = atan2(tgt_z - cabin_z_, tgt_x - cabin_x_) / kD2R;
 
-                cabin_x_ += cos(drive_angle * kD2R) * ds;
-                cabin_z_ += sin(drive_angle * kD2R) * ds;
+                cabin_x_ += std::cos(drive_angle * kD2R) * ds;
+                cabin_z_ += std::sin(drive_angle * kD2R) * ds;
                 // LogMsg("to ap: rot1_d: {:.2f}, cabin_x_: {:0.3f}, cabin_z_: {:0.3f}, wheel_x: {:0.3f}, wheel_z: {:0.3f}, drive_angle: {:.2}",
                 //        rot1_d, cabin_x_, cabin_z_, wheel_x, wheel_z, drive_angle);
 
@@ -936,7 +938,7 @@ bool JwCtrl::UndockDrive() {
                 //     rot1_d, cabin_x_, docked_z_, wheel_x, wheel_z);
 
                 double ds = dt * kDriveSpeed;
-                double drive_angle = atan2(tgt_z - cabin_z_, tgt_x - cabin_x_) / kD2R;
+                double drive_angle = std::atan2(tgt_z - cabin_z_, tgt_x - cabin_x_) / kD2R;
 
                 // wb_rot_ is drive_angle in the 'tunnel frame'
                 wb_rot_ = fem::RA(drive_angle - rot1_d);
@@ -947,8 +949,8 @@ bool JwCtrl::UndockDrive() {
                     drive_angle = fem::RA(rot1_d + 90.0f);
                 }
 
-                cabin_x_ += cos(drive_angle * kD2R) * ds;
-                cabin_z_ += sin(drive_angle * kD2R) * ds;
+                cabin_x_ += std::cos(drive_angle * kD2R) * ds;
+                cabin_z_ += std::sin(drive_angle * kD2R) * ds;
                 // LogMsg("to parked: rot1_d: {:.2f}, cabin_x_: {:0.3f}, cabin_z_: {:0.3f}, wheel_x: {:0.3f}, wheel_z: {:0.3f}, drive_angle: {:.2}",
                 //        rot1_d, cabin_x_, cabin_z_, wheel_x, wheel_z, drive_angle);
 
@@ -964,8 +966,8 @@ bool JwCtrl::UndockDrive() {
                 AnimateWheels(ds);
 
                 float eps = std::max(2.0f * dt * kDriveSpeed, 0.1f);
-                // LogMsg("eps: {:0.3f}, {:0.3f}, {:0.3f}", eps, fabs(tgt_x - cabin_x_), fabs(tgt_z - cabin_z_));
-                if (fabs(tgt_x - cabin_x_) < eps && fabs(tgt_z - cabin_z_) < eps) {
+                // LogMsg("eps: {:0.3f}, {:0.3f}, {:0.3f}", eps, std::abs(tgt_x - cabin_x_), std::abs(tgt_z - cabin_z_));
+                if (std::abs(tgt_x - cabin_x_) < eps && std::abs(tgt_z - cabin_z_) < eps) {
                     state_ = kParked;
                     jw_->warnlight_ = 0;
                     jw_->AlertOff();

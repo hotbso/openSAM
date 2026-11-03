@@ -90,6 +90,7 @@ class JwCtrl {
     // animation
     //
    private:
+    int plane_id_;   // for logging
     void Rotate1Extend();
 
     // rotation 2/3 to angle, return true when done

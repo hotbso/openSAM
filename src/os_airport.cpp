@@ -342,8 +342,8 @@ float OsAirport::DgsSam1Acc(void* ref) {
             return 0.0f;  // likely uninitialized, datareftool poll etc.
 
         // the active one
-        if (dgs::sam1_drefs.is_active && std::fabs(obj_x - dgs::sam1_drefs.dgs_x) < 0.1f &&
-            std::fabs(obj_z - dgs::sam1_drefs.dgs_z) < 0.1f) {
+        if (dgs::sam1_drefs.is_active && std::abs(obj_x - dgs::sam1_drefs.dgs_x) < 0.1f &&
+            std::abs(obj_z - dgs::sam1_drefs.dgs_z) < 0.1f) {
             switch (dr_index) {
                 case SAM1_DR_STATUS:
                     return dgs::sam1_drefs.status;
