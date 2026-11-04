@@ -13,7 +13,7 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Pandoc
         run: sudo apt-get update && sudo apt-get install -y pandoc
@@ -55,20 +55,9 @@ jobs:
         os: [ubuntu-24.04, macos-15]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Get XPlane SDK
-        shell: bash
-        run: |
-            SDK_VERSION=440
-            # curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o XPSDK.zip
-            # unzip XPSDK.zip
-
-            # while in beta, use the beta SDK URL
-            curl -L "https://www.x-plane.com/wp-content/uploads/2026/10/XPSDK440-b4.zip" -o XPSDK-b4.zip
-            unzip XPSDK-b4.zip
-
-            mv SDK ../
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
@@ -132,7 +121,9 @@ jobs:
             unzip
             git
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
       - name: Get XPlane SDK
         shell: msys2 {0}
@@ -172,7 +163,7 @@ jobs:
     needs: [docs, build-linux-macos, build-windows]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: setup crc32 tool
         shell: bash
