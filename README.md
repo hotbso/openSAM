@@ -129,12 +129,13 @@ The scenery artist placed DGS objects (Marshaller, type of VDGS) and jetways in 
 ![Image](images/custom-animation.jpg)
 
 ### Multiplayer support
-openSAM supports
+openSAM supports jetway animation for AI planes managed by
+
  - xPilot
+ - BeyondATC (BATC)
  - Virtual Air Traffic (VAT)
  - Traffic Global XP (TGXP)
- - LiveTraffic
- - BeyondATC (its X-Plane plugin 0.1.48 or later publishes the traffic and the dock / undock request of each aircraft in the `beyondatc/ai/*` datarefs)
+ - LiveTraffic (LT)
 
 Set up your multiplayer environment as needed (e.g. connect to Vatsim and/or enable/disable MP plugins).\
 Then select "Toggle Multiplayer Support" in openSAM's menu.\
@@ -142,10 +143,10 @@ If xPilot is connected to Vatsim that takes precedence over other installed mult
 The menu text of "Toggle Multiplayer Support" shows which personality is enabled.
 
 **Note**\
-xPilot and liveTraffic receive aircraft positions from other sceneries / simulators or the real world and these
+xPilot and LT receive aircraft positions from other sceneries / simulators or the real world and these
 may not match up with your installed scenery. Your mileage will vary.
 
-VAT and TGXP give the visually most pleasing rendition.
+BATC, VAT and TGXP give the visually most pleasing rendition.
 
 ![Image](images/EDDF-VAT.jpg)
 
