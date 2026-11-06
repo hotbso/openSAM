@@ -2,14 +2,15 @@
 
 ![Image](images/simbrief.jpg)
 
-## Marshaller and VDGS guidance for all sceneries<br> Jetway and object animation for custom sceneries
-One stop destination for DGS guidance, drop in replacement for legacy SAM, support for new custom sceneries.
+## Manage Jetways, Marshallers and VDGS guidance for X-Plane 12 on all airports<br> Animate objects for custom sceneries
+One stop destination for DGS guidance, and management of jetways + a drop in replacement for legacy SAM sceneries.\
+Supports jetway animation for all major multiplayer plugins.
 
 ## Installation and Support
 ### Update from 4.x
-openSAM v5.x differs in it's file layout and a fresh install is recommended in order to avoid a lot of stale files.\
+openSAM v5.x differs in its file layout and a fresh install is recommended in order to avoid a lot of stale files.\
 If you changed the configuration files bring forward your changes into ```planes.cfg```.\
-AutoDGS is now included in openSAM. Copy over your airport configuration <xp_dir/Output/AutoDGS> to <xp_dir/Output/openSAM> .\
+AutoDGS is now included in openSAM. Copy over your airport configuration from ```<xp_dir>/Output/AutoDGS``` to ```<xp_dir>/Output/openSAM``` .\
 In addition commands ```AutoDGS/...```  are renamed to ```openSAM/...``` so your your key and button bindings may need some rework.
 
 ### Initial Installation
