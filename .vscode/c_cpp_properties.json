@@ -4,7 +4,7 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/../SDK/CHeaders/XPLM"
+                "${workspaceFolder}/SDK/CHeaders/XPLM"
             ],
             "defines": ["XPLM200", "XPLM210", "XPLM300", "XPLM301", "XPLM400", "XPLM410", "XPLM420", "XPLM430", "XPLM440", "IBM"
             ],
@@ -18,7 +18,7 @@
             "name": "MSYS2/clang64",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/../SDK/CHeaders/XPLM"
+                "${workspaceFolder}/SDK/CHeaders/XPLM"
             ],
             "defines": ["XPLM200", "XPLM210", "XPLM300", "XPLM301", "XPLM400", "XPLM410", "XPLM420", "XPLM430", "XPLM440", "IBM"
             ],
