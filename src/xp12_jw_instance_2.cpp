@@ -177,7 +177,8 @@ void XP12JwInstance::RemoveInstance() {
 void XP12JwInstance::UpdateInstance() {
     // LogMsg("Updating XP12 jetway instance");
     if (instance_ref_ == nullptr) {
-        LogMsg("Updating XP12 jetway instance but instance_ref_ is null");
+        // this can happen in multiplayer environments when a plane already moves a jetway but
+        // the jetway is not yet instanced
         return;
     }
 
