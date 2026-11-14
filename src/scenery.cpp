@@ -36,8 +36,8 @@
 #include "quadtree.h"
 #include "quadtree.inl"
 #include "opensam.h"
-#include "samjw.h"
-#include "xp12_jw_instance.h"
+#include "os_jetway.h"
+#include "xp12_jetway.h"
 #include "os_anim.h"
 
 #include "flat_earth_math.h"
@@ -169,7 +169,7 @@ static void SamParseJetways(const pugi::xml_node& sc_node) {
         return;
 
     for (pugi::xml_node jetway : jetways.children("jetway")) {
-        SamJw* jw = new SamJw();
+        OsJetway* jw = new OsJetway();
         jw->is_lib_jw_inst_ = jetway.attribute("libraryInstance").as_bool(false);
         jw->name_ = jetway.attribute("name").as_string("");
         jw->latitude_ = jetway.attribute("latitude").as_float(0.0f);
@@ -213,7 +213,7 @@ static void SamParseJetways(const pugi::xml_node& sc_node) {
 
         // simple sanity check, e.g Aerosoft LEBL has bogus values
         if (is_between(jw->latitude_, -85.0, 85.0) && is_between(jw->longitude_, -180.0, 180.0))
-            sam_jw_list.push_back(jw);
+            jw_list.push_back(jw);
         else {
             LogMsg("Jetway with invalid lat,lon: {:.6}, {:.6} ignored", jw->latitude_, jw->longitude_);
             delete (jw);
@@ -228,7 +228,7 @@ static void OpenSamParseJetways(const pugi::xml_node& sc_node, Scenery* sc) {
         return;
 
     for (pugi::xml_node jetway : jetways.children("jetway")) {
-        SamJw* jw = new SamJw();
+        OsJetway* jw = new OsJetway();
         jw->name_ = jetway.attribute("name").as_string("");
         jw->model_id_ = jetway.attribute("model_id").as_string("");
         jw->latitude_ = jetway.attribute("latitude").as_float(0.0f);
@@ -254,7 +254,7 @@ static void OpenSamParseJetways(const pugi::xml_node& sc_node, Scenery* sc) {
                 continue;
             }
 
-            const SamJwModel* jwm = it->second;
+            const OsJwModel* jwm = it->second;
             jw->model_id_ = jwm->model_id;
             jw->height_ = jwm->height;
             jw->wheel_pos_ = jwm->wheel_pos;
@@ -289,7 +289,7 @@ static void OpenSamParseJetways(const pugi::xml_node& sc_node, Scenery* sc) {
 
         // simple sanity check, e.g Aerosoft LEBL has bogus values
         if (is_between(jw->latitude_, -85.0, 85.0) && is_between(jw->longitude_, -180.0, 180.0))
-            sam_jw_list.push_back(jw);
+            jw_list.push_back(jw);
         else {
             LogMsg("Jetway with invalid lat,lon: {:.6}, {:.6} ignored", jw->latitude_, jw->longitude_);
             delete (jw);
@@ -298,7 +298,7 @@ static void OpenSamParseJetways(const pugi::xml_node& sc_node, Scenery* sc) {
 }
 
 // legacy sam.xml format has <sets> and <set> elements, which are equivalent to the <jetwayDescriptions> and <description> elements in the new format. The following functions parse both formats and store the data in SamJwModel structures.
-static void ParseJetwaySet(const pugi::xml_node& set_node, SamJwModel* jwm) {
+static void ParseJetwaySet(const pugi::xml_node& set_node, OsJwModel* jwm) {
     jwm->model_id = set_node.attribute("id").as_string("");
     jwm->name = set_node.attribute("name").as_string("");
     jwm->height = set_node.attribute("height").as_float(0.0f);
@@ -316,7 +316,7 @@ static void ParseJetwaySet(const pugi::xml_node& set_node, SamJwModel* jwm) {
 }
 
 // Add a <local_jw> or <library_jw> element to the <models> section of a scenery's opensam.xml file
-static void AddModel(pugi::xml_node models, const SamJwModel* ljw, const char* model_tag) {
+static void AddModel(pugi::xml_node models, const OsJwModel* ljw, const char* model_tag) {
     pugi::xml_node model = models.append_child(model_tag);
     model.append_attribute("model_id") = ljw->model_id.c_str();
     model.append_attribute("name") = ljw->name.c_str();
@@ -337,7 +337,7 @@ static void AddModel(pugi::xml_node models, const SamJwModel* ljw, const char* m
 }
 
 // opensam.xml
-static void ParseJetwayModel(const pugi::xml_node& set_node, SamJwModel* jwm) {
+static void ParseJetwayModel(const pugi::xml_node& set_node, OsJwModel* jwm) {
     jwm->model_id = set_node.attribute("model_id").as_string("");
     jwm->name = set_node.attribute("name").as_string("");
     jwm->height = set_node.attribute("height").as_float(0.0f);
@@ -357,13 +357,13 @@ static void ParseJetwayModel(const pugi::xml_node& set_node, SamJwModel* jwm) {
 }
 
 // Parse <sets> and <set> elements from scenery XML and store them in the lib_jw_map
-static void ParseSets(const pugi::xml_node& sc_node, std::unordered_map<std::string, SamJwModel*>& lib_jw_map) {
+static void ParseSets(const pugi::xml_node& sc_node, std::unordered_map<std::string, OsJwModel*>& lib_jw_map) {
     const pugi::xml_node sets = sc_node.child("sets");
     if (sets.empty())
         return;
 
     for (const pugi::xml_node set : sets.children("set")) {
-        SamJwModel* ljw = new SamJwModel;
+        OsJwModel* ljw = new OsJwModel;
         ParseJetwaySet(set, ljw);
         lib_jw_map[ljw->model_id] = ljw;
     }
@@ -375,7 +375,7 @@ static void ParseJwDescriptions(const pugi::xml_node& sc_node, Scenery& sc) {
         return;
 
     for (const pugi::xml_node description : descriptions.children("description")) {
-        SamJwModel* ljw = new SamJwModel;
+        OsJwModel* ljw = new OsJwModel;
         ParseJetwaySet(description, ljw);
         sc.jw_models_[ljw->model_id] = ljw;
     }
@@ -383,7 +383,7 @@ static void ParseJwDescriptions(const pugi::xml_node& sc_node, Scenery& sc) {
 
 // parse and convert legacy sam.xml format to opensam.xml format
 static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_pathname,
-                        std::unordered_map<std::string, SamJwModel*>& lib_jw_map, Scenery* sc) {
+                        std::unordered_map<std::string, OsJwModel*>& lib_jw_map, Scenery* sc) {
     pugi::xml_document doc;
 
     // Load from disk:
@@ -415,13 +415,14 @@ static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_
     ParseObjects(sc_node, sc);
     ParseGui(sc_node, sc);
     ParseJwDescriptions(sc_node, *sc);  // save them as models for this scenery, not in the global lib_jw_map
-    sc->jw_idx_end_ = sc->jw_idx_start_ = sam_jw_list.size();
+    sc->jw_idx_end_ = sc->jw_idx_start_ = jw_list.size();
     SamParseJetways(sc_node);
-    sc->jw_idx_end_ = sam_jw_list.size();
+    sc->jw_idx_end_ = jw_list.size();
 
     int iauto = 1;
     for (int i = sc->jw_idx_start_; i < sc->jw_idx_end_; i++) {
-        SamJw* jw = sam_jw_list[i];
+        OsJetway* jw = static_cast<OsJetway*>(jw_list[i]);
+        assert(jw->class_code() == Jetway::kOsJw);
         if (jw->is_lib_jw_inst_)
             continue;
 
@@ -443,7 +444,7 @@ static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_
             }
             if (jw->model_id_.empty()) {
                 // create a model
-                SamJwModel* jwm = new SamJwModel;
+                OsJwModel* jwm = new OsJwModel;
                 jwm->model_id = "auto_" + std::to_string(iauto++);
                 jwm->name = "Auto-generated for " + jw->base_name_;
                 jwm->height = jw->height_;
@@ -496,7 +497,7 @@ static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_
             auto it = lib_jw_map.find(set.attribute("id").as_string(""));
             if (it == lib_jw_map.end())  // should never happen, but be paranoid
                 continue;
-            SamJwModel* ljw = it->second;
+            OsJwModel* ljw = it->second;
             AddModel(models, ljw, "library_jw");
         }
 
@@ -512,7 +513,8 @@ static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_
 
     // ... and rewrite them in the new format
     for (int i = sc->jw_idx_start_; i < sc->jw_idx_end_; i++) {
-        SamJw* jw = sam_jw_list[i];
+        OsJetway* jw = static_cast<OsJetway*>(jw_list[i]);
+        assert(jw->class_code() == Jetway::kOsJw);
 
         pugi::xml_node jetway = jetways.append_child("jetway");
         jetway.append_attribute("name") = jw->name_.c_str();
@@ -547,7 +549,7 @@ static bool ConvertSamXml(const std::string& fn, const std::string& opensam_xml_
 }
 
 // parse opensam.xml format
-static bool ParseOpenSamXml(const std::string& fn, std::unordered_map<std::string, SamJwModel*>& lib_jw_map,
+static bool ParseOpenSamXml(const std::string& fn, std::unordered_map<std::string, OsJwModel*>& lib_jw_map,
                             Scenery* sc) {
     pugi::xml_document doc;
 
@@ -584,21 +586,21 @@ static bool ParseOpenSamXml(const std::string& fn, std::unordered_map<std::strin
     pugi::xml_node models = sc_node.child("models");
     if (!models.empty()) {
         for (pugi::xml_node model : models.children("local_jw")) {
-            SamJwModel* ljw = new SamJwModel;
+            OsJwModel* ljw = new OsJwModel;
             ParseJetwayModel(model, ljw);
             sc->jw_models_[ljw->model_id] = ljw;
         }
 
         for (pugi::xml_node model : models.children("library_jw")) {
-            SamJwModel* ljw = new SamJwModel;
+            OsJwModel* ljw = new OsJwModel;
             ParseJetwayModel(model, ljw);
             lib_jw_map[ljw->model_id] = ljw;
         }
     }
 
-    sc->jw_idx_end_ = sc->jw_idx_start_ = sam_jw_list.size();
+    sc->jw_idx_end_ = sc->jw_idx_start_ = jw_list.size();
     OpenSamParseJetways(sc_node, sc);
-    sc->jw_idx_end_ = sam_jw_list.size();
+    sc->jw_idx_end_ = jw_list.size();
     return true;
 }
 
@@ -675,7 +677,7 @@ SceneryPacks::SceneryPacks(const std::string& xp_dir) {
 // collect all sceneries
 void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways, int& max_sam_stands) {
     max_sam_stands = 0;
-    std::unordered_map<std::string, SamJwModel*> lib_jw_map;
+    std::unordered_map<std::string, OsJwModel*> lib_jw_map;
 
     // drefs from openSAM_Library must come first
     if (scp.openSAM_Library_path.empty() || !ConvertSamXml(scp.openSAM_Library_path + "sam.xml", "", lib_jw_map, nullptr))
@@ -687,7 +689,7 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways
     }
 
     sceneries_.reserve(scp.sc_paths.size());
-    sam_jw_list.reserve(1000);  // avoid too many reallocations, usually there are much more stands than jetways
+    jw_list.reserve(1000);  // avoid too many reallocations, usually there are much more stands than jetways
 
     std::vector<dgs::AptJetway> xp12_jetways;
     xp12_jetways.reserve(20000);
@@ -744,13 +746,13 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways
     SamDrf::sam_drfs.shrink_to_fit();
 
     // transfer collected library jetways to vector for fast access by dref acessors
-    lib_jw.reserve(lib_jw_map.size() + 1);
-    lib_jw.push_back(nullptr);  // must start at 1 due to logic in the dref accessors
+    os_jw_model_list.reserve(lib_jw_map.size() + 1);
+    os_jw_model_list.push_back(nullptr);  // must start at 1 due to logic in the dref accessors
 
-    for (const auto& [id_str, sam_lib_jw] : lib_jw_map)
-        lib_jw.push_back(sam_lib_jw);
+    for (const auto& [_, sam_lib_jw] : lib_jw_map)
+        os_jw_model_list.push_back(sam_lib_jw);
 
-    lib_jw.shrink_to_fit();
+    os_jw_model_list.shrink_to_fit();
 
     // Process 'Global Airports' last
     int n_stands = 0;
@@ -768,15 +770,15 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways
                 // LogMsg("{}: ll=({:f},{:f}), psi={:f}, style={}, length_code={}, length={:f}, rot2={:f}",
                 //     arpt_name, lat, lon, psi, (int)style, (int)length_code, length, rot2);
 
-                XP12JwInstance* xp12_jw = new XP12JwInstance("global", xpjws.stand_name, xpjws.pos.lat, xpjws.pos.lon, xpjws.hdgt, xpjws.style,
+                XP12Jetway* xp12_jw = new XP12Jetway("global", xpjws.stand_name, xpjws.pos.lat, xpjws.pos.lon, xpjws.hdgt, xpjws.style,
                                                             xpjws.length_code, xpjws.length, rot2);
                 xp12_jw->ComputeBbox();
-                sam_jw_list.push_back(xp12_jw);
+                jw_list.push_back(xp12_jw);
             }
     }
 
     // load the quadtree with all jetways from all sceneries for fast lookup by position in the dref accessors
-    for (auto jw : sam_jw_list) {
+    for (auto jw : jw_list) {
         // LogMsg("Inserting jetway '{}' at {:0.6f}, {:0.6f} into quadtree", jw->repr(), jw->lat(), jw->lon());
         jw_quadtree.Insert(jw);
         //jw_quadtree.Dump();
@@ -787,7 +789,7 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // Update the <jetways> section of a scenery's opensam.xml with the current jetway configuration, return whether successful
-bool Scenery::UpdateOpenSamXml(const std::vector<SamJw*> jw_instances) {
+bool Scenery::UpdateOpenSamXml(const std::vector<OsJetway*> jw_instances) {
     pugi::xml_document doc;
 
     // Load from disk:

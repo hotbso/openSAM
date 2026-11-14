@@ -31,7 +31,7 @@
 
 #include "opensam.h"
 #include "my_plane.h"
-#include "xp12_jw_instance.h"
+#include "xp12_jetway.h"
 #include "quadtree.inl"
 #include "log_msg.h"
 
@@ -74,15 +74,15 @@ static const char* jetway_anim_drefs[] = {
     "sim/graphics/animation/jetways/jw_bogie_bogie_tilt",
     "sim/graphics/animation/jetways/jw_wheel_left",
     "sim/graphics/animation/jetways/jw_wheel_right",
-    "sim/graphics/animation/jetways/jw_stairs_angle",       // relative to tunnel , + = up
+    "sim/graphics/animation/jetways/jw_stairs_angle",       // relative to tunnel, + = up
     "sim/graphics/animation/jetways/jw_stairs_bogie_angle",
     "sim/graphics/animation/jetways/jw_is_moving",
     nullptr
 };
 
-static std::unordered_map<XP12JwInstance*, bool> active_jws;
+static std::unordered_map<XP12Jetway*, bool> active_jws;
 
-void XP12JwInstance::Initialize() {
+void XP12Jetway::Initialize() {
     LogMsg("Initializing XP12 jetway instance");
     for (int i = 0; i < kNStyle; ++i) {
         for (int j = 0; j < kNLength; ++j) {
@@ -98,13 +98,13 @@ void XP12JwInstance::Initialize() {
     active_jws.reserve(300);
 }
 
-void XP12JwInstance::Finalize() {
+void XP12Jetway::Finalize() {
     LogMsg("Finalizing XP12 jetway instance");
 }
 
 static double last_altitude = 200.0;        // the next jw will use this as the initial altitude estimate
 
-bool XP12JwInstance::UpdateDrawinfo() noexcept {
+bool XP12Jetway::UpdateDrawinfo() noexcept {
     if (obj_ref_gen_ == ref_gen)
         return false;
 
@@ -141,7 +141,7 @@ bool XP12JwInstance::UpdateDrawinfo() noexcept {
     return true;
 }
 
-void XP12JwInstance::CreateInstance() {
+void XP12Jetway::CreateInstance() {
     bool changed = UpdateDrawinfo();
 
     if (instance_ref_ == nullptr) {
@@ -156,17 +156,17 @@ void XP12JwInstance::CreateInstance() {
         changed = true;
 #if 0
     LogMsg(
-        "XP12JwInstance {} instanced at ll: ({},{}), psi: {}, style: {}, length_code: {}, initial_extent: {}, "
+        "XP12Jetway {} instanced at ll: ({},{}), psi: {}, style: {}, length_code: {}, initial_extent: {}, "
         "intial_rot2: {}",
         name_, latitude_, longitude_, heading_, style_code_, length_code_, initial_extent_, initial_rot2_);
 #endif
     }
 
     if (changed)
-        UpdateInstance();
+        Animate();
 }
 
-void XP12JwInstance::RemoveInstance() {
+void XP12Jetway::RemoveInstance() {
     LogMsg("Removing XP12 jetway instance, ll: ({:.5f},{:.5f})", latitude_, longitude_);
     if (instance_ref_ != nullptr) {
         XPLMDestroyInstance(instance_ref_);
@@ -174,7 +174,7 @@ void XP12JwInstance::RemoveInstance() {
     }
 }
 
-void XP12JwInstance::UpdateInstance() {
+void XP12Jetway::Animate() {
     // LogMsg("Updating XP12 jetway instance");
     if (instance_ref_ == nullptr) {
         // this can happen in multiplayer environments when a plane already moves a jetway but
@@ -218,7 +218,7 @@ static float last_refresh_ts = -1000.0f;
 static unsigned int refresh_ref_gen;
 
 // called every frame to update instances around the given location
-void XP12JwInstance::InstanceAround(float lat, float lon, float distance) {
+void XP12Jetway::InstanceAround(float lat, float lon, float distance) {
     // if very high remove everything
     float y_agl = my_plane->y_agl();
     if (y_agl > distance + 500.0f) {
@@ -237,12 +237,12 @@ void XP12JwInstance::InstanceAround(float lat, float lon, float distance) {
         refresh_ref_gen = ref_gen;
 
         quadtree::Box<double> search_box(lon, lat, distance);
-        std::unordered_map<SamJw*, bool> found_map =
-            jw_quadtree.FindInBox(search_box, [](const SamJw* jw) { return jw->class_code() == SamJw::kXP12Jw; });
+        std::unordered_map<Jetway*, bool> found_map =
+            jw_quadtree.FindInBox(search_box, [](const Jetway* jw) { return jw->class_code() == Jetway::kXP12Jw; });
 
         for (auto& [jw, _] : found_map) {
-            assert(jw->class_code() == SamJw::kXP12Jw);
-            XP12JwInstance* xp12_jw = static_cast<XP12JwInstance*>(jw);
+            assert(jw->class_code() == Jetway::kXP12Jw);
+            XP12Jetway* xp12_jw = static_cast<XP12Jetway*>(jw);
             xp12_jw->CreateInstance();
         }
 
@@ -260,7 +260,7 @@ void XP12JwInstance::InstanceAround(float lat, float lon, float distance) {
     }
 }
 
-void XP12JwInstance::RemoveAll() {
+void XP12Jetway::RemoveAll() {
     for (auto& [xp12_jw, _] : active_jws)
         xp12_jw->RemoveInstance();
 

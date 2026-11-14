@@ -19,16 +19,15 @@
 //    USA
 //
 
-#include "xp12_jw_instance.h"
+#include "xp12_jetway.h"
 #include "log_msg.h"
 
 // Constructor goes here in order to avoid linking XPLM into scenery_test.cpp
 
-XP12JwInstance::XP12JwInstance(const std::string_view arpt_icao, const std::string_view stand_name, double lat,
+XP12Jetway::XP12Jetway(const std::string_view arpt_icao, const std::string_view stand_name, double lat,
                                double lon, float psi, int style, int length_code, float initial_extent,
                                float initial_rot2)
-    : arpt_icao_(arpt_icao) {
-    class_code_ = kXP12Jw;
+    : Jetway(kXP12Jw), arpt_icao_(arpt_icao) {
     base_name_ = stand_name;
     name_ = base_name_;
     style_code_ = style;
@@ -89,12 +88,12 @@ XP12JwInstance::XP12JwInstance(const std::string_view arpt_icao, const std::stri
     drawinfo_.heading = psi;
 #if 0
     LogMsg(
-        "XP12JwInstance {} created with ll: ({},{}), psi: {}, style: {}, length_code: {}, initial_extent: {}, "
+        "XP12Jetway {} created with ll: ({},{}), psi: {}, style: {}, length_code: {}, initial_extent: {}, "
         "intial_rot2: {}",
         name_, latitude_, longitude_, heading_, style, length_code, initial_extent_, initial_rot2_);
 #endif
 }
 
-XP12JwInstance::~XP12JwInstance() {
+XP12Jetway::~XP12Jetway() {
     // lives forever
 }

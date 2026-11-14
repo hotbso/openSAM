@@ -30,8 +30,8 @@
 
 static constexpr float kD2R = std::numbers::pi/180.0;
 
-class SamJw;
-struct SamJwModel;
+class OsJetway;
+struct OsJwModel;
 
 namespace dgs {
     class AptAirport;
@@ -58,9 +58,9 @@ class Scenery {
     std::vector<SamObj> sam_objs_;
     std::vector<SamAnim> sam_anims_;
 
-    std::unordered_map<std::string, SamJwModel*> jw_models_;  // local jw models for this scenery
+    std::unordered_map<std::string, OsJwModel*> jw_models_;  // local jw models for this scenery
 
-    // 'iterators' into the global sam_jw_list for the jetways learned from the scenery's opensam.xml.
+    // 'iterators' into the global jw_list for the jetways learned from the scenery's opensam.xml.
     // Do not use for actual lookup, which is done by quadtree
     int jw_idx_start_ = 0;
     int jw_idx_end_ = 0;
@@ -79,7 +79,7 @@ class Scenery {
     bool is_opensam() const { return !sam_xml_pathname_.empty(); }
 
     // Update the <jetways> section of a scenery's sam.xml with the current jetway configuration, return whether successful
-    bool UpdateOpenSamXml(const std::vector<SamJw*> jw_instances);
+    bool UpdateOpenSamXml(const std::vector<OsJetway*> jw_instances);
 
     // a poor man's factory for creating sceneries, return max # of stands in sam sceneries
     static void CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways, int& max_sam_stands);

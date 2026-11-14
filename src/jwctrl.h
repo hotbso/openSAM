@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-class SamJw;
+class Jetway;
 struct DoorInfo;
 
 struct JwCtrlPlaneInfo {
@@ -55,7 +55,7 @@ class JwCtrl {
 
     bool selected_{false};  // nearest jw was selected as an active jw
     int door_{};       // active JwCtrl associated with door #
-    SamJw* jw_;
+    Jetway* jw_;
     JwCtrlState state_{kParked};
 
     // jw position in plane local coordinates
@@ -106,7 +106,7 @@ class JwCtrl {
     JwCtrl(JwCtrl&&) noexcept = default;
     JwCtrl& operator=(const JwCtrl&) = default;
 
-    JwCtrl(SamJw* jw, const JwCtrlPlaneInfo& plane_info);
+    JwCtrl(Jetway* jw, const JwCtrlPlaneInfo& plane_info);
     ~JwCtrl();
 
     // find nearest jetways, order by z (= door number, hopefully)

@@ -30,8 +30,8 @@
 #include "door_info.h"
 #include "plane.h"
 #include "os_airport.h"
-#include "samjw.h"
-#include "xp12_jw_instance.h"
+#include "jetway.h"
+#include "xp12_jetway.h"
 #include "jwctrl.h"
 #include "quadtree.h"
 #include "quadtree.inl"
@@ -41,9 +41,6 @@
 namespace fem = flat_earth_math;
 
 static constexpr float kD2R = std::numbers::pi/180.0;
-
-// from os_read_wav.c
-extern void ReadWav(const std::string& fname, Sound& sound);
 
 static constexpr float kDriveSpeed = 1.0;        // m/s
 static constexpr float kTurnSpeed = 10.0;        // °/s
@@ -112,7 +109,7 @@ bool CollisionCheck(const Vec2& S1, const Vec2& E1, const Vec2& S2, const Vec2& 
 }
 
 // fill in all values that are independent of the door
-JwCtrl::JwCtrl(SamJw* jw, const JwCtrlPlaneInfo& plane_info) : jw_(jw) {
+JwCtrl::JwCtrl(Jetway* jw, const JwCtrlPlaneInfo& plane_info) : jw_(jw) {
     plane_id_ = plane_info.id;
 
     // rotate into plane local frame
@@ -174,7 +171,6 @@ void JwCtrl::XzToSamDref(float cabin_x, float cabin_z, float& rot1, float& exten
 // fill in geometry data related to specific door
 //
 void JwCtrl::SetupForDoor(const DoorInfo& door_info) {
-
     // door position in plane local frame
     docked_x_ = door_info.x - jw_->cabin_length_;
     docked_z_ = door_info.z;
@@ -224,7 +220,7 @@ bool operator<(const JwCtrl& a, const JwCtrl& b) noexcept{
 
 // filter list of jetways jws[]for candidates and add them to nearest_jws[]
 static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, int i_door,
-                             std::unordered_map<SamJw*, bool> near_jws_map, std::vector<JwCtrl>& nearest_jws) {
+                             std::unordered_map<Jetway*, bool> near_jws_map, std::vector<JwCtrl>& nearest_jws) {
     LogMsg("pid={:03}, Filter for door {}", plane_info.id, i_door);
 
     const DoorInfo& door_info = plane_info.door_info[i_door];
@@ -279,9 +275,9 @@ static void FilterCandidates(const JwCtrlPlaneInfo& plane_info, int i_door,
 
         // ... survived, add to list
         LogMsg(
-            "--> pid={:03}, candidate {}, lib_id: {}, door {}, door frame: x: {:5.3f}, z: {:5.3f}, y: {:5.3f}, psi: {:4.1f}, "
+            "--> pid={:03}, candidate {}, door {}, door frame: x: {:5.3f}, z: {:5.3f}, y: {:5.3f}, psi: {:4.1f}, "
             "rot1: {:0.1f}, extent: {:.1f}",
-            plane_info.id, jw->name_, jw->library_id_, jw->door_, njw.x_, njw.z_, njw.y_, njw.psi_,
+            plane_info.id, jw->name_, jw->door_, njw.x_, njw.z_, njw.y_, njw.psi_,
             njw.docked_rot1_, njw.docked_extent_);
 
         nearest_jws.push_back(std::move(njw));
@@ -311,8 +307,8 @@ int JwCtrl::FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<Jw
     static constexpr float kMaxDist = 60.0f;  // m, max distance to consider a jetway as a candidate
 
     quadtree::Box<double> search_box(plane_lon, plane_lat, kMaxDist);  // +-60 m search box
-    std::unordered_map<SamJw*, bool> near_jws_map =
-        jw_quadtree.FindInBox(search_box, [](const SamJw* jw) { return !jw->is_undefined_; });
+    std::unordered_map<Jetway*, bool> near_jws_map =
+        jw_quadtree.FindInBox(search_box, [](const Jetway* jw) { return !jw->is_undefined_; });
     if (near_jws_map.empty()) {
         LogMsg("no jetways found around plane position, in a box of {:0.1f} m around ll: ({:.6}, {:.6})", kMaxDist,
                plane_lat, plane_lon);
@@ -324,30 +320,6 @@ int JwCtrl::FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<Jw
     nearest_jws.clear();
     for (int i = 0; i < n_doors; i++)
         FilterCandidates(plane_info, i, near_jws_map, nearest_jws);
-
-    // delayed processing of zc jetways now once os_arpt is available, as we need the stands for that
-    if (os_arpt) {
-        for (auto& njw : nearest_jws) {
-            SamJw* jw = njw.jw_;
-            if (jw->is_zc_jw_ && !jw->stand_retrieved_) {
-                jw->stand_retrieved_ = true;  // one shot only
-
-                const OsStand* stand = os_arpt->FindStandForJw(jw->x_, jw->z_);
-                if (stand) {
-                    jw->base_name_ = stand->name();
-                    // delta = cabin points perpendicular to stand
-                    float delta = fem::RA((stand->hdgt() + 90.0f) - jw->psi_);
-                    // randomize
-                    float delta_r = (0.2f + 0.8f * (0.01f * (rand() % 100))) * delta;
-                    jw->initial_rot2_ = delta_r;
-                    LogMsg(
-                        "delayed processing of zc jetway, jw->psi: {:0.1f}, stand->hdgt: {:0.1f}, delta: {:0.1f}, "
-                        "initial_rot2: {:0.1f}",
-                        jw->psi_, stand->hdgt(), delta, jw->initial_rot2_);
-                }
-            }
-        }
-    }
 
     // sort for door assignment
     std::sort(nearest_jws.begin(), nearest_jws.end());
@@ -372,11 +344,11 @@ int JwCtrl::FindNearestJetways(const JwCtrlPlaneInfo& plane_info, std::vector<Jw
         }
     }
 
-    // fake names for zc jetways
+    // fabricate names for jetways that don't have one
     int i = 1;
     for (auto& njw : nearest_jws) {
-        SamJw* jw = njw.jw_;
-        if (jw->is_zc_jw_ && jw->name_.empty()) {
+        Jetway* jw = njw.jw_;
+        if (jw->name_.empty()) {
             if (jw->base_name_.length() > 10)
                 jw->name_ = jw->base_name_.substr(0, 10);
             else
@@ -589,7 +561,7 @@ bool JwCtrl::DockDrive() {
             // LogMsg("eps: {:0.3f}, {:0.3f}, {:0.3f}", eps, std::abs(tgt_x - cabin_x_), std::abs(tgt_z - cabin_z_));
             if (std::abs(tgt_x - cabin_x_) < eps && std::abs(tgt_z - cabin_z_) < eps) {
                 state_ = kAtAp;
-                LogMsg("align point reached reached");
+                // LogMsg("align point reached reached");
                 return false;
             }
 
@@ -710,10 +682,7 @@ bool JwCtrl::DockDrive() {
 
     bool res = UpdateParams();
 
-    // xp12 jetways are instances and need an explicit update call
-    if (jw_->class_code() == SamJw::kXP12Jw)
-        static_cast<XP12JwInstance*>(jw_)->UpdateInstance();
-
+    jw_->Animate();
     return res;
 }
 
@@ -993,8 +962,8 @@ bool JwCtrl::UndockDrive() {
     bool res = UpdateParams();
 
     // xp12 jetways are instances and need an explicit update call
-    if (jw_->class_code() == SamJw::kXP12Jw)
-        static_cast<XP12JwInstance*>(jw_)->UpdateInstance();
+    if (jw_->class_code() == Jetway::kXP12Jw)
+        static_cast<XP12Jetway*>(jw_)->Animate();
 
     return res;
 }

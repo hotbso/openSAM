@@ -27,11 +27,11 @@
 #include "XPLMInstance.h"
 #include "XPLMScenery.h"
 
-#include "samjw.h"
+#include "jetway.h"
 #include "log_msg.h"
 
 // Augmentation for XP12 jetway instances
-class XP12JwInstance : public SamJw {
+class XP12Jetway : public Jetway {
     const std::string arpt_icao_;
     int style_code_, length_code_;
 
@@ -43,15 +43,17 @@ class XP12JwInstance : public SamJw {
     bool UpdateDrawinfo() noexcept;      // -> changed
 
    public:
-    XP12JwInstance(const std::string_view arpt_icao, const std::string_view stand_name, double lat, double lon, float psi, int style,
+    XP12Jetway(const std::string_view arpt_icao, const std::string_view stand_name, double lat, double lon, float psi, int style,
                    int length_code, float initial_extent, float initial_rot2);
-    virtual ~XP12JwInstance();    // jetways live forever
+    virtual ~XP12Jetway();    // jetways live forever
 
     std::string repr() const override { return arpt_icao_ + ": " + name_; }
 
     void CreateInstance();
     void RemoveInstance();
-    void UpdateInstance();
+
+    // Animate the object based on its current state
+    void Animate() override;
 
     // Show all instances around a specific location, e.g. 3000 meters
     static void InstanceAround(float lat, float lon, float distance);

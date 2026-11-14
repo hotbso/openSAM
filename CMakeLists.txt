@@ -53,8 +53,8 @@ SET(IMGUI_SRCS
 # Sources
 # ==============================================================================
 add_library(openSAM SHARED src/opensam.cpp src/preferences.cpp src/autodgs_airport.cpp src/adgs_api.cpp src/seasons.cpp src/simbrief.cpp
-    src/os_airport.cpp src/samjw.cpp src/jwctrl.cpp src/os_anim.cpp src/scenery.cpp src/read_wav.cpp
-    src/xp12_jw_instance_1.cpp src/xp12_jw_instance_2.cpp
+    src/os_airport.cpp src/jetway.cpp src/os_jetway.cpp src/jwctrl.cpp src/os_anim.cpp src/scenery.cpp src/read_wav.cpp
+    src/xp12_jetway_1.cpp src/xp12_jetway_2.cpp
     src/os_plane.cpp src/my_plane.cpp
     src/mpadapter.cpp src/mpadapter_xpilot.cpp src/mpadapter_tgxp.cpp src/mpadapter_lt.cpp src/mpadapter_vat.cpp
     src/mpadapter_batc.cpp
@@ -152,7 +152,7 @@ if(BUILD_TESTS)
     add_executable(scenery_test
         src/scenery_test.cpp
         src/scenery.cpp
-        src/xp12_jw_instance_1.cpp
+        src/xp12_jetway_1.cpp
         src/dgs/apt_airport.cpp
         third-party/pugixml-1.16/src/pugixml.cpp
         src/log_msg.cpp

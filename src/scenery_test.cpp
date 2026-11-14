@@ -27,8 +27,9 @@
 #include <cassert>
 
 #include "scenery.h"
-#include "samjw.h"
-#include "xp12_jw_instance.h"
+#include "jetway.h"
+#include "os_jetway.h"
+#include "xp12_jetway.h"
 #include "os_anim.h"
 #include "dgs/airport.h"
 
@@ -45,10 +46,11 @@ const char *log_msg_prefix = "scenery_test: ";
 std::string xp_dir{"E:/X-Plane-12-test/"};
 std::vector<SamDrf> SamDrf::sam_drfs;
 unsigned long long stat_sc_last;
-std::vector<SamJw*> sam_jw_list;
+std::vector<Jetway*> jw_list;
 
-quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;
-std::vector<SamJwModel*> lib_jw;
+quadtree::LLQuadTree<double, Jetway, kMaxJwPerNode> jw_quadtree;
+std::vector<OsJwModel*> os_jw_model_list;
+void XP12Jetway::Animate() {};
 
 void scenery_test() {
 
@@ -107,15 +109,16 @@ void scenery_test() {
             }
         puts("\nJetways");
         for (auto i = sc->jw_idx_start_; i < sc->jw_idx_end_; i++) {
-            const SamJw* jw = sam_jw_list[i];
+            const OsJetway* jw = static_cast<const OsJetway*>(jw_list[i]);
+            assert(jw->class_code() == Jetway::kOsJw);
             printf("%s id: '%s' ll:(%5.6f,%5.6f) door: %d\n", jw->name_.c_str(), jw->model_id_.c_str(), jw->latitude_, jw->longitude_, jw->door_);
         }
         puts("\n");
     }
 
     puts("Library jetways");
-    for (unsigned int i = 1; i < lib_jw.size(); i++) {
-        const SamJwModel *ljw = lib_jw[i];
+    for (unsigned int i = 1; i < os_jw_model_list.size(); i++) {
+        const OsJwModel *ljw = os_jw_model_list[i];
         printf("'%s'; '%s', height: %0.2f, cabin_pos: %0.2f\n", ljw->model_id.c_str(), ljw->name.c_str(), ljw->height, ljw->cabin_pos);
     }
 
@@ -151,13 +154,13 @@ void scenery_test() {
 
     // jw_quadtree.Dump();
 
-    auto FilterNotUndefined = [](const SamJw* jw) { return !jw->is_undefined_; };
+    auto FilterNotUndefined = [](const Jetway* jw) { return !jw->is_undefined_; };
 
     {
         printf("\n\nSearching in +-50m box around EDDM stand 251A (11.797650, 48.354206)\n");
-        std::vector<SamJw*> found_items;
+        std::vector<Jetway*> found_items;
         quadtree::Box<double> search_box(11.797650, 48.354206, 50);  // 50 m box around the stand
-        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box, FilterNotUndefined);
+        std::unordered_map<Jetway*, bool> found_map = jw_quadtree.FindInBox(search_box, FilterNotUndefined);
         if (found_map.empty())
             printf("\nNo jetways found by FindInBox\n");
         else {
@@ -169,9 +172,9 @@ void scenery_test() {
 
     {
         printf("\n\nSearching in +-50m box around EKCH stand A14 (12.641780, 55.627086)\n");
-        std::vector<SamJw*> found_items;
+        std::vector<Jetway*> found_items;
         quadtree::Box<double> search_box(12.641780, 55.627086, 50);  // 50 m box around the stand
-        std::unordered_map<SamJw*, bool> found_map = jw_quadtree.FindInBox(search_box, FilterNotUndefined);
+        std::unordered_map<Jetway*, bool> found_map = jw_quadtree.FindInBox(search_box, FilterNotUndefined);
         if (found_map.empty())
             printf("\nNo jetways found by FindInBox\n");
         else {

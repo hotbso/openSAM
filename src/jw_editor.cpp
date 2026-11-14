@@ -40,7 +40,7 @@
 #include "opensam.h"
 #include "scenery.h"
 #include "os_airport.h"
-#include "samjw.h"
+#include "os_jetway.h"
 #include "flat_earth_math.h"
 #include "quadtree.h"
 #include "quadtree.inl"
@@ -74,13 +74,13 @@ class JwEditor : public ImgWindow {
     // to keep the (un)seen state in the ui in sync with the actual scene
     static constexpr float kRefreshInterval = 10.0f;  // refresh interval in seconds
     float refresh_ts_{0.0f};                          // timestamp of the last refresh
-    std::vector<SamJw*> jw_set_;                      // jetways of this airport
+    std::vector<OsJetway*> jw_set_;                   // jetways of this airport
     std::vector<std::string> jw_lb_labels_;           // listbox labels for the jetways, e.g. "Jetway 1 (configured)"
-    std::vector<SamJwModel*> model_set_;              // models for this scenery
+    std::vector<OsJwModel*> model_set_;               // models for this scenery
 
     int selected_idx_ = -1;           // for processing the selected jetway
     int selected_model_idx_ = -1;     // for processing the selected jetway's model
-    SamJwModel selected_model_copy_;  // for editing the selected model's parameters
+    OsJwModel selected_model_copy_;  // for editing the selected model's parameters
     bool model_changed_ = false;      // whether the user has changed the model parameters
 
     bool unsaved_changes_ = false;  // whether the user has made changes that are not yet saved to opensam.xml
@@ -97,7 +97,7 @@ class JwEditor : public ImgWindow {
     void PlaceMarker();       // create or set to position @ marker_draw_info_
     void RemoveMarker();
 
-    std::string MkJwLbEntry(const SamJw* jw);
+    std::string MkJwLbEntry(const OsJetway* jw);
     bool EditModels();
     void EditJetways();
 
@@ -172,7 +172,7 @@ JwEditor::~JwEditor() {
 }
 
 // create entry for jw listbox, e.g. "Jetway 1 configured 'jetway1'"
-std::string JwEditor::MkJwLbEntry(const SamJw* jw) {
+std::string JwEditor::MkJwLbEntry(const OsJetway* jw) {
     std::string_view type, model_id, conf_status, seen;
     if (jw->obj_ref_gen_ == ref_gen)
         seen = "seen";
@@ -181,8 +181,8 @@ std::string JwEditor::MkJwLbEntry(const SamJw* jw) {
 
     if (jw->is_lib_jw_inst_) {
         type = "LIB";
-        if (0 < jw->library_id_ && jw->library_id_ < (int)lib_jw.size())
-            model_id = lib_jw[jw->library_id_]->model_id;
+        if (0 < jw->library_id_ && jw->library_id_ < (int)os_jw_model_list.size())
+            model_id = os_jw_model_list[jw->library_id_]->model_id;
         else {
             model_id = "(undetermined)";
         }
@@ -234,7 +234,7 @@ bool JwEditor::EditModels() {
             ImGui::Spacing();
             if (ImGui::Button("Add New Model")) {
                 // Create a new model with default parameters
-                SamJwModel* new_model = new SamJwModel();
+                OsJwModel* new_model = new OsJwModel();
                 new_model->model_id = "new_model";
                 new_model->name = "New Model";
                 new_model->height = 4.0f;
@@ -270,7 +270,7 @@ bool JwEditor::EditModels() {
             return false;
         }
 
-        SamJwModel& smc = selected_model_copy_;  // for convenience
+        OsJwModel& smc = selected_model_copy_;  // for convenience
 
         if (ImGui::InputText("Model Id", &smc.model_id))
             model_changed_ = true;
@@ -327,7 +327,7 @@ bool JwEditor::EditModels() {
 
                 if (ImGui::Button("Commit Changes to Model")) {
                     LogMsg("Committed changes to model '{}'", smc.model_id);
-                    SamJwModel* ljw = model_set_[selected_model_idx_];
+                    OsJwModel* ljw = model_set_[selected_model_idx_];
                     std::string old_id = ljw->model_id;
                     *ljw = smc;     // update from working copy
                     // replace in map, which may have changed the key if the id changed
@@ -336,7 +336,7 @@ bool JwEditor::EditModels() {
 
                     // and propagate the changes to all jetways that are using this model
                     for (int i = 0; i < (int)jw_set_.size(); i++) {
-                        SamJw* jw = jw_set_[i];
+                        OsJetway* jw = jw_set_[i];
                         if (jw->model_id_ == old_id) {
                             jw->model_id_ = smc.model_id;
                             jw->FillModelValues(smc);
@@ -383,7 +383,7 @@ void JwEditor::EditJetways() {
                     is_selected = true;
                     selected_idx_ = i;
 
-                    const SamJw* jw = jw_set_[i];
+                    const OsJetway* jw = jw_set_[i];
                     float height = jw->height_;
                     if (height == 0.0f)  // undefined jw
                         height = 4.5f;
@@ -427,7 +427,7 @@ void JwEditor::EditJetways() {
     }
 
     assert(0 <= selected_idx_ && selected_idx_ < (int)jw_set_.size());
-    SamJw* jw = jw_set_[selected_idx_];
+    OsJetway* jw = jw_set_[selected_idx_];
 
     ImGui::Text("Selected jetway: %s", jw->name_.c_str());
 
@@ -599,17 +599,18 @@ void JwEditor::BuildInterface() {
     if (must_reload || (now - refresh_ts_ > kRefreshInterval)) {
         refresh_ts_ = now;
         // we try to restore a selection after reloading
-        SamJw* selected_jw = nullptr;
+        OsJetway* selected_jw = nullptr;
         if (selected_idx_ >= 0)
             selected_jw = jw_set_[selected_idx_];
 
-        std::unordered_map<SamJw*, bool> near_jws = jw_quadtree.FindInBox(
-            os_arpt->apt_airport_.bounds(), [](const SamJw* jw) { return jw->class_code() == SamJw::kSamJw; });
+        std::unordered_map<Jetway*, bool> near_jws = jw_quadtree.FindInBox(
+            os_arpt->apt_airport_.bounds(), [](const Jetway* jw) { return jw->class_code() == Jetway::kOsJw; });
 
         jw_set_.clear();
         selected_idx_ = -1;  // reset selection when reloading
 
-        for (const auto [jw, _] : near_jws) {
+        for (const auto [njw, _] : near_jws) {
+            OsJetway* jw = static_cast<OsJetway*>(njw);
             // LogMsg("Found jetway '{}' at ll: ({:0.6f}, {:0.6f}), is_undefined: {}", jw->name, jw->latitude,
             //     jw->longitude, jw->is_undefined);
             //  lib jws in view
@@ -658,9 +659,9 @@ void JwEditor::BuildInterface() {
             return;
         }
 
-        std::sort(jw_set_.begin(), jw_set_.end(), [](const SamJw* a, const SamJw* b) { return a->name_ < b->name_; });
+        std::sort(jw_set_.begin(), jw_set_.end(), [](const Jetway* a, const Jetway* b) { return a->name_ < b->name_; });
         jw_lb_labels_.clear();
-        for (const SamJw* jw : jw_set_)
+        for (const OsJetway* jw : jw_set_)
             jw_lb_labels_.push_back(MkJwLbEntry(jw));
 
         if (selected_jw)

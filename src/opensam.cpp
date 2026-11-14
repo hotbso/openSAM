@@ -35,8 +35,9 @@
 #include "XPLMMenus.h"
 
 #include "opensam.h"
-#include "samjw.h"
-#include "xp12_jw_instance.h"
+#include "jetway.h"
+#include "os_jetway.h"
+#include "xp12_jetway.h"
 #include "jwctrl.h"
 #include "os_anim.h"
 #include "plane.h"
@@ -371,7 +372,7 @@ static float FlightLoopCb(float inElapsedSinceLastCall,
 
         on_ground_prev = on_ground;
 
-        XP12JwInstance::InstanceAround(plane_pos.lat, plane_pos.lon, 3000.0f);
+        XP12Jetway::InstanceAround(plane_pos.lat, plane_pos.lon, 3000.0f);
 
         if (os_arpt  == nullptr && adgs_arpt == nullptr)
             return 1.0f;  // no airport, nothing to do
@@ -692,8 +693,9 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
         dgs::AptAirport::LoadingFinished();
 
-        SamJw::SoundInit();
-        XP12JwInstance::Initialize();
+        Jetway::SoundInit();
+        Jetway::Initialize();
+        XP12Jetway::Initialize();
     } catch (const std::exception& ex) {
         LogMsg("fatal error: '{}', bye!", ex.what());
         return 0;  // bye
@@ -757,7 +759,7 @@ PLUGIN_API int XPluginStart(char* out_name, char* out_sig, char* out_desc) {
 
     try {
         my_plane->AutoModeSet(prefs.auto_jetway_select);
-        SamJw::Init(max_sam_stands);
+        OsJetway::Initialize(max_sam_stands);
         JwCtrl::Init();
         OsAirport::Init();
         AnimInit();
@@ -853,8 +855,8 @@ PLUGIN_API void XPluginStop(void) {
     dgs::Finalize();
     dgs::plane = nullptr;
     ImgWindow::Finalize();
-    SamJw::Finalize();
-    XP12JwInstance::Finalize();
+    Jetway::Finalize();
+    XP12Jetway::Finalize();
     my_plane = nullptr;
 
     if (!error_disabled) {
@@ -874,7 +876,7 @@ PLUGIN_API void XPluginStop(void) {
 }
 
 PLUGIN_API void XPluginDisable(void) {
-    XP12JwInstance::RemoveAll();
+    XP12Jetway::RemoveAll();
     os_arpt = nullptr;
     adgs_arpt = nullptr;
 

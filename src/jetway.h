@@ -37,17 +37,17 @@ struct Sound {
     int sample_rate;
 };
 
-struct SamJwModel;
-
-// Context of an instantiated jetway, either in sam.xml or zero config per WED within the scenery
-class SamJw {
+// A jetway living somewhere in the X-Plane scenery.
+// These are collected as OsJetway from opensam.xml or configured on the fly from a zero config jetway placed with WED somewhere in
+// the scenery or as XP12Jetway from apt.dat files.
+// .. and once configured jetways never die so we can use raw pointers.
+class Jetway {
    public:
-    enum ClassCode { kSamJw, kXP12Jw };
-
-   protected:
-    ClassCode class_code_{kSamJw};
+    // everything beyond a simple ClassCode pattern seems to be overengineered here
+    enum ClassCode { kOsJw, kXP12Jw };
 
    private:
+    const ClassCode class_code_;
     FMOD_CHANNEL* alert_chn_ = nullptr;
     static Sound alert_;
     static void AlertComplete(void* ref, FMOD_RESULT status);
@@ -58,47 +58,40 @@ class SamJw {
    protected:
     float wheels_adjust_{};      // due to terrain slope
 
+    explicit Jetway(ClassCode class_code) : class_code_(class_code) {}
+
    public:
     ClassCode class_code() const { return class_code_; }
 
-    virtual ~SamJw() = default; // jetways live forever
+    virtual ~Jetway() = default;
 
     static constexpr float kD2R = std::numbers::pi / 180.0;
-    static constexpr float kSam2ObjMax = 2.5;   // m, max delta between coords in sam.xml and object
-    static constexpr float kSam2ObjHdgMax = 5;  // °, likewise for heading
+    static constexpr float kJw2ObjMax = 2.5;   // m, max delta between jw coordinates and actual object
 
     // values fed to the datarefs in the dataref accessor, computed by a JwCtrl
     float rotate1_, rotate2_, rotate3_, extent_, wheels_, wheelrotatec_{}, wheelrotater_{}, wheelrotatel_{}, warnlight_, canopy_, stairrotate_{};
 
-    // These describe placement and use of the jw instance.
-    // They are from opensam.xml or generated for zero config library jetways from scenery objects.
+    // Position and initial placement of the jetway in the scenery
+    // They are from opensam.xml or aptr.dat or generated for zero config library jetways from scenery objects
     double latitude_{}, longitude_{};
+    double altitude_{};  // altitude is determined by terrain probe or XPLMLocalToWorld
+
     float heading_{}, min_rot1_{}, max_rot1_{}, initial_rot1_{}, initial_rot2_{}, initial_rot3_{}, initial_extent_{};
     int door_{};  // 0 = LF1 or default, 1 = LF2
 
-    std::string model_id_;   // geometry model id for this jetway
     std::string base_name_;  // from sam.xml, e.g. "jetway1", "jetway2" or "jetway3"
     std::string name_;       // == base_name_ for sam.xml jetways or fabricated for zero config jetways
-    std::string sound_;
 
     // These geometry values are filled in from the jetways model for the instance
     float height_{}, wheel_pos_{}, cabin_pos_{}, cabin_length_{}, wheel_diameter_{}, wheel_distance_{},
         min_rot2_{}, max_rot2_{}, min_rot3_{}, max_rot3_{}, min_extent_{}, max_extent_{}, stair_pos_{}, stair_length_{};
-    double altitude_{};  // altitude is determined by terrain probe or XPLMLocalToWorld for zero config jetways
 
     // local coordinate values of the actually drawn object
     unsigned int obj_ref_gen_{};  // only valid if this matches the generation # of the ref frame
     double x_, y_, z_;            // Position in meters in local coords
     float psi_;
 
-    bool is_lib_jw_inst_{};  // is an instance of a library jetway
-    // library_id is configured when the jetway comes into view, so that may be delayed
-    int library_id_{};  // id of the library jetway this one is configured from, 0 = none
-
-    bool is_zc_jw_{};         // is a zero config jw
-    bool stand_retrieved_{};  // whether looking for a matching stand for this jw has been attempted
-    bool is_undefined_{};     // whether this jetway is present in the scenery but undefined in opensam.xml
-    bool is_deleted_{};       // whether this jetway instance was deleted by the editor
+    bool is_undefined_{};     // present in the scenery but undefined geometry
 
     // bounding box around the anchor point for quick lookup in quadtree, computed from lat/lon and kSam2ObjMax
     quadtree::Box<double> bbox_;
@@ -110,30 +103,22 @@ class SamJw {
     // set wheels height + stairs angles
     void SetWheelsStairs(bool force_high_precision = false);
 
-    void Reset() {
-        AlertOff();
-        locked_ = 0;
-        lock_pid_ = -1;
-        rotate1_ = initial_rot1_;
-        rotate2_ = initial_rot2_;
-        rotate3_ = initial_rot3_;
-        extent_ = initial_extent_;
-        SetWheelsStairs();
-        warnlight_ = 0;
-        canopy_ = 0;
-    }
+    // Animate the object based on its current state
+    virtual void Animate() = 0;
 
-    // Fill values from a library jetway with numeric id, e.g. from a <library_jw> element in the scenery file
-    void FillLibraryValues(unsigned int id);
+    // reset to initial position, alert off, ...
+    void Reset();
 
-    // Fill geometry values from a model jetway, e.g. from a <local_jw> element in the scenery file
-    void FillModelValues(const SamJwModel& ljw);
+    // sound stuff
+    void AlertOn();
+    void AlertOff();
+    void AlertSetpos();
 
     // for the quadtree...
     void ComputeBbox() {
         static constexpr float kLat2m = 111120;  // 1° lat in m
-        double dlat = SamJw::kSam2ObjMax / kLat2m;
-        double dlon = SamJw::kSam2ObjMax / (kLat2m * std::cos(latitude_ * kD2R));
+        double dlat = kJw2ObjMax / kLat2m;
+        double dlon = kJw2ObjMax / (kLat2m * std::cos(latitude_ * kD2R));
         bbox_ = {longitude_ - dlon, latitude_ - dlat, longitude_ + dlon, latitude_ + dlat};
     }
 
@@ -141,35 +126,15 @@ class SamJw {
     double lat() const { return latitude_; }
     quadtree::Box<double> bounds() const { return bbox_; }
     virtual std::string repr() const { return name_; }
-    bool deleted() const { return is_deleted_; }  // never shows up
-
-    // sound stuff
-    void AlertOn();
-    void AlertOff();
-    void AlertSetpos();
+    virtual bool deleted() const { return false; }  // never shows up
 
     // Initializers and Finaliser
     static void SoundInit();  // inits device and loads wav
-    static void Init(int max_sam_stands);
+    static void Initialize();
     static void Finalize();
 };
 
-// Geometry information of jetway model
-struct SamJwModel {
-    std::string model_id;
-    std::string name;
-    float height{}, wheel_pos{}, cabin_pos{}, cabin_length{}, wheel_diameter{}, wheel_distance{}, min_rot2{}, max_rot2{},
-        min_rot3{}, max_rot3{}, min_extent{}, max_extent{}, stair_pos{}, stair_length{};
-};
-
-// the global quadtree for all sam jetways collected from sam.xml files and zero config jetways
+// the global quadtree for all jetways in the system
 static constexpr int kMaxJwPerNode = 10;
-extern quadtree::LLQuadTree<double, SamJw, kMaxJwPerNode> jw_quadtree;  // for fast lookup by position
-extern std::vector<SamJw*> sam_jw_list;  // for iterating over all jetways, e.g. for resetting them
-
-// library jetways information from all collected libraryjetways.xml files
-// and local <models> <library_jw> elements in the scenery files
-extern std::vector<SamJwModel*> lib_jw;
-
-// from ReadWav.cpp
-extern void ReadWav(const std::string& fname, Sound& sound);
+extern quadtree::LLQuadTree<double, Jetway, kMaxJwPerNode> jw_quadtree;  // for fast lookup by position
+extern std::vector<Jetway*> jw_list;  // for iterating over all jetways, e.g. for resetting them
