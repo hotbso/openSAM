@@ -124,15 +124,15 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
             arpt->stands_.shrink_to_fit();
             std::sort(arpt->stands_.begin(), arpt->stands_.end());
 
-            for (auto& s : arpt->stands_)
-                for (int i = jw_start_idx; i < (int)jetways.size(); i++) {
-                    auto& jw = jetways[i];
+            for (int i = jw_start_idx; i < (int)jetways.size(); i++) {
+                auto& jw = jetways[i];
+                for (auto& s : arpt->stands_)
                     if (fem::len(jw.cabin - fem::LLPos{s.lon, s.lat}) < kJw2Stand) {
                         s.has_xp12_jw = true;
                         jw.stand_name = s.name;
                         break;
                     }
-                }
+            }
 
             total_stands += arpt->stands_.size();
             arpt->scenery_ = sc;

@@ -762,16 +762,14 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways
     } else {
         LogMsg("{} stands with DGS, {} xp12 jetways found in global apt.dat", n_stands, xp12_jetways.size());
         if (manage_xp12_jetways)
-            for (auto& xpjws : xp12_jetways) {
-                float rot2 = fem::RA(xpjws.cabin_hdgt - xpjws.hdgt);
-                if (xpjws.length_code >= 10)
-                    xpjws.length_code %= 10;
+            for (auto& xpjw : xp12_jetways) {
+                float rot2 = fem::RA(xpjw.cabin_hdgt - xpjw.hdgt);
 
                 // LogMsg("{}: ll=({:f},{:f}), psi={:f}, style={}, length_code={}, length={:f}, rot2={:f}",
                 //     arpt_name, lat, lon, psi, (int)style, (int)length_code, length, rot2);
 
-                XP12Jetway* xp12_jw = new XP12Jetway("global", xpjws.stand_name, xpjws.pos.lat, xpjws.pos.lon, xpjws.hdgt, xpjws.style,
-                                                            xpjws.length_code, xpjws.length, rot2);
+                XP12Jetway* xp12_jw = new XP12Jetway("global", xpjw.stand_name, xpjw.pos.lat, xpjw.pos.lon, xpjw.hdgt,
+                                                     xpjw.style, xpjw.length_code, xpjw.length, rot2);
                 xp12_jw->ComputeBbox();
                 jw_list.push_back(xp12_jw);
             }

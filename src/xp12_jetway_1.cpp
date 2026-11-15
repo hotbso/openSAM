@@ -24,12 +24,17 @@
 
 // Constructor goes here in order to avoid linking XPLM into scenery_test.cpp
 
-XP12Jetway::XP12Jetway(const std::string_view arpt_icao, const std::string_view stand_name, double lat,
-                               double lon, float psi, int style, int length_code, float initial_extent,
-                               float initial_rot2)
+XP12Jetway::XP12Jetway(const std::string_view arpt_icao, const std::string_view stand_name, double lat, double lon,
+                       float psi, int style, int length_code, float initial_extent, float initial_rot2)
     : Jetway(kXP12Jw), arpt_icao_(arpt_icao) {
-    base_name_ = stand_name;
-    name_ = base_name_;
+    name_ = stand_name;
+
+    // > 10 = door 2
+    if (length_code >= 10) {
+        length_code %= 10;
+        name_ += "_1";
+    }
+
     style_code_ = style;
     length_code_ = length_code;
 
