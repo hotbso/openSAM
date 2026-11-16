@@ -125,22 +125,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Get XPlane SDK
-        shell: msys2 {0}
-        run: |
-            SDK_VERSION=440
-            # curl -L "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK${SDK_VERSION}.zip" -o XPSDK.zip
-            # unzip XPSDK.zip
-
-            # while in beta, use the beta SDK URL
-            curl -L "https://www.x-plane.com/wp-content/uploads/2026/10/XPSDK440-b4.zip" -o XPSDK-b4.zip
-            unzip XPSDK-b4.zip
-
-            mv SDK ../
-
       - name: Build Windows binaries
         shell: msys2 {0}
         run: |
+            ls -lR SDK
             TAG=${GITHUB_REF##*/}
             if [ -n "$TAG" ]; then
               echo "VERSION=$TAG" > src/version.mak
