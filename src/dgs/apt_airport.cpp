@@ -254,6 +254,14 @@ bool AptAirport::ParseAptDat(const std::string& fn, bool ignore, bool filter_aut
             continue;
         }
 
+        // jetway override
+        // 1501 objects/terminal/jetway2/jetway_2s_3t_14-29.obj
+        if (line.starts_with("1501 ")) {
+            if (!jetways.empty())
+                jetways.back().override_1501 = true;
+            continue;
+        }
+
         // runway
         // 100 45.11 1 0 0.25 0 2 0  17 -15.64371363 -056.12159961 0 55 3 0 0 0 35 -15.66223638 -056.11174395 0 62 3 0 0
         // 0

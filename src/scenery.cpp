@@ -763,6 +763,9 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways
         LogMsg("{} stands with DGS, {} xp12 jetways found in global apt.dat", n_stands, xp12_jetways.size());
         if (manage_xp12_jetways)
             for (auto& xpjw : xp12_jetways) {
+                if (xpjw.override_1501)
+                    continue;
+
                 float rot2 = fem::RA(xpjw.cabin_hdgt - xpjw.hdgt);
 
                 // LogMsg("{}: ll=({:f},{:f}), psi={:f}, style={}, length_code={}, length={:f}, rot2={:f}",

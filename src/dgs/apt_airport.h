@@ -56,15 +56,16 @@ struct AptRunway {
 
 // code 1500 data
 struct AptJetway {
-	flat_earth_math::LLPos pos;
-	float hdgt;
+    flat_earth_math::LLPos pos;
+    float hdgt;
     int style, length_code;
-	float length;
+    float length;
     float cabin_hdgt;
+    bool override_1501{false};  // object override with 1501 record detected
 
     // derived values
     std::string_view stand_name;
-    flat_earth_math::LLPos cabin;    // = pos + length * dir(hdgt)
+    flat_earth_math::LLPos cabin;  // = pos + length * dir(hdgt)
 };
 
 class AptAirport {

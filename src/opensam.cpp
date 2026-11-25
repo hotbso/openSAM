@@ -491,9 +491,7 @@ static int CmdXp12ToggleJwCb([[maybe_unused]] XPLMCommandRef cmdr, XPLMCommandPh
         return 0;
     }
 
-    if (prefs.manage_xp12_jetways)
-        return 0;
-
+    // determine if the active stand has an (unmanaged) XP12 jetway
     bool has_xp12_jw = false;
     if (adgs_arpt)
         has_xp12_jw = adgs_arpt->active_stand_has_xp12_jw();
