@@ -139,18 +139,15 @@ void Stand::CheckRefFrame() {
     }
 
     if (dgs_position_set_) {
-        XPLMWorldToLocal(dgs_lat_, dgs_lon_, dgs_altitude_, &x_, &y_, &z_);
-        drawinfo_.x = x_;
-        drawinfo_.y = y_;
-        drawinfo_.z = z_;
+        XPLMWorldToLocal(dgs_lat_, dgs_lon_, dgs_altitude_, &drawinfo_.x, &drawinfo_.y, &drawinfo_.z);
         if (dgs_)
             dgs_->SetPos(drawinfo_);
     }
 }
 
+// transform local coordinates into stand local coordinate system
 void Stand::Local2Stand(double x, double z, float& x_stand_local, float& z_stand_local) {
     CheckRefFrame();
-    // transform into stand local coordinate system
 
     // xlate + rotate into stand frame
     // float: double precision not needed for local stand coordinates, a few 100m max
@@ -234,10 +231,10 @@ void Airport::FindNearestStand() {
             if (s.is_wet_)
                 continue;
 
-            // heading in local system
-            float local_hdgt = fem::RA(plane_hdgt - s.hdgt());
+            // heading in stand local system
+            float sl_hdgt = fem::RA(plane_hdgt - s.hdgt());
 
-            if (fabsf(local_hdgt) > 90.0f)
+            if (std::abs(sl_hdgt) > 90.0f)
                 continue;  // not looking to stand
 
             // transform into gate local coordinate system
@@ -246,7 +243,7 @@ void Airport::FindNearestStand() {
 
             // nose wheel
             float nw_z = z_sl - plane->nw_z_;
-            float nw_x = x_sl + plane->nw_z_ * std::sin(kD2R * local_hdgt);
+            float nw_x = x_sl + plane->nw_z_ * std::sin(kD2R * sl_hdgt);
 
             float d = std::hypot(nw_x, nw_z);
             if (d > kCapZ + 50)  // fast exit
@@ -261,17 +258,17 @@ void Airport::FindNearestStand() {
             }
 
             if (nw_z > 10.0) {
-                float angle = atan(nw_x / nw_z) / kD2R;
+                float angle = std::atan(nw_x / nw_z) / kD2R;
                 // LogMsg("angle to plane: {}, {:3.1f}", s.name(), angle);
 
                 // check whether plane is in a +-60° sector relative to stand
-                if (fabsf(angle) > 60.0)
+                if (std::abs(angle) > 60.0)
                     continue;
 
                 // drive-by and beyond a +- 60° sector relative to plane's direction
-                float rel_to_stand = fem::RA(-angle - local_hdgt);
-                // LogMsg("rel_to_stand: {}, nw_x: {:0.1f}, local_hdgt {:0.1f}, rel_to_stand: {:0.1f}", s.name(), nw_x,
-                //     local_hdgt, rel_to_stand);
+                float rel_to_stand = fem::RA(-angle - sl_hdgt);
+                // LogMsg("rel_to_stand: {}, nw_x: {:0.1f}, sl_hdgt {:0.1f}, rel_to_stand: {:0.1f}", s.name(), nw_x,
+                //     sl_hdgt, rel_to_stand);
                 if ((nw_x > 10.0 && rel_to_stand < -60.0) || (nw_x < -10.0 && rel_to_stand > 60.0)) {
                     // LogMsg("drive by {}", s.name());
                     continue;
@@ -280,7 +277,7 @@ void Airport::FindNearestStand() {
 
             // for the final comparison give xtrack a higher weight + consider heading deviation
             static constexpr float xtrack_weight = 4.0;
-            d = std::hypot(xtrack_weight * nw_x, nw_z) + std::abs(local_hdgt);
+            d = std::hypot(xtrack_weight * nw_x, nw_z) + std::abs(sl_hdgt);
 
             if (d < dist) {
                 // LogMsg("new min: {}, z: {:2.1f}, x: {:2.1f}", s.name(), nw_z, nw_x);
@@ -478,34 +475,32 @@ float Airport::StateMachine() {
     Stand& as = *stands_[active_stand_];
 
     // xform plane pos into stand local coordinate system
-    float dx = XPLMGetDataf(plane_x_dr) - as.x_;
-    float dz = XPLMGetDataf(plane_z_dr) - as.z_;
-    float local_x =  as.cos_hdgt_ * dx + as.sin_hdgt_ * dz;
-    float local_z = -as.sin_hdgt_ * dx + as.cos_hdgt_ * dz;
+    float plane_sl_x, plane_sl_z;
+    as.Local2Stand(XPLMGetDatad(plane_x_dr), XPLMGetDatad(plane_z_dr), plane_sl_x, plane_sl_z);
 
     // relative heading in stand local system +/ 180°
-    float local_hdgt = fem::RA(XPLMGetDataf(plane_true_psi_dr) - as.hdgt());
+    float sl_hdgt = fem::RA(XPLMGetDataf(plane_true_psi_dr) - as.hdgt());
 
     // nose wheel
-    float nw_z = local_z - plane->nw_z_;
-    float nw_x = local_x + plane->nw_z_ * std::sin(kD2R * local_hdgt);
+    float nw_z = plane_sl_z - plane->nw_z_;
+    float nw_x = plane_sl_x + plane->nw_z_ * std::sin(kD2R * sl_hdgt);
 
     // main wheel pos on logitudinal axis
-    float mw_z = local_z - plane->mw_z_;
-    float mw_x = local_x + plane->mw_z_ * std::sin(kD2R * local_hdgt);
+    float mw_z = plane_sl_z - plane->mw_z_;
+    float mw_x = plane_sl_x + plane->mw_z_ * std::sin(kD2R * sl_hdgt);
 
     // ref pos on logitudinal axis of acf blending from mw to nw as we come closer
     // should be nw if dist is below 6 m
-    float a = std::clamp((nw_z - kAziCrossover) / 20.0, 0.0, 1.0);
-    float plane_ref_z = (1.0 - a) * plane->nw_z_ + a * plane->mw_z_;
-    float ref_z = local_z - plane_ref_z;
-    float ref_x = local_x + plane_ref_z * std::sin(kD2R * local_hdgt);
+    float a = std::clamp((nw_z - kAziCrossover) / 20.0f, 0.0f, 1.0f);
+    float plane_ref_z = (1.0f - a) * plane->nw_z_ + a * plane->mw_z_;
+    float ref_z = plane_sl_z - plane_ref_z;
+    float ref_x = plane_sl_x + plane_ref_z * std::sin(kD2R * sl_hdgt);
 
     float xtrack = 0.0;  // xtrack for VDGS, set later if needed
 
     float azimuth_nw;
     if (nw_z > 0)
-        azimuth_nw = atanf(nw_x / (nw_z + 5.0f)) / kD2R;
+        azimuth_nw = std::atan(nw_x / (nw_z + 5.0f)) / kD2R;
     else
         azimuth_nw = 0.0;
 
@@ -570,7 +565,7 @@ float Airport::StateMachine() {
             if (ref_z > kAziCrossover) {
                 // far, aim to an intermediate point between ref point and stand
                 float req_hdgt = std::atan2(-ref_x, 0.3f * ref_z) / kD2R;  // required hdgt
-                float d_hdgt = req_hdgt - local_hdgt;  // degrees to turn
+                float d_hdgt = req_hdgt - sl_hdgt;  // degrees to turn
                 if (d_hdgt < -1.5f)
                     dgs_params_.lr = kTurnLeft;
                 else if (d_hdgt > 1.5f)
@@ -578,10 +573,10 @@ float Airport::StateMachine() {
 
                 if (now > update_dgs_log_ts_ + 2.0f)
                     LogMsg(
-                        "req_hdgt: {:0.1f}, local_hdgt: {:0.1f}, d_hdgt: {:0.1f}, mw: ({:0.1f}, {:0.1f}), nw: ({:0.1f}, {:0.1f}), "
+                        "req_hdgt: {:0.1f}, sl_hdgt: {:0.1f}, d_hdgt: {:0.1f}, mw: ({:0.1f}, {:0.1f}), nw: ({:0.1f}, {:0.1f}), "
                         "ref: ({:0.1f}, {:0.1f}), "
                         "x: {:0.1f}, ",
-                        req_hdgt, local_hdgt, d_hdgt, mw_x, mw_z, nw_x, nw_z, ref_x, ref_z, local_x);
+                        req_hdgt, sl_hdgt, d_hdgt, mw_x, mw_z, nw_x, nw_z, ref_x, ref_z, plane_sl_x);
 
             } else {
                 // close, use xtrack
