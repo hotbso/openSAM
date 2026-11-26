@@ -320,7 +320,8 @@ const AptAirport *AptAirport::LocateAirport(const fem::LLPos& pos) {
     std::array<dgs::AptAirport*, kMaxAirportsPerNode> found_airports;
     int depth;
 
-    unsigned int n_found = apt_quadtree_.Find(pos.lon, pos.lat, found_airports, /* filter */ nullptr, &depth);
+    int n_found =
+        apt_quadtree_.Find(pos.lon, pos.lat, found_airports, [](const AptAirport* a) { return !a->ignore_; }, &depth);
     if (n_found == 0) {
         LogMsg("sorry, {:0.8f},{:0.8f} is not on an AptAirport", pos.lat, pos.lon);
         return nullptr;
@@ -328,11 +329,10 @@ const AptAirport *AptAirport::LocateAirport(const fem::LLPos& pos) {
 
     if (n_found > 1) {
         LogMsg("warning, {} airports found at {:0.8f},{:0.8f}, taking first one", n_found, pos.lat, pos.lon);
-        for (unsigned int i = 0; i < n_found; i++) {
+        for (int i = 0; i < n_found; i++) {
             const dgs::AptAirport* a = found_airports[i];
             LogMsg("Found airport '{}' at {:0.8f},{:0.8f}", a->icao_, pos.lat, pos.lon);
         }
-        n_found = 1;
     }
 
     AptAirport* arpt = found_airports[0];

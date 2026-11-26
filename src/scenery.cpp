@@ -707,19 +707,16 @@ void Scenery::CollectSceneries(const SceneryPacks& scp, bool manage_xp12_jetways
         // read stands from apt.dat
         int n_stands = 0;
 
-        bool have_apt{false};
-        if (is_opensam) {
-            // will be used with openSAM personality
-            have_apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", /* ignore */ false,
-                                               /* filter_autodgs */ false, xp12_jetways, n_stands, sc);
-        } else {
+        bool ignore{false};
+        if (!is_opensam) {
             // will be used with AutoDGS personality
-            bool ignore = (std::filesystem::exists(sc_path + "no_autodgs") ||
-                           std::filesystem::exists(sc_path + "no_autodgs.txt"));
-            have_apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore, /* filter_autodgs */ true,
-                                               xp12_jetways, n_stands, sc);
+            std::error_code ec;  // don't throw on error, just check existence
+            ignore = (std::filesystem::exists(sc_path + "no_autodgs", ec) ||
+                      std::filesystem::exists(sc_path + "no_autodgs.txt", ec));
         }
 
+        bool have_apt = dgs::AptAirport::ParseAptDat(sc_path + "Earth nav data/apt.dat", ignore,
+                                                     /* filter_autodgs = */ !is_opensam, xp12_jetways, n_stands, sc);
         if (!have_apt) {
             delete sc;
             continue;
