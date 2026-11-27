@@ -235,8 +235,8 @@ static void OpenSamParseJetways(const pugi::xml_node& sc_node, Scenery* sc) {
         jw->longitude_ = jetway.attribute("longitude").as_float(0.0f);
         jw->heading_ = jetway.attribute("heading").as_float(0.0f);
         jw->door_ = jetway.attribute("door").as_int(0);
-        jw->initial_rot1_ = jetway.attribute("min_rot1").as_float(-90.0f);
-        jw->initial_rot2_ = jetway.attribute("max_rot1").as_float(90.0f);
+        jw->min_rot1_ = jetway.attribute("min_rot1").as_float(-90.0f);
+        jw->max_rot1_ = jetway.attribute("max_rot1").as_float(90.0f);
         jw->initial_rot1_ = jetway.attribute("initial_rot1").as_float(0.0f);
         jw->initial_rot2_ = jetway.attribute("initial_rot2").as_float(0.0f);
         jw->initial_rot3_ = jetway.attribute("initial_rot3").as_float(0.0f);
@@ -263,9 +263,6 @@ static void OpenSamParseJetways(const pugi::xml_node& sc_node, Scenery* sc) {
 
             jw->wheel_diameter_ = jwm->wheel_diameter;
             jw->wheel_distance_ = jwm->wheel_distance;
-
-            jw->min_rot1_ = -90.0f;
-            jw->max_rot1_ = 90.0f;
 
             jw->min_rot2_ = jwm->min_rot2;
             jw->max_rot2_ = jwm->max_rot2;
